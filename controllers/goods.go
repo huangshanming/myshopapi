@@ -1,9 +1,12 @@
 package controllers
-import utils
+
+import "mymall/utils"
+import "github.com/gin-gonic/gin"
 
 type GoodsController struct {
 }
 
 func (ctrl *GoodsController) GetGoodsList(c *gin.Context) {
-	utils.SuccessResponse(c, "hello world")
+	data := make(map[string]interface{})
+	utils.SuccessResponse(c, data, "hello world")
 }

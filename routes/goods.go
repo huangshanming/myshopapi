@@ -1,8 +1,15 @@
 package routes
 
-func RegisterGoodsRouter(router *gin.Engine) {
+import (
+	"github.com/gin-gonic/gin"
+	"mymall/controllers"
+)
+
+func RegisterGoodsRouter(router *gin.RouterGroup) {
 	// 获取商品列表
-	api := router.GROUP("/goods") {
+	controllers := new(controllers.GoodsController)
+	api := router.Group("/goods")
+	{
 		api.GET("/list", controllers.GetGoodsList)
 	}
 }

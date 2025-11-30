@@ -13,8 +13,10 @@ func InitRouter() *gin.Engine {
 }
 
 func registerAPIRoutes(router *gin.Engine) {
-	api := router.GROUP("/api") {
-		v1 := api.GOUNP("v1") {
+	api := router.Group("/api")
+	{
+		v1 := api.Group("/v1")
+		{
 			RegisterGoodsRouter(v1)
 		}
 	}
