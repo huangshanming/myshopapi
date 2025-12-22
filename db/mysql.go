@@ -1,45 +1,51 @@
 package db
 
-import "database/sql"
-import "time"
-import "log"
-import "fmt"
-import "github.com/spf13/viper"
+import (
+	"log"
+	"time"
 
-var MySQL *sql.DB
+	"fmt"
+	"github.com/spf13/viper"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
+)
 
+// 全局 GORM DB 实例（替代原来的 *sql.DB）
+var GormDB *gorm.DB
+
+// MySQLConfig 仍复用原有结构体，与 config.yaml 对应
 type MySQLConfig struct {
-	Username        int    `mapstructure:"username"`           // 数据库用户名
-	Password        string `mapstructure:"password"`           // 数据库密码
-	Host            string `mapstructure:"host"`               // 数据库地址
-	Port            int    `mapstructure:"port"`               // 数据库端口
-	Dbname          string `mapstructure:"dbname"`             // 数据库名
-	Charset         string `mapstructure:"charset"`            // 字符集
-	MaxOpenConns    int    `mapstructure:"max_open_conns"`     // 最大打开连接数
-	MaxIdleConns    int    `mapstructure:"max_idle_conns"`     // 最大空闲连接数
-	ConnMaxLifetime int    `mapstructure:"conn_max_lifetime"`  // 连接最大存活时间（秒）
-	ConnMaxIdleTime int    `mapstructure:"conn_max_idle_time"` // 连接最大空闲时间（秒）
+	Username        string `mapstructure:"username"` // 注意：用户名应为 string 类型（之前代码中是 int，需修正！）
+	Password        string `mapstructure:"password"`
+	Host            string `mapstructure:"host"`
+	Port            int    `mapstructure:"port"`
+	Dbname          string `mapstructure:"dbname"`
+	Charset         string `mapstructure:"charset"`
+	MaxOpenConns    int    `mapstructure:"max_open_conns"`
+	MaxIdleConns    int    `mapstructure:"max_idle_conns"`
+	ConnMaxLifetime int    `mapstructure:"conn_max_lifetime"`
+	ConnMaxIdleTime int    `mapstructure:"conn_max_idle_time"`
 }
 
-// InitMySQL 整合：读取config.yaml配置 + 初始化MySQL连接池
-func InitMySQL() {
-	// 1. 读取根目录config.yaml配置文件
-	viper.SetConfigFile("./config.yaml") // 指定配置文件路径（根目录）
-	viper.SetConfigType("yaml")          // 指定配置文件格式
-
-	// 读取配置文件
+// InitGormMySQL 初始化 GORM MySQL 连接
+func InitGormMySQL() {
+	// 1. 读取 config.yaml 配置
+	viper.SetConfigFile("./config.yaml")
+	viper.SetConfigType("yaml")
 	if err := viper.ReadInConfig(); err != nil {
-		log.Fatalf("读取config.yaml失败：%v", err)
+		log.Fatalf("读取 config.yaml 失败：%v", err)
 	}
 
-	// 2. 将yaml中的mysql配置解析到MySQLConfig结构体
+	// 2. 解析配置到结构体
 	var mysqlCfg MySQLConfig
 	if err := viper.UnmarshalKey("mysql", &mysqlCfg); err != nil {
-		log.Fatalf("解析mysql配置失败：%v", err)
+		log.Fatalf("解析 mysql 配置失败：%v", err)
 	}
 
-	// 3. 构建MySQL DSN连接字符串（根据配置动态拼接）
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&parseTime=True&loc=Local",
+	// 3. 构建 GORM MySQL DSN（格式与原生一致）
+	dsn := "%s:%s@tcp(%s:%d)/%s?charset=%s&parseTime=True&loc=Local"
+	dsn = fmt.Sprintf(dsn,
 		mysqlCfg.Username,
 		mysqlCfg.Password,
 		mysqlCfg.Host,
@@ -48,35 +54,44 @@ func InitMySQL() {
 		mysqlCfg.Charset,
 	)
 
-	// 4. 初始化MySQL连接池
-	db, err := sql.Open("mysql", dsn)
+	// 4. 初始化 GORM 连接
+	gormConfig := &gorm.Config{
+		// 日志配置：开发环境显示 SQL 语句，生产环境可关闭
+		Logger: logger.Default.LogMode(logger.Info),
+	}
+	db, err := gorm.Open(mysql.Open(dsn), gormConfig)
 	if err != nil {
-		log.Fatalf("初始化MySQL连接池失败：%v", err)
+		log.Fatalf("GORM 连接 MySQL 失败：%v", err)
 	}
 
-	// 5. 配置连接池参数（从配置文件读取，无需硬编码）
-	db.SetMaxOpenConns(mysqlCfg.MaxOpenConns)
-	db.SetMaxIdleConns(mysqlCfg.MaxIdleConns)
-	db.SetConnMaxLifetime(time.Duration(mysqlCfg.ConnMaxLifetime) * time.Second)
-	db.SetConnMaxIdleTime(time.Duration(mysqlCfg.ConnMaxIdleTime) * time.Second)
-
-	// 6. 验证连接是否有效
-	if err := db.Ping(); err != nil {
-		log.Fatalf("MySQL连接验证失败：%v", err)
+	// 5. 配置连接池（与原生 sql.DB 一致，GORM 底层复用了 sql.DB）
+	sqlDB, err := db.DB()
+	if err != nil {
+		log.Fatalf("获取 GORM 底层 sql.DB 失败：%v", err)
 	}
+	// 设置连接池参数
+	sqlDB.SetMaxOpenConns(mysqlCfg.MaxOpenConns)
+	sqlDB.SetMaxIdleConns(mysqlCfg.MaxIdleConns)
+	sqlDB.SetConnMaxLifetime(time.Duration(mysqlCfg.ConnMaxLifetime) * time.Second)
+	sqlDB.SetConnMaxIdleTime(time.Duration(mysqlCfg.ConnMaxIdleTime) * time.Second)
 
-	// 7. 赋值给全局DB实例
-	MySQL = db
-	log.Println("MySQL连接池初始化成功（配置来自config.yaml）")
+	// 6. 赋值全局 GORM 实例
+	GormDB = db
+	log.Println("GORM MySQL 连接池初始化成功（配置来自 config.yaml）")
 }
 
-// CloseMySQL 关闭数据库连接池（项目退出时调用）
-func CloseMySQL() {
-	if MySQL != nil {
-		if err := MySQL.Close(); err != nil {
-			log.Printf("关闭MySQL连接池失败：%v", err)
+// CloseGormMySQL 关闭 GORM 连接池
+func CloseGormMySQL() {
+	if GormDB != nil {
+		sqlDB, err := GormDB.DB()
+		if err != nil {
+			log.Printf("获取 GORM 底层 sql.DB 失败：%v", err)
+			return
+		}
+		if err := sqlDB.Close(); err != nil {
+			log.Printf("关闭 GORM MySQL 连接池失败：%v", err)
 		} else {
-			log.Println("MySQL连接池已关闭")
+			log.Println("GORM MySQL 连接池已关闭")
 		}
 	}
 }

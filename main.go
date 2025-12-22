@@ -7,10 +7,11 @@ import "os"
 import "log"
 import "net/http"
 import "os/signal"
+import "syscall"
 
 func main() {
-	db.InitMySQL()
-	defer db.CloseMySQL()
+	db.InitGormMySQL()
+	defer db.CloseGormMySQL()
 	router := routes.InitRouter()
 	fmt.Println("Hello World")
 
