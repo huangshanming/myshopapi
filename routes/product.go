@@ -6,10 +6,10 @@ import (
 	"mymall/middleware"
 )
 
-func RegisterGoodsRouter(router *gin.RouterGroup) {
+func RegisterProductsRouter(router *gin.RouterGroup) {
 	// 获取商品列表
 	controllers := new(controllers.GoodsController)
-	api := router.Group("/goods").Use(middleware.JWTAuth())
+	api := router.Group("/products").Use(middleware.JWTAuth())
 	{
 		api.GET("/list", controllers.GetGoodsList)
 	}

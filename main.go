@@ -13,6 +13,7 @@ func main() {
 	db.InitGormMySQL()
 	defer db.CloseGormMySQL()
 	router := routes.InitRouter()
+
 	fmt.Println("Hello World")
 
 	// 3. 启动服务与优雅关机
@@ -22,7 +23,6 @@ func main() {
 		}
 	}()
 	log.Println("Gin服务启动成功，监听端口8080")
-
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
