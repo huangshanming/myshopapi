@@ -3,14 +3,13 @@ package routes
 import (
 	"github.com/gin-gonic/gin"
 	"mymall/controllers"
-	"mymall/middleware"
 )
 
 func RegisterProductsRouter(router *gin.RouterGroup) {
 	// 获取商品列表
-	controllers := new(controllers.GoodsController)
-	api := router.Group("/products").Use(middleware.JWTAuth())
+	controllers := new(controllers.ProductsController)
+	api := router.Group("/products")
 	{
-		api.GET("/list", controllers.GetGoodsList)
+		api.GET("/list", controllers.GetList)
 	}
 }
