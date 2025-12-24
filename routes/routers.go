@@ -5,12 +5,13 @@ import (
 )
 import (
 	"github.com/gin-contrib/cors"
+	"mymall/middleware"
 	"time"
 )
 
 func InitRouter() *gin.Engine {
 	router := gin.Default()
-
+	router.Use(middleware.ExtractPageReq())
 	// 第一步：先注册跨域中间件（必须在路由注册之前）
 	router.Use(cors.New(cors.Config{
 		AllowOrigins: []string{"http://localhost:5173",

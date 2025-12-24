@@ -3,8 +3,10 @@ package dao
 import (
 	"fmt"
 	"gorm.io/gorm"
+	"mymall/common"
 	"mymall/db"
 	"mymall/models"
+	"mymall/utils"
 )
 
 // UserDAO 仍保持原有结构，仅修改内部实现
@@ -12,10 +14,7 @@ type ProductDAO struct{}
 
 var ProductDao = &ProductDAO{}
 
-func (d *ProductDAO) GetList(page int) map[string]interface{} {
-	var product model.Product
-	pagesize := 20
-	offset := (page - 1) * pagesize
+func (d *ProductDAO) GetList(page *common.PageReq) map[string]interface{} {
 	var res = make(map[string]interface{})
 	res["total"] = 0
 	res["data"] = []string{}
@@ -27,14 +26,14 @@ func (d *ProductDAO) GetList(page int) map[string]interface{} {
 	if total == 0 {
 		return res
 	}
-	result := db.GormDB.Model(&model.Product{}).Where("status = ?", "on_sale").Limit(pagesize).Offset(offset).Find(&product)
-	fmt.Println(result.Error)
-	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
+	gormDb := db.GormDB.Model(&model.Product{}).Where("status = ?", "on_sale")
+	result, err := utils.Paginate[model.Product](gormDb, page)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
 			return res
 		}
 		return res
 	}
-	res["data"] = product
+	res["data"] = result
 	return res
 }
