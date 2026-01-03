@@ -27,7 +27,7 @@ func Paginate[T any](db *gorm.DB, pageReq *common.PageReq) (*common.PageRes[T], 
 	)
 
 	// 3. 查询总记录数（自动忽略Offset/Limit，仅统计符合业务条件的总条数）
-	if err := db.Model(new(T)).Count(&total).Error; err != nil {
+	if err := db.Count(&total).Error; err != nil {
 		return nil, err
 	}
 

@@ -27,7 +27,7 @@ func (d *ProductDAO) GetList(page *common.PageReq) map[string]interface{} {
 		return res
 	}
 	gormDb := db.GormDB.Model(&model.Product{}).Where("status = ?", "on_sale")
-	result, err := utils.Paginate[model.Product](gormDb, page)
+	result, err := utils.Paginate[model.ProductListResp](gormDb, page)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return res
@@ -36,4 +36,12 @@ func (d *ProductDAO) GetList(page *common.PageReq) map[string]interface{} {
 	}
 	res["data"] = result
 	return res
+}
+
+func (d *ProductDAO) GetDetail(id uint64) *model.Product {
+	var product model.Product
+	if err := db.GormDB.Model(&model.Product{}).Where("id = ?", id).First(&product).Error; err != nil {
+		return nil
+	}
+	return &product
 }
