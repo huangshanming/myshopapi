@@ -37,6 +37,7 @@ func registerAPIRoutes(router *gin.Engine) {
 		{
 			RegisterGoodsRouter(v1)
 			RegisterProductsRouter(v1)
+			RegisterUserRouter(v1)
 		}
 	}
 }
