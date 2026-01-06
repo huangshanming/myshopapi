@@ -22,3 +22,16 @@ func (ctrl *UsersController) Login(c *gin.Context) {
 	return
 
 }
+
+func (ctrl *UsersController) Register(c *gin.Context) {
+	mobile := c.PostForm("mobile")
+	password := c.PostForm("password")
+	data, err := dao.UserDao.Register(mobile, password)
+	if data.ID == 0 {
+		ctrl.Error(c, err, 0)
+		return
+	}
+	ctrl.Success(c, data, "注册成功")
+	return
+
+}

@@ -11,5 +11,6 @@ func RegisterUserRouter(router *gin.RouterGroup) {
 	api := router.Group("/user")
 	{
 		api.POST("/login", user_controllers.Login)
+		api.POST("/register", user_controllers.Register)
 	}
 }

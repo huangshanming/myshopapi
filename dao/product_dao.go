@@ -1,7 +1,6 @@
 package dao
 
 import (
-	"fmt"
 	"gorm.io/gorm"
 	"mymall/common"
 	"mymall/db"
@@ -22,7 +21,6 @@ func (d *ProductDAO) GetList(page *common.PageReq) map[string]interface{} {
 	if err := db.GormDB.Model(&model.Product{}).Count(&total).Error; err != nil {
 		return res
 	}
-	fmt.Println(total)
 	if total == 0 {
 		return res
 	}
