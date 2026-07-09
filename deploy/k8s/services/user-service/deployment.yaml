@@ -1,31 +1,52 @@
-# 过渡期：单体应用，Phase 1 拆微服务后替换为独立 Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mymall-api
+  name: user-service
   namespace: mymall
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: mymall-api
+      app: user-service
   template:
     metadata:
       labels:
-        app: mymall-api
+        app: user-service
     spec:
       containers:
-        - name: mymall-api
-          image: mymall-api:local
+        - name: user-service
+          image: mymall-user-service:local
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8888
           env:
+            - name: CONFIG_PATH
+              value: /app/config.yaml
+            - name: MYMALL_MYSQL_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: mymall-mysql
+                  key: host
+            - name: MYMALL_MYSQL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mymall-mysql
+                  key: username
+            - name: MYMALL_MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mymall-mysql
+                  key: password
             - name: MYMALL_JWT_SECRET
               valueFrom:
                 secretKeyRef:
                   name: mymall-jwt-auth
                   key: secret
+            - name: MYMALL_JWT_CONSUMER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: mymall-jwt-auth
+                  key: key
           volumeMounts:
             - name: config
               mountPath: /app/config.yaml
@@ -46,4 +67,4 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: mymall-config
+            name: user-service-config

@@ -38,7 +38,6 @@ func registerAPIRoutes(router *gin.Engine) {
 	{
 		v1 := api.Group("/v1")
 		{
-			RegisterGoodsRouter(v1)
 			RegisterProductsRouter(v1)
 			RegisterUserRouter(v1)
 		}

@@ -20,25 +20,15 @@ spec:
         enable: true
         type: jwtAuth
 
-    - name: orders
-      match:
-        paths:
-          - /api/v1/orders
-          - /api/v1/orders/*
-        methods:
-          - GET
-          - POST
-          - PUT
-          - DELETE
-      backends:
-        - serviceName: order-service
-          servicePort: 8888
-      authentication:
-        enable: true
-        type: jwtAuth
-      plugins:
-        - name: limit-req
-          enable: true
-          config:
-            rate: 10
-            burst: 20
+    # order-service 尚未实现，Phase 3 启用
+    # - name: orders
+    #   match:
+    #     paths:
+    #       - /api/v1/orders
+    #       - /api/v1/orders/*
+    #   backends:
+    #     - serviceName: order-service
+    #       servicePort: 8888
+    #   authentication:
+    #     enable: true
+    #     type: jwtAuth

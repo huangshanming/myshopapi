@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog-service
+  namespace: mymall
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: catalog-service
+  template:
+    metadata:
+      labels:
+        app: catalog-service
+    spec:
+      containers:
+        - name: catalog-service
+          image: mymall-catalog-service:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8888
+          env:
+            - name: CONFIG_PATH
+              value: /app/config.yaml
+            - name: MYMALL_MYSQL_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: mymall-mysql
+                  key: host
+            - name: MYMALL_MYSQL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mymall-mysql
+                  key: username
+            - name: MYMALL_MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mymall-mysql
+                  key: password
+            - name: MYMALL_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: mymall-jwt-auth
+                  key: secret
+            - name: MYMALL_JWT_CONSUMER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: mymall-jwt-auth
+                  key: key
+          volumeMounts:
+            - name: config
+              mountPath: /app/config.yaml
+              subPath: config.yaml
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8888
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8888
+            initialDelaySeconds: 15
+            periodSeconds: 20
+      volumes:
+        - name: config
+          configMap:
+            name: catalog-service-config

@@ -1,23 +1,13 @@
-module mymall
+module mymall/services/user-service
 
 go 1.24
 
-replace (
-	golang.org/x/arch => github.com/golang/arch v0.20.0
-	golang.org/x/crypto => github.com/golang/crypto v0.40.0
-	golang.org/x/mod => github.com/golang/mod v0.25.0
-	golang.org/x/net => github.com/golang/net v0.42.0
-	golang.org/x/text => github.com/golang/text v0.27.0
-	golang.org/x/tools => github.com/golang/tools v0.34.0
-)
+replace mymall => ../..
 
 require (
-	github.com/gin-contrib/cors v1.7.6
 	github.com/gin-gonic/gin v1.11.0
-	github.com/golang-jwt/jwt/v5 v5.3.0
-	github.com/spf13/viper v1.21.0
-	gorm.io/driver/mysql v1.6.0
 	gorm.io/gorm v1.31.1
+	mymall v0.0.0
 )
 
 require (
@@ -35,6 +25,7 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/goccy/go-yaml v1.18.0 // indirect
+	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -51,6 +42,7 @@ require (
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
+	github.com/spf13/viper v1.21.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.0 // indirect
@@ -58,11 +50,12 @@ require (
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/arch v0.20.0 // indirect
 	golang.org/x/crypto v0.40.0 // indirect
-	golang.org/x/mod v0.25.0 // indirect
+	golang.org/x/mod v0.26.0 // indirect
 	golang.org/x/net v0.42.0 // indirect
 	golang.org/x/sync v0.16.0 // indirect
 	golang.org/x/sys v0.35.0 // indirect
 	golang.org/x/text v0.28.0 // indirect
-	golang.org/x/tools v0.34.0 // indirect
+	golang.org/x/tools v0.35.0 // indirect
 	google.golang.org/protobuf v1.36.9 // indirect
+	gorm.io/driver/mysql v1.6.0 // indirect
 )

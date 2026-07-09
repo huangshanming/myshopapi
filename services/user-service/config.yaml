@@ -1,0 +1,19 @@
+server:
+  http_port: 8881
+  mode: debug
+mysql:
+  host: 127.0.0.1
+  port: 3306
+  username: homestead
+  password: secret
+  charset: utf8mb4
+  dbname: user_db
+  max_open_conns: 50
+  max_idle_conns: 10
+  conn_max_lifetime: 3600
+  conn_max_idle_time: 3600
+jwt:
+  secret: fsdfascwegrgtecqwerty
+  consumer_key: mymall-user-key
+  expire_hours: 24
+  issuer: mymall

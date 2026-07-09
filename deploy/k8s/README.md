@@ -1,60 +1,85 @@
-# K8s 部署说明
+# K8s 微服务部署说明
+
+## 架构
+
+```text
+user-service Pod     → 本机 MySQL user_db     (host.docker.internal:3306)
+catalog-service Pod  → 本机 MySQL catalog_db (host.docker.internal:3306)
+```
+
+MySQL **不在 K8s 内运行**，使用本机数据库；上线阿里云时只需改 ConfigMap 中 `mysql.host` 为 RDS 地址。
 
 ## 目录结构
 
 ```text
 deploy/k8s/
 ├── namespace.yaml
-├── secrets/
-│   └── mymall-jwt-auth.yaml
-├── infra/mysql/          # MySQL 数据库
-├── services/mymall/      # 过渡期单体 Deployment
-├── services/user-service/    # Service（指向 mymall-api）
-├── services/catalog-service/   # Service（指向 mymall-api）
-└── services/order-service/     # Service（占位，指向 mymall-api）
+├── secrets/mymall-jwt-auth.yaml
+├── services/user-service/      # Deployment + Service + ConfigMap
+└── services/catalog-service/
 ```
 
-## 当前状态（过渡期）
+## 配置说明
 
-微服务尚未拆分，采用 **一个 Deployment + 多个 Service 名称** 的方式，让 APISIX 路由能正常工作。Phase 1 拆完后再替换为独立 Deployment。
+| 类型 | 资源 | 内容 |
+|---|---|---|
+| **Secret** | `mymall-mysql` | host、username、password（敏感） |
+| **Secret** | `mymall-jwt-auth` | JWT secret、consumer key（敏感） |
+| **ConfigMap** | `user-service-config` | 端口、dbname、连接池等非敏感配置 |
+| **ConfigMap** | `catalog-service-config` | 同上，dbname 为 `catalog_db` |
 
-## 部署步骤
+Deployment 通过环境变量 `MYMALL_MYSQL_*`、`MYMALL_JWT_*` 注入 Secret，覆盖 ConfigMap 中的空值（[`pkg/config/config.go`](../../pkg/config/config.go) 已支持 viper env 覆盖）。
+
+## 首次准备
+
+1. 在本机 MySQL 执行数据库拆分：
 
 ```bash
-# 1. 确保 K8s 集群 Ready
+mysql -u homestead -p < scripts/migrate-db.sql
+```
+
+2. 确保 MySQL 允许 Docker 访问（`bind-address = 0.0.0.0`，用户有 `@'%'` 权限）
+
+## 部署
+
+```bash
 kubectl get nodes
-
-# 2. 部署 MySQL + 应用
 bash deploy/k8s/apply.sh
-
-# 3. 部署 APISIX 路由（需先安装 APISIX Ingress Controller）
-bash deploy/apisix/apply.sh
+bash deploy/apisix/apply.sh   # APISIX 已安装时
 ```
 
-## 手动分步部署
+## 本机开发（不用 K8s）
 
 ```bash
-kubectl apply -f deploy/k8s/namespace.yaml
-kubectl apply -f deploy/k8s/secrets/
-kubectl apply -f deploy/k8s/infra/mysql/
-docker build -t mymall-api:local .
-kubectl apply -f deploy/k8s/services/mymall/
-kubectl apply -f deploy/k8s/services/user-service/
-kubectl apply -f deploy/k8s/services/catalog-service/
-kubectl apply -f deploy/k8s/services/order-service/
+bash scripts/dev-run.sh
+# user-service    → http://localhost:8881
+# catalog-service → http://localhost:8882
 ```
 
-## 验证
+## 验证服务隔离
 
 ```bash
-kubectl get pods -n mymall
-kubectl port-forward svc/user-service 8888:8888 -n mymall
-curl http://localhost:8888/healthz
-curl http://localhost:8888/api/v1/products/list
+kubectl port-forward svc/user-service 8881:8888 -n mymall
+curl http://localhost:8881/healthz
+curl http://localhost:8881/api/v1/products/list    # 404
+
+kubectl port-forward svc/catalog-service 8882:8888 -n mymall
+curl http://localhost:8882/api/v1/products/list    # 200
+curl http://localhost:8882/api/v1/user/login       # 404
 ```
 
-## 注意事项
+## 上线阿里云 RDS
 
-- 镜像名 `mymall-api:local` 需在本地 Docker 中 build，Docker Desktop K8s 可直接使用
-- MySQL 首次启动需等待约 30~60 秒
-- 数据库表需自行导入或迁移（项目未含 AutoMigrate）
+1. 更新 Secret（不改 ConfigMap）：
+
+```bash
+kubectl create secret generic mymall-mysql -n mymall \
+  --from-literal=host=rm-xxxxx.mysql.rds.aliyuncs.com \
+  --from-literal=username=mymall \
+  --from-literal=password='your-rds-password' \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+kubectl rollout restart deployment/user-service deployment/catalog-service -n mymall
+```
+
+2. 镜像推送到 ACR 后更新 Deployment 中 `image` 字段。
