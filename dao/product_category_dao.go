@@ -3,9 +3,9 @@ package dao
 import (
 	"fmt"
 	"gorm.io/gorm"
-	"mymall/common"
 	"mymall/db"
 	"mymall/models"
+	"mymall/pkg/pagination"
 	"mymall/utils"
 )
 
@@ -14,8 +14,8 @@ type ProductCategoryDAO struct{}
 
 var ProductCategoryDao = &ProductCategoryDAO{}
 
-func (d *ProductCategoryDAO) GetList(page *common.PageReq) *common.PageRes[model.ProductCategory] {
-	var res = new(common.PageRes[model.ProductCategory])
+func (d *ProductCategoryDAO) GetList(page *pagination.PageReq) *pagination.PageRes[model.ProductCategory] {
+	var res = new(pagination.PageRes[model.ProductCategory])
 	res.Total = 0
 	var total int64
 	if err := db.GormDB.Model(&model.ProductCategory{}).Count(&total).Error; err != nil {

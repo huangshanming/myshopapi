@@ -1,0 +1,12 @@
+# APISIX JWT Consumer，与 user-service 签发的 Token 对应
+# Token payload 须包含 "key": "mymall-user-key"，由 pkg/jwt 自动写入
+apiVersion: apisix.apache.org/v2
+kind: ApisixConsumer
+metadata:
+  name: mymall-user
+  namespace: mymall
+spec:
+  authParameter:
+    jwtAuth:
+      secretRef:
+        name: mymall-jwt-auth

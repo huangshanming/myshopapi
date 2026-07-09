@@ -16,11 +16,9 @@ func (ctrl *UsersController) Login(c *gin.Context) {
 	if data.ID == 0 {
 		ctrl.Error(c, "检验失败", 0)
 		return
-
 	}
 	ctrl.Success(c, data, "查询成功")
 	return
-
 }
 
 func (ctrl *UsersController) Register(c *gin.Context) {

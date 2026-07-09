@@ -1,0 +1,12 @@
+# 过渡期：指向同一套 mymall-api Pod，供 APISIX 路由 user 相关接口
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+  namespace: mymall
+spec:
+  selector:
+    app: mymall-api
+  ports:
+    - port: 8888
+      targetPort: 8888

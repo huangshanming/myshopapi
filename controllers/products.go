@@ -1,10 +1,13 @@
 package controllers
 
-import "github.com/gin-gonic/gin"
-import "mymall/dao"
-import "mymall/common"
-import "strconv"
-import "fmt"
+import (
+	"fmt"
+	"mymall/dao"
+	"mymall/pkg/pagination"
+	"strconv"
+
+	"github.com/gin-gonic/gin"
+)
 
 type ProductsController struct {
 	BaseController
@@ -12,7 +15,7 @@ type ProductsController struct {
 
 func (ctrl *ProductsController) GetList(c *gin.Context) {
 	pageReq, _ := c.Get("pageReq")
-	req := pageReq.(*common.PageReq)
+	req := pageReq.(*pagination.PageReq)
 	data := dao.ProductDao.GetList(req)
 	ctrl.Success(c, data, "查询成功")
 	return

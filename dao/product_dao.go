@@ -2,9 +2,9 @@ package dao
 
 import (
 	"gorm.io/gorm"
-	"mymall/common"
 	"mymall/db"
 	"mymall/models"
+	"mymall/pkg/pagination"
 	"mymall/utils"
 )
 
@@ -13,7 +13,7 @@ type ProductDAO struct{}
 
 var ProductDao = &ProductDAO{}
 
-func (d *ProductDAO) GetList(page *common.PageReq) map[string]interface{} {
+func (d *ProductDAO) GetList(page *pagination.PageReq) map[string]interface{} {
 	var res = make(map[string]interface{})
 	res["total"] = 0
 	res["data"] = []string{}

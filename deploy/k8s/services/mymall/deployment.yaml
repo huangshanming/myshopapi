@@ -1,0 +1,49 @@
+# 过渡期：单体应用，Phase 1 拆微服务后替换为独立 Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mymall-api
+  namespace: mymall
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mymall-api
+  template:
+    metadata:
+      labels:
+        app: mymall-api
+    spec:
+      containers:
+        - name: mymall-api
+          image: mymall-api:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8888
+          env:
+            - name: MYMALL_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: mymall-jwt-auth
+                  key: secret
+          volumeMounts:
+            - name: config
+              mountPath: /app/config.yaml
+              subPath: config.yaml
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8888
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8888
+            initialDelaySeconds: 15
+            periodSeconds: 20
+      volumes:
+        - name: config
+          configMap:
+            name: mymall-config

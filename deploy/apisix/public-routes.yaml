@@ -1,0 +1,50 @@
+# 公开路由（无需 JWT）
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: mymall-public-routes
+  namespace: mymall
+spec:
+  http:
+    - name: user-auth
+      match:
+        paths:
+          - /api/v1/user/login
+          - /api/v1/user/register
+        methods:
+          - POST
+      backends:
+        - serviceName: user-service
+          servicePort: 8888
+      plugins:
+        - name: cors
+          enable: true
+          config:
+            allow_origins: "http://localhost:5173,http://127.0.0.1:5173"
+            allow_methods: "GET,POST,PUT,DELETE,OPTIONS"
+            allow_headers: "*"
+            allow_credential: true
+        - name: limit-req
+          enable: true
+          config:
+            rate: 5
+            burst: 10
+
+    - name: catalog-read
+      match:
+        paths:
+          - /api/v1/products/*
+          - /api/v1/product_category/*
+        methods:
+          - GET
+      backends:
+        - serviceName: catalog-service
+          servicePort: 8888
+      plugins:
+        - name: cors
+          enable: true
+          config:
+            allow_origins: "http://localhost:5173,http://127.0.0.1:5173"
+            allow_methods: "GET,POST,PUT,DELETE,OPTIONS"
+            allow_headers: "*"
+            allow_credential: true

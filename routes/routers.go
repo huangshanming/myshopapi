@@ -11,6 +11,9 @@ import (
 
 func InitRouter() *gin.Engine {
 	router := gin.Default()
+	router.GET("/healthz", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
+	})
 	router.Use(middleware.ExtractPageReq())
 	// 第一步：先注册跨域中间件（必须在路由注册之前）
 	router.Use(cors.New(cors.Config{

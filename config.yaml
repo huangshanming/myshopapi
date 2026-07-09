@@ -1,3 +1,6 @@
+server:
+  http_port: 8087
+  mode: debug
 mysql:
   host: localhost
   port: 3306
@@ -11,3 +14,6 @@ mysql:
   conn_max_idle_time: 3600
 jwt:
   secret: fsdfascwegrgtecqwerty
+  consumer_key: mymall-user-key
+  expire_hours: 24
+  issuer: mymall

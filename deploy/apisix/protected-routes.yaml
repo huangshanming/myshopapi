@@ -1,0 +1,44 @@
+# 需要 JWT 鉴权的路由示例（profile、orders 等）
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: mymall-protected-routes
+  namespace: mymall
+spec:
+  http:
+    - name: user-profile
+      match:
+        paths:
+          - /api/v1/user/profile
+        methods:
+          - GET
+          - PUT
+      backends:
+        - serviceName: user-service
+          servicePort: 8888
+      authentication:
+        enable: true
+        type: jwtAuth
+
+    - name: orders
+      match:
+        paths:
+          - /api/v1/orders
+          - /api/v1/orders/*
+        methods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+      backends:
+        - serviceName: order-service
+          servicePort: 8888
+      authentication:
+        enable: true
+        type: jwtAuth
+      plugins:
+        - name: limit-req
+          enable: true
+          config:
+            rate: 10
+            burst: 20

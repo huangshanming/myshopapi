@@ -1,0 +1,12 @@
+# 占位：order 模块尚未实现，先指向 mymall-api 避免 APISIX 路由报错
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-service
+  namespace: mymall
+spec:
+  selector:
+    app: mymall-api
+  ports:
+    - port: 8888
+      targetPort: 8888

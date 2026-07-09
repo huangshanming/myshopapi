@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mymall-config
+  namespace: mymall
+data:
+  config.yaml: |
+    server:
+      http_port: 8888
+      mode: release
+    mysql:
+      host: mysql
+      port: 3306
+      username: homestead
+      password: secret
+      charset: utf8mb4
+      dbname: mymall
+      max_open_conns: 50
+      max_idle_conns: 10
+      conn_max_lifetime: 3600
+      conn_max_idle_time: 3600
+    jwt:
+      secret: fsdfascwegrgtecqwerty
+      consumer_key: mymall-user-key
+      expire_hours: 24
+      issuer: mymall
