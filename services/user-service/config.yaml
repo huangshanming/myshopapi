@@ -1,5 +1,6 @@
 server:
   http_port: 8881
+  grpc_port: 9090
   mode: debug
 mysql:
   host: 127.0.0.1
@@ -17,3 +18,7 @@ jwt:
   consumer_key: mymall-user-key
   expire_hours: 24
   issuer: mymall
+telemetry:
+  enabled: false
+  endpoint: jaeger-collector.mymall:4318
+  service: user-service

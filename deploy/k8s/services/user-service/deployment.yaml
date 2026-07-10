@@ -19,6 +19,7 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8888
+            - containerPort: 9090
           env:
             - name: CONFIG_PATH
               value: /app/config.yaml
@@ -54,7 +55,7 @@ spec:
               readOnly: true
           readinessProbe:
             httpGet:
-              path: /healthz
+              path: /readyz
               port: 8888
             initialDelaySeconds: 5
             periodSeconds: 10

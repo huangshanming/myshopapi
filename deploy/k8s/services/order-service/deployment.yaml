@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+  namespace: mymall
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: order-service
+  template:
+    metadata:
+      labels:
+        app: order-service
+    spec:
+      containers:
+        - name: order-service
+          image: mymall-order-service:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8888
+          env:
+            - name: CONFIG_PATH
+              value: /app/config.yaml
+            - name: MYMALL_MYSQL_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: mymall-mysql
+                  key: host
+            - name: MYMALL_MYSQL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mymall-mysql
+                  key: username
+            - name: MYMALL_MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mymall-mysql
+                  key: password
+            - name: MYMALL_RABBITMQ_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: mymall-rabbitmq
+                  key: host
+            - name: MYMALL_RABBITMQ_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mymall-rabbitmq
+                  key: username
+            - name: MYMALL_RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mymall-rabbitmq
+                  key: password
+          volumeMounts:
+            - name: config
+              mountPath: /app/config.yaml
+              subPath: config.yaml
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8888
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8888
+            initialDelaySeconds: 15
+            periodSeconds: 20
+      volumes:
+        - name: config
+          configMap:
+            name: order-service-config

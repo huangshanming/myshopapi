@@ -7,6 +7,7 @@ WORKDIR /app
 COPY go.mod go.sum ./
 COPY pkg/ pkg/
 COPY common/ common/
+COPY api/ api/
 COPY services/user-service/ services/user-service/
 
 WORKDIR /app/services/user-service
@@ -17,5 +18,6 @@ FROM alpine:3.19
 RUN apk add --no-cache ca-certificates tzdata
 WORKDIR /app
 COPY --from=builder /user-service /app/user-service
-EXPOSE 8888
+COPY services/user-service/config.yaml /app/config.yaml
+EXPOSE 8888 9090
 CMD ["/app/user-service"]

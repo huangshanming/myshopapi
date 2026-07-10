@@ -1,4 +1,3 @@
-# 非敏感配置；username/password/host 从 Secret 注入
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -8,6 +7,7 @@ data:
   config.yaml: |
     server:
       http_port: 8888
+      grpc_port: 9090
       mode: release
     mysql:
       port: 3306
@@ -17,6 +17,13 @@ data:
       max_idle_conns: 10
       conn_max_lifetime: 3600
       conn_max_idle_time: 3600
-    jwt:
-      expire_hours: 24
-      issuer: mymall
+    redis:
+      port: 6379
+      db: 0
+    rabbitmq:
+      port: 5672
+      vhost: /
+      exchange: mymall.events
+    telemetry:
+      enabled: false
+      service: catalog-service

@@ -1,0 +1,24 @@
+# Redis + RabbitMQ（仅基础设施，不含微服务）
+# 完整一键启动请用: bash scripts/start-all.sh
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: mymall
+      RABBITMQ_DEFAULT_PASS: mymall
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+volumes:
+  redis_data:
+  rabbitmq_data:

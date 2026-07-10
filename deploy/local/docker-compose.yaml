@@ -1,0 +1,100 @@
+# 本机一键启动：Redis + RabbitMQ + 三个微服务（Docker 打包）
+# 用法: docker compose -f deploy/local/docker-compose.yaml up -d --build
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: mymall
+      RABBITMQ_DEFAULT_PASS: mymall
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  user-service:
+    build:
+      context: ../..
+      dockerfile: services/user-service/Dockerfile
+    image: mymall-user-service:local
+    ports:
+      - "8881:8888"
+      - "9090:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      MYMALL_SERVER_HTTP_PORT: "8888"
+      MYMALL_SERVER_GRPC_PORT: "9090"
+      MYMALL_MYSQL_HOST: host.docker.internal
+      MYMALL_MYSQL_PORT: "3306"
+      MYMALL_MYSQL_USERNAME: homestead
+      MYMALL_MYSQL_PASSWORD: secret
+      MYMALL_MYSQL_DBNAME: user_db
+      MYMALL_JWT_SECRET: fsdfascwegrgtecqwerty
+      MYMALL_JWT_CONSUMER_KEY: mymall-user-key
+
+  catalog-service:
+    build:
+      context: ../..
+      dockerfile: services/catalog-service/Dockerfile
+    image: mymall-catalog-service:local
+    ports:
+      - "8882:8888"
+      - "9091:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - redis
+      - rabbitmq
+    environment:
+      MYMALL_SERVER_HTTP_PORT: "8888"
+      MYMALL_SERVER_GRPC_PORT: "9090"
+      MYMALL_MYSQL_HOST: host.docker.internal
+      MYMALL_MYSQL_PORT: "3306"
+      MYMALL_MYSQL_USERNAME: homestead
+      MYMALL_MYSQL_PASSWORD: secret
+      MYMALL_MYSQL_DBNAME: catalog_db
+      MYMALL_REDIS_HOST: redis
+      MYMALL_REDIS_PORT: "6379"
+      MYMALL_RABBITMQ_HOST: rabbitmq
+      MYMALL_RABBITMQ_PORT: "5672"
+      MYMALL_RABBITMQ_USERNAME: mymall
+      MYMALL_RABBITMQ_PASSWORD: mymall
+
+  order-service:
+    build:
+      context: ../..
+      dockerfile: services/order-service/Dockerfile
+    image: mymall-order-service:local
+    ports:
+      - "8883:8888"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - rabbitmq
+      - user-service
+      - catalog-service
+    environment:
+      MYMALL_SERVER_HTTP_PORT: "8888"
+      MYMALL_MYSQL_HOST: host.docker.internal
+      MYMALL_MYSQL_PORT: "3306"
+      MYMALL_MYSQL_USERNAME: homestead
+      MYMALL_MYSQL_PASSWORD: secret
+      MYMALL_MYSQL_DBNAME: order_db
+      MYMALL_GRPC_USER_SERVICE: user-service:9090
+      MYMALL_GRPC_CATALOG_SERVICE: catalog-service:9090
+      MYMALL_RABBITMQ_HOST: rabbitmq
+      MYMALL_RABBITMQ_PORT: "5672"
+      MYMALL_RABBITMQ_USERNAME: mymall
+      MYMALL_RABBITMQ_PASSWORD: mymall
+
+volumes:
+  redis_data:
+  rabbitmq_data:

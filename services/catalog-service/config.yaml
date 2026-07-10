@@ -1,5 +1,6 @@
 server:
   http_port: 8882
+  grpc_port: 9091
   mode: debug
 mysql:
   host: 127.0.0.1
@@ -12,8 +13,19 @@ mysql:
   max_idle_conns: 10
   conn_max_lifetime: 3600
   conn_max_idle_time: 3600
-jwt:
-  secret: fsdfascwegrgtecqwerty
-  consumer_key: mymall-user-key
-  expire_hours: 24
-  issuer: mymall
+redis:
+  host: 127.0.0.1
+  port: 6379
+  password: ""
+  db: 0
+rabbitmq:
+  host: 127.0.0.1
+  port: 5672
+  username: mymall
+  password: mymall
+  vhost: /
+  exchange: mymall.events
+telemetry:
+  enabled: false
+  endpoint: jaeger-collector.mymall:4318
+  service: catalog-service

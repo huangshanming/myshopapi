@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package catalog.v1;
+
+option go_package = "mymall/api/gen/catalog/v1;catalogv1";
+
+service CatalogService {
+  rpc BatchGetProducts(BatchGetProductsRequest) returns (BatchGetProductsResponse);
+  rpc ReserveStock(ReserveStockRequest) returns (ReserveStockResponse);
+  rpc ReleaseStock(ReleaseStockRequest) returns (ReleaseStockResponse);
+}
+
+message BatchGetProductsRequest {
+  repeated uint64 product_ids = 1;
+}
+
+message Product {
+  uint64 id = 1;
+  string product_no = 2;
+  string name = 3;
+  double sale_price = 4;
+  int32 stock = 5;
+  string status = 6;
+}
+
+message BatchGetProductsResponse {
+  repeated Product products = 1;
+}
+
+message StockItem {
+  uint64 product_id = 1;
+  int32 quantity = 2;
+}
+
+message ReserveStockRequest {
+  string order_no = 1;
+  repeated StockItem items = 2;
+}
+
+message ReserveStockResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message ReleaseStockRequest {
+  string order_no = 1;
+  repeated StockItem items = 2;
+}
+
+message ReleaseStockResponse {
+  bool success = 1;
+  string message = 2;
+}

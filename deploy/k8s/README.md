@@ -3,83 +3,79 @@
 ## 架构
 
 ```text
-user-service Pod     → 本机 MySQL user_db     (host.docker.internal:3306)
-catalog-service Pod  → 本机 MySQL catalog_db (host.docker.internal:3306)
-```
+APISIX Gateway
+    ├── user-service     (HTTP :8888, gRPC :9090) → user_db
+    ├── catalog-service  (HTTP :8888, gRPC :9090) → catalog_db + Redis + MQ
+    └── order-service    (HTTP :8888)              → order_db + MQ + gRPC client
 
-MySQL **不在 K8s 内运行**，使用本机数据库；上线阿里云时只需改 ConfigMap 中 `mysql.host` 为 RDS 地址。
+本机基础设施（Pod 经 host.docker.internal 访问）:
+  MySQL :3306 | Redis :6379 | RabbitMQ :5672
+```
 
 ## 目录结构
 
 ```text
 deploy/k8s/
 ├── namespace.yaml
-├── secrets/mymall-jwt-auth.yaml
-├── services/user-service/      # Deployment + Service + ConfigMap
-└── services/catalog-service/
+├── secrets/           # mysql / jwt / redis / rabbitmq
+├── services/
+│   ├── user-service/
+│   ├── catalog-service/
+│   └── order-service/
+└── observability/     # Jaeger 骨架
 ```
-
-## 配置说明
-
-| 类型 | 资源 | 内容 |
-|---|---|---|
-| **Secret** | `mymall-mysql` | host、username、password（敏感） |
-| **Secret** | `mymall-jwt-auth` | JWT secret、consumer key（敏感） |
-| **ConfigMap** | `user-service-config` | 端口、dbname、连接池等非敏感配置 |
-| **ConfigMap** | `catalog-service-config` | 同上，dbname 为 `catalog_db` |
-
-Deployment 通过环境变量 `MYMALL_MYSQL_*`、`MYMALL_JWT_*` 注入 Secret，覆盖 ConfigMap 中的空值（[`pkg/config/config.go`](../../pkg/config/config.go) 已支持 viper env 覆盖）。
 
 ## 首次准备
 
-1. 在本机 MySQL 执行数据库拆分：
-
 ```bash
+# 1. 建库
 mysql -u homestead -p < scripts/migrate-db.sql
-```
+mysql -u homestead -p order_db < scripts/init-order-tables.sql
 
-2. 确保 MySQL 允许 Docker 访问（`bind-address = 0.0.0.0`，用户有 `@'%'` 权限）
+# 2. 启动 Redis + RabbitMQ（可选）
+docker compose -f deploy/local/docker-compose.infra.yaml up -d
+
+# 3. 生成 gRPC 代码（修改 proto 后）
+bash scripts/generate-proto.sh
+```
 
 ## 部署
 
 ```bash
-kubectl get nodes
 bash deploy/k8s/apply.sh
-bash deploy/apisix/apply.sh   # APISIX 已安装时
+bash deploy/apisix/install.sh   # 首次安装 APISIX
+bash deploy/apisix/apply.sh
+kubectl apply -f deploy/k8s/observability/jaeger.yaml   # 可选
+
+kubectl port-forward svc/apisix-gateway -n mymall 9080:80
 ```
 
 ## 本机开发（不用 K8s）
 
 ```bash
 bash scripts/dev-run.sh
-# user-service    → http://localhost:8881
-# catalog-service → http://localhost:8882
+# user-service    → http://localhost:8881  (gRPC :9090)
+# catalog-service → http://localhost:8882  (gRPC :9091)
+# order-service   → http://localhost:8883
 ```
 
-## 验证服务隔离
+下单 API 需携带 `X-User-Id` Header（经 APISIX 时由 JWT 自动注入）。
 
-```bash
-kubectl port-forward svc/user-service 8881:8888 -n mymall
-curl http://localhost:8881/healthz
-curl http://localhost:8881/api/v1/products/list    # 404
+## 全链路验证
 
-kubectl port-forward svc/catalog-service 8882:8888 -n mymall
-curl http://localhost:8882/api/v1/products/list    # 200
-curl http://localhost:8882/api/v1/user/login       # 404
+```text
+注册 → 登录 → 浏览商品 → 下单 → 查订单 → 取消 → 库存回滚
 ```
 
-## 上线阿里云 RDS
+经 APISIX `:9080` 或本机直连各服务端口。
 
-1. 更新 Secret（不改 ConfigMap）：
+## Secret 说明
 
-```bash
-kubectl create secret generic mymall-mysql -n mymall \
-  --from-literal=host=rm-xxxxx.mysql.rds.aliyuncs.com \
-  --from-literal=username=mymall \
-  --from-literal=password='your-rds-password' \
-  --dry-run=client -o yaml | kubectl apply -f -
+| Secret | 内容 |
+|---|---|
+| `mymall-mysql` | host、username、password |
+| `mymall-jwt-auth` | JWT secret、consumer key |
+| `mymall-redis` | host、password |
+| `mymall-rabbitmq` | host、username、password |
 
-kubectl rollout restart deployment/user-service deployment/catalog-service -n mymall
-```
-
-2. 镜像推送到 ACR 后更新 Deployment 中 `image` 字段。
+Deployment 通过 `MYMALL_*` 环境变量注入，覆盖 ConfigMap 占位符。

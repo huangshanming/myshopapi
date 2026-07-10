@@ -9,13 +9,18 @@ import (
 )
 
 type Config struct {
-	Server ServerConfig `mapstructure:"server"`
-	MySQL  MySQLConfig  `mapstructure:"mysql"`
-	JWT    JWTConfig    `mapstructure:"jwt"`
+	Server   ServerConfig   `mapstructure:"server"`
+	MySQL    MySQLConfig    `mapstructure:"mysql"`
+	JWT      JWTConfig      `mapstructure:"jwt"`
+	Redis    RedisConfig    `mapstructure:"redis"`
+	RabbitMQ RabbitMQConfig `mapstructure:"rabbitmq"`
+	GRPC     GRPCConfig     `mapstructure:"grpc"`
+	Telemetry TelemetryConfig `mapstructure:"telemetry"`
 }
 
 type ServerConfig struct {
 	HTTPPort int    `mapstructure:"http_port"`
+	GRPCPort int    `mapstructure:"grpc_port"`
 	Mode     string `mapstructure:"mode"`
 }
 
@@ -39,6 +44,33 @@ type JWTConfig struct {
 	Issuer      string `mapstructure:"issuer"`
 }
 
+type RedisConfig struct {
+	Host     string `mapstructure:"host"`
+	Port     int    `mapstructure:"port"`
+	Password string `mapstructure:"password"`
+	DB       int    `mapstructure:"db"`
+}
+
+type RabbitMQConfig struct {
+	Host     string `mapstructure:"host"`
+	Port     int    `mapstructure:"port"`
+	Username string `mapstructure:"username"`
+	Password string `mapstructure:"password"`
+	Vhost    string `mapstructure:"vhost"`
+	Exchange string `mapstructure:"exchange"`
+}
+
+type GRPCConfig struct {
+	UserService    string `mapstructure:"user_service"`
+	CatalogService string `mapstructure:"catalog_service"`
+}
+
+type TelemetryConfig struct {
+	Enabled  bool   `mapstructure:"enabled"`
+	Endpoint string `mapstructure:"endpoint"`
+	Service  string `mapstructure:"service"`
+}
+
 func (c MySQLConfig) DSN() string {
 	return fmt.Sprintf(
 		"%s:%s@tcp(%s:%d)/%s?charset=%s&parseTime=True&loc=Local",
@@ -49,6 +81,15 @@ func (c MySQLConfig) DSN() string {
 		c.Dbname,
 		c.Charset,
 	)
+}
+
+func (c RedisConfig) Addr() string {
+	return fmt.Sprintf("%s:%d", c.Host, c.Port)
+}
+
+func (c RabbitMQConfig) URL() string {
+	return fmt.Sprintf("amqp://%s:%s@%s:%d/%s",
+		c.Username, c.Password, c.Host, c.Port, strings.TrimPrefix(c.Vhost, "/"))
 }
 
 func Load(path string) (*Config, error) {
@@ -80,6 +121,9 @@ func (c *Config) applyDefaults() {
 	if c.Server.HTTPPort == 0 {
 		c.Server.HTTPPort = 8087
 	}
+	if c.Server.GRPCPort == 0 {
+		c.Server.GRPCPort = 9090
+	}
 	if c.Server.Mode == "" {
 		c.Server.Mode = "debug"
 	}
@@ -106,5 +150,23 @@ func (c *Config) applyDefaults() {
 	}
 	if c.JWT.ConsumerKey == "" {
 		c.JWT.ConsumerKey = "mymall-user-key"
+	}
+	if c.Redis.Port == 0 {
+		c.Redis.Port = 6379
+	}
+	if c.RabbitMQ.Port == 0 {
+		c.RabbitMQ.Port = 5672
+	}
+	if c.RabbitMQ.Vhost == "" {
+		c.RabbitMQ.Vhost = "/"
+	}
+	if c.RabbitMQ.Exchange == "" {
+		c.RabbitMQ.Exchange = "mymall.events"
+	}
+	if c.GRPC.UserService == "" {
+		c.GRPC.UserService = "localhost:9090"
+	}
+	if c.GRPC.CatalogService == "" {
+		c.GRPC.CatalogService = "localhost:9091"
 	}
 }

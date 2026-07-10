@@ -1,0 +1,28 @@
+server:
+  http_port: 8883
+  mode: debug
+mysql:
+  host: 127.0.0.1
+  port: 3306
+  username: homestead
+  password: secret
+  charset: utf8mb4
+  dbname: order_db
+  max_open_conns: 50
+  max_idle_conns: 10
+  conn_max_lifetime: 3600
+  conn_max_idle_time: 3600
+grpc:
+  user_service: localhost:9090
+  catalog_service: localhost:9091
+rabbitmq:
+  host: 127.0.0.1
+  port: 5672
+  username: mymall
+  password: mymall
+  vhost: /
+  exchange: mymall.events
+telemetry:
+  enabled: false
+  endpoint: jaeger-collector.mymall:4318
+  service: order-service

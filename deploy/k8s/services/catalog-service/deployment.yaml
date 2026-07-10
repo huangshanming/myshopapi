@@ -19,6 +19,7 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8888
+            - containerPort: 9090
           env:
             - name: CONFIG_PATH
               value: /app/config.yaml
@@ -37,16 +38,31 @@ spec:
                 secretKeyRef:
                   name: mymall-mysql
                   key: password
-            - name: MYMALL_JWT_SECRET
+            - name: MYMALL_REDIS_HOST
               valueFrom:
                 secretKeyRef:
-                  name: mymall-jwt-auth
-                  key: secret
-            - name: MYMALL_JWT_CONSUMER_KEY
+                  name: mymall-redis
+                  key: host
+            - name: MYMALL_REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: mymall-jwt-auth
-                  key: key
+                  name: mymall-redis
+                  key: password
+            - name: MYMALL_RABBITMQ_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: mymall-rabbitmq
+                  key: host
+            - name: MYMALL_RABBITMQ_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mymall-rabbitmq
+                  key: username
+            - name: MYMALL_RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mymall-rabbitmq
+                  key: password
           volumeMounts:
             - name: config
               mountPath: /app/config.yaml
@@ -54,7 +70,7 @@ spec:
               readOnly: true
           readinessProbe:
             httpGet:
-              path: /healthz
+              path: /readyz
               port: 8888
             initialDelaySeconds: 5
             periodSeconds: 10
