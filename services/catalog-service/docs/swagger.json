@@ -1,0 +1,467 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "商品与分类查询",
+        "title": "mymall 商品服务 API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:9080",
+    "basePath": "/",
+    "paths": {
+        "/api/v1/product_category/detail": {
+            "get": {
+                "description": "根据分类 ID 查询详情",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "分类"
+                ],
+                "summary": "分类详情",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "分类 ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "查询成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/apidoc.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.CategoryDetailResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/product_category/list": {
+            "get": {
+                "description": "分页查询商品分类",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "分类"
+                ],
+                "summary": "分类列表",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "页码",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "每页数量",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "查询成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/apidoc.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.CategoryListResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/products/detail": {
+            "get": {
+                "description": "根据商品 ID 查询详情",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "商品"
+                ],
+                "summary": "商品详情",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "商品 ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "查询成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/apidoc.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.ProductDetail"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/products/list": {
+            "get": {
+                "description": "分页查询在售商品",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "商品"
+                ],
+                "summary": "商品列表",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "页码",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "每页数量",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "查询成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/apidoc.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.ProductListResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "apidoc.Response": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer",
+                    "example": 200
+                },
+                "data": {},
+                "msg": {
+                    "type": "string",
+                    "example": "success"
+                }
+            }
+        },
+        "dto.CategoryDetailResp": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string",
+                    "example": "2026-01-01 12:00:00"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "image": {
+                    "type": "string"
+                },
+                "is_show": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "level": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "name": {
+                    "type": "string",
+                    "example": "猫粮"
+                },
+                "parent_id": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "product_count": {
+                    "type": "integer",
+                    "example": 10
+                },
+                "sort_order": {
+                    "type": "integer",
+                    "example": 0
+                }
+            }
+        },
+        "dto.CategoryItem": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string",
+                    "example": "2026-01-01 12:00:00"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "image": {
+                    "type": "string"
+                },
+                "is_show": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "level": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "name": {
+                    "type": "string",
+                    "example": "猫粮"
+                },
+                "parent_id": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "product_count": {
+                    "type": "integer",
+                    "example": 10
+                },
+                "sort_order": {
+                    "type": "integer",
+                    "example": 0
+                }
+            }
+        },
+        "dto.CategoryListResp": {
+            "type": "object",
+            "properties": {
+                "list": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.CategoryItem"
+                    }
+                },
+                "page": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "page_size": {
+                    "type": "integer",
+                    "example": 10
+                },
+                "total": {
+                    "type": "integer",
+                    "example": 20
+                },
+                "total_page": {
+                    "type": "integer",
+                    "example": 2
+                }
+            }
+        },
+        "dto.ProductDetail": {
+            "type": "object",
+            "properties": {
+                "category_id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "created_at": {
+                    "type": "string",
+                    "example": "2026-01-01 12:00:00"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "main_image": {
+                    "type": "string"
+                },
+                "market_price": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "猫粮 10kg"
+                },
+                "pet_type": {
+                    "type": "string",
+                    "example": "cat"
+                },
+                "product_no": {
+                    "type": "string",
+                    "example": "P20260001"
+                },
+                "sale_price": {
+                    "type": "number",
+                    "example": 159
+                },
+                "status": {
+                    "type": "string",
+                    "example": "on_sale"
+                },
+                "stock": {
+                    "type": "integer",
+                    "example": 100
+                },
+                "subtitle": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.ProductListItem": {
+            "type": "object",
+            "properties": {
+                "category_id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "created_at": {
+                    "type": "string",
+                    "example": "2026-01-01 12:00:00"
+                },
+                "discount": {
+                    "type": "number",
+                    "example": 100
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "is_hot": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "is_new": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "is_recommend": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "main_image": {
+                    "type": "string",
+                    "example": "https://example.com/img.jpg"
+                },
+                "market_price": {
+                    "type": "number",
+                    "example": 199
+                },
+                "name": {
+                    "type": "string",
+                    "example": "猫粮 10kg"
+                },
+                "pet_type": {
+                    "type": "string",
+                    "example": "cat"
+                },
+                "product_no": {
+                    "type": "string",
+                    "example": "P20260001"
+                },
+                "sale_price": {
+                    "type": "number",
+                    "example": 159
+                },
+                "sold_count": {
+                    "type": "integer",
+                    "example": 10
+                },
+                "status": {
+                    "type": "string",
+                    "example": "on_sale"
+                },
+                "stock": {
+                    "type": "integer",
+                    "example": 100
+                },
+                "subtitle": {
+                    "type": "string",
+                    "example": "全年龄段"
+                }
+            }
+        },
+        "dto.ProductListResp": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ProductListItem"
+                    }
+                },
+                "total": {
+                    "type": "integer",
+                    "example": 100
+                }
+            }
+        }
+    }
+}

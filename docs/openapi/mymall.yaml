@@ -1,0 +1,729 @@
+openapi: 3.0.3
+info:
+  title: mymall 商城 API
+  description: '宠物商城 REST API（user + catalog + order 合并文档）。
+
+
+    统一响应 `{code, msg, data}`，code=200 表示业务成功。
+
+    经 APISIX 网关: http://localhost:9080
+
+    本地直连: user :8881, catalog :8882, order :8883'
+  version: 1.0.0
+  contact:
+    name: mymall
+servers:
+- url: http://localhost:9080
+  description: APISIX 网关 / 本地
+tags:
+- name: 用户
+  description: 注册、登录、个人资料
+- name: 商品
+  description: 商品列表与详情
+- name: 分类
+  description: 商品分类
+- name: 订单
+  description: 下单、查单、取消
+paths:
+  /api/v1/user/login:
+    post:
+      summary: 用户登录
+      description: 手机号 + 密码登录，返回 JWT Token
+      tags:
+      - 用户
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/apidoc.Response'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/dto.LoginResp'
+      requestBody:
+        required: true
+        description: 登录参数
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/dto.LoginReq'
+  /api/v1/user/profile:
+    get:
+      summary: 获取个人资料
+      description: 需要 JWT 鉴权
+      tags:
+      - 用户
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/apidoc.Response'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/dto.UserProfileResp'
+      security:
+      - BearerAuth: []
+  /api/v1/user/register:
+    post:
+      summary: 用户注册
+      description: 手机号注册新用户
+      tags:
+      - 用户
+      responses:
+        '200':
+          description: 注册成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/apidoc.Response'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/dto.UserInfo'
+      requestBody:
+        required: true
+        description: 注册参数
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/dto.RegisterReq'
+  /api/v1/product_category/detail:
+    get:
+      summary: 分类详情
+      description: 根据分类 ID 查询详情
+      tags:
+      - 分类
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/apidoc.Response'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/dto.CategoryDetailResp'
+      parameters:
+      - name: id
+        in: query
+        required: true
+        description: 分类 ID
+        schema:
+          type: integer
+  /api/v1/product_category/list:
+    get:
+      summary: 分类列表
+      description: 分页查询商品分类
+      tags:
+      - 分类
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/apidoc.Response'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/dto.CategoryListResp'
+      parameters:
+      - name: page
+        in: query
+        required: false
+        description: 页码
+        schema:
+          type: integer
+      - name: page_size
+        in: query
+        required: false
+        description: 每页数量
+        schema:
+          type: integer
+  /api/v1/products/detail:
+    get:
+      summary: 商品详情
+      description: 根据商品 ID 查询详情
+      tags:
+      - 商品
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/apidoc.Response'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/dto.ProductDetail'
+      parameters:
+      - name: id
+        in: query
+        required: true
+        description: 商品 ID
+        schema:
+          type: integer
+  /api/v1/products/list:
+    get:
+      summary: 商品列表
+      description: 分页查询在售商品
+      tags:
+      - 商品
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/apidoc.Response'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/dto.ProductListResp'
+      parameters:
+      - name: page
+        in: query
+        required: false
+        description: 页码
+        schema:
+          type: integer
+      - name: page_size
+        in: query
+        required: false
+        description: 每页数量
+        schema:
+          type: integer
+  /api/v1/orders:
+    get:
+      summary: 我的订单列表
+      description: 分页查询当前用户订单
+      tags:
+      - 订单
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/apidoc.Response'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/dto.OrderListResp'
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: X-User-Id
+        in: header
+        required: false
+        description: 用户 ID（网关注入）
+        schema:
+          type: integer
+      - name: page
+        in: query
+        required: false
+        description: 页码
+        schema:
+          type: integer
+      - name: page_size
+        in: query
+        required: false
+        description: 每页数量
+        schema:
+          type: integer
+    post:
+      summary: 创建订单
+      description: 需要 JWT；经 APISIX 网关时从 Authorization 注入 X-User-Id
+      tags:
+      - 订单
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/apidoc.Response'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/dto.OrderInfo'
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: X-User-Id
+        in: header
+        required: false
+        description: 用户 ID（网关注入，直连调试时必填）
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        description: 下单商品
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/dto.CreateOrderReq'
+  /api/v1/orders/{id}:
+    get:
+      summary: 订单详情
+      description: ''
+      tags:
+      - 订单
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/apidoc.Response'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/dto.OrderInfo'
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: X-User-Id
+        in: header
+        required: false
+        description: 用户 ID（网关注入）
+        schema:
+          type: integer
+      - name: id
+        in: path
+        required: true
+        description: 订单 ID
+        schema:
+          type: integer
+  /api/v1/orders/{id}/cancel:
+    put:
+      summary: 取消订单
+      description: pending/confirmed 状态可取消，会触发库存回滚
+      tags:
+      - 订单
+      responses:
+        '200':
+          description: 取消成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/apidoc.Response'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/apidoc.EmptyData'
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: X-User-Id
+        in: header
+        required: false
+        description: 用户 ID（网关注入）
+        schema:
+          type: integer
+      - name: id
+        in: path
+        required: true
+        description: 订单 ID
+        schema:
+          type: integer
+components:
+  schemas:
+    apidoc.Response:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        data: {}
+        msg:
+          type: string
+          example: success
+    dto.LoginReq:
+      type: object
+      properties:
+        mobile:
+          type: string
+          example: '13800138000'
+        password:
+          type: string
+          example: '123456'
+      required:
+      - mobile
+      - password
+    dto.LoginResp:
+      type: object
+      properties:
+        token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        user:
+          $ref: '#/components/schemas/dto.UserInfo'
+    dto.RegisterReq:
+      type: object
+      properties:
+        mobile:
+          type: string
+          example: '13800138000'
+        password:
+          type: string
+          example: '123456'
+      required:
+      - mobile
+      - password
+    dto.UserInfo:
+      type: object
+      properties:
+        avatar:
+          type: string
+          example: ''
+        created_at:
+          type: string
+          example: '2026-01-01 12:00:00'
+        gender:
+          type: integer
+          example: 0
+        id:
+          type: integer
+          example: 1
+        mobile:
+          type: string
+          example: '13800138000'
+        nickname:
+          type: string
+          example: 用户8000
+        status:
+          type: integer
+          example: 1
+        updated_at:
+          type: string
+          example: '2026-01-01 12:00:00'
+    dto.UserProfileResp:
+      type: object
+      properties:
+        avatar:
+          type: string
+          example: ''
+        created_at:
+          type: string
+          example: '2026-01-01 12:00:00'
+        gender:
+          type: integer
+          example: 0
+        id:
+          type: integer
+          example: 1
+        mobile:
+          type: string
+          example: '13800138000'
+        nickname:
+          type: string
+          example: 用户8000
+        status:
+          type: integer
+          example: 1
+        updated_at:
+          type: string
+          example: '2026-01-01 12:00:00'
+    dto.CategoryDetailResp:
+      type: object
+      properties:
+        created_at:
+          type: string
+          example: '2026-01-01 12:00:00'
+        description:
+          type: string
+        icon:
+          type: string
+        id:
+          type: integer
+          example: 1
+        image:
+          type: string
+        is_show:
+          type: boolean
+          example: true
+        level:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: 猫粮
+        parent_id:
+          type: integer
+          example: 0
+        product_count:
+          type: integer
+          example: 10
+        sort_order:
+          type: integer
+          example: 0
+    dto.CategoryItem:
+      type: object
+      properties:
+        created_at:
+          type: string
+          example: '2026-01-01 12:00:00'
+        description:
+          type: string
+        icon:
+          type: string
+        id:
+          type: integer
+          example: 1
+        image:
+          type: string
+        is_show:
+          type: boolean
+          example: true
+        level:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: 猫粮
+        parent_id:
+          type: integer
+          example: 0
+        product_count:
+          type: integer
+          example: 10
+        sort_order:
+          type: integer
+          example: 0
+    dto.CategoryListResp:
+      type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: '#/components/schemas/dto.CategoryItem'
+        page:
+          type: integer
+          example: 1
+        page_size:
+          type: integer
+          example: 10
+        total:
+          type: integer
+          example: 20
+        total_page:
+          type: integer
+          example: 2
+    dto.ProductDetail:
+      type: object
+      properties:
+        category_id:
+          type: integer
+          example: 1
+        created_at:
+          type: string
+          example: '2026-01-01 12:00:00'
+        description:
+          type: string
+        id:
+          type: integer
+          example: 1
+        main_image:
+          type: string
+        market_price:
+          type: number
+        name:
+          type: string
+          example: 猫粮 10kg
+        pet_type:
+          type: string
+          example: cat
+        product_no:
+          type: string
+          example: P20260001
+        sale_price:
+          type: number
+          example: 159
+        status:
+          type: string
+          example: on_sale
+        stock:
+          type: integer
+          example: 100
+        subtitle:
+          type: string
+    dto.ProductListItem:
+      type: object
+      properties:
+        category_id:
+          type: integer
+          example: 1
+        created_at:
+          type: string
+          example: '2026-01-01 12:00:00'
+        discount:
+          type: number
+          example: 100
+        id:
+          type: integer
+          example: 1
+        is_hot:
+          type: boolean
+          example: true
+        is_new:
+          type: boolean
+          example: false
+        is_recommend:
+          type: boolean
+          example: true
+        main_image:
+          type: string
+          example: https://example.com/img.jpg
+        market_price:
+          type: number
+          example: 199
+        name:
+          type: string
+          example: 猫粮 10kg
+        pet_type:
+          type: string
+          example: cat
+        product_no:
+          type: string
+          example: P20260001
+        sale_price:
+          type: number
+          example: 159
+        sold_count:
+          type: integer
+          example: 10
+        status:
+          type: string
+          example: on_sale
+        stock:
+          type: integer
+          example: 100
+        subtitle:
+          type: string
+          example: 全年龄段
+    dto.ProductListResp:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/dto.ProductListItem'
+        total:
+          type: integer
+          example: 100
+    apidoc.EmptyData:
+      type: object
+      properties: {}
+    dto.CreateOrderItem:
+      type: object
+      properties:
+        product_id:
+          type: integer
+          example: 1
+        quantity:
+          type: integer
+          example: 2
+      required:
+      - product_id
+      - quantity
+    dto.CreateOrderReq:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/dto.CreateOrderItem'
+      required:
+      - items
+    dto.OrderInfo:
+      type: object
+      properties:
+        created_at:
+          type: string
+          example: '2026-01-01 12:00:00'
+        id:
+          type: integer
+          example: 1
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/dto.OrderItem'
+        order_no:
+          type: string
+          example: ORDabc12345
+        status:
+          type: string
+          example: pending
+          enum:
+          - pending
+          - confirmed
+          - failed
+          - cancelled
+        total_amount:
+          type: number
+          example: 318
+        updated_at:
+          type: string
+          example: '2026-01-01 12:00:00'
+        user_id:
+          type: integer
+          example: 1
+    dto.OrderItem:
+      type: object
+      properties:
+        created_at:
+          type: string
+          example: '2026-01-01 12:00:00'
+        id:
+          type: integer
+          example: 1
+        order_id:
+          type: integer
+          example: 1
+        price:
+          type: number
+          example: 159
+        product_id:
+          type: integer
+          example: 1
+        product_name:
+          type: string
+          example: 猫粮 10kg
+        quantity:
+          type: integer
+          example: 2
+    dto.OrderListResp:
+      type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: '#/components/schemas/dto.OrderInfo'
+        total:
+          type: integer
+          example: 10
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 'JWT Token，Header: Authorization: Bearer {token}'

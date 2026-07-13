@@ -1,5 +1,11 @@
 package main
 
+// @title           mymall 商品服务 API
+// @version         1.0
+// @description     商品与分类查询
+// @host            localhost:9080
+// @BasePath        /
+
 import (
 	"context"
 	"fmt"
@@ -9,6 +15,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"mymall/pkg/apidoc"
 	"mymall/pkg/cache"
 	"mymall/pkg/config"
 	"mymall/pkg/database"
@@ -23,6 +30,8 @@ import (
 	catalogmq "mymall/services/catalog-service/internal/mq"
 	"mymall/services/catalog-service/internal/repository"
 	"mymall/services/catalog-service/internal/service"
+
+	_ "mymall/services/catalog-service/docs"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -110,6 +119,7 @@ func main() {
 	})
 	r.GET("/readyz", healthReg.ReadyHandler())
 	r.GET("/metrics", metrics.Handler())
+	apidoc.MountSwagger(r)
 
 	v1 := r.Group("/api/v1")
 	v1.Use(middleware.ExtractPageReq())

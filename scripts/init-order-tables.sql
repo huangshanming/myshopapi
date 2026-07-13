@@ -1,5 +1,5 @@
--- order_db 订单表结构
-USE order_db;
+-- 订单表（与 users/products 等同库 mymall）
+USE mymall;
 
 CREATE TABLE IF NOT EXISTS orders (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,

@@ -5,6 +5,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 COMPOSE_FILE="$ROOT/deploy/local/docker-compose.yaml"
 
+export GOLANG_IMAGE="${GOLANG_IMAGE:-docker.m.daocloud.io/library/golang:1.24-alpine}"
+export ALPINE_IMAGE="${ALPINE_IMAGE:-docker.m.daocloud.io/library/alpine:3.19}"
+
 if ! docker info >/dev/null 2>&1; then
   echo "Docker 未运行，请先启动 Docker Desktop"
   exit 1

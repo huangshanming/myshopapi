@@ -4,9 +4,9 @@
 
 ```text
 APISIX Gateway
-    ├── user-service     (HTTP :8888, gRPC :9090) → user_db
-    ├── catalog-service  (HTTP :8888, gRPC :9090) → catalog_db + Redis + MQ
-    └── order-service    (HTTP :8888)              → order_db + MQ + gRPC client
+    ├── user-service     (HTTP :8888, gRPC :9090) → mymall
+    ├── catalog-service  (HTTP :8888, gRPC :9090) → mymall + Redis + MQ
+    └── order-service    (HTTP :8888)              → mymall + MQ + gRPC client
 
 本机基础设施（Pod 经 host.docker.internal 访问）:
   MySQL :3306 | Redis :6379 | RabbitMQ :5672
@@ -30,7 +30,7 @@ deploy/k8s/
 ```bash
 # 1. 建库
 mysql -u homestead -p < scripts/migrate-db.sql
-mysql -u homestead -p order_db < scripts/init-order-tables.sql
+mysql -u homestead -p mymall < scripts/init-order-tables.sql
 
 # 2. 启动 Redis + RabbitMQ（可选）
 docker compose -f deploy/local/docker-compose.infra.yaml up -d

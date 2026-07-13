@@ -7,6 +7,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 COMPOSE_FILE="$ROOT/deploy/local/docker-compose.yaml"
 
+# Docker Hub 镜像加速源 429 时，默认走 DaoCloud 拉取基础镜像（可 export 覆盖）
+export GOLANG_IMAGE="${GOLANG_IMAGE:-docker.m.daocloud.io/library/golang:1.24-alpine}"
+export ALPINE_IMAGE="${ALPINE_IMAGE:-docker.m.daocloud.io/library/alpine:3.19}"
+
 NO_BUILD=false
 for arg in "$@"; do
   case "$arg" in
@@ -37,7 +41,8 @@ check_mysql() {
   fi
   yellow "    无法自动连接 MySQL，请确认本机 MySQL/Homestead 已启动"
   yellow "    首次需执行: mysql -u homestead -p < scripts/migrate-db.sql"
-  yellow "                mysql -u homestead -p order_db < scripts/init-order-tables.sql"
+  yellow "                mysql -u homestead -p mymall < scripts/init-schema.sql"
+  yellow "                mysql -u homestead -p mymall < scripts/init-order-tables.sql"
 }
 
 start_stack() {
@@ -71,6 +76,10 @@ wait_healthy() {
       if [[ $i -eq 60 ]]; then
         red "    超时 $url"
         yellow "    查看日志: docker compose -f $COMPOSE_FILE logs"
+        if [[ "$url" == *":8883"* ]]; then
+          yellow "    order-service 常见原因: mymall 库未建表、MySQL 未启动"
+          yellow "    docker compose -f $COMPOSE_FILE logs order-service"
+        fi
         exit 1
       fi
       sleep 2

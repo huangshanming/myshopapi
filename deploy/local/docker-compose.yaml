@@ -1,5 +1,10 @@
 # 本机一键启动：Redis + RabbitMQ + 三个微服务（Docker 打包）
 # 用法: docker compose -f deploy/local/docker-compose.yaml up -d --build
+# 镜像源 429 时可设: GOLANG_IMAGE=docker.m.daocloud.io/library/golang:1.24-alpine
+x-service-build-args: &service-build-args
+  GOLANG_IMAGE: ${GOLANG_IMAGE:-golang:1.24-alpine}
+  ALPINE_IMAGE: ${ALPINE_IMAGE:-alpine:3.19}
+
 services:
   redis:
     image: redis:7-alpine
@@ -23,6 +28,8 @@ services:
     build:
       context: ../..
       dockerfile: services/user-service/Dockerfile
+      args:
+        <<: *service-build-args
     image: mymall-user-service:local
     ports:
       - "8881:8888"
@@ -36,7 +43,7 @@ services:
       MYMALL_MYSQL_PORT: "3306"
       MYMALL_MYSQL_USERNAME: homestead
       MYMALL_MYSQL_PASSWORD: secret
-      MYMALL_MYSQL_DBNAME: user_db
+      MYMALL_MYSQL_DBNAME: mymall
       MYMALL_JWT_SECRET: fsdfascwegrgtecqwerty
       MYMALL_JWT_CONSUMER_KEY: mymall-user-key
 
@@ -44,6 +51,8 @@ services:
     build:
       context: ../..
       dockerfile: services/catalog-service/Dockerfile
+      args:
+        <<: *service-build-args
     image: mymall-catalog-service:local
     ports:
       - "8882:8888"
@@ -60,7 +69,7 @@ services:
       MYMALL_MYSQL_PORT: "3306"
       MYMALL_MYSQL_USERNAME: homestead
       MYMALL_MYSQL_PASSWORD: secret
-      MYMALL_MYSQL_DBNAME: catalog_db
+      MYMALL_MYSQL_DBNAME: mymall
       MYMALL_REDIS_HOST: redis
       MYMALL_REDIS_PORT: "6379"
       MYMALL_RABBITMQ_HOST: rabbitmq
@@ -72,6 +81,8 @@ services:
     build:
       context: ../..
       dockerfile: services/order-service/Dockerfile
+      args:
+        <<: *service-build-args
     image: mymall-order-service:local
     ports:
       - "8883:8888"
@@ -87,7 +98,7 @@ services:
       MYMALL_MYSQL_PORT: "3306"
       MYMALL_MYSQL_USERNAME: homestead
       MYMALL_MYSQL_PASSWORD: secret
-      MYMALL_MYSQL_DBNAME: order_db
+      MYMALL_MYSQL_DBNAME: mymall
       MYMALL_GRPC_USER_SERVICE: user-service:9090
       MYMALL_GRPC_CATALOG_SERVICE: catalog-service:9090
       MYMALL_RABBITMQ_HOST: rabbitmq

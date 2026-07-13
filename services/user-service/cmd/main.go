@@ -1,5 +1,15 @@
 package main
 
+// @title           mymall 用户服务 API
+// @version         1.0
+// @description     用户注册、登录、个人资料
+// @host            localhost:9080
+// @BasePath        /
+// @securityDefinitions.apikey BearerAuth
+// @in                         header
+// @name                       Authorization
+// @description                JWT Token，格式: Bearer {token}
+
 import (
 	"context"
 	"fmt"
@@ -9,6 +19,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"mymall/pkg/apidoc"
 	"mymall/pkg/config"
 	"mymall/pkg/database"
 	"mymall/pkg/health"
@@ -20,6 +31,8 @@ import (
 	"mymall/services/user-service/internal/handler"
 	"mymall/services/user-service/internal/repository"
 	"mymall/services/user-service/internal/service"
+
+	_ "mymall/services/user-service/docs"
 
 	"mymall/pkg/jwt"
 
@@ -82,6 +95,7 @@ func main() {
 	})
 	r.GET("/readyz", healthReg.ReadyHandler())
 	r.GET("/metrics", metrics.Handler())
+	apidoc.MountSwagger(r)
 
 	v1 := r.Group("/api/v1")
 	v1.Use(middleware.ExtractPageReq())

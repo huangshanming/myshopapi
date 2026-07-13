@@ -1,5 +1,15 @@
 package main
 
+// @title           mymall 订单服务 API
+// @version         1.0
+// @description     下单、查单、取消订单（Saga 异步库存）
+// @host            localhost:9080
+// @BasePath        /
+// @securityDefinitions.apikey BearerAuth
+// @in                         header
+// @name                       Authorization
+// @description                JWT Token，格式: Bearer {token}
+
 import (
 	"context"
 	"fmt"
@@ -9,6 +19,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"mymall/pkg/apidoc"
 	"mymall/pkg/config"
 	"mymall/pkg/database"
 	"mymall/pkg/health"
@@ -22,6 +33,8 @@ import (
 	ordermq "mymall/services/order-service/internal/mq"
 	"mymall/services/order-service/internal/repository"
 	"mymall/services/order-service/internal/service"
+
+	_ "mymall/services/order-service/docs"
 
 	"github.com/gin-gonic/gin"
 )
@@ -110,6 +123,7 @@ func main() {
 	})
 	r.GET("/readyz", healthReg.ReadyHandler())
 	r.GET("/metrics", metrics.Handler())
+	apidoc.MountSwagger(r)
 
 	v1 := r.Group("/api/v1")
 	orders := v1.Group("/orders")
