@@ -20,6 +20,7 @@ import (
 	"mymall/pkg/config"
 	"mymall/pkg/database"
 	"mymall/pkg/health"
+	"mymall/pkg/jwt"
 	applog "mymall/pkg/log"
 	"mymall/pkg/metrics"
 	"mymall/pkg/middleware"
@@ -131,6 +132,27 @@ func main() {
 		categories := v1.Group("/product_category")
 		categories.GET("/list", catalogHandler.GetCategoryList)
 		categories.GET("/detail", catalogHandler.GetCategoryDetail)
+
+		merchant := v1.Group("/merchant")
+		merchant.Use(middleware.GatewayIdentity(true))
+		merchant.Use(middleware.RequireRoles(jwt.RoleMerchantOwner, jwt.RoleMerchantStaff))
+		{
+			merchant.GET("/products", catalogHandler.MerchantListProducts)
+			merchant.POST("/products", catalogHandler.MerchantCreateProduct)
+			merchant.PUT("/products/:id", catalogHandler.MerchantUpdateProduct)
+			merchant.PUT("/products/:id/status", catalogHandler.MerchantSetStatus)
+		}
+
+		admin := v1.Group("/admin")
+		admin.Use(middleware.GatewayIdentity(false))
+		admin.Use(middleware.RequireRoles(jwt.RolePlatformAdmin))
+		{
+			admin.GET("/products", catalogHandler.AdminListProducts)
+			admin.PUT("/products/:id/off_sale", catalogHandler.AdminForceOffSale)
+			admin.POST("/categories", catalogHandler.AdminCreateCategory)
+			admin.PUT("/categories/:id", catalogHandler.AdminUpdateCategory)
+			admin.DELETE("/categories/:id", catalogHandler.AdminDeleteCategory)
+		}
 	}
 
 	grpcServer, lis, err := cataloggrpc.Listen(cfg.Server.GRPCPort, svc, logger)

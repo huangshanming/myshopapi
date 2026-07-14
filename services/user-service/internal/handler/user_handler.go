@@ -34,7 +34,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 		response.Error(c, "参数错误", http.StatusBadRequest)
 		return
 	}
-	token, user, err := h.svc.Login(req.Mobile, req.Password)
+	token, user, err := h.svc.LoginWithShop(req.Mobile, req.Password, req.ShopID)
 	if err != nil {
 		response.Error(c, err.Error(), http.StatusUnauthorized)
 		return

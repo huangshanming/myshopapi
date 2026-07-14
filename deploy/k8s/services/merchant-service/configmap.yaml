@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: merchant-service-config
+  namespace: mymall
+data:
+  config.yaml: |
+    server:
+      http_port: 8888
+      mode: release
+    mysql:
+      port: 3306
+      charset: utf8mb4
+      dbname: mymall
+      max_open_conns: 20
+      max_idle_conns: 5
+    telemetry:
+      enabled: false
+      service: merchant-service

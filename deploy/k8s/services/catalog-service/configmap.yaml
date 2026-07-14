@@ -10,10 +10,7 @@ data:
       grpc_port: 9090
       mode: release
     mysql:
-      host: host.docker.internal
       port: 3306
-      username: homestead
-      password: secret
       charset: utf8mb4
       dbname: mymall
       max_open_conns: 50
@@ -21,15 +18,10 @@ data:
       conn_max_lifetime: 3600
       conn_max_idle_time: 3600
     redis:
-      host: host.docker.internal
       port: 6379
-      password: ""
       db: 0
     rabbitmq:
-      host: host.docker.internal
       port: 5672
-      username: mymall
-      password: mymall
       vhost: /
       exchange: mymall.events
     telemetry:

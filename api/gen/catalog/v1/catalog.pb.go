@@ -73,6 +73,7 @@ type Product struct {
 	SalePrice     float64                `protobuf:"fixed64,4,opt,name=sale_price,json=salePrice,proto3" json:"sale_price,omitempty"`
 	Stock         int32                  `protobuf:"varint,5,opt,name=stock,proto3" json:"stock,omitempty"`
 	Status        string                 `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
+	ShopId        uint64                 `protobuf:"varint,7,opt,name=shop_id,json=shopId,proto3" json:"shop_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -147,6 +148,13 @@ func (x *Product) GetStatus() string {
 		return x.Status
 	}
 	return ""
+}
+
+func (x *Product) GetShopId() uint64 {
+	if x != nil {
+		return x.ShopId
+	}
+	return 0
 }
 
 type BatchGetProductsResponse struct {
@@ -461,7 +469,7 @@ const file_catalog_v1_catalog_proto_rawDesc = "" +
 	"catalog.v1\":\n" +
 	"\x17BatchGetProductsRequest\x12\x1f\n" +
 	"\vproduct_ids\x18\x01 \x03(\x04R\n" +
-	"productIds\"\x99\x01\n" +
+	"productIds\"\xb2\x01\n" +
 	"\aProduct\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x04R\x02id\x12\x1d\n" +
 	"\n" +
@@ -470,7 +478,8 @@ const file_catalog_v1_catalog_proto_rawDesc = "" +
 	"\n" +
 	"sale_price\x18\x04 \x01(\x01R\tsalePrice\x12\x14\n" +
 	"\x05stock\x18\x05 \x01(\x05R\x05stock\x12\x16\n" +
-	"\x06status\x18\x06 \x01(\tR\x06status\"K\n" +
+	"\x06status\x18\x06 \x01(\tR\x06status\x12\x17\n" +
+	"\ashop_id\x18\a \x01(\x04R\x06shopId\"K\n" +
 	"\x18BatchGetProductsResponse\x12/\n" +
 	"\bproducts\x18\x01 \x03(\v2\x13.catalog.v1.ProductR\bproducts\"F\n" +
 	"\tStockItem\x12\x1d\n" +

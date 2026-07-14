@@ -1,4 +1,4 @@
-# 本地 K8s：连接信息直接写在 config.yaml（与旧版一致）
+# 非敏感配置；mysql/jwt 凭证由 Secret 注入 MYMALL_* 环境变量覆盖
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -11,10 +11,7 @@ data:
       grpc_port: 9090
       mode: release
     mysql:
-      host: host.docker.internal
       port: 3306
-      username: homestead
-      password: secret
       charset: utf8mb4
       dbname: mymall
       max_open_conns: 50
@@ -22,7 +19,5 @@ data:
       conn_max_lifetime: 3600
       conn_max_idle_time: 3600
     jwt:
-      secret: fsdfascwegrgtecqwerty
-      consumer_key: mymall-user-key
       expire_hours: 24
       issuer: mymall

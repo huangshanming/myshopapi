@@ -1,0 +1,150 @@
+# 管理端 / 商家端受保护路由（JWT + 注入 X-User-Id / X-User-Role / X-Shop-Id）
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: mymall-admin-merchant-routes
+  namespace: mymall
+spec:
+  ingressClassName: apisix
+  http:
+    - name: merchant-service
+      match:
+        paths:
+          - /api/v1/merchant/apply
+          - /api/v1/merchant/shops
+          - /api/v1/merchant/shops/*
+          - /api/v1/admin/applications
+          - /api/v1/admin/applications/*
+          - /api/v1/admin/shops
+          - /api/v1/admin/shops/*
+        methods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+      backends:
+        - serviceName: merchant-service
+          servicePort: 8888
+      plugins:
+        - name: cors
+          enable: true
+          config:
+            allow_origins: "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:9099"
+            allow_methods: "GET,POST,PUT,DELETE,OPTIONS"
+            allow_headers: "Authorization,Content-Type,X-User-Id,X-User-Role,X-Shop-Id"
+            allow_credential: true
+        - name: jwt-auth
+          enable: true
+        - name: serverless-pre-function
+          enable: true
+          config:
+            phase: rewrite
+            functions:
+              - |
+                return function(conf, ctx)
+                  local core = require("apisix.core")
+                  local payload = ctx.var.jwt_payload
+                  if payload and payload.user_id then
+                    core.request.set_header(ctx, "X-User-Id", tostring(payload.user_id))
+                  end
+                  if payload and payload.role then
+                    core.request.set_header(ctx, "X-User-Role", tostring(payload.role))
+                  end
+                  if payload and payload.shop_id then
+                    core.request.set_header(ctx, "X-Shop-Id", tostring(payload.shop_id))
+                  end
+                end
+
+    - name: catalog-merchant-admin
+      match:
+        paths:
+          - /api/v1/merchant/products
+          - /api/v1/merchant/products/*
+          - /api/v1/admin/products
+          - /api/v1/admin/products/*
+          - /api/v1/admin/categories
+          - /api/v1/admin/categories/*
+        methods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+      backends:
+        - serviceName: catalog-service
+          servicePort: 8888
+      plugins:
+        - name: cors
+          enable: true
+          config:
+            allow_origins: "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:9099"
+            allow_methods: "GET,POST,PUT,DELETE,OPTIONS"
+            allow_headers: "Authorization,Content-Type,X-User-Id,X-User-Role,X-Shop-Id"
+            allow_credential: true
+        - name: jwt-auth
+          enable: true
+        - name: serverless-pre-function
+          enable: true
+          config:
+            phase: rewrite
+            functions:
+              - |
+                return function(conf, ctx)
+                  local core = require("apisix.core")
+                  local payload = ctx.var.jwt_payload
+                  if payload and payload.user_id then
+                    core.request.set_header(ctx, "X-User-Id", tostring(payload.user_id))
+                  end
+                  if payload and payload.role then
+                    core.request.set_header(ctx, "X-User-Role", tostring(payload.role))
+                  end
+                  if payload and payload.shop_id then
+                    core.request.set_header(ctx, "X-Shop-Id", tostring(payload.shop_id))
+                  end
+                end
+
+    - name: order-merchant-admin
+      match:
+        paths:
+          - /api/v1/merchant/orders
+          - /api/v1/merchant/orders/*
+          - /api/v1/admin/orders
+          - /api/v1/admin/orders/*
+        methods:
+          - GET
+          - POST
+          - PUT
+          - OPTIONS
+      backends:
+        - serviceName: order-service
+          servicePort: 8888
+      plugins:
+        - name: cors
+          enable: true
+          config:
+            allow_origins: "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:9099"
+            allow_methods: "GET,POST,PUT,DELETE,OPTIONS"
+            allow_headers: "Authorization,Content-Type,X-User-Id,X-User-Role,X-Shop-Id"
+            allow_credential: true
+        - name: jwt-auth
+          enable: true
+        - name: serverless-pre-function
+          enable: true
+          config:
+            phase: rewrite
+            functions:
+              - |
+                return function(conf, ctx)
+                  local core = require("apisix.core")
+                  local payload = ctx.var.jwt_payload
+                  if payload and payload.user_id then
+                    core.request.set_header(ctx, "X-User-Id", tostring(payload.user_id))
+                  end
+                  if payload and payload.role then
+                    core.request.set_header(ctx, "X-User-Role", tostring(payload.role))
+                  end
+                  if payload and payload.shop_id then
+                    core.request.set_header(ctx, "X-Shop-Id", tostring(payload.shop_id))
+                  end
+                end

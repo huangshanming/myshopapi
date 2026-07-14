@@ -9,8 +9,11 @@ import (
 )
 
 const (
-	RoleUser  = "user"
-	RoleAdmin = "admin"
+	RoleUser           = "user"
+	RolePlatformAdmin  = "platform_admin"
+	RoleMerchantOwner  = "merchant_owner"
+	RoleMerchantStaff  = "merchant_staff"
+	RoleAdmin          = "admin" // legacy alias → treat as platform_admin
 )
 
 var (
@@ -22,6 +25,7 @@ type Claims struct {
 	Key    string `json:"key"` // APISIX jwt-auth consumer key
 	UserID uint64 `json:"user_id"`
 	Role   string `json:"role"`
+	ShopID uint64 `json:"shop_id,omitempty"`
 	jwtlib.RegisteredClaims
 }
 
@@ -33,11 +37,18 @@ type Config struct {
 }
 
 func GenerateToken(userID uint64, role string, cfg Config) (string, error) {
+	return GenerateTokenWithShop(userID, role, 0, cfg)
+}
+
+func GenerateTokenWithShop(userID uint64, role string, shopID uint64, cfg Config) (string, error) {
 	if cfg.Secret == "" {
 		return "", errors.New("jwt secret is required")
 	}
 	if role == "" {
 		role = RoleUser
+	}
+	if role == RoleAdmin {
+		role = RolePlatformAdmin
 	}
 	expireHours := cfg.ExpireHours
 	if expireHours <= 0 {
@@ -57,6 +68,7 @@ func GenerateToken(userID uint64, role string, cfg Config) (string, error) {
 		Key:    consumerKey,
 		UserID: userID,
 		Role:   role,
+		ShopID: shopID,
 		RegisteredClaims: jwtlib.RegisteredClaims{
 			ExpiresAt: jwtlib.NewNumericDate(now.Add(time.Duration(expireHours) * time.Hour)),
 			IssuedAt:  jwtlib.NewNumericDate(now),
@@ -103,5 +115,16 @@ func ParseToken(tokenStr string, secret string) (*Claims, error) {
 	if !ok || !token.Valid || claims.UserID == 0 || claims.Key == "" {
 		return nil, ErrInvalidToken
 	}
+	if claims.Role == RoleAdmin {
+		claims.Role = RolePlatformAdmin
+	}
 	return claims, nil
+}
+
+func IsPlatformAdmin(role string) bool {
+	return role == RolePlatformAdmin || role == RoleAdmin
+}
+
+func IsMerchant(role string) bool {
+	return role == RoleMerchantOwner || role == RoleMerchantStaff
 }

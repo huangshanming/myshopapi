@@ -16,6 +16,7 @@ type User struct {
 	Avatar        string           `gorm:"column:avatar;type:varchar(255);default:''" json:"avatar"`
 	Gender        int              `gorm:"column:gender;type:tinyint;default:0" json:"gender"`
 	Status        int              `gorm:"column:status;type:tinyint;default:1" json:"status"`
+	Role          string           `gorm:"column:role;type:varchar(32);default:user" json:"role"`
 	LastLoginTime common.LocalTime `gorm:"column:last_login_time;type:timestamp;default:null" json:"last_login_time"`
 	DeletedAt     common.LocalTime `gorm:"column:deleted_at;type:timestamp;default:null;index" json:"deleted_at"`
 }

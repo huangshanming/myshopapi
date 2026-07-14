@@ -9,8 +9,9 @@ CREATE TABLE IF NOT EXISTS users (
     password VARCHAR(255) NOT NULL COMMENT '登录密码',
     nickname VARCHAR(50) NOT NULL COMMENT '用户昵称',
     avatar VARCHAR(255) NOT NULL DEFAULT '' COMMENT '用户头像URL',
-    gender TINYINT NOT NULL DEFAULT 0 COMMENT '性别：0-未知 1-男 2-女',
+	gender TINYINT NOT NULL DEFAULT 0 COMMENT '性别：0-未知 1-男 2-女',
     status TINYINT NOT NULL DEFAULT 1 COMMENT '账号状态：1-正常 0-禁用',
+    role VARCHAR(32) NOT NULL DEFAULT 'user' COMMENT '角色',
     last_login_time TIMESTAMP NULL DEFAULT NULL COMMENT '最后登录时间',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -36,6 +37,7 @@ CREATE TABLE IF NOT EXISTS product_categories (
 
 CREATE TABLE IF NOT EXISTS products (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    shop_id BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '所属店铺ID',
     product_no VARCHAR(50) NOT NULL COMMENT '商品编号',
     name VARCHAR(200) NOT NULL COMMENT '商品名称',
     subtitle VARCHAR(500) DEFAULT NULL COMMENT '商品副标题',
@@ -86,5 +88,6 @@ CREATE TABLE IF NOT EXISTS products (
     INDEX idx_is_hot (is_hot),
     INDEX idx_is_new (is_new),
     INDEX idx_is_recommend (is_recommend),
-    INDEX idx_deleted_at (deleted_at)
+    INDEX idx_deleted_at (deleted_at),
+    INDEX idx_shop_id (shop_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

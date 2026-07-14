@@ -10,6 +10,7 @@ type BaseModel struct {
 
 type Product struct {
 	BaseModel
+	ShopID      uint64  `gorm:"column:shop_id;type:bigint;not null;default:0;index" json:"shop_id"`
 	ProductNo   string  `gorm:"column:product_no;type:varchar(50);not null;uniqueIndex" json:"product_no"`
 	Name        string  `gorm:"column:name;type:varchar(200);not null" json:"name"`
 	Subtitle    string  `gorm:"column:subtitle;type:varchar(500);default:null" json:"subtitle,omitempty"`
@@ -60,6 +61,7 @@ type Product struct {
 
 type ProductListResp struct {
 	ID         uint64           `gorm:"column:id" json:"id"`
+	ShopID     uint64           `gorm:"column:shop_id" json:"shop_id"`
 	ProductNo  string           `gorm:"column:product_no" json:"product_no"`
 	Name       string           `gorm:"column:name" json:"name"`
 	Subtitle   string           `gorm:"column:subtitle" json:"subtitle,omitempty"`

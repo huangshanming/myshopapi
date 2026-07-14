@@ -21,6 +21,7 @@ message Product {
   double sale_price = 4;
   int32 stock = 5;
   string status = 6;
+  uint64 shop_id = 7;
 }
 
 message BatchGetProductsResponse {

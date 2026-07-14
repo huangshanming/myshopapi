@@ -11,6 +11,7 @@ helm upgrade --install apisix apisix/apisix \
   --create-namespace \
   --set ingress-controller.enabled=true \
   --set ingress-controller.config.apisix.serviceNamespace=mymall \
+  --set ingress-controller.gatewayProxy.createDefault=true \
   --wait --timeout 10m
 
 echo "==> APISIX 已安装。网关 Service："

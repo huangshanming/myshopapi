@@ -37,6 +37,7 @@ func (s *CatalogGRPCServer) BatchGetProducts(ctx context.Context, req *catalogv1
 			SalePrice: p.SalePrice,
 			Stock:     int32(p.Stock),
 			Status:    p.Status,
+			ShopId:    p.ShopID,
 		})
 	}
 	return resp, nil

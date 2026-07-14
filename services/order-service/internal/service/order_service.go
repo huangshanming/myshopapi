@@ -58,11 +58,17 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID uint64, items []C
 	}
 
 	var total float64
+	var shopID uint64
 	orderItems := make([]model.OrderItem, 0, len(items))
 	stockItems := make([]model.StockItem, 0, len(items))
 	productMap := make(map[uint64]struct{}, len(resp.GetProducts()))
 	for _, p := range resp.GetProducts() {
 		productMap[p.GetId()] = struct{}{}
+		if shopID == 0 {
+			shopID = p.GetShopId()
+		} else if p.GetShopId() != shopID {
+			return nil, errors.New("一期不支持跨店下单，请分开结算")
+		}
 		qty := qtyMap[p.GetId()]
 		if p.GetStock() < int32(qty) {
 			return nil, fmt.Errorf("商品 %s 库存不足", p.GetName())
@@ -87,6 +93,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID uint64, items []C
 	order := &model.Order{
 		OrderNo:     orderNo,
 		UserID:      userID,
+		ShopID:      shopID,
 		TotalAmount: total,
 		Status:      model.OrderStatusPending,
 	}
@@ -138,4 +145,32 @@ func (s *OrderService) CancelOrder(ctx context.Context, userID, orderID uint64) 
 		_ = s.publisher.PublishOrderCancelled(ctx, order.OrderNo, items)
 	}
 	return nil
+}
+
+func (s *OrderService) ListByShop(shopID uint64, page, pageSize int) ([]model.Order, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 10
+	}
+	return s.repo.ListByShop(shopID, page, pageSize)
+}
+
+func (s *OrderService) ListAll(shopID uint64, page, pageSize int) ([]model.Order, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 10
+	}
+	return s.repo.ListAll(shopID, page, pageSize)
+}
+
+func (s *OrderService) GetOrderByShop(shopID, orderID uint64) (*model.Order, error) {
+	return s.repo.FindByIDAndShop(orderID, shopID)
+}
+
+func (s *OrderService) GetOrderAdmin(orderID uint64) (*model.Order, error) {
+	return s.repo.FindByIDAdmin(orderID)
 }

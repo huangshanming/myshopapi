@@ -15,6 +15,7 @@ kubectl apply -f "$ROOT/deploy/apisix/jwt-consumer.yaml"
 echo "==> 配置 APISIX 路由（需先 bash deploy/k8s/apply.sh 部署后端）"
 kubectl apply -f "$ROOT/deploy/apisix/public-routes.yaml"
 kubectl apply -f "$ROOT/deploy/apisix/protected-routes.yaml"
+kubectl apply -f "$ROOT/deploy/apisix/admin-merchant-routes.yaml"
 
 echo "==> 完成。验证 Consumer："
 kubectl get apisixconsumer -n mymall

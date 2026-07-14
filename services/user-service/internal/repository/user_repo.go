@@ -57,6 +57,7 @@ func (r *UserRepository) Create(mobile, password string) (*model.User, error) {
 		Password: r.hashPassword(password),
 		Nickname: mobile,
 		Status:   1,
+		Role:     "user",
 	}
 	if err := r.db.Create(&user).Error; err != nil {
 		return nil, err
@@ -70,4 +71,12 @@ func (r *UserRepository) FindByID(id uint64) (*model.User, error) {
 		return nil, err
 	}
 	return &user, nil
+}
+
+// FirstShopID 取用户所属第一家店铺（同库 shop_members）
+func (r *UserRepository) FirstShopID(userID uint64) uint64 {
+	var shopID uint64
+	_ = r.db.Table("shop_members").Select("shop_id").Where("user_id = ?", userID).
+		Order("id ASC").Limit(1).Scan(&shopID).Error
+	return shopID
 }

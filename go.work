@@ -5,4 +5,5 @@ use (
 	./services/user-service
 	./services/catalog-service
 	./services/order-service
+	./services/merchant-service
 )

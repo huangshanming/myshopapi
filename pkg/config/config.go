@@ -98,6 +98,18 @@ func Load(path string) (*Config, error) {
 	v.SetEnvPrefix("MYMALL")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
+	// Unmarshal 不会自动吃嵌套 AutomaticEnv，需显式 BindEnv（K8s Secret / Compose 环境变量）
+	for _, key := range []string{
+		"server.http_port", "server.grpc_port", "server.mode",
+		"mysql.host", "mysql.port", "mysql.username", "mysql.password", "mysql.dbname", "mysql.charset",
+		"jwt.secret", "jwt.consumer_key", "jwt.expire_hours", "jwt.issuer",
+		"redis.host", "redis.port", "redis.password", "redis.db",
+		"rabbitmq.host", "rabbitmq.port", "rabbitmq.username", "rabbitmq.password", "rabbitmq.vhost", "rabbitmq.exchange",
+		"grpc.user_service", "grpc.catalog_service",
+		"telemetry.enabled", "telemetry.endpoint", "telemetry.service",
+	} {
+		_ = v.BindEnv(key)
+	}
 
 	if path != "" {
 		if _, err := os.Stat(path); err == nil {

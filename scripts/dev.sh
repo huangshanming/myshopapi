@@ -50,24 +50,29 @@ case "$TARGET" in
   order)
     run_service "order-service" "order-service" "8883"
     ;;
+  merchant)
+    run_service "merchant-service" "merchant-service" "8884"
+    ;;
   all)
-    yellow "==> 启动三个服务（go run）"
-    green "    user-service    → http://localhost:8881"
-    green "    catalog-service → http://localhost:8882"
-    green "    order-service   → http://localhost:8883"
-    echo "    改某个服务代码后，单独调试: bash scripts/dev.sh <user|catalog|order>"
+    yellow "==> 启动四个服务（go run）"
+    green "    user-service     → http://localhost:8881"
+    green "    catalog-service  → http://localhost:8882"
+    green "    order-service    → http://localhost:8883"
+    green "    merchant-service → http://localhost:8884"
+    echo "    单独调试: bash scripts/dev.sh <user|catalog|order|merchant>"
     echo ""
     PIDS=()
     cleanup() { for pid in "${PIDS[@]}"; do kill "$pid" 2>/dev/null || true; done; }
     trap cleanup EXIT
-    cd "$ROOT/services/user-service"    && go run ./cmd & PIDS+=($!)
-    cd "$ROOT/services/catalog-service" && go run ./cmd & PIDS+=($!)
-    cd "$ROOT/services/order-service"   && go run ./cmd & PIDS+=($!)
+    cd "$ROOT/services/user-service"     && go run ./cmd & PIDS+=($!)
+    cd "$ROOT/services/catalog-service"  && go run ./cmd & PIDS+=($!)
+    cd "$ROOT/services/order-service"    && go run ./cmd & PIDS+=($!)
+    cd "$ROOT/services/merchant-service" && go run ./cmd & PIDS+=($!)
     wait
     ;;
   *)
     red "未知参数: $TARGET"
-    echo "用法: bash scripts/dev.sh [user|catalog|order|all]"
+    echo "用法: bash scripts/dev.sh [user|catalog|order|merchant|all]"
     exit 1
     ;;
 esac

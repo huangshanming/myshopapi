@@ -4,6 +4,7 @@ package dto
 type LoginReq struct {
 	Mobile   string `json:"mobile" binding:"required,len=11" example:"13800138000"`
 	Password string `json:"password" binding:"required,min=6" example:"123456"`
+	ShopID   uint64 `json:"shop_id" example:"1"` // 商家登录时可选，写入 JWT
 }
 
 // RegisterReq 注册请求

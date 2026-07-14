@@ -18,6 +18,7 @@ type Order struct {
 	ID          uint64           `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
 	OrderNo     string           `gorm:"column:order_no;type:varchar(64);not null;uniqueIndex" json:"order_no"`
 	UserID      uint64           `gorm:"column:user_id;not null;index" json:"user_id"`
+	ShopID      uint64           `gorm:"column:shop_id;not null;default:0;index" json:"shop_id"`
 	TotalAmount float64          `gorm:"column:total_amount;type:decimal(12,2);not null" json:"total_amount"`
 	Status      string           `gorm:"column:status;type:enum('pending','confirmed','failed','cancelled');default:pending" json:"status"`
 	CreatedAt   common.LocalTime `gorm:"column:created_at" json:"created_at"`

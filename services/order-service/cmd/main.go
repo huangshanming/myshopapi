@@ -23,6 +23,7 @@ import (
 	"mymall/pkg/config"
 	"mymall/pkg/database"
 	"mymall/pkg/health"
+	"mymall/pkg/jwt"
 	applog "mymall/pkg/log"
 	"mymall/pkg/metrics"
 	"mymall/pkg/middleware"
@@ -127,12 +128,28 @@ func main() {
 
 	v1 := r.Group("/api/v1")
 	orders := v1.Group("/orders")
-	orders.Use(middleware.GatewayUserID())
+	orders.Use(middleware.GatewayIdentity(false))
 	{
 		orders.POST("", orderHandler.Create)
 		orders.GET("", orderHandler.List)
 		orders.GET("/:id", orderHandler.Detail)
 		orders.PUT("/:id/cancel", orderHandler.Cancel)
+	}
+
+	merchant := v1.Group("/merchant")
+	merchant.Use(middleware.GatewayIdentity(true))
+	merchant.Use(middleware.RequireRoles(jwt.RoleMerchantOwner, jwt.RoleMerchantStaff))
+	{
+		merchant.GET("/orders", orderHandler.MerchantList)
+		merchant.GET("/orders/:id", orderHandler.MerchantDetail)
+	}
+
+	admin := v1.Group("/admin")
+	admin.Use(middleware.GatewayIdentity(false))
+	admin.Use(middleware.RequireRoles(jwt.RolePlatformAdmin))
+	{
+		admin.GET("/orders", orderHandler.AdminList)
+		admin.GET("/orders/:id", orderHandler.AdminDetail)
 	}
 
 	addr := fmt.Sprintf(":%d", cfg.Server.HTTPPort)

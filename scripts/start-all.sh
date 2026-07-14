@@ -43,6 +43,8 @@ check_mysql() {
   yellow "    首次需执行: mysql -u homestead -p < scripts/migrate-db.sql"
   yellow "                mysql -u homestead -p mymall < scripts/init-schema.sql"
   yellow "                mysql -u homestead -p mymall < scripts/init-order-tables.sql"
+  yellow "                mysql -u homestead -p mymall < scripts/init-merchant-tables.sql"
+  yellow "                mysql -u homestead -p mymall < scripts/seed-admin-merchant.sql"
 }
 
 start_stack() {
@@ -53,11 +55,12 @@ start_stack() {
   fi
   docker compose "${args[@]}"
 
-  green "    user-service    → http://localhost:8881  (gRPC :9090)"
-  green "    catalog-service → http://localhost:8882  (gRPC :9091)"
-  green "    order-service   → http://localhost:8883"
-  green "    Redis           → 127.0.0.1:6379"
-  green "    RabbitMQ 管理台 → http://localhost:15672  (mymall/mymall)"
+  green "    user-service     → http://localhost:8881  (gRPC :9090)"
+  green "    catalog-service  → http://localhost:8882  (gRPC :9091)"
+  green "    order-service    → http://localhost:8883"
+  green "    merchant-service → http://localhost:8884"
+  green "    Redis            → 127.0.0.1:6379"
+  green "    RabbitMQ 管理台  → http://localhost:15672  (mymall/mymall)"
 }
 
 wait_healthy() {
@@ -66,6 +69,7 @@ wait_healthy() {
     "http://localhost:8881/healthz"
     "http://localhost:8882/healthz"
     "http://localhost:8883/healthz"
+    "http://localhost:8884/healthz"
   )
   for url in "${urls[@]}"; do
     for i in $(seq 1 60); do

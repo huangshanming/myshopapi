@@ -30,7 +30,11 @@ func (s *CatalogService) productListCacheKey(page *pagination.PageReq) string {
 }
 
 func (s *CatalogService) GetProductList(page *pagination.PageReq) (map[string]interface{}, error) {
-	if s.redis != nil {
+	return s.GetProductListFiltered(page, 0, "on_sale")
+}
+
+func (s *CatalogService) GetProductListFiltered(page *pagination.PageReq, shopID uint64, status string) (map[string]interface{}, error) {
+	if s.redis != nil && shopID == 0 && status == "on_sale" {
 		key := s.productListCacheKey(page)
 		cached, err := s.redis.Get(context.Background(), key).Bytes()
 		if err == nil {
@@ -41,17 +45,41 @@ func (s *CatalogService) GetProductList(page *pagination.PageReq) (map[string]in
 		}
 	}
 
-	res, err := s.products.GetList(page)
+	res, err := s.products.GetListByShop(page, shopID, status)
 	if err != nil {
 		return res, err
 	}
 
-	if s.redis != nil {
+	if s.redis != nil && shopID == 0 && status == "on_sale" {
 		if data, err := json.Marshal(res); err == nil {
 			_ = s.redis.Set(context.Background(), s.productListCacheKey(page), data, productListCacheTTL).Err()
 		}
 	}
 	return res, nil
+}
+
+func (s *CatalogService) CreateProduct(p *model.Product) error {
+	return s.products.Create(p)
+}
+
+func (s *CatalogService) UpdateProductByShop(id, shopID uint64, updates map[string]interface{}) error {
+	return s.products.UpdateByShop(id, shopID, updates)
+}
+
+func (s *CatalogService) ForceOffSale(id uint64) error {
+	return s.products.ForceOffSale(id)
+}
+
+func (s *CatalogService) CreateCategory(c *model.ProductCategory) error {
+	return s.categories.Create(c)
+}
+
+func (s *CatalogService) UpdateCategory(id uint64, updates map[string]interface{}) error {
+	return s.categories.Update(id, updates)
+}
+
+func (s *CatalogService) DeleteCategory(id uint64) error {
+	return s.categories.Delete(id)
 }
 
 func (s *CatalogService) GetProductDetail(id uint64) (*model.Product, error) {

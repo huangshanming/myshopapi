@@ -5,6 +5,7 @@ metadata:
   name: mymall-protected-routes
   namespace: mymall
 spec:
+  ingressClassName: apisix
   http:
     - name: user-profile
       match:
@@ -13,6 +14,9 @@ spec:
         methods:
           - GET
           - PUT
+          - DELETE
+          - POST
+          - OPTIONS
       backends:
         - serviceName: user-service
           servicePort: 8888
@@ -23,6 +27,7 @@ spec:
           enable: true
           config:
             phase: rewrite
+            allow_origins: "http://localhost:5173,http://127.0.0.1:5173,http://localhost:9099,http://127.0.0.1:9099,http://localhost:8881,http://localhost:8882,http://localhost:8883"
             functions:
               - |
                 return function(conf, ctx)
@@ -30,6 +35,12 @@ spec:
                   local payload = ctx.var.jwt_payload
                   if payload and payload.user_id then
                     core.request.set_header(ctx, "X-User-Id", tostring(payload.user_id))
+                  end
+                  if payload and payload.role then
+                    core.request.set_header(ctx, "X-User-Role", tostring(payload.role))
+                  end
+                  if payload and payload.shop_id then
+                    core.request.set_header(ctx, "X-Shop-Id", tostring(payload.shop_id))
                   end
                 end
 
@@ -42,6 +53,7 @@ spec:
           - GET
           - POST
           - PUT
+          - OPTIONS
       backends:
         - serviceName: order-service
           servicePort: 8888
@@ -59,5 +71,11 @@ spec:
                   local payload = ctx.var.jwt_payload
                   if payload and payload.user_id then
                     core.request.set_header(ctx, "X-User-Id", tostring(payload.user_id))
+                  end
+                  if payload and payload.role then
+                    core.request.set_header(ctx, "X-User-Role", tostring(payload.role))
+                  end
+                  if payload and payload.shop_id then
+                    core.request.set_header(ctx, "X-Shop-Id", tostring(payload.shop_id))
                   end
                 end

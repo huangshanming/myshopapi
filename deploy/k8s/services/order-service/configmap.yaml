@@ -9,10 +9,7 @@ data:
       http_port: 8888
       mode: release
     mysql:
-      host: host.docker.internal
       port: 3306
-      username: homestead
-      password: secret
       charset: utf8mb4
       dbname: mymall
       max_open_conns: 20
@@ -21,10 +18,7 @@ data:
       user_service: user-service:9090
       catalog_service: catalog-service:9090
     rabbitmq:
-      host: host.docker.internal
       port: 5672
-      username: mymall
-      password: mymall
       vhost: /
       exchange: mymall.events
     telemetry:

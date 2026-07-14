@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: merchant-service
+  namespace: mymall
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: merchant-service
+  template:
+    metadata:
+      labels:
+        app: merchant-service
+    spec:
+      containers:
+        - name: merchant-service
+          image: mymall-merchant-service:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8888
+          env:
+            - name: CONFIG_PATH
+              value: /app/config.yaml
+            - name: MYMALL_MYSQL_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: mymall-mysql
+                  key: host
+            - name: MYMALL_MYSQL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mymall-mysql
+                  key: username
+            - name: MYMALL_MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mymall-mysql
+                  key: password
+          volumeMounts:
+            - name: config
+              mountPath: /app/config.yaml
+              subPath: config.yaml
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8888
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8888
+            initialDelaySeconds: 15
+            periodSeconds: 20
+      volumes:
+        - name: config
+          configMap:
+            name: merchant-service-config

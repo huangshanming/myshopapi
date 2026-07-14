@@ -1,3 +1,4 @@
+# 仅本地 go run / 镜像默认值。Docker Compose / K8s 用 MYMALL_*（Secret）覆盖密码与 host
 server:
   http_port: 8881
   grpc_port: 9090
@@ -6,6 +7,7 @@ mysql:
   host: 127.0.0.1
   port: 3306
   username: homestead
+  # 本地 go run 默认；Docker/K8s 由 MYMALL_MYSQL_*（Compose env / Secret）覆盖
   password: secret
   charset: utf8mb4
   dbname: mymall
@@ -14,6 +16,7 @@ mysql:
   conn_max_lifetime: 3600
   conn_max_idle_time: 3600
 jwt:
+  # 本地 go run 默认；K8s 由 Secret 的 MYMALL_JWT_SECRET 覆盖
   secret: fsdfascwegrgtecqwerty
   consumer_key: mymall-user-key
   expire_hours: 24

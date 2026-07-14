@@ -5,6 +5,7 @@ metadata:
   name: mymall-public-routes
   namespace: mymall
 spec:
+  ingressClassName: apisix
   http:
     - name: user-auth
       match:
@@ -13,6 +14,7 @@ spec:
           - /api/v1/user/register
         methods:
           - POST
+          - OPTIONS
       backends:
         - serviceName: user-service
           servicePort: 8888
@@ -20,15 +22,10 @@ spec:
         - name: cors
           enable: true
           config:
-            allow_origins: "http://localhost:5173,http://127.0.0.1:5173"
+            allow_origins: "http://localhost:5173,http://127.0.0.1:5173,http://localhost:9099,http://127.0.0.1:9099,http://localhost:8881,http://localhost:8882,http://localhost:8883"
             allow_methods: "GET,POST,PUT,DELETE,OPTIONS"
-            allow_headers: "*"
+            allow_headers: "Authorization,Content-Type,X-User-Id"
             allow_credential: true
-        - name: limit-req
-          enable: true
-          config:
-            rate: 5
-            burst: 10
 
     - name: catalog-read
       match:
@@ -37,6 +34,7 @@ spec:
           - /api/v1/product_category/*
         methods:
           - GET
+          - OPTIONS
       backends:
         - serviceName: catalog-service
           servicePort: 8888
@@ -44,7 +42,7 @@ spec:
         - name: cors
           enable: true
           config:
-            allow_origins: "http://localhost:5173,http://127.0.0.1:5173"
+            allow_origins: "http://localhost:5173,http://127.0.0.1:5173,http://localhost:9099,http://127.0.0.1:9099,http://localhost:8881,http://localhost:8882,http://localhost:8883"
             allow_methods: "GET,POST,PUT,DELETE,OPTIONS"
-            allow_headers: "*"
+            allow_headers: "Authorization,Content-Type,X-User-Id"
             allow_credential: true

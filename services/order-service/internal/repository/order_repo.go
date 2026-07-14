@@ -65,3 +65,52 @@ func (r *OrderRepository) Cancel(orderID, userID uint64) error {
 		Where("id = ? AND user_id = ? AND status IN ?", orderID, userID, []string{model.OrderStatusPending, model.OrderStatusConfirmed}).
 		Update("status", model.OrderStatusCancelled).Error
 }
+
+func (r *OrderRepository) ListByShop(shopID uint64, page, pageSize int) ([]model.Order, int64, error) {
+	var total int64
+	if err := r.db.Model(&model.Order{}).Where("shop_id = ?", shopID).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var orders []model.Order
+	offset := (page - 1) * pageSize
+	err := r.db.Preload("Items").Where("shop_id = ?", shopID).
+		Order("id DESC").Offset(offset).Limit(pageSize).Find(&orders).Error
+	return orders, total, err
+}
+
+func (r *OrderRepository) ListAll(shopID uint64, page, pageSize int) ([]model.Order, int64, error) {
+	q := r.db.Model(&model.Order{})
+	if shopID > 0 {
+		q = q.Where("shop_id = ?", shopID)
+	}
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	query := r.db.Preload("Items")
+	if shopID > 0 {
+		query = query.Where("shop_id = ?", shopID)
+	}
+	var orders []model.Order
+	offset := (page - 1) * pageSize
+	err := query.Order("id DESC").Offset(offset).Limit(pageSize).Find(&orders).Error
+	return orders, total, err
+}
+
+func (r *OrderRepository) FindByIDAndShop(id, shopID uint64) (*model.Order, error) {
+	var order model.Order
+	err := r.db.Preload("Items").Where("id = ? AND shop_id = ?", id, shopID).First(&order).Error
+	if err != nil {
+		return nil, err
+	}
+	return &order, nil
+}
+
+func (r *OrderRepository) FindByIDAdmin(id uint64) (*model.Order, error) {
+	var order model.Order
+	err := r.db.Preload("Items").Where("id = ?", id).First(&order).Error
+	if err != nil {
+		return nil, err
+	}
+	return &order, nil
+}
