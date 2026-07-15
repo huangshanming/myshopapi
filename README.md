@@ -50,6 +50,8 @@ mymall/
     ├── init-order-tables.sql
     ├── init-merchant-tables.sql
     ├── seed-admin-merchant.sql
+    ├── init-rbac-tables.sql
+    ├── seed-rbac.sql
     └── dev.sh           # go run；默认读 ./etc/<svc>.yaml
 ```
 
@@ -66,12 +68,15 @@ mysql -u homestead -p mymall < scripts/init-order-tables.sql
 mysql -u homestead -p mymall < scripts/init-merchant-tables.sql
 # 种子账号（超管 13900000001 / 商家 13900000002，密码均为 123456）
 mysql -u homestead -p mymall < scripts/seed-admin-merchant.sql
+# 后台 RBAC（菜单/角色/权限）
+mysql -u homestead -p mymall < scripts/init-rbac-tables.sql
+mysql -u homestead -p mymall < scripts/seed-rbac.sql
 
 # Redis + RabbitMQ（可选 docker-compose）
 docker compose -f deploy/local/docker-compose.infra.yaml up -d
 ```
 
-若基础表早已建好，**只需补后两条**（`init-merchant-tables.sql` + `seed-admin-merchant.sql`）。改代码后需重建对应服务镜像，否则旧容器不会签发 `platform_admin` 等角色进 JWT。
+若基础表早已建好，**补** `init-merchant-tables.sql` + `seed-admin-merchant.sql`；后台 RBAC 再补 `init-rbac-tables.sql` + `seed-rbac.sql`。改代码后需重建对应服务镜像。
 
 本地 `server.mode: debug`（默认）启动时会按各服务 model 做 **GORM AutoMigrate**（加表/加列，类似 Beego sync；**不删列**）。K8s `release` 不会跑。可用 `MYMALL_MYSQL_AUTO_MIGRATE=true|false` 强制开关。种子数据仍靠 SQL，AutoMigrate 不会插账号。
 

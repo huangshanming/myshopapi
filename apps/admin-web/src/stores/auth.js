@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import http from '../api/http'
+import { fetchAuthMe } from '../api/system'
 
 function parseJwt(token) {
   try {
@@ -20,12 +21,31 @@ export const useAuthStore = defineStore('auth', {
     role: localStorage.getItem('mymall_role') || '',
     shopId: Number(localStorage.getItem('mymall_shop_id') || 0),
     userId: Number(localStorage.getItem('mymall_user_id') || 0),
+    roles: JSON.parse(localStorage.getItem('mymall_roles') || '[]'),
+    perms: JSON.parse(localStorage.getItem('mymall_perms') || '[]'),
+    menuTree: JSON.parse(localStorage.getItem('mymall_menus') || '[]'),
   }),
   getters: {
     isAdmin: (s) => s.role === 'platform_admin' || s.role === 'admin',
     isMerchant: (s) => s.role === 'merchant_owner' || s.role === 'merchant_staff',
+    isSuperAdmin: (s) => Array.isArray(s.roles) && s.roles.includes('super_admin'),
   },
   actions: {
+    hasPerm(code) {
+      if (!code) return true
+      if (this.isSuperAdmin) return true
+      return this.perms.includes(code)
+    },
+    async loadAuthMe() {
+      if (!this.isAdmin) return
+      const body = await fetchAuthMe()
+      this.roles = body.data?.roles || []
+      this.perms = body.data?.perms || []
+      this.menuTree = body.data?.menu_tree || []
+      localStorage.setItem('mymall_roles', JSON.stringify(this.roles))
+      localStorage.setItem('mymall_perms', JSON.stringify(this.perms))
+      localStorage.setItem('mymall_menus', JSON.stringify(this.menuTree))
+    },
     async login(mobile, password, shopId = 0) {
       const body = await http.post('/api/v1/user/login', {
         mobile,
@@ -45,6 +65,13 @@ export const useAuthStore = defineStore('auth', {
       localStorage.setItem('mymall_role', this.role)
       localStorage.setItem('mymall_shop_id', String(this.shopId))
       localStorage.setItem('mymall_user_id', String(this.userId))
+      if (this.isAdmin) {
+        try {
+          await this.loadAuthMe()
+        } catch (e) {
+          console.warn('loadAuthMe failed', e)
+        }
+      }
       return this.role
     },
     logout() {
@@ -53,6 +80,9 @@ export const useAuthStore = defineStore('auth', {
       this.role = ''
       this.shopId = 0
       this.userId = 0
+      this.roles = []
+      this.perms = []
+      this.menuTree = []
       localStorage.clear()
     },
   },

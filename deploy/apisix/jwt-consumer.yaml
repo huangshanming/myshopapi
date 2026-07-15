@@ -1,12 +1,31 @@
 # APISIX JWT Consumer，与 user-service 签发的 Token 对应
 # Token payload 须包含 "key": "mymall-user-key"，由 pkg/jwt 自动写入
+# 注意：Ingress Controller 2.x 必须写 ingressClassName，否则 Consumer 不会被同步
 apiVersion: apisix.apache.org/v2
 kind: ApisixConsumer
 metadata:
   name: mymall-user
   namespace: mymall
 spec:
+  ingressClassName: apisix
   authParameter:
     jwtAuth:
+      secretRef:
+        name: mymall-jwt-auth
+---
+# Ingress Controller 2.x 推荐的 Consumer（与 GatewayProxy 关联）
+apiVersion: apisix.apache.org/v1alpha1
+kind: Consumer
+metadata:
+  name: mymall-user-jwt
+  namespace: mymall
+spec:
+  gatewayRef:
+    name: apisix-config
+    kind: GatewayProxy
+    group: apisix.apache.org
+  credentials:
+    - type: jwt-auth
+      name: mymall-jwt
       secretRef:
         name: mymall-jwt-auth

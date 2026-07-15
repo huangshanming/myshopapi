@@ -72,9 +72,9 @@ func GenerateTokenWithShop(userID uint64, role string, shopID uint64, cfg Config
 		RegisteredClaims: jwtlib.RegisteredClaims{
 			ExpiresAt: jwtlib.NewNumericDate(now.Add(time.Duration(expireHours) * time.Hour)),
 			IssuedAt:  jwtlib.NewNumericDate(now),
-			NotBefore: jwtlib.NewNumericDate(now),
-			Issuer:    issuer,
-			Subject:   fmt.Sprintf("%d", userID),
+			// 不写 nbf：APISIX 与签发端偶发时钟差（含同秒）时会报 failed to verify jwt / nbf not valid
+			Issuer:  issuer,
+			Subject: fmt.Sprintf("%d", userID),
 		},
 	}
 

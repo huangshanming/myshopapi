@@ -24,12 +24,12 @@ func (l *UserLogic) Login(mobile, password string) (string, *model.User, error) 
 func (l *UserLogic) LoginWithShop(mobile, password string, shopID uint64) (string, *model.User, error) {
 	user, err := l.svcCtx.Repo.VerifyLogin(mobile, password)
 	if err != nil {
+		if err.Error() == "账号已禁用" {
+			return "", nil, err
+		}
 		return "", nil, errors.New("手机号或密码错误")
 	}
-	role := user.Role
-	if role == "" {
-		role = jwt.RoleUser
-	}
+	role := ResolveLoginRole(l.svcCtx, user)
 	if shopID == 0 && jwt.IsMerchant(role) {
 		shopID = l.svcCtx.Repo.FirstShopID(user.ID)
 	}

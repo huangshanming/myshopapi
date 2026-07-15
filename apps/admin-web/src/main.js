@@ -4,5 +4,11 @@ import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 import App from './App.vue'
 import router from './router'
+import { setupPermission } from './directives/permission'
 
-createApp(App).use(createPinia()).use(router).use(ElementPlus).mount('#app')
+const app = createApp(App)
+app.use(createPinia())
+app.use(router)
+app.use(ElementPlus)
+setupPermission(app)
+app.mount('#app')

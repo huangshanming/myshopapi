@@ -13,6 +13,7 @@ type ServiceContext struct {
 	Config *config.Config
 	DB     *gorm.DB
 	Repo   *repository.UserRepository
+	RBAC   *repository.RBACRepository
 	JWT    jwt.Config
 }
 
@@ -21,6 +22,7 @@ func NewServiceContext(cfg *config.Config, db *gorm.DB) *ServiceContext {
 		Config: cfg,
 		DB:     db,
 		Repo:   repository.NewUserRepository(db),
+		RBAC:   repository.NewRBACRepository(db),
 		JWT: jwt.Config{
 			Secret:      cfg.JWT.Secret,
 			ConsumerKey: cfg.JWT.ConsumerKey,

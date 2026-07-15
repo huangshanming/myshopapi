@@ -30,23 +30,48 @@ spec:
             allow_credential: true
         - name: jwt-auth
           enable: true
-        - name: serverless-pre-function
+        # post+access：在 jwt-auth 之后；并从 Bearer 解码 claims（ctx.var.jwt_payload 在部分版本不可用）
+        - name: serverless-post-function
           enable: true
           config:
-            phase: rewrite
+            phase: access
             functions:
               - |
                 return function(conf, ctx)
                   local core = require("apisix.core")
+                  local cjson = require("cjson.safe")
                   local payload = ctx.var.jwt_payload
-                  if payload and payload.user_id then
-                    core.request.set_header(ctx, "X-User-Id", tostring(payload.user_id))
+                  if type(payload) == "string" then
+                    payload = cjson.decode(payload)
                   end
-                  if payload and payload.role then
-                    core.request.set_header(ctx, "X-User-Role", tostring(payload.role))
+                  if type(payload) ~= "table" then
+                    local auth = core.request.header(ctx, "Authorization") or ""
+                    local token = auth:match("[Bb]earer%s+(.+)")
+                    if token then
+                      local i = 0
+                      local mid
+                      for part in token:gmatch("[^%.]+") do
+                        i = i + 1
+                        if i == 2 then mid = part break end
+                      end
+                      if mid then
+                        mid = mid:gsub("-", "+"):gsub("_", "/")
+                        local pad = #mid % 4
+                        if pad > 0 then mid = mid .. string.rep("=", 4 - pad) end
+                        payload = cjson.decode(ngx.decode_base64(mid))
+                      end
+                    end
                   end
-                  if payload and payload.shop_id then
-                    core.request.set_header(ctx, "X-Shop-Id", tostring(payload.shop_id))
+                  if type(payload) == "table" then
+                    if payload.user_id then
+                      core.request.set_header(ctx, "X-User-Id", tostring(payload.user_id))
+                    end
+                    if payload.role then
+                      core.request.set_header(ctx, "X-User-Role", tostring(payload.role))
+                    end
+                    if payload.shop_id then
+                      core.request.set_header(ctx, "X-Shop-Id", tostring(payload.shop_id))
+                    end
                   end
                 end
 
@@ -73,22 +98,46 @@ spec:
             allow_credential: true
         - name: jwt-auth
           enable: true
-        - name: serverless-pre-function
+        - name: serverless-post-function
           enable: true
           config:
-            phase: rewrite
+            phase: access
             functions:
               - |
                 return function(conf, ctx)
                   local core = require("apisix.core")
+                  local cjson = require("cjson.safe")
                   local payload = ctx.var.jwt_payload
-                  if payload and payload.user_id then
-                    core.request.set_header(ctx, "X-User-Id", tostring(payload.user_id))
+                  if type(payload) == "string" then
+                    payload = cjson.decode(payload)
                   end
-                  if payload and payload.role then
-                    core.request.set_header(ctx, "X-User-Role", tostring(payload.role))
+                  if type(payload) ~= "table" then
+                    local auth = core.request.header(ctx, "Authorization") or ""
+                    local token = auth:match("[Bb]earer%s+(.+)")
+                    if token then
+                      local i = 0
+                      local mid
+                      for part in token:gmatch("[^%.]+") do
+                        i = i + 1
+                        if i == 2 then mid = part break end
+                      end
+                      if mid then
+                        mid = mid:gsub("-", "+"):gsub("_", "/")
+                        local pad = #mid % 4
+                        if pad > 0 then mid = mid .. string.rep("=", 4 - pad) end
+                        payload = cjson.decode(ngx.decode_base64(mid))
+                      end
+                    end
                   end
-                  if payload and payload.shop_id then
-                    core.request.set_header(ctx, "X-Shop-Id", tostring(payload.shop_id))
+                  if type(payload) == "table" then
+                    if payload.user_id then
+                      core.request.set_header(ctx, "X-User-Id", tostring(payload.user_id))
+                    end
+                    if payload.role then
+                      core.request.set_header(ctx, "X-User-Role", tostring(payload.role))
+                    end
+                    if payload.shop_id then
+                      core.request.set_header(ctx, "X-Shop-Id", tostring(payload.shop_id))
+                    end
                   end
                 end

@@ -20,10 +20,39 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 	return &UserRepository{db: db}
 }
 
-func (r *UserRepository) hashPassword(password string) string {
+func (r *UserRepository) HashPassword(password string) string {
 	hash := md5.New()
 	hash.Write([]byte(password + passwordSalt))
 	return hex.EncodeToString(hash.Sum(nil))
+}
+
+func (r *UserRepository) hashPassword(password string) string {
+	return r.HashPassword(password)
+}
+
+func (r *UserRepository) UpdatePassword(id uint64, password string) error {
+	return r.db.Model(&model.User{}).Where("id = ?", id).Update("password", r.HashPassword(password)).Error
+}
+
+func (r *UserRepository) CreateAdmin(mobile, password, nickname string) (*model.User, error) {
+	var existing model.User
+	if err := r.db.Where("mobile = ?", mobile).First(&existing).Error; err == nil {
+		return nil, errors.New("用户已存在")
+	}
+	if nickname == "" {
+		nickname = mobile
+	}
+	user := model.User{
+		Mobile:   mobile,
+		Password: r.HashPassword(password),
+		Nickname: nickname,
+		Status:   1,
+		Role:     "platform_admin",
+	}
+	if err := r.db.Create(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 
 func (r *UserRepository) FindByMobile(mobile string) (*model.User, error) {
@@ -42,6 +71,9 @@ func (r *UserRepository) VerifyLogin(mobile, password string) (*model.User, erro
 	}
 	if user.Password != r.hashPassword(password) {
 		return nil, gorm.ErrRecordNotFound
+	}
+	if user.Status != 1 {
+		return nil, errors.New("账号已禁用")
 	}
 	return user, nil
 }

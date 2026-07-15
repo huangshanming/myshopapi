@@ -55,13 +55,21 @@ func main() {
 	if err != nil {
 		log.Fatalf("连接数据库失败：%v", err)
 	}
-	if err := database.AutoMigrateIfDebug(cfg.Server.Mode, db, &model.User{}); err != nil {
+	if err := database.AutoMigrateIfDebug(cfg.Server.Mode, db,
+		&model.User{},
+		&model.SysMenu{},
+		&model.SysRole{},
+		&model.SysRoleMenu{},
+		&model.SysUserRole{},
+		&model.SysConfig{},
+	); err != nil {
 		log.Fatalf("AutoMigrate 失败：%v", err)
 	}
 
 	svcCtx := svc.NewServiceContext(cfg, db)
 	userLogic := logic.NewUserLogic(svcCtx)
 	userHandler := handler.NewUserHandler(svcCtx)
+	adminHandler := handler.NewAdminHandler(svcCtx)
 
 	healthReg := health.NewRegistry()
 	healthReg.Register("mysql", func(ctx context.Context) error {
@@ -85,9 +93,15 @@ func main() {
 	rid := middleware.RequestID()
 	authJWT := jwt.AuthMiddleware(svcCtx.JWT.Secret)
 	authGW := middleware.GatewayIdentity(false)
+	plat := middleware.RequireRoles(jwt.RolePlatformAdmin)
+	perm := func(code string) middleware.Middleware {
+		return middleware.RequirePermission(adminHandler, code)
+	}
+	adminAuth := func(code string, h http.HandlerFunc) http.HandlerFunc {
+		return rid(middleware.Chain(h, authGW, plat, perm(code)))
+	}
 
 	profile := func(w http.ResponseWriter, r *http.Request) {
-		// 优先网关头；无头时回退 JWT（本地直连）
 		if r.Header.Get(middleware.GatewayUserIDHeader) != "" {
 			authGW(userHandler.Profile)(w, r)
 			return
@@ -103,6 +117,32 @@ func main() {
 		{Method: http.MethodPost, Path: "/api/v1/user/login", Handler: rid(userHandler.Login)},
 		{Method: http.MethodPost, Path: "/api/v1/user/register", Handler: rid(userHandler.Register)},
 		{Method: http.MethodGet, Path: "/api/v1/user/profile", Handler: rid(profile)},
+
+		{Method: http.MethodGet, Path: "/api/v1/admin/auth/me", Handler: adminAuth("", adminHandler.AuthMe)},
+
+		{Method: http.MethodGet, Path: "/api/v1/admin/menus", Handler: adminAuth("system:menu:list", adminHandler.MenuTree)},
+		{Method: http.MethodPost, Path: "/api/v1/admin/menus", Handler: adminAuth("system:menu:add", adminHandler.CreateMenu)},
+		{Method: http.MethodPut, Path: "/api/v1/admin/menus/:id", Handler: adminAuth("system:menu:edit", adminHandler.UpdateMenu)},
+		{Method: http.MethodDelete, Path: "/api/v1/admin/menus/:id", Handler: adminAuth("system:menu:delete", adminHandler.DeleteMenu)},
+
+		{Method: http.MethodGet, Path: "/api/v1/admin/roles", Handler: adminAuth("system:role:list", adminHandler.ListRoles)},
+		{Method: http.MethodPost, Path: "/api/v1/admin/roles", Handler: adminAuth("system:role:add", adminHandler.CreateRole)},
+		{Method: http.MethodPut, Path: "/api/v1/admin/roles/:id", Handler: adminAuth("system:role:edit", adminHandler.UpdateRole)},
+		{Method: http.MethodDelete, Path: "/api/v1/admin/roles/:id", Handler: adminAuth("system:role:delete", adminHandler.DeleteRole)},
+		{Method: http.MethodGet, Path: "/api/v1/admin/roles/:id/menus", Handler: adminAuth("system:role:list", adminHandler.GetRoleMenus)},
+		{Method: http.MethodPut, Path: "/api/v1/admin/roles/:id/menus", Handler: adminAuth("system:role:assign", adminHandler.AssignRoleMenus)},
+
+		{Method: http.MethodGet, Path: "/api/v1/admin/users", Handler: adminAuth("system:user:list", adminHandler.ListUsers)},
+		{Method: http.MethodPut, Path: "/api/v1/admin/users/:id/status", Handler: adminAuth("system:user:status", adminHandler.SetUserStatus)},
+
+		{Method: http.MethodGet, Path: "/api/v1/admin/admins", Handler: adminAuth("system:admin:list", adminHandler.ListAdmins)},
+		{Method: http.MethodPost, Path: "/api/v1/admin/admins", Handler: adminAuth("system:admin:add", adminHandler.CreateAdmin)},
+		{Method: http.MethodGet, Path: "/api/v1/admin/admins/:id/roles", Handler: adminAuth("system:admin:list", adminHandler.GetAdminRoles)},
+		{Method: http.MethodPut, Path: "/api/v1/admin/admins/:id/roles", Handler: adminAuth("system:admin:assign", adminHandler.AssignAdminRoles)},
+		{Method: http.MethodPut, Path: "/api/v1/admin/admins/:id/password", Handler: adminAuth("system:admin:reset", adminHandler.ResetAdminPassword)},
+
+		{Method: http.MethodGet, Path: "/api/v1/admin/configs", Handler: adminAuth("system:config:list", adminHandler.ListConfigs)},
+		{Method: http.MethodPut, Path: "/api/v1/admin/configs", Handler: adminAuth("system:config:edit", adminHandler.SaveConfigs)},
 	})
 
 	go func() {
