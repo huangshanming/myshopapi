@@ -5,16 +5,18 @@ import (
 	"strconv"
 
 	"mymall/pkg/apidoc/dto"
+	"mymall/pkg/middleware"
 	"mymall/pkg/pagination"
 	"mymall/pkg/response"
-	"mymall/services/catalog-service/internal/service"
+	"mymall/services/catalog-service/internal/logic"
+	"mymall/services/catalog-service/internal/svc"
 
-	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
 type CatalogHandler struct {
-	svc *service.CatalogService
+	svcCtx *svc.ServiceContext
+	logic  *logic.CatalogLogic
 }
 
 // swag 类型引用
@@ -25,8 +27,11 @@ var (
 	_ dto.CategoryDetailResp
 )
 
-func NewCatalogHandler(svc *service.CatalogService) *CatalogHandler {
-	return &CatalogHandler{svc: svc}
+func NewCatalogHandler(svcCtx *svc.ServiceContext) *CatalogHandler {
+	return &CatalogHandler{
+		svcCtx: svcCtx,
+		logic:  logic.NewCatalogLogic(svcCtx),
+	}
 }
 
 // GetProductList 商品列表
@@ -38,14 +43,15 @@ func NewCatalogHandler(svc *service.CatalogService) *CatalogHandler {
 // @Param        page_size  query  int  false  "每页数量"   default(10)
 // @Success      200  {object}  apidoc.Response{data=dto.ProductListResp}  "查询成功"
 // @Router       /api/v1/products/list [get]
-func (h *CatalogHandler) GetProductList(c *gin.Context) {
-	pageReq := c.MustGet("pageReq").(*pagination.PageReq)
-	data, err := h.svc.GetProductList(pageReq)
+func (h *CatalogHandler) GetProductList(w http.ResponseWriter, r *http.Request) {
+	page, pageSize := middleware.ParsePage(r)
+	pageReq := &pagination.PageReq{Page: page, PageSize: pageSize}
+	data, err := h.logic.GetProductList(pageReq)
 	if err != nil {
-		response.Error(c, "查询失败", http.StatusInternalServerError)
+		response.Error(w, "查询失败", http.StatusInternalServerError)
 		return
 	}
-	response.Success(c, data, "查询成功")
+	response.Success(w, data, "查询成功")
 }
 
 // GetProductDetail 商品详情
@@ -56,22 +62,22 @@ func (h *CatalogHandler) GetProductList(c *gin.Context) {
 // @Param        id  query  int  true  "商品 ID"
 // @Success      200  {object}  apidoc.Response{data=dto.ProductDetail}  "查询成功"
 // @Router       /api/v1/products/detail [get]
-func (h *CatalogHandler) GetProductDetail(c *gin.Context) {
-	id, _ := strconv.ParseUint(c.Query("id"), 10, 64)
+func (h *CatalogHandler) GetProductDetail(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.ParseUint(r.URL.Query().Get("id"), 10, 64)
 	if id == 0 {
-		response.Error(c, "参数错误", http.StatusBadRequest)
+		response.Error(w, "参数错误", http.StatusBadRequest)
 		return
 	}
-	data, err := h.svc.GetProductDetail(id)
+	data, err := h.logic.GetProductDetail(id)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			response.Error(c, "商品不存在", http.StatusNotFound)
+			response.Error(w, "商品不存在", http.StatusNotFound)
 			return
 		}
-		response.Error(c, "查询失败", http.StatusInternalServerError)
+		response.Error(w, "查询失败", http.StatusInternalServerError)
 		return
 	}
-	response.Success(c, data, "查询成功")
+	response.Success(w, data, "查询成功")
 }
 
 // GetCategoryList 分类列表
@@ -83,14 +89,15 @@ func (h *CatalogHandler) GetProductDetail(c *gin.Context) {
 // @Param        page_size  query  int  false  "每页数量"   default(10)
 // @Success      200  {object}  apidoc.Response{data=dto.CategoryListResp}  "查询成功"
 // @Router       /api/v1/product_category/list [get]
-func (h *CatalogHandler) GetCategoryList(c *gin.Context) {
-	pageReq := c.MustGet("pageReq").(*pagination.PageReq)
-	data, err := h.svc.GetCategoryList(pageReq)
+func (h *CatalogHandler) GetCategoryList(w http.ResponseWriter, r *http.Request) {
+	page, pageSize := middleware.ParsePage(r)
+	pageReq := &pagination.PageReq{Page: page, PageSize: pageSize}
+	data, err := h.logic.GetCategoryList(pageReq)
 	if err != nil {
-		response.Error(c, "查询失败", http.StatusInternalServerError)
+		response.Error(w, "查询失败", http.StatusInternalServerError)
 		return
 	}
-	response.Success(c, data, "查询成功")
+	response.Success(w, data, "查询成功")
 }
 
 // GetCategoryDetail 分类详情
@@ -101,20 +108,20 @@ func (h *CatalogHandler) GetCategoryList(c *gin.Context) {
 // @Param        id  query  int  true  "分类 ID"
 // @Success      200  {object}  apidoc.Response{data=dto.CategoryDetailResp}  "查询成功"
 // @Router       /api/v1/product_category/detail [get]
-func (h *CatalogHandler) GetCategoryDetail(c *gin.Context) {
-	id, _ := strconv.ParseUint(c.Query("id"), 10, 64)
+func (h *CatalogHandler) GetCategoryDetail(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.ParseUint(r.URL.Query().Get("id"), 10, 64)
 	if id == 0 {
-		response.Error(c, "参数错误", http.StatusBadRequest)
+		response.Error(w, "参数错误", http.StatusBadRequest)
 		return
 	}
-	data, err := h.svc.GetCategoryDetail(id)
+	data, err := h.logic.GetCategoryDetail(id)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			response.Error(c, "分类不存在", http.StatusNotFound)
+			response.Error(w, "分类不存在", http.StatusNotFound)
 			return
 		}
-		response.Error(c, "查询失败", http.StatusInternalServerError)
+		response.Error(w, "查询失败", http.StatusInternalServerError)
 		return
 	}
-	response.Success(c, data, "查询成功")
+	response.Success(w, data, "查询成功")
 }

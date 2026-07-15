@@ -4,7 +4,7 @@ metadata:
   name: catalog-service-config
   namespace: mymall
 data:
-  config.yaml: |
+  catalog-service.yaml: |
     server:
       http_port: 8888
       grpc_port: 9090

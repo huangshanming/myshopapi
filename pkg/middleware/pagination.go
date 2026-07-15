@@ -1,18 +1,34 @@
 package middleware
 
 import (
-	"mymall/pkg/pagination"
+	"net/http"
 
-	"github.com/gin-gonic/gin"
+	"mymall/pkg/pagination"
 )
 
-func ExtractPageReq() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		var pageReq pagination.PageReq
-		if err := c.ShouldBindQuery(&pageReq); err != nil {
-			_ = c.ShouldBindJSON(&pageReq)
-		}
-		c.Set("pageReq", &pageReq)
-		c.Next()
+func ParsePage(r *http.Request) (page, pageSize int) {
+	q := r.URL.Query()
+	req := pagination.PageReq{
+		Page:     atoiDefault(q.Get("page"), 1),
+		PageSize: atoiDefault(q.Get("page_size"), 10),
 	}
+	page, pageSize, _ = pagination.Normalize(&req)
+	return page, pageSize
+}
+
+func atoiDefault(s string, def int) int {
+	if s == "" {
+		return def
+	}
+	n := 0
+	for _, c := range s {
+		if c < '0' || c > '9' {
+			return def
+		}
+		n = n*10 + int(c-'0')
+	}
+	if n == 0 {
+		return def
+	}
+	return n
 }

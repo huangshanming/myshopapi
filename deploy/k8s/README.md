@@ -19,10 +19,27 @@ deploy/k8s/
 ├── namespace.yaml
 ├── secrets/           # mysql / jwt / redis / rabbitmq
 ├── services/
-│   ├── user-service/
+│   ├── user-service/      # ConfigMap key: user-service.yaml → /app/etc/
 │   ├── catalog-service/
-│   └── order-service/
+│   ├── order-service/
+│   └── merchant-service/
 └── observability/     # Jaeger 骨架
+```
+
+## 镜像与节点
+
+Docker Desktop / kind 的 **containerd 不会自动吃到宿主机 `docker build` 的新镜像**。`apply.sh` 会：
+
+1. `docker build` 打出 `mymall-<svc>:local-<timestamp>`（同时打 `:local`）
+2. `docker save | ctr -n k8s.io images import` 灌进控制平面节点
+3. `kubectl set image` 切到本次 tag，避免一直用旧 digest
+
+若手工构建，需自行导入后再重启 Deployment：
+
+```bash
+NODE=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}')
+docker save mymall-user-service:local | docker exec -i "$NODE" ctr -n k8s.io images import -
+kubectl rollout restart deployment/user-service -n mymall
 ```
 
 ## 首次准备

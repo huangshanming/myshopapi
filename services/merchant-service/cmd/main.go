@@ -12,20 +12,21 @@ import (
 	"mymall/pkg/config"
 	"mymall/pkg/database"
 	"mymall/pkg/health"
+	"mymall/pkg/httpserver"
 	"mymall/pkg/jwt"
 	applog "mymall/pkg/log"
 	"mymall/pkg/middleware"
 	"mymall/services/merchant-service/internal/handler"
-	"mymall/services/merchant-service/internal/repository"
-	"mymall/services/merchant-service/internal/service"
+	"mymall/services/merchant-service/internal/model"
+	"mymall/services/merchant-service/internal/svc"
 
-	"github.com/gin-gonic/gin"
+	"github.com/zeromicro/go-zero/rest"
 )
 
 func main() {
 	configPath := os.Getenv("CONFIG_PATH")
 	if configPath == "" {
-		configPath = "./config.yaml"
+		configPath = "./etc/merchant-service.yaml"
 	}
 	cfg, err := config.Load(configPath)
 	if err != nil {
@@ -42,10 +43,16 @@ func main() {
 	if err != nil {
 		log.Fatalf("连接数据库失败：%v", err)
 	}
+	if err := database.AutoMigrateIfDebug(cfg.Server.Mode, db,
+		&model.Shop{},
+		&model.ShopApplication{},
+		&model.ShopMember{},
+	); err != nil {
+		log.Fatalf("AutoMigrate 失败：%v", err)
+	}
 
-	repo := repository.NewMerchantRepository(db)
-	svc := service.NewMerchantService(repo)
-	h := handler.NewMerchantHandler(svc)
+	svcCtx := svc.NewServiceContext(cfg, db)
+	h := handler.NewMerchantHandler(svcCtx)
 
 	healthReg := health.NewRegistry()
 	healthReg.Register("mysql", func(ctx context.Context) error {
@@ -56,46 +63,38 @@ func main() {
 		return sqlDB.PingContext(ctx)
 	})
 
-	r := gin.Default()
-	r.Use(middleware.RequestID())
-	r.GET("/healthz", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "ok", "service": "merchant-service"})
+	server := httpserver.NewRest(cfg.Server.HTTPPort, cfg.Server.Mode)
+	defer server.Stop()
+
+	rid := middleware.RequestID()
+	gw := middleware.GatewayIdentity(false)
+	owner := middleware.RequireRoles(jwt.RoleMerchantOwner, jwt.RoleMerchantStaff)
+	plat := middleware.RequireRoles(jwt.RolePlatformAdmin)
+
+	server.AddRoutes([]rest.Route{
+		{Method: http.MethodGet, Path: "/healthz", Handler: rid(httpserver.Healthz("merchant-service"))},
+		{Method: http.MethodGet, Path: "/readyz", Handler: rid(healthReg.ReadyHandler())},
+
+		{Method: http.MethodPost, Path: "/api/v1/merchant/apply", Handler: rid(gw(h.Apply))},
+		{Method: http.MethodGet, Path: "/api/v1/merchant/shops", Handler: rid(gw(h.MyShops))},
+		{Method: http.MethodPut, Path: "/api/v1/merchant/shops/:id", Handler: rid(gw(owner(h.UpdateMyShop)))},
+
+		{Method: http.MethodGet, Path: "/api/v1/admin/applications", Handler: rid(middleware.Chain(h.AdminListApplications, gw, plat))},
+		{Method: http.MethodPost, Path: "/api/v1/admin/applications/:id/approve", Handler: rid(middleware.Chain(h.AdminApprove, gw, plat))},
+		{Method: http.MethodPost, Path: "/api/v1/admin/applications/:id/reject", Handler: rid(middleware.Chain(h.AdminReject, gw, plat))},
+		{Method: http.MethodGet, Path: "/api/v1/admin/shops", Handler: rid(middleware.Chain(h.AdminListShops, gw, plat))},
+		{Method: http.MethodGet, Path: "/api/v1/admin/shops/:id", Handler: rid(middleware.Chain(h.AdminGetShop, gw, plat))},
+		{Method: http.MethodPut, Path: "/api/v1/admin/shops/:id/disable", Handler: rid(middleware.Chain(h.AdminDisableShop, gw, plat))},
+		{Method: http.MethodPut, Path: "/api/v1/admin/shops/:id/enable", Handler: rid(middleware.Chain(h.AdminEnableShop, gw, plat))},
 	})
-	r.GET("/readyz", healthReg.ReadyHandler())
 
-	v1 := r.Group("/api/v1")
-	{
-		merchant := v1.Group("/merchant")
-		merchant.Use(middleware.GatewayIdentity(false))
-		{
-			merchant.POST("/apply", h.Apply)
-			merchant.GET("/shops", h.MyShops)
-			merchant.PUT("/shops/:id", middleware.RequireRoles(jwt.RoleMerchantOwner, jwt.RoleMerchantStaff), h.UpdateMyShop)
-		}
-
-		admin := v1.Group("/admin")
-		admin.Use(middleware.GatewayIdentity(false))
-		admin.Use(middleware.RequireRoles(jwt.RolePlatformAdmin))
-		{
-			admin.GET("/applications", h.AdminListApplications)
-			admin.POST("/applications/:id/approve", h.AdminApprove)
-			admin.POST("/applications/:id/reject", h.AdminReject)
-			admin.GET("/shops", h.AdminListShops)
-			admin.GET("/shops/:id", h.AdminGetShop)
-			admin.PUT("/shops/:id/disable", h.AdminDisableShop)
-			admin.PUT("/shops/:id/enable", h.AdminEnableShop)
-		}
-	}
-
-	addr := fmt.Sprintf(":%d", cfg.Server.HTTPPort)
 	go func() {
-		logger.Info(fmt.Sprintf("merchant-service HTTP 启动 %s", addr))
-		if err := r.Run(addr); err != nil {
-			log.Fatalf("服务启动失败：%v", err)
-		}
+		logger.Info(fmt.Sprintf("merchant-service HTTP(go-zero) 启动 :%d", cfg.Server.HTTPPort))
+		server.Start()
 	}()
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
+	server.Stop()
 }

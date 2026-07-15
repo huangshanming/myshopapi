@@ -1,63 +1,78 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
 	"mymall/pkg/jwt"
-
-	"github.com/gin-gonic/gin"
+	"mymall/pkg/response"
 )
+
+type ctxKey string
 
 const (
-	GatewayUserIDHeader  = "X-User-Id"
+	GatewayUserIDHeader   = "X-User-Id"
 	GatewayUserRoleHeader = "X-User-Role"
-	GatewayShopIDHeader  = "X-Shop-Id"
+	GatewayShopIDHeader   = "X-Shop-Id"
+
+	ctxUserID   ctxKey = "user_id"
+	ctxUserRole ctxKey = "user_role"
+	ctxShopID   ctxKey = "shop_id"
 )
 
-func GatewayUserID() gin.HandlerFunc {
+// Middleware go-zero / net/http 中间件签名
+type Middleware func(http.HandlerFunc) http.HandlerFunc
+
+func Chain(h http.HandlerFunc, mws ...Middleware) http.HandlerFunc {
+	for i := len(mws) - 1; i >= 0; i-- {
+		h = mws[i](h)
+	}
+	return h
+}
+
+func GatewayUserID() Middleware {
 	return GatewayIdentity(false)
 }
 
-// GatewayIdentity 从网关注入的头读取身份；requireShop 要求商家角色必须带 shop_id
-func GatewayIdentity(requireShop bool) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		raw := c.GetHeader(GatewayUserIDHeader)
-		if raw == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"code": 401, "msg": "missing user id"})
-			return
+func GatewayIdentity(requireShop bool) Middleware {
+	return func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			raw := r.Header.Get(GatewayUserIDHeader)
+			if raw == "" {
+				response.AbortJSON(w, http.StatusUnauthorized, 401, "missing user id")
+				return
+			}
+			userID, err := strconv.ParseUint(raw, 10, 64)
+			if err != nil || userID == 0 {
+				response.AbortJSON(w, http.StatusUnauthorized, 401, "invalid user id")
+				return
+			}
+			role := r.Header.Get(GatewayUserRoleHeader)
+			if role == "" {
+				role = jwt.RoleUser
+			}
+			if role == jwt.RoleAdmin {
+				role = jwt.RolePlatformAdmin
+			}
+			var shopID uint64
+			if shopRaw := r.Header.Get(GatewayShopIDHeader); shopRaw != "" {
+				shopID, _ = strconv.ParseUint(shopRaw, 10, 64)
+			}
+			if requireShop && jwt.IsMerchant(role) && shopID == 0 {
+				response.AbortJSON(w, http.StatusForbidden, 403, "missing shop id")
+				return
+			}
+			ctx := r.Context()
+			ctx = context.WithValue(ctx, ctxUserID, userID)
+			ctx = context.WithValue(ctx, ctxUserRole, role)
+			ctx = context.WithValue(ctx, ctxShopID, shopID)
+			next(w, r.WithContext(ctx))
 		}
-		userID, err := strconv.ParseUint(raw, 10, 64)
-		if err != nil || userID == 0 {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"code": 401, "msg": "invalid user id"})
-			return
-		}
-		c.Set("user_id", userID)
-
-		role := c.GetHeader(GatewayUserRoleHeader)
-		if role == "" {
-			role = jwt.RoleUser
-		}
-		if role == jwt.RoleAdmin {
-			role = jwt.RolePlatformAdmin
-		}
-		c.Set("user_role", role)
-
-		var shopID uint64
-		if shopRaw := c.GetHeader(GatewayShopIDHeader); shopRaw != "" {
-			shopID, _ = strconv.ParseUint(shopRaw, 10, 64)
-		}
-		c.Set("shop_id", shopID)
-
-		if requireShop && jwt.IsMerchant(role) && shopID == 0 {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"code": 403, "msg": "missing shop id"})
-			return
-		}
-		c.Next()
 	}
 }
 
-func RequireRoles(roles ...string) gin.HandlerFunc {
+func RequireRoles(roles ...string) Middleware {
 	allowed := make(map[string]struct{}, len(roles))
 	for _, r := range roles {
 		allowed[r] = struct{}{}
@@ -65,38 +80,39 @@ func RequireRoles(roles ...string) gin.HandlerFunc {
 			allowed[jwt.RoleAdmin] = struct{}{}
 		}
 	}
-	return func(c *gin.Context) {
-		role, _ := c.Get("user_role")
-		roleStr, _ := role.(string)
-		if _, ok := allowed[roleStr]; !ok {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"code": 403, "msg": "forbidden"})
-			return
+	return func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			role := GetUserRole(r.Context())
+			if _, ok := allowed[role]; !ok {
+				response.AbortJSON(w, http.StatusForbidden, 403, "forbidden")
+				return
+			}
+			next(w, r)
 		}
-		c.Next()
 	}
 }
 
-func GetUserID(c *gin.Context) (uint64, bool) {
-	v, ok := c.Get("user_id")
-	if !ok {
+func GetUserID(ctx context.Context) (uint64, bool) {
+	v := ctx.Value(ctxUserID)
+	if v == nil {
 		return 0, false
 	}
 	id, ok := v.(uint64)
 	return id, ok
 }
 
-func GetUserRole(c *gin.Context) string {
-	v, ok := c.Get("user_role")
-	if !ok {
+func GetUserRole(ctx context.Context) string {
+	v := ctx.Value(ctxUserRole)
+	if v == nil {
 		return ""
 	}
 	role, _ := v.(string)
 	return role
 }
 
-func GetShopID(c *gin.Context) uint64 {
-	v, ok := c.Get("shop_id")
-	if !ok {
+func GetShopID(ctx context.Context) uint64 {
+	v := ctx.Value(ctxShopID)
+	if v == nil {
 		return 0
 	}
 	id, _ := v.(uint64)

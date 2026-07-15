@@ -16,16 +16,13 @@ cleanup() {
 }
 trap cleanup EXIT
 
-cd "$ROOT/services/user-service"
-go run ./cmd &
+(cd "$ROOT/services/user-service" && CONFIG_PATH=./etc/user-service.yaml go run ./cmd) &
 PIDS+=($!)
 
-cd "$ROOT/services/catalog-service"
-go run ./cmd &
+(cd "$ROOT/services/catalog-service" && CONFIG_PATH=./etc/catalog-service.yaml go run ./cmd) &
 PIDS+=($!)
 
-cd "$ROOT/services/order-service"
-go run ./cmd &
+(cd "$ROOT/services/order-service" && CONFIG_PATH=./etc/order-service.yaml go run ./cmd) &
 PIDS+=($!)
 
 wait

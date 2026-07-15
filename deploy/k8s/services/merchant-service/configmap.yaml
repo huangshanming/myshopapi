@@ -4,7 +4,7 @@ metadata:
   name: merchant-service-config
   namespace: mymall
 data:
-  config.yaml: |
+  merchant-service.yaml: |
     server:
       http_port: 8888
       mode: release

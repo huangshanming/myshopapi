@@ -5,7 +5,7 @@ metadata:
   name: user-service-config
   namespace: mymall
 data:
-  config.yaml: |
+  user-service.yaml: |
     server:
       http_port: 8888
       grpc_port: 9090

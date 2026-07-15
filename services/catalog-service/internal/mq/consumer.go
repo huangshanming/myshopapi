@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 
 	"mymall/pkg/mq"
+	"mymall/services/catalog-service/internal/logic"
 	"mymall/services/catalog-service/internal/repository"
-	"mymall/services/catalog-service/internal/service"
 
 	"go.uber.org/zap"
 )
@@ -33,12 +33,12 @@ type InventoryResultEvent struct {
 
 type Consumer struct {
 	client *mq.Client
-	svc    *service.CatalogService
+	logic  *logic.CatalogLogic
 	logger *zap.Logger
 }
 
-func NewConsumer(client *mq.Client, svc *service.CatalogService, logger *zap.Logger) *Consumer {
-	return &Consumer{client: client, svc: svc, logger: logger}
+func NewConsumer(client *mq.Client, l *logic.CatalogLogic, logger *zap.Logger) *Consumer {
+	return &Consumer{client: client, logic: l, logger: logger}
 }
 
 func (c *Consumer) Start() error {
@@ -56,7 +56,7 @@ func (c *Consumer) handleOrderCreated(ctx context.Context, _ string, body []byte
 	items := toRepoItems(evt.Items)
 	result := mq.RoutingInventoryReserved
 	payload := InventoryResultEvent{OrderNo: evt.OrderNo}
-	if err := c.svc.ReserveStock(items); err != nil {
+	if err := c.logic.ReserveStock(items); err != nil {
 		c.logger.Warn("reserve stock failed", zap.String("order_no", evt.OrderNo), zap.Error(err))
 		result = mq.RoutingInventoryFailed
 		payload.Message = err.Error()
@@ -69,7 +69,7 @@ func (c *Consumer) handleOrderCancelled(ctx context.Context, _ string, body []by
 	if err := json.Unmarshal(body, &evt); err != nil {
 		return err
 	}
-	if err := c.svc.ReleaseStock(toRepoItems(evt.Items)); err != nil {
+	if err := c.logic.ReleaseStock(toRepoItems(evt.Items)); err != nil {
 		c.logger.Warn("release stock failed", zap.String("order_no", evt.OrderNo), zap.Error(err))
 		return err
 	}

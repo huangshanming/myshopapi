@@ -32,12 +32,20 @@ async function onSubmit() {
   loading.value = true
   try {
     const role = await auth.login(mobile.value, password.value)
-    ElMessage.success('登录成功')
-    if (role === 'platform_admin' || role === 'admin') {
-      router.push('/admin')
-    } else {
-      router.push('/merchant')
+    if (auth.isAdmin) {
+      ElMessage.success('登录成功')
+      await router.push('/admin/applications')
+      return
     }
+    if (auth.isMerchant) {
+      ElMessage.success('登录成功')
+      await router.push('/merchant/products')
+      return
+    }
+    // 普通用户会被路由守卫立刻踢回 /login，看起来像「登录成功但不跳转」
+    ElMessage.error(
+      `当前账号角色为「${role || 'user'}」，无后台权限。请执行: mysql ... < scripts/seed-admin-merchant.sql，并重启 user-service`,
+    )
   } catch (e) {
     ElMessage.error(e.message || '登录失败')
   } finally {

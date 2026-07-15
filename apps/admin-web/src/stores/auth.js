@@ -3,8 +3,11 @@ import http from '../api/http'
 
 function parseJwt(token) {
   try {
-    const payload = token.split('.')[1]
-    return JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')))
+    let payload = token.split('.')[1] || ''
+    payload = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const pad = payload.length % 4
+    if (pad) payload += '='.repeat(4 - pad)
+    return JSON.parse(atob(payload))
   } catch {
     return {}
   }

@@ -1,15 +1,5 @@
 package main
 
-// @title           mymall 用户服务 API
-// @version         1.0
-// @description     用户注册、登录、个人资料
-// @host            localhost:9080
-// @BasePath        /
-// @securityDefinitions.apikey BearerAuth
-// @in                         header
-// @name                       Authorization
-// @description                JWT Token，格式: Bearer {token}
-
 import (
 	"context"
 	"fmt"
@@ -19,30 +9,28 @@ import (
 	"os/signal"
 	"syscall"
 
-	"mymall/pkg/apidoc"
 	"mymall/pkg/config"
 	"mymall/pkg/database"
 	"mymall/pkg/health"
+	"mymall/pkg/httpserver"
+	"mymall/pkg/jwt"
 	applog "mymall/pkg/log"
 	"mymall/pkg/metrics"
 	"mymall/pkg/middleware"
 	"mymall/pkg/telemetry"
-	usergrpc "mymall/services/user-service/internal/grpc"
 	"mymall/services/user-service/internal/handler"
-	"mymall/services/user-service/internal/repository"
-	"mymall/services/user-service/internal/service"
+	"mymall/services/user-service/internal/logic"
+	"mymall/services/user-service/internal/model"
+	"mymall/services/user-service/internal/server"
+	"mymall/services/user-service/internal/svc"
 
-	_ "mymall/services/user-service/docs"
-
-	"mymall/pkg/jwt"
-
-	"github.com/gin-gonic/gin"
+	"github.com/zeromicro/go-zero/rest"
 )
 
 func main() {
 	configPath := os.Getenv("CONFIG_PATH")
 	if configPath == "" {
-		configPath = "./config.yaml"
+		configPath = "./etc/user-service.yaml"
 	}
 
 	cfg, err := config.Load(configPath)
@@ -67,17 +55,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("连接数据库失败：%v", err)
 	}
-
-	jwtCfg := jwt.Config{
-		Secret:      cfg.JWT.Secret,
-		ConsumerKey: cfg.JWT.ConsumerKey,
-		ExpireHours: cfg.JWT.ExpireHours,
-		Issuer:      cfg.JWT.Issuer,
+	if err := database.AutoMigrateIfDebug(cfg.Server.Mode, db, &model.User{}); err != nil {
+		log.Fatalf("AutoMigrate 失败：%v", err)
 	}
 
-	repo := repository.NewUserRepository(db)
-	svc := service.NewUserService(repo, jwtCfg)
-	userHandler := handler.NewUserHandler(svc)
+	svcCtx := svc.NewServiceContext(cfg, db)
+	userLogic := logic.NewUserLogic(svcCtx)
+	userHandler := handler.NewUserHandler(svcCtx)
 
 	healthReg := health.NewRegistry()
 	healthReg.Register("mysql", func(ctx context.Context) error {
@@ -88,45 +72,45 @@ func main() {
 		return sqlDB.PingContext(ctx)
 	})
 
-	r := gin.Default()
-	r.Use(middleware.RequestID())
-	r.GET("/healthz", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "ok", "service": "user-service"})
-	})
-	r.GET("/readyz", healthReg.ReadyHandler())
-	r.GET("/metrics", metrics.Handler())
-	apidoc.MountSwagger(r)
-
-	v1 := r.Group("/api/v1")
-	v1.Use(middleware.ExtractPageReq())
-	{
-		user := v1.Group("/user")
-		user.POST("/login", userHandler.Login)
-		user.POST("/register", userHandler.Register)
-		user.GET("/profile", jwt.AuthMiddleware(jwtCfg.Secret), userHandler.Profile)
-	}
-
-	grpcServer, lis, err := usergrpc.Listen(cfg.Server.GRPCPort, svc, logger)
-	if err != nil {
-		log.Fatalf("gRPC 监听失败：%v", err)
-	}
+	rpcServer := server.StartZRPC(cfg.Server.GRPCPort, userLogic, logger)
 	go func() {
-		logger.Info(fmt.Sprintf("user-service gRPC 启动 :%d", cfg.Server.GRPCPort))
-		if err := grpcServer.Serve(lis); err != nil {
-			logger.Error("gRPC serve failed")
-		}
+		logger.Info(fmt.Sprintf("user-service zRPC 启动 :%d", cfg.Server.GRPCPort))
+		rpcServer.Start()
 	}()
+	defer rpcServer.Stop()
 
-	addr := fmt.Sprintf(":%d", cfg.Server.HTTPPort)
-	go func() {
-		logger.Info(fmt.Sprintf("user-service HTTP 启动 %s", addr))
-		if err := r.Run(addr); err != nil {
-			log.Fatalf("服务启动失败：%v", err)
+	serverHTTP := httpserver.NewRest(cfg.Server.HTTPPort, cfg.Server.Mode)
+	defer serverHTTP.Stop()
+
+	rid := middleware.RequestID()
+	authJWT := jwt.AuthMiddleware(svcCtx.JWT.Secret)
+	authGW := middleware.GatewayIdentity(false)
+
+	profile := func(w http.ResponseWriter, r *http.Request) {
+		// 优先网关头；无头时回退 JWT（本地直连）
+		if r.Header.Get(middleware.GatewayUserIDHeader) != "" {
+			authGW(userHandler.Profile)(w, r)
+			return
 		}
+		authJWT(userHandler.Profile)(w, r)
+	}
+
+	serverHTTP.AddRoutes([]rest.Route{
+		{Method: http.MethodGet, Path: "/healthz", Handler: rid(httpserver.Healthz("user-service"))},
+		{Method: http.MethodGet, Path: "/readyz", Handler: rid(healthReg.ReadyHandler())},
+		{Method: http.MethodGet, Path: "/metrics", Handler: rid(metrics.Handler())},
+
+		{Method: http.MethodPost, Path: "/api/v1/user/login", Handler: rid(userHandler.Login)},
+		{Method: http.MethodPost, Path: "/api/v1/user/register", Handler: rid(userHandler.Register)},
+		{Method: http.MethodGet, Path: "/api/v1/user/profile", Handler: rid(profile)},
+	})
+
+	go func() {
+		logger.Info(fmt.Sprintf("user-service HTTP(go-zero) 启动 :%d", cfg.Server.HTTPPort))
+		serverHTTP.Start()
 	}()
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	grpcServer.GracefulStop()
 }

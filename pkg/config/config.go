@@ -124,9 +124,119 @@ func Load(path string) (*Config, error) {
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("unmarshal config: %w", err)
 	}
+	// viper.Unmarshal 对嵌套 key 不会应用 BindEnv/AutomaticEnv，需用 Get* 再盖一层
+	overlayFromViper(&cfg, v)
 
 	cfg.applyDefaults()
 	return &cfg, nil
+}
+
+func overlayFromViper(cfg *Config, v *viper.Viper) {
+	// Prefer explicit env（K8s Secret / Compose）；viper.Unmarshal 不会应用嵌套 AutomaticEnv
+	envOr := func(envKey, viperKey string) string {
+		if s := strings.TrimSpace(os.Getenv(envKey)); s != "" {
+			return s
+		}
+		return v.GetString(viperKey)
+	}
+	envIntOr := func(envKey, viperKey string, cur int) int {
+		if s := strings.TrimSpace(os.Getenv(envKey)); s != "" {
+			var n int
+			if _, err := fmt.Sscanf(s, "%d", &n); err == nil && n != 0 {
+				return n
+			}
+		}
+		if n := v.GetInt(viperKey); n != 0 {
+			return n
+		}
+		return cur
+	}
+
+	if s := envOr("MYMALL_SERVER_MODE", "server.mode"); s != "" {
+		cfg.Server.Mode = s
+	}
+	cfg.Server.HTTPPort = envIntOr("MYMALL_SERVER_HTTP_PORT", "server.http_port", cfg.Server.HTTPPort)
+	cfg.Server.GRPCPort = envIntOr("MYMALL_SERVER_GRPC_PORT", "server.grpc_port", cfg.Server.GRPCPort)
+
+	if s := envOr("MYMALL_MYSQL_HOST", "mysql.host"); s != "" {
+		cfg.MySQL.Host = s
+	}
+	if s := envOr("MYMALL_MYSQL_USERNAME", "mysql.username"); s != "" {
+		cfg.MySQL.Username = s
+	}
+	if s := envOr("MYMALL_MYSQL_PASSWORD", "mysql.password"); s != "" {
+		cfg.MySQL.Password = s
+	}
+	if s := envOr("MYMALL_MYSQL_DBNAME", "mysql.dbname"); s != "" {
+		cfg.MySQL.Dbname = s
+	}
+	if s := envOr("MYMALL_MYSQL_CHARSET", "mysql.charset"); s != "" {
+		cfg.MySQL.Charset = s
+	}
+	cfg.MySQL.Port = envIntOr("MYMALL_MYSQL_PORT", "mysql.port", cfg.MySQL.Port)
+
+	if s := envOr("MYMALL_JWT_SECRET", "jwt.secret"); s != "" {
+		cfg.JWT.Secret = s
+	}
+	if s := envOr("MYMALL_JWT_CONSUMER_KEY", "jwt.consumer_key"); s != "" {
+		cfg.JWT.ConsumerKey = s
+	}
+	if s := envOr("MYMALL_JWT_ISSUER", "jwt.issuer"); s != "" {
+		cfg.JWT.Issuer = s
+	}
+	cfg.JWT.ExpireHours = envIntOr("MYMALL_JWT_EXPIRE_HOURS", "jwt.expire_hours", cfg.JWT.ExpireHours)
+
+	if s := envOr("MYMALL_REDIS_HOST", "redis.host"); s != "" {
+		cfg.Redis.Host = s
+	}
+	if s := envOr("MYMALL_REDIS_PASSWORD", "redis.password"); s != "" {
+		cfg.Redis.Password = s
+	}
+	cfg.Redis.Port = envIntOr("MYMALL_REDIS_PORT", "redis.port", cfg.Redis.Port)
+	if s := strings.TrimSpace(os.Getenv("MYMALL_REDIS_DB")); s != "" {
+		var n int
+		if _, err := fmt.Sscanf(s, "%d", &n); err == nil {
+			cfg.Redis.DB = n
+		}
+	} else if v.IsSet("redis.db") {
+		cfg.Redis.DB = v.GetInt("redis.db")
+	}
+
+	if s := envOr("MYMALL_RABBITMQ_HOST", "rabbitmq.host"); s != "" {
+		cfg.RabbitMQ.Host = s
+	}
+	if s := envOr("MYMALL_RABBITMQ_USERNAME", "rabbitmq.username"); s != "" {
+		cfg.RabbitMQ.Username = s
+	}
+	if s := envOr("MYMALL_RABBITMQ_PASSWORD", "rabbitmq.password"); s != "" {
+		cfg.RabbitMQ.Password = s
+	}
+	if s := envOr("MYMALL_RABBITMQ_VHOST", "rabbitmq.vhost"); s != "" {
+		cfg.RabbitMQ.Vhost = s
+	}
+	if s := envOr("MYMALL_RABBITMQ_EXCHANGE", "rabbitmq.exchange"); s != "" {
+		cfg.RabbitMQ.Exchange = s
+	}
+	cfg.RabbitMQ.Port = envIntOr("MYMALL_RABBITMQ_PORT", "rabbitmq.port", cfg.RabbitMQ.Port)
+
+	if s := envOr("MYMALL_GRPC_USER_SERVICE", "grpc.user_service"); s != "" {
+		cfg.GRPC.UserService = s
+	}
+	if s := envOr("MYMALL_GRPC_CATALOG_SERVICE", "grpc.catalog_service"); s != "" {
+		cfg.GRPC.CatalogService = s
+	}
+
+	if s := strings.TrimSpace(os.Getenv("MYMALL_TELEMETRY_ENABLED")); s != "" {
+		cfg.Telemetry.Enabled = s == "1" || strings.EqualFold(s, "true")
+	} else if v.IsSet("telemetry.enabled") {
+		cfg.Telemetry.Enabled = v.GetBool("telemetry.enabled")
+	}
+	if s := envOr("MYMALL_TELEMETRY_ENDPOINT", "telemetry.endpoint"); s != "" {
+		cfg.Telemetry.Endpoint = s
+	}
+	if s := envOr("MYMALL_TELEMETRY_SERVICE", "telemetry.service"); s != "" {
+		cfg.Telemetry.Service = s
+	}
 }
 
 func (c *Config) applyDefaults() {

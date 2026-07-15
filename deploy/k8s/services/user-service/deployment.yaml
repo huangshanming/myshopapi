@@ -22,7 +22,7 @@ spec:
             - containerPort: 9090
           env:
             - name: CONFIG_PATH
-              value: /app/config.yaml
+              value: /app/etc/user-service.yaml
             - name: MYMALL_MYSQL_HOST
               valueFrom:
                 secretKeyRef:
@@ -50,8 +50,8 @@ spec:
                   key: key
           volumeMounts:
             - name: config
-              mountPath: /app/config.yaml
-              subPath: config.yaml
+              mountPath: /app/etc/user-service.yaml
+              subPath: user-service.yaml
               readOnly: true
           readinessProbe:
             httpGet:

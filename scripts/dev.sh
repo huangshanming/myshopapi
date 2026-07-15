@@ -34,7 +34,9 @@ run_service() {
   local port="$3"
   yellow "==> $name  →  go run（改代码后 Ctrl+C 再执行本脚本即可）"
   green "    http://localhost:$port/healthz"
+  green "    CONFIG_PATH=./etc/${dir}.yaml"
   cd "$ROOT/services/$dir"
+  export CONFIG_PATH="./etc/${dir}.yaml"
   exec go run ./cmd
 }
 
@@ -64,10 +66,10 @@ case "$TARGET" in
     PIDS=()
     cleanup() { for pid in "${PIDS[@]}"; do kill "$pid" 2>/dev/null || true; done; }
     trap cleanup EXIT
-    cd "$ROOT/services/user-service"     && go run ./cmd & PIDS+=($!)
-    cd "$ROOT/services/catalog-service"  && go run ./cmd & PIDS+=($!)
-    cd "$ROOT/services/order-service"    && go run ./cmd & PIDS+=($!)
-    cd "$ROOT/services/merchant-service" && go run ./cmd & PIDS+=($!)
+    (cd "$ROOT/services/user-service"     && CONFIG_PATH=./etc/user-service.yaml     go run ./cmd) & PIDS+=($!)
+    (cd "$ROOT/services/catalog-service"  && CONFIG_PATH=./etc/catalog-service.yaml  go run ./cmd) & PIDS+=($!)
+    (cd "$ROOT/services/order-service"    && CONFIG_PATH=./etc/order-service.yaml    go run ./cmd) & PIDS+=($!)
+    (cd "$ROOT/services/merchant-service" && CONFIG_PATH=./etc/merchant-service.yaml go run ./cmd) & PIDS+=($!)
     wait
     ;;
   *)

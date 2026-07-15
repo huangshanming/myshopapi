@@ -1,187 +1,183 @@
 package handler
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 
+	"mymall/pkg/httpserver"
 	"mymall/pkg/middleware"
-	"mymall/pkg/pagination"
 	"mymall/pkg/response"
-	"mymall/services/merchant-service/internal/model"
-	"mymall/services/merchant-service/internal/service"
-
-	"github.com/gin-gonic/gin"
+	"mymall/services/merchant-service/internal/logic"
+	"mymall/services/merchant-service/internal/svc"
+	"mymall/services/merchant-service/internal/types"
 )
 
 type MerchantHandler struct {
-	svc *service.MerchantService
+	svcCtx *svc.ServiceContext
+	logic  *logic.MerchantLogic
 }
 
-func NewMerchantHandler(svc *service.MerchantService) *MerchantHandler {
-	return &MerchantHandler{svc: svc}
+func NewMerchantHandler(svcCtx *svc.ServiceContext) *MerchantHandler {
+	return &MerchantHandler{
+		svcCtx: svcCtx,
+		logic:  logic.NewMerchantLogic(svcCtx),
+	}
 }
 
-func (h *MerchantHandler) Apply(c *gin.Context) {
-	userID, ok := middleware.GetUserID(c)
+func (h *MerchantHandler) Apply(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
-		response.Error(c, "未授权", http.StatusUnauthorized)
+		response.Error(w, "未授权", http.StatusUnauthorized)
 		return
 	}
-	var in service.ApplyInput
-	if err := c.ShouldBindJSON(&in); err != nil {
-		response.Error(c, "参数错误", http.StatusBadRequest)
+	var in types.ApplyReq
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		response.Error(w, "参数错误", http.StatusBadRequest)
 		return
 	}
-	app, err := h.svc.Apply(userID, in)
+	app, err := h.logic.Apply(userID, in)
 	if err != nil {
-		response.Error(c, err.Error(), http.StatusBadRequest)
+		response.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	response.Success(c, app, "提交成功")
+	response.Success(w, app, "提交成功")
 }
 
-func (h *MerchantHandler) MyShops(c *gin.Context) {
-	userID, ok := middleware.GetUserID(c)
+func (h *MerchantHandler) MyShops(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
-		response.Error(c, "未授权", http.StatusUnauthorized)
+		response.Error(w, "未授权", http.StatusUnauthorized)
 		return
 	}
-	shops, err := h.svc.MyShops(userID)
+	shops, err := h.logic.MyShops(userID)
 	if err != nil {
-		response.Error(c, err.Error(), http.StatusInternalServerError)
+		response.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	response.Success(c, shops, "查询成功")
+	response.Success(w, shops, "查询成功")
 }
 
-func (h *MerchantHandler) UpdateMyShop(c *gin.Context) {
-	userID, ok := middleware.GetUserID(c)
+func (h *MerchantHandler) UpdateMyShop(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
-		response.Error(c, "未授权", http.StatusUnauthorized)
+		response.Error(w, "未授权", http.StatusUnauthorized)
 		return
 	}
-	shopID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	shopID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
-		response.Error(c, "店铺ID无效", http.StatusBadRequest)
+		response.Error(w, "店铺ID无效", http.StatusBadRequest)
 		return
 	}
-	var shop model.Shop
-	if err := c.ShouldBindJSON(&shop); err != nil {
-		response.Error(c, "参数错误", http.StatusBadRequest)
+	var req types.UpdateShopReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, "参数错误", http.StatusBadRequest)
 		return
 	}
-	if err := h.svc.UpdateMyShop(shopID, userID, &shop); err != nil {
-		response.Error(c, err.Error(), http.StatusForbidden)
+	if err := h.logic.UpdateMyShop(shopID, userID, req); err != nil {
+		response.Error(w, err.Error(), http.StatusForbidden)
 		return
 	}
-	response.Success(c, nil, "更新成功")
+	response.Success(w, nil, "更新成功")
 }
 
-func (h *MerchantHandler) AdminListApplications(c *gin.Context) {
-	var page pagination.PageReq
-	_ = c.ShouldBindQuery(&page)
-	p, ps, _ := pagination.Normalize(&page)
-	list, total, err := h.svc.ListApplications(c.Query("status"), p, ps)
+func (h *MerchantHandler) AdminListApplications(w http.ResponseWriter, r *http.Request) {
+	p, ps := middleware.ParsePage(r)
+	list, total, err := h.logic.ListApplications(r.URL.Query().Get("status"), p, ps)
 	if err != nil {
-		response.Error(c, err.Error(), http.StatusInternalServerError)
+		response.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	response.Success(c, gin.H{"total": total, "list": list}, "查询成功")
+	response.Success(w, types.PageListResp{Total: total, List: list}, "查询成功")
 }
 
-func (h *MerchantHandler) AdminApprove(c *gin.Context) {
-	adminID, ok := middleware.GetUserID(c)
+func (h *MerchantHandler) AdminApprove(w http.ResponseWriter, r *http.Request) {
+	adminID, ok := middleware.GetUserID(r.Context())
 	if !ok {
-		response.Error(c, "未授权", http.StatusUnauthorized)
+		response.Error(w, "未授权", http.StatusUnauthorized)
 		return
 	}
-	appID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	appID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
-		response.Error(c, "申请ID无效", http.StatusBadRequest)
+		response.Error(w, "申请ID无效", http.StatusBadRequest)
 		return
 	}
-	shop, err := h.svc.Approve(appID, adminID)
+	shop, err := h.logic.Approve(appID, adminID)
 	if err != nil {
-		response.Error(c, err.Error(), http.StatusBadRequest)
+		response.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	response.Success(c, shop, "审核通过")
+	response.Success(w, shop, "审核通过")
 }
 
-type rejectReq struct {
-	Reason string `json:"reason"`
-}
-
-func (h *MerchantHandler) AdminReject(c *gin.Context) {
-	adminID, ok := middleware.GetUserID(c)
+func (h *MerchantHandler) AdminReject(w http.ResponseWriter, r *http.Request) {
+	adminID, ok := middleware.GetUserID(r.Context())
 	if !ok {
-		response.Error(c, "未授权", http.StatusUnauthorized)
+		response.Error(w, "未授权", http.StatusUnauthorized)
 		return
 	}
-	appID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	appID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
-		response.Error(c, "申请ID无效", http.StatusBadRequest)
+		response.Error(w, "申请ID无效", http.StatusBadRequest)
 		return
 	}
-	var req rejectReq
-	_ = c.ShouldBindJSON(&req)
-	if err := h.svc.Reject(appID, adminID, req.Reason); err != nil {
-		response.Error(c, err.Error(), http.StatusBadRequest)
+	var req types.RejectReq
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	if err := h.logic.Reject(appID, adminID, req.Reason); err != nil {
+		response.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	response.Success(c, nil, "已拒绝")
+	response.Success(w, nil, "已拒绝")
 }
 
-func (h *MerchantHandler) AdminListShops(c *gin.Context) {
-	var page pagination.PageReq
-	_ = c.ShouldBindQuery(&page)
-	p, ps, _ := pagination.Normalize(&page)
-	list, total, err := h.svc.ListShops(c.Query("status"), p, ps)
+func (h *MerchantHandler) AdminListShops(w http.ResponseWriter, r *http.Request) {
+	p, ps := middleware.ParsePage(r)
+	list, total, err := h.logic.ListShops(r.URL.Query().Get("status"), p, ps)
 	if err != nil {
-		response.Error(c, err.Error(), http.StatusInternalServerError)
+		response.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	response.Success(c, gin.H{"total": total, "list": list}, "查询成功")
+	response.Success(w, types.PageListResp{Total: total, List: list}, "查询成功")
 }
 
-func (h *MerchantHandler) AdminGetShop(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+func (h *MerchantHandler) AdminGetShop(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
-		response.Error(c, "店铺ID无效", http.StatusBadRequest)
+		response.Error(w, "店铺ID无效", http.StatusBadRequest)
 		return
 	}
-	shop, err := h.svc.GetShop(id)
+	shop, err := h.logic.GetShop(id)
 	if err != nil {
-		response.Error(c, "店铺不存在", http.StatusNotFound)
+		response.Error(w, "店铺不存在", http.StatusNotFound)
 		return
 	}
-	response.Success(c, shop, "查询成功")
+	response.Success(w, shop, "查询成功")
 }
 
-func (h *MerchantHandler) AdminDisableShop(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+func (h *MerchantHandler) AdminDisableShop(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
-		response.Error(c, "店铺ID无效", http.StatusBadRequest)
+		response.Error(w, "店铺ID无效", http.StatusBadRequest)
 		return
 	}
-	var req rejectReq
-	_ = c.ShouldBindJSON(&req)
-	if err := h.svc.DisableShop(id, req.Reason); err != nil {
-		response.Error(c, err.Error(), http.StatusBadRequest)
+	var req types.RejectReq
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	if err := h.logic.DisableShop(id, req.Reason); err != nil {
+		response.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	response.Success(c, nil, "已禁用")
+	response.Success(w, nil, "已禁用")
 }
 
-func (h *MerchantHandler) AdminEnableShop(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+func (h *MerchantHandler) AdminEnableShop(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
-		response.Error(c, "店铺ID无效", http.StatusBadRequest)
+		response.Error(w, "店铺ID无效", http.StatusBadRequest)
 		return
 	}
-	if err := h.svc.EnableShop(id); err != nil {
-		response.Error(c, err.Error(), http.StatusBadRequest)
+	if err := h.logic.EnableShop(id); err != nil {
+		response.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	response.Success(c, nil, "已启用")
+	response.Success(w, nil, "已启用")
 }

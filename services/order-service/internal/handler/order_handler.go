@@ -1,24 +1,28 @@
 package handler
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 
-	"mymall/pkg/apidoc/dto"
+	"mymall/pkg/httpserver"
 	"mymall/pkg/middleware"
-	"mymall/pkg/pagination"
 	"mymall/pkg/response"
-	"mymall/services/order-service/internal/service"
-
-	"github.com/gin-gonic/gin"
+	"mymall/services/order-service/internal/logic"
+	"mymall/services/order-service/internal/svc"
+	"mymall/services/order-service/internal/types"
 )
 
 type OrderHandler struct {
-	svc *service.OrderService
+	svcCtx *svc.ServiceContext
+	logic  *logic.OrderLogic
 }
 
-func NewOrderHandler(svc *service.OrderService) *OrderHandler {
-	return &OrderHandler{svc: svc}
+func NewOrderHandler(svcCtx *svc.ServiceContext) *OrderHandler {
+	return &OrderHandler{
+		svcCtx: svcCtx,
+		logic:  logic.NewOrderLogic(svcCtx),
+	}
 }
 
 // Create 创建订单
@@ -32,27 +36,23 @@ func NewOrderHandler(svc *service.OrderService) *OrderHandler {
 // @Param        body       body    dto.CreateOrderReq  true  "下单商品"
 // @Success      201  {object}  apidoc.Response{data=dto.OrderInfo}  "创建成功"
 // @Router       /api/v1/orders [post]
-func (h *OrderHandler) Create(c *gin.Context) {
-	userID, ok := middleware.GetUserID(c)
+func (h *OrderHandler) Create(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
-		response.Error(c, "未授权", http.StatusUnauthorized)
+		response.Error(w, "未授权", http.StatusUnauthorized)
 		return
 	}
-	var req dto.CreateOrderReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.Error(c, "参数错误", http.StatusBadRequest)
+	var req types.CreateOrderReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, "参数错误", http.StatusBadRequest)
 		return
 	}
-	items := make([]service.CreateItemInput, len(req.Items))
-	for i, it := range req.Items {
-		items[i] = service.CreateItemInput{ProductID: it.ProductID, Quantity: it.Quantity}
-	}
-	order, err := h.svc.CreateOrder(c.Request.Context(), userID, items)
+	order, err := h.logic.CreateOrder(r.Context(), userID, req.Items)
 	if err != nil {
-		response.Error(c, err.Error(), http.StatusBadRequest)
+		response.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"code": 200, "msg": "创建成功", "data": order})
+	response.Success(w, order, "创建成功")
 }
 
 // List 我的订单列表
@@ -66,21 +66,19 @@ func (h *OrderHandler) Create(c *gin.Context) {
 // @Param        page_size  query   int  false  "每页数量"  default(10)
 // @Success      200  {object}  apidoc.Response{data=dto.OrderListResp}  "查询成功"
 // @Router       /api/v1/orders [get]
-func (h *OrderHandler) List(c *gin.Context) {
-	userID, ok := middleware.GetUserID(c)
+func (h *OrderHandler) List(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
-		response.Error(c, "未授权", http.StatusUnauthorized)
+		response.Error(w, "未授权", http.StatusUnauthorized)
 		return
 	}
-	var page pagination.PageReq
-	_ = c.ShouldBindQuery(&page)
-	p, ps, _ := pagination.Normalize(&page)
-	orders, total, err := h.svc.ListOrders(userID, p, ps)
+	p, ps := middleware.ParsePage(r)
+	orders, total, err := h.logic.ListOrders(userID, p, ps)
 	if err != nil {
-		response.Error(c, err.Error(), http.StatusInternalServerError)
+		response.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	response.Success(c, gin.H{"total": total, "list": orders}, "查询成功")
+	response.Success(w, types.PageListResp{Total: total, List: orders}, "查询成功")
 }
 
 // Detail 订单详情
@@ -92,23 +90,23 @@ func (h *OrderHandler) List(c *gin.Context) {
 // @Param        id         path    int  true   "订单 ID"
 // @Success      200  {object}  apidoc.Response{data=dto.OrderInfo}  "查询成功"
 // @Router       /api/v1/orders/{id} [get]
-func (h *OrderHandler) Detail(c *gin.Context) {
-	userID, ok := middleware.GetUserID(c)
+func (h *OrderHandler) Detail(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
-		response.Error(c, "未授权", http.StatusUnauthorized)
+		response.Error(w, "未授权", http.StatusUnauthorized)
 		return
 	}
-	orderID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	orderID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
-		response.Error(c, "订单 ID 无效", http.StatusBadRequest)
+		response.Error(w, "订单 ID 无效", http.StatusBadRequest)
 		return
 	}
-	order, err := h.svc.GetOrder(userID, orderID)
+	order, err := h.logic.GetOrder(userID, orderID)
 	if err != nil {
-		response.Error(c, "订单不存在", http.StatusNotFound)
+		response.Error(w, "订单不存在", http.StatusNotFound)
 		return
 	}
-	response.Success(c, order, "查询成功")
+	response.Success(w, order, "查询成功")
 }
 
 // Cancel 取消订单
@@ -121,20 +119,20 @@ func (h *OrderHandler) Detail(c *gin.Context) {
 // @Param        id         path    int  true   "订单 ID"
 // @Success      200  {object}  apidoc.Response{data=apidoc.EmptyData}  "取消成功"
 // @Router       /api/v1/orders/{id}/cancel [put]
-func (h *OrderHandler) Cancel(c *gin.Context) {
-	userID, ok := middleware.GetUserID(c)
+func (h *OrderHandler) Cancel(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
-		response.Error(c, "未授权", http.StatusUnauthorized)
+		response.Error(w, "未授权", http.StatusUnauthorized)
 		return
 	}
-	orderID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	orderID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
-		response.Error(c, "订单 ID 无效", http.StatusBadRequest)
+		response.Error(w, "订单 ID 无效", http.StatusBadRequest)
 		return
 	}
-	if err := h.svc.CancelOrder(c.Request.Context(), userID, orderID); err != nil {
-		response.Error(c, err.Error(), http.StatusBadRequest)
+	if err := h.logic.CancelOrder(r.Context(), userID, orderID); err != nil {
+		response.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	response.Success(c, nil, "取消成功")
+	response.Success(w, nil, "取消成功")
 }

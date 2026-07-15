@@ -21,7 +21,7 @@ spec:
             - containerPort: 8888
           env:
             - name: CONFIG_PATH
-              value: /app/config.yaml
+              value: /app/etc/order-service.yaml
             - name: MYMALL_MYSQL_HOST
               valueFrom:
                 secretKeyRef:
@@ -54,8 +54,8 @@ spec:
                   key: password
           volumeMounts:
             - name: config
-              mountPath: /app/config.yaml
-              subPath: config.yaml
+              mountPath: /app/etc/order-service.yaml
+              subPath: order-service.yaml
               readOnly: true
           readinessProbe:
             httpGet:

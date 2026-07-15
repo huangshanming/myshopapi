@@ -2,10 +2,9 @@ package health
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"sync"
-
-	"github.com/gin-gonic/gin"
 )
 
 type Checker func(ctx context.Context) error
@@ -25,9 +24,9 @@ func (r *Registry) Register(name string, checker Checker) {
 	r.checkers[name] = checker
 }
 
-func (r *Registry) ReadyHandler() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		ctx := c.Request.Context()
+func (r *Registry) ReadyHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		ctx := req.Context()
 		failed := make(map[string]string)
 		r.mu.RLock()
 		defer r.mu.RUnlock()
@@ -36,10 +35,12 @@ func (r *Registry) ReadyHandler() gin.HandlerFunc {
 				failed[name] = err.Error()
 			}
 		}
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		if len(failed) > 0 {
-			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "not_ready", "checks": failed})
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"status": "not_ready", "checks": failed})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"status": "ready"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "ready"})
 	}
 }

@@ -1,13 +1,14 @@
 package metrics
 
 import (
-	"github.com/gin-gonic/gin"
+	"net/http"
+
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func Handler() gin.HandlerFunc {
+func Handler() http.HandlerFunc {
 	h := promhttp.Handler()
-	return func(c *gin.Context) {
-		h.ServeHTTP(c.Writer, c.Request)
+	return func(w http.ResponseWriter, r *http.Request) {
+		h.ServeHTTP(w, r)
 	}
 }

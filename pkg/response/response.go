@@ -1,9 +1,8 @@
 package response
 
 import (
+	"encoding/json"
 	"net/http"
-
-	"github.com/gin-gonic/gin"
 )
 
 type Response struct {
@@ -12,24 +11,27 @@ type Response struct {
 	Data interface{} `json:"data"`
 }
 
-func Success(c *gin.Context, data interface{}, msg string) {
+func writeJSON(w http.ResponseWriter, httpStatus int, body Response) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(httpStatus)
+	_ = json.NewEncoder(w).Encode(body)
+}
+
+func Success(w http.ResponseWriter, data interface{}, msg string) {
 	if msg == "" {
 		msg = "success"
 	}
-	c.JSON(http.StatusOK, Response{
-		Code: 200,
-		Msg:  msg,
-		Data: data,
-	})
+	writeJSON(w, http.StatusOK, Response{Code: 200, Msg: msg, Data: data})
 }
 
-func Error(c *gin.Context, msg string, code int) {
+// Error 业务错误：HTTP 仍 200，用 body.code 表达（与现前端约定一致）
+func Error(w http.ResponseWriter, msg string, code int) {
 	if code == 0 {
 		code = 400
 	}
-	c.JSON(http.StatusOK, Response{
-		Code: code,
-		Msg:  msg,
-		Data: nil,
-	})
+	writeJSON(w, http.StatusOK, Response{Code: code, Msg: msg, Data: nil})
+}
+
+func AbortJSON(w http.ResponseWriter, httpStatus int, code int, msg string) {
+	writeJSON(w, httpStatus, Response{Code: code, Msg: msg, Data: nil})
 }

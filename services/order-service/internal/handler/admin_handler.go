@@ -4,72 +4,67 @@ import (
 	"net/http"
 	"strconv"
 
+	"mymall/pkg/httpserver"
 	"mymall/pkg/middleware"
-	"mymall/pkg/pagination"
 	"mymall/pkg/response"
-
-	"github.com/gin-gonic/gin"
+	"mymall/services/order-service/internal/types"
 )
 
-func (h *OrderHandler) MerchantList(c *gin.Context) {
-	shopID := middleware.GetShopID(c)
+func (h *OrderHandler) MerchantList(w http.ResponseWriter, r *http.Request) {
+	shopID := middleware.GetShopID(r.Context())
 	if shopID == 0 {
-		response.Error(c, "缺少 shop_id", http.StatusForbidden)
+		response.Error(w, "缺少 shop_id", http.StatusForbidden)
 		return
 	}
-	var page pagination.PageReq
-	_ = c.ShouldBindQuery(&page)
-	p, ps, _ := pagination.Normalize(&page)
-	orders, total, err := h.svc.ListByShop(shopID, p, ps)
+	p, ps := middleware.ParsePage(r)
+	orders, total, err := h.logic.ListByShop(shopID, p, ps)
 	if err != nil {
-		response.Error(c, err.Error(), http.StatusInternalServerError)
+		response.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	response.Success(c, gin.H{"total": total, "list": orders}, "查询成功")
+	response.Success(w, types.PageListResp{Total: total, List: orders}, "查询成功")
 }
 
-func (h *OrderHandler) MerchantDetail(c *gin.Context) {
-	shopID := middleware.GetShopID(c)
+func (h *OrderHandler) MerchantDetail(w http.ResponseWriter, r *http.Request) {
+	shopID := middleware.GetShopID(r.Context())
 	if shopID == 0 {
-		response.Error(c, "缺少 shop_id", http.StatusForbidden)
+		response.Error(w, "缺少 shop_id", http.StatusForbidden)
 		return
 	}
-	orderID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	orderID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
-		response.Error(c, "订单ID无效", http.StatusBadRequest)
+		response.Error(w, "订单ID无效", http.StatusBadRequest)
 		return
 	}
-	order, err := h.svc.GetOrderByShop(shopID, orderID)
+	order, err := h.logic.GetOrderByShop(shopID, orderID)
 	if err != nil {
-		response.Error(c, "订单不存在", http.StatusNotFound)
+		response.Error(w, "订单不存在", http.StatusNotFound)
 		return
 	}
-	response.Success(c, order, "查询成功")
+	response.Success(w, order, "查询成功")
 }
 
-func (h *OrderHandler) AdminList(c *gin.Context) {
-	var page pagination.PageReq
-	_ = c.ShouldBindQuery(&page)
-	p, ps, _ := pagination.Normalize(&page)
-	shopID, _ := strconv.ParseUint(c.Query("shop_id"), 10, 64)
-	orders, total, err := h.svc.ListAll(shopID, p, ps)
+func (h *OrderHandler) AdminList(w http.ResponseWriter, r *http.Request) {
+	p, ps := middleware.ParsePage(r)
+	shopID, _ := strconv.ParseUint(r.URL.Query().Get("shop_id"), 10, 64)
+	orders, total, err := h.logic.ListAll(shopID, p, ps)
 	if err != nil {
-		response.Error(c, err.Error(), http.StatusInternalServerError)
+		response.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	response.Success(c, gin.H{"total": total, "list": orders}, "查询成功")
+	response.Success(w, types.PageListResp{Total: total, List: orders}, "查询成功")
 }
 
-func (h *OrderHandler) AdminDetail(c *gin.Context) {
-	orderID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+func (h *OrderHandler) AdminDetail(w http.ResponseWriter, r *http.Request) {
+	orderID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
-		response.Error(c, "订单ID无效", http.StatusBadRequest)
+		response.Error(w, "订单ID无效", http.StatusBadRequest)
 		return
 	}
-	order, err := h.svc.GetOrderAdmin(orderID)
+	order, err := h.logic.GetOrderAdmin(orderID)
 	if err != nil {
-		response.Error(c, "订单不存在", http.StatusNotFound)
+		response.Error(w, "订单不存在", http.StatusNotFound)
 		return
 	}
-	response.Success(c, order, "查询成功")
+	response.Success(w, order, "查询成功")
 }
