@@ -229,6 +229,40 @@ func (l *RBACLogic) SetUserStatus(id uint64, status int) error {
 	return l.svcCtx.RBAC.UpdateUserStatus(id, status)
 }
 
+func (l *RBACLogic) GetUser(id uint64) (*model.User, error) {
+	user, err := l.svcCtx.Repo.FindByID(id)
+	if err != nil {
+		return nil, errors.New("用户不存在")
+	}
+	return user, nil
+}
+
+func (l *RBACLogic) UpdateUser(id uint64, req types.UserUpdateReq) error {
+	if _, err := l.svcCtx.Repo.FindByID(id); err != nil {
+		return errors.New("用户不存在")
+	}
+	if len(req.Mobile) != 11 {
+		return errors.New("手机号无效")
+	}
+	if l.svcCtx.Repo.MobileTakenByOther(req.Mobile, id) {
+		return errors.New("手机号已被占用")
+	}
+	if req.Gender < 0 || req.Gender > 2 {
+		return errors.New("性别无效")
+	}
+	return l.svcCtx.Repo.UpdateProfile(id, req.Nickname, req.Avatar, req.Mobile, req.Gender)
+}
+
+func (l *RBACLogic) ResetUserPassword(id uint64, plain string) error {
+	if plain == "" {
+		return errors.New("密码不能为空")
+	}
+	if _, err := l.svcCtx.Repo.FindByID(id); err != nil {
+		return errors.New("用户不存在")
+	}
+	return l.svcCtx.Repo.UpdatePassword(id, plain)
+}
+
 func (l *RBACLogic) ListAdmins(page, pageSize int) ([]model.User, int64, error) {
 	if page < 1 {
 		page = 1

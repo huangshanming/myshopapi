@@ -183,6 +183,44 @@ func (h *AdminHandler) SetUserStatus(w http.ResponseWriter, r *http.Request) {
 	response.Success(w, nil, "更新成功")
 }
 
+func (h *AdminHandler) GetUser(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	user, err := h.logic.GetUser(id)
+	if err != nil {
+		response.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	response.Success(w, user, "ok")
+}
+
+func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	var req types.UserUpdateReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, "参数错误", http.StatusBadRequest)
+		return
+	}
+	if err := h.logic.UpdateUser(id, req); err != nil {
+		response.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	response.Success(w, nil, "更新成功")
+}
+
+func (h *AdminHandler) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	var req types.UserResetPwdReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, "参数错误", http.StatusBadRequest)
+		return
+	}
+	if err := h.logic.ResetUserPassword(id, req.Password); err != nil {
+		response.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	response.Success(w, nil, "重置成功")
+}
+
 func (h *AdminHandler) ListAdmins(w http.ResponseWriter, r *http.Request) {
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))

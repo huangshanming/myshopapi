@@ -30,10 +30,15 @@ INSERT INTO sys_menu (id, parent_id, name, type, path, component, icon, perms, s
 (33, 12, '角色删除', 'button', '', '', '', 'system:role:delete', 3, 1, 1),
 (34, 12, '分配菜单', 'button', '', '', '', 'system:role:assign', 4, 1, 1),
 (41, 13, '用户启停', 'button', '', '', '', 'system:user:status', 1, 1, 1),
+(42, 13, '用户编辑', 'button', '', '', '', 'system:user:edit', 2, 1, 1),
+(43, 13, '用户重置密码', 'button', '', '', '', 'system:user:reset', 3, 1, 1),
 (51, 14, '管理员新增', 'button', '', '', '', 'system:admin:add', 1, 1, 1),
 (52, 14, '分配角色', 'button', '', '', '', 'system:admin:assign', 2, 1, 1),
 (53, 14, '重置密码', 'button', '', '', '', 'system:admin:reset', 3, 1, 1),
-(61, 15, '配置保存', 'button', '', '', '', 'system:config:edit', 1, 1, 1)
+(61, 15, '配置保存', 'button', '', '', '', 'system:config:edit', 1, 1, 1),
+(71, 3, '店铺新增', 'button', '', '', '', 'business:shop:add', 1, 1, 1),
+(72, 3, '店铺编辑', 'button', '', '', '', 'business:shop:edit', 2, 1, 1),
+(73, 3, '店主重置密码', 'button', '', '', '', 'business:shop:reset', 3, 1, 1)
 ON DUPLICATE KEY UPDATE name=VALUES(name), path=VALUES(path), perms=VALUES(perms), sort=VALUES(sort);
 
 -- super_admin 拥有全部菜单

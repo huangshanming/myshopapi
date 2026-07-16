@@ -1,16 +1,13 @@
 package repository
 
 import (
-	"crypto/md5"
-	"encoding/hex"
 	"errors"
 
+	"mymall/common/password"
 	"mymall/services/user-service/internal/model"
 
 	"gorm.io/gorm"
 )
-
-const passwordSalt = "this is my mall"
 
 type UserRepository struct {
 	db *gorm.DB
@@ -20,21 +17,15 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 	return &UserRepository{db: db}
 }
 
-func (r *UserRepository) HashPassword(password string) string {
-	hash := md5.New()
-	hash.Write([]byte(password + passwordSalt))
-	return hex.EncodeToString(hash.Sum(nil))
+func (r *UserRepository) HashPassword(plain string) string {
+	return password.Hash(plain)
 }
 
-func (r *UserRepository) hashPassword(password string) string {
-	return r.HashPassword(password)
+func (r *UserRepository) UpdatePassword(id uint64, plain string) error {
+	return r.db.Model(&model.User{}).Where("id = ?", id).Update("password", password.Hash(plain)).Error
 }
 
-func (r *UserRepository) UpdatePassword(id uint64, password string) error {
-	return r.db.Model(&model.User{}).Where("id = ?", id).Update("password", r.HashPassword(password)).Error
-}
-
-func (r *UserRepository) CreateAdmin(mobile, password, nickname string) (*model.User, error) {
+func (r *UserRepository) CreateAdmin(mobile, plain, nickname string) (*model.User, error) {
 	var existing model.User
 	if err := r.db.Where("mobile = ?", mobile).First(&existing).Error; err == nil {
 		return nil, errors.New("用户已存在")
@@ -44,7 +35,7 @@ func (r *UserRepository) CreateAdmin(mobile, password, nickname string) (*model.
 	}
 	user := model.User{
 		Mobile:   mobile,
-		Password: r.HashPassword(password),
+		Password: password.Hash(plain),
 		Nickname: nickname,
 		Status:   1,
 		Role:     "platform_admin",
@@ -64,12 +55,12 @@ func (r *UserRepository) FindByMobile(mobile string) (*model.User, error) {
 	return &user, nil
 }
 
-func (r *UserRepository) VerifyLogin(mobile, password string) (*model.User, error) {
+func (r *UserRepository) VerifyLogin(mobile, plain string) (*model.User, error) {
 	user, err := r.FindByMobile(mobile)
 	if err != nil {
 		return nil, err
 	}
-	if user.Password != r.hashPassword(password) {
+	if user.Password != password.Hash(plain) {
 		return nil, gorm.ErrRecordNotFound
 	}
 	if user.Status != 1 {
@@ -78,7 +69,7 @@ func (r *UserRepository) VerifyLogin(mobile, password string) (*model.User, erro
 	return user, nil
 }
 
-func (r *UserRepository) Create(mobile, password string) (*model.User, error) {
+func (r *UserRepository) Create(mobile, plain string) (*model.User, error) {
 	var existing model.User
 	if err := r.db.Where("mobile = ?", mobile).First(&existing).Error; err == nil {
 		return nil, errors.New("用户已存在")
@@ -86,7 +77,7 @@ func (r *UserRepository) Create(mobile, password string) (*model.User, error) {
 
 	user := model.User{
 		Mobile:   mobile,
-		Password: r.hashPassword(password),
+		Password: password.Hash(plain),
 		Nickname: mobile,
 		Status:   1,
 		Role:     "user",
@@ -95,6 +86,22 @@ func (r *UserRepository) Create(mobile, password string) (*model.User, error) {
 		return nil, err
 	}
 	return &user, nil
+}
+
+func (r *UserRepository) UpdateProfile(id uint64, nickname, avatar, mobile string, gender int) error {
+	updates := map[string]interface{}{
+		"nickname": nickname,
+		"avatar":   avatar,
+		"gender":   gender,
+		"mobile":   mobile,
+	}
+	return r.db.Model(&model.User{}).Where("id = ?", id).Updates(updates).Error
+}
+
+func (r *UserRepository) MobileTakenByOther(mobile string, excludeID uint64) bool {
+	var count int64
+	r.db.Model(&model.User{}).Where("mobile = ? AND id <> ?", mobile, excludeID).Count(&count)
+	return count > 0
 }
 
 func (r *UserRepository) FindByID(id uint64) (*model.User, error) {

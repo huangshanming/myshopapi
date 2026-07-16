@@ -15,7 +15,10 @@ export const fetchRoleMenus = (id) => http.get(`/api/v1/admin/roles/${id}/menus`
 export const assignRoleMenus = (id, menu_ids) => http.put(`/api/v1/admin/roles/${id}/menus`, { menu_ids })
 
 export const fetchUsers = (params) => http.get('/api/v1/admin/users', { params })
+export const fetchUser = (id) => http.get(`/api/v1/admin/users/${id}`)
+export const updateUser = (id, data) => http.put(`/api/v1/admin/users/${id}`, data)
 export const setUserStatus = (id, status) => http.put(`/api/v1/admin/users/${id}/status`, { status })
+export const resetUserPassword = (id, password) => http.put(`/api/v1/admin/users/${id}/password`, { password })
 
 export const fetchAdmins = (params) => http.get('/api/v1/admin/admins', { params })
 export const createAdmin = (data) => http.post('/api/v1/admin/admins', data)

@@ -28,6 +28,17 @@ type UserStatusReq struct {
 	Status int `json:"status"`
 }
 
+type UserUpdateReq struct {
+	Nickname string `json:"nickname"`
+	Avatar   string `json:"avatar"`
+	Gender   int    `json:"gender"`
+	Mobile   string `json:"mobile"`
+}
+
+type UserResetPwdReq struct {
+	Password string `json:"password"`
+}
+
 type AdminCreateReq struct {
 	Mobile   string   `json:"mobile"`
 	Password string   `json:"password"`

@@ -132,12 +132,62 @@ func (h *MerchantHandler) AdminReject(w http.ResponseWriter, r *http.Request) {
 
 func (h *MerchantHandler) AdminListShops(w http.ResponseWriter, r *http.Request) {
 	p, ps := middleware.ParsePage(r)
-	list, total, err := h.logic.ListShops(r.URL.Query().Get("status"), p, ps)
+	list, total, err := h.logic.ListShops(r.URL.Query().Get("status"), r.URL.Query().Get("name"), p, ps)
 	if err != nil {
 		response.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	response.Success(w, types.PageListResp{Total: total, List: list}, "查询成功")
+}
+
+func (h *MerchantHandler) AdminCreateShop(w http.ResponseWriter, r *http.Request) {
+	var req types.AdminCreateShopReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, "参数错误", http.StatusBadRequest)
+		return
+	}
+	shop, err := h.logic.CreateShop(req)
+	if err != nil {
+		response.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	response.Success(w, shop, "创建成功")
+}
+
+func (h *MerchantHandler) AdminUpdateShop(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	if err != nil {
+		response.Error(w, "店铺ID无效", http.StatusBadRequest)
+		return
+	}
+	var req types.AdminUpdateShopReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, "参数错误", http.StatusBadRequest)
+		return
+	}
+	if err := h.logic.AdminUpdateShop(id, req); err != nil {
+		response.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	response.Success(w, nil, "更新成功")
+}
+
+func (h *MerchantHandler) AdminResetOwnerPassword(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	if err != nil {
+		response.Error(w, "店铺ID无效", http.StatusBadRequest)
+		return
+	}
+	var req types.OwnerPasswordReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, "参数错误", http.StatusBadRequest)
+		return
+	}
+	if err := h.logic.ResetOwnerPassword(id, req.Password); err != nil {
+		response.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	response.Success(w, nil, "重置成功")
 }
 
 func (h *MerchantHandler) AdminGetShop(w http.ResponseWriter, r *http.Request) {

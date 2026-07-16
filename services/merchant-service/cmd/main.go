@@ -83,7 +83,10 @@ func main() {
 		{Method: http.MethodPost, Path: "/api/v1/admin/applications/:id/approve", Handler: rid(middleware.Chain(h.AdminApprove, gw, plat))},
 		{Method: http.MethodPost, Path: "/api/v1/admin/applications/:id/reject", Handler: rid(middleware.Chain(h.AdminReject, gw, plat))},
 		{Method: http.MethodGet, Path: "/api/v1/admin/shops", Handler: rid(middleware.Chain(h.AdminListShops, gw, plat))},
+		{Method: http.MethodPost, Path: "/api/v1/admin/shops", Handler: rid(middleware.Chain(h.AdminCreateShop, gw, plat))},
 		{Method: http.MethodGet, Path: "/api/v1/admin/shops/:id", Handler: rid(middleware.Chain(h.AdminGetShop, gw, plat))},
+		{Method: http.MethodPut, Path: "/api/v1/admin/shops/:id", Handler: rid(middleware.Chain(h.AdminUpdateShop, gw, plat))},
+		{Method: http.MethodPut, Path: "/api/v1/admin/shops/:id/owner-password", Handler: rid(middleware.Chain(h.AdminResetOwnerPassword, gw, plat))},
 		{Method: http.MethodPut, Path: "/api/v1/admin/shops/:id/disable", Handler: rid(middleware.Chain(h.AdminDisableShop, gw, plat))},
 		{Method: http.MethodPut, Path: "/api/v1/admin/shops/:id/enable", Handler: rid(middleware.Chain(h.AdminEnableShop, gw, plat))},
 	})

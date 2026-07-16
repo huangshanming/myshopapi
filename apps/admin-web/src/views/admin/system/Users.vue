@@ -11,8 +11,10 @@
       <el-table-column prop="nickname" label="昵称" />
       <el-table-column prop="role" label="角色" width="140" />
       <el-table-column prop="status" label="状态" width="80" />
-      <el-table-column label="操作" width="140">
+      <el-table-column label="操作" width="260">
         <template #default="{ row }">
+          <el-button v-permission="'system:user:edit'" link type="primary" @click="openEdit(row)">编辑</el-button>
+          <el-button v-permission="'system:user:reset'" link @click="openReset(row)">重置密码</el-button>
           <el-button
             v-permission="'system:user:status'"
             size="small"
@@ -30,13 +32,40 @@
       :page-size="pageSize"
       @current-change="load"
     />
+
+    <el-dialog v-model="editVisible" title="编辑用户" width="460px">
+      <el-form label-width="80px">
+        <el-form-item label="手机号"><el-input v-model="editForm.mobile" maxlength="11" /></el-form-item>
+        <el-form-item label="昵称"><el-input v-model="editForm.nickname" /></el-form-item>
+        <el-form-item label="头像URL"><el-input v-model="editForm.avatar" /></el-form-item>
+        <el-form-item label="性别">
+          <el-select v-model="editForm.gender" style="width: 100%">
+            <el-option label="未知" :value="0" />
+            <el-option label="男" :value="1" />
+            <el-option label="女" :value="2" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveEdit">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="pwdVisible" title="重置密码" width="420px">
+      <el-input v-model="newPassword" type="password" show-password placeholder="新密码" />
+      <template #footer>
+        <el-button @click="pwdVisible = false">取消</el-button>
+        <el-button type="primary" @click="savePwd">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { fetchUsers, setUserStatus } from '../../../api/system'
+import { fetchUsers, resetUserPassword, setUserStatus, updateUser } from '../../../api/system'
 
 const list = ref([])
 const loading = ref(false)
@@ -44,6 +73,11 @@ const mobile = ref('')
 const page = ref(1)
 const pageSize = 20
 const total = ref(0)
+const editVisible = ref(false)
+const pwdVisible = ref(false)
+const editForm = ref({ mobile: '', nickname: '', avatar: '', gender: 0 })
+const currentId = ref(0)
+const newPassword = ref('123456')
 
 async function load() {
   loading.value = true
@@ -55,6 +89,44 @@ async function load() {
     ElMessage.error(e.message)
   } finally {
     loading.value = false
+  }
+}
+
+function openEdit(row) {
+  currentId.value = row.id
+  editForm.value = {
+    mobile: row.mobile || '',
+    nickname: row.nickname || '',
+    avatar: row.avatar || '',
+    gender: row.gender ?? 0,
+  }
+  editVisible.value = true
+}
+
+async function saveEdit() {
+  try {
+    await updateUser(currentId.value, editForm.value)
+    ElMessage.success('已更新')
+    editVisible.value = false
+    load()
+  } catch (e) {
+    ElMessage.error(e.message)
+  }
+}
+
+function openReset(row) {
+  currentId.value = row.id
+  newPassword.value = '123456'
+  pwdVisible.value = true
+}
+
+async function savePwd() {
+  try {
+    await resetUserPassword(currentId.value, newPassword.value)
+    ElMessage.success('已重置')
+    pwdVisible.value = false
+  } catch (e) {
+    ElMessage.error(e.message)
   }
 }
 
