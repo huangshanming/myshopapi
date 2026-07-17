@@ -11,6 +11,7 @@ import (
 
 type StockItem struct {
 	ProductID uint64 `json:"product_id"`
+	SkuID     uint64 `json:"sku_id"`
 	Quantity  int    `json:"quantity"`
 }
 
@@ -27,9 +28,9 @@ func (r *ProductRepository) GetList(page *pagination.PageReq) (map[string]interf
 }
 
 func (r *ProductRepository) GetListByShop(page *pagination.PageReq, shopID uint64, status string) (map[string]interface{}, error) {
-	res := map[string]interface{}{
+	empty := map[string]interface{}{
 		"total": int64(0),
-		"data":  []model.ProductListResp{},
+		"list":  []model.ProductListResp{},
 	}
 
 	q := r.db.Model(&model.Product{})
@@ -42,10 +43,10 @@ func (r *ProductRepository) GetListByShop(page *pagination.PageReq, shopID uint6
 
 	var total int64
 	if err := q.Count(&total).Error; err != nil {
-		return res, err
+		return empty, err
 	}
 	if total == 0 {
-		return res, nil
+		return empty, nil
 	}
 
 	query := r.db.Model(&model.Product{})
@@ -57,11 +58,16 @@ func (r *ProductRepository) GetListByShop(page *pagination.PageReq, shopID uint6
 	}
 	result, err := pagination.Paginate[model.ProductListResp](query, page)
 	if err != nil {
-		return res, err
+		return empty, err
 	}
-	res["data"] = result
-	res["total"] = total
-	return res, nil
+	// 统一 { total, list }，避免再包一层 data 导致前端 el-table 拿到对象
+	return map[string]interface{}{
+		"total":      result.Total,
+		"page":       result.Page,
+		"page_size":  result.PageSize,
+		"total_page": result.TotalPage,
+		"list":       result.List,
+	}, nil
 }
 
 func (r *ProductRepository) Create(p *model.Product) error {
@@ -101,33 +107,21 @@ func (r *ProductRepository) BatchGetByIDs(ids []uint64) ([]model.Product, error)
 }
 
 func (r *ProductRepository) ReserveStock(items []StockItem) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
-		for _, item := range items {
-			result := tx.Model(&model.Product{}).
-				Where("id = ? AND stock >= ?", item.ProductID, item.Quantity).
-				Update("stock", gorm.Expr("stock - ?", item.Quantity))
-			if result.Error != nil {
-				return result.Error
-			}
-			if result.RowsAffected == 0 {
-				return errors.New("insufficient stock")
-			}
-		}
-		return nil
-	})
+	admin := NewProductAdminRepository(r.db)
+	skuItems := make([]SkuStockItem, 0, len(items))
+	for _, it := range items {
+		skuItems = append(skuItems, SkuStockItem{ProductID: it.ProductID, SkuID: it.SkuID, Quantity: it.Quantity})
+	}
+	return admin.ReserveSkuStock(skuItems)
 }
 
 func (r *ProductRepository) ReleaseStock(items []StockItem) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
-		for _, item := range items {
-			if err := tx.Model(&model.Product{}).
-				Where("id = ?", item.ProductID).
-				Update("stock", gorm.Expr("stock + ?", item.Quantity)).Error; err != nil {
-				return err
-			}
-		}
-		return nil
-	})
+	admin := NewProductAdminRepository(r.db)
+	skuItems := make([]SkuStockItem, 0, len(items))
+	for _, it := range items {
+		skuItems = append(skuItems, SkuStockItem{ProductID: it.ProductID, SkuID: it.SkuID, Quantity: it.Quantity})
+	}
+	return admin.ReleaseSkuStock(skuItems)
 }
 
 type CategoryRepository struct {

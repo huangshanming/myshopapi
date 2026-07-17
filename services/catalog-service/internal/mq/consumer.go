@@ -13,6 +13,7 @@ import (
 
 type stockItem struct {
 	ProductID uint64 `json:"product_id"`
+	SkuID     uint64 `json:"sku_id"`
 	Quantity  int    `json:"quantity"`
 }
 
@@ -79,7 +80,7 @@ func (c *Consumer) handleOrderCancelled(ctx context.Context, _ string, body []by
 func toRepoItems(items []stockItem) []repository.StockItem {
 	out := make([]repository.StockItem, 0, len(items))
 	for _, it := range items {
-		out = append(out, repository.StockItem{ProductID: it.ProductID, Quantity: it.Quantity})
+		out = append(out, repository.StockItem{ProductID: it.ProductID, SkuID: it.SkuID, Quantity: it.Quantity})
 	}
 	return out
 }

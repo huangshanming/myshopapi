@@ -1,111 +1,44 @@
--- mymall 业务表（users / products / product_categories）
--- 执行：mysql -u homestead -p mymall < scripts/init-schema.sql
-
+-- 商家端商品中台表结构
+-- 执行：mysql -u homestead -psecret mymall < scripts/alter-product-center.sql
 USE mymall;
+SET @db := DATABASE();
 
-CREATE TABLE IF NOT EXISTS users (
-    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    mobile CHAR(11) NOT NULL COMMENT '登录手机号',
-    password VARCHAR(255) NOT NULL COMMENT '登录密码',
-    nickname VARCHAR(50) NOT NULL COMMENT '用户昵称',
-    avatar VARCHAR(255) NOT NULL DEFAULT '' COMMENT '用户头像URL',
-	gender TINYINT NOT NULL DEFAULT 0 COMMENT '性别：0-未知 1-男 2-女',
-    status TINYINT NOT NULL DEFAULT 1 COMMENT '账号状态：1-正常 0-禁用',
-    role VARCHAR(32) NOT NULL DEFAULT 'user' COMMENT '角色',
-    last_login_time TIMESTAMP NULL DEFAULT NULL COMMENT '最后登录时间',
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP NULL DEFAULT NULL,
-    UNIQUE KEY uk_mobile (mobile),
-    INDEX idx_deleted_at (deleted_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- 迁移旧状态
+UPDATE products SET status = 'draft' WHERE status IN ('pending','approved','rejected');
+UPDATE products SET status = 'deleted' WHERE deleted_at IS NOT NULL AND status <> 'deleted';
 
-CREATE TABLE IF NOT EXISTS product_categories (
-    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    parent_id INT NOT NULL DEFAULT 0 COMMENT '父分类ID',
-    name VARCHAR(100) NOT NULL COMMENT '分类名称',
-    icon VARCHAR(200) DEFAULT NULL COMMENT '分类图标',
-    image VARCHAR(500) DEFAULT NULL COMMENT '分类图片',
-    description VARCHAR(500) DEFAULT NULL COMMENT '分类描述',
-    sort_order INT NOT NULL DEFAULT 0 COMMENT '排序',
-    level INT NOT NULL DEFAULT 1 COMMENT '分类层级',
-    is_show TINYINT(1) NOT NULL DEFAULT 1 COMMENT '是否显示',
-    product_count INT NOT NULL DEFAULT 0 COMMENT '商品数量',
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- products 增量字段（幂等）
+SET @exists := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='products' AND COLUMN_NAME='product_type');
+SET @sql := IF(@exists=0, "ALTER TABLE products ADD COLUMN product_type ENUM('physical','fresh','virtual') NOT NULL DEFAULT 'physical' COMMENT '商品类型' AFTER category_id", 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
-CREATE TABLE IF NOT EXISTS products (
-    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    shop_id BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '所属店铺ID',
-    product_no VARCHAR(50) NOT NULL COMMENT '商品编号',
-    name VARCHAR(200) NOT NULL COMMENT '商品名称',
-    subtitle VARCHAR(500) DEFAULT NULL COMMENT '商品副标题',
-    description TEXT DEFAULT NULL COMMENT '商品描述',
-    main_image VARCHAR(500) DEFAULT NULL COMMENT '主图',
-    image_list JSON DEFAULT NULL COMMENT '商品图片列表',
-    video_url VARCHAR(500) DEFAULT NULL COMMENT '商品视频',
-    market_price DECIMAL(10,2) DEFAULT NULL COMMENT '市场价',
-    sale_price DECIMAL(10,2) NOT NULL COMMENT '销售价',
-    cost_price DECIMAL(10,2) DEFAULT NULL COMMENT '成本价',
-    discount DECIMAL(5,2) NOT NULL DEFAULT 100.00 COMMENT '折扣(百分比)',
-    discount_price DECIMAL(10,2) DEFAULT NULL COMMENT '折后价',
-    stock INT NOT NULL DEFAULT 0 COMMENT '库存数量',
-    stock_warn INT NOT NULL DEFAULT 10 COMMENT '库存预警值',
-    sold_count INT NOT NULL DEFAULT 0 COMMENT '已售数量',
-    view_count INT NOT NULL DEFAULT 0 COMMENT '浏览数量',
-    collect_count INT NOT NULL DEFAULT 0 COMMENT '收藏数量',
-    pet_type ENUM('dog','cat','both','other') NOT NULL DEFAULT 'both' COMMENT '宠物类型',
-    pet_age JSON DEFAULT NULL COMMENT '适用年龄',
-    pet_size JSON DEFAULT NULL COMMENT '适用体型',
-    weight DECIMAL(8,2) DEFAULT NULL COMMENT '重量(kg)',
-    unit VARCHAR(20) DEFAULT NULL COMMENT '单位',
-    brand_id INT DEFAULT NULL COMMENT '品牌ID',
-    category_id INT NOT NULL COMMENT '分类ID',
-    product_type ENUM('physical','fresh','virtual') NOT NULL DEFAULT 'physical' COMMENT '商品类型',
-    spec_json JSON DEFAULT NULL COMMENT '规格定义',
-    tags JSON DEFAULT NULL COMMENT '标签数组',
-    nutrition_info JSON DEFAULT NULL COMMENT '营养成分表',
-    ingredients TEXT DEFAULT NULL COMMENT '主要成分',
-    feeding_guide TEXT DEFAULT NULL COMMENT '喂养指南',
-    shelf_life INT DEFAULT NULL COMMENT '保质期(天)',
-    storage_condition VARCHAR(200) DEFAULT NULL COMMENT '存储条件',
-    status ENUM('draft','on_sale','off_sale','deleted') NOT NULL DEFAULT 'draft' COMMENT '状态',
-    is_hot TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否热销',
-    is_new TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否新品',
-    is_recommend TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否推荐',
-    is_prescription TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否处方粮',
-    is_imported TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否进口',
-    is_organic TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否有机',
-    is_grain_free TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否无谷',
-    publish_time DATETIME DEFAULT NULL COMMENT '上架时间',
-    schedule_on_at DATETIME DEFAULT NULL COMMENT '定时上架',
-    schedule_off_at DATETIME DEFAULT NULL COMMENT '定时下架',
-    copy_from_id BIGINT UNSIGNED DEFAULT NULL COMMENT '复制来源',
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP NULL DEFAULT NULL,
-    UNIQUE KEY uk_product_no (product_no),
-    INDEX idx_category_id (category_id),
-    INDEX idx_brand_id (brand_id),
-    INDEX idx_pet_type (pet_type),
-    INDEX idx_status (status),
-    INDEX idx_is_hot (is_hot),
-    INDEX idx_is_new (is_new),
-    INDEX idx_is_recommend (is_recommend),
-    INDEX idx_deleted_at (deleted_at),
-    INDEX idx_shop_id (shop_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+SET @exists := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='products' AND COLUMN_NAME='spec_json');
+SET @sql := IF(@exists=0, "ALTER TABLE products ADD COLUMN spec_json JSON NULL COMMENT '规格定义' AFTER product_type", 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- ========== 商品中台关联表（与 alter-product-center.sql 对齐）==========
+SET @exists := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='products' AND COLUMN_NAME='schedule_on_at');
+SET @sql := IF(@exists=0, "ALTER TABLE products ADD COLUMN schedule_on_at DATETIME NULL COMMENT '定时上架' AFTER publish_time", 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @exists := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='products' AND COLUMN_NAME='schedule_off_at');
+SET @sql := IF(@exists=0, "ALTER TABLE products ADD COLUMN schedule_off_at DATETIME NULL COMMENT '定时下架' AFTER schedule_on_at", 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @exists := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='products' AND COLUMN_NAME='copy_from_id');
+SET @sql := IF(@exists=0, "ALTER TABLE products ADD COLUMN copy_from_id BIGINT UNSIGNED NULL COMMENT '复制来源' AFTER schedule_off_at", 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 收窄 status 枚举（MySQL 允许 MODIFY）
+ALTER TABLE products MODIFY COLUMN status ENUM('draft','on_sale','off_sale','deleted','pending','approved','rejected') NOT NULL DEFAULT 'draft' COMMENT '商品状态';
+
 CREATE TABLE IF NOT EXISTS product_skus (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  product_id BIGINT UNSIGNED NOT NULL,
-  shop_id BIGINT UNSIGNED NOT NULL,
-  sku_no VARCHAR(64) NOT NULL,
-  spec_values JSON NOT NULL,
-  spec_key VARCHAR(255) NOT NULL,
-  sale_price DECIMAL(10,2) NOT NULL,
+  product_id BIGINT UNSIGNED NOT NULL COMMENT '商品ID',
+  shop_id BIGINT UNSIGNED NOT NULL COMMENT '店铺ID',
+  sku_no VARCHAR(64) NOT NULL COMMENT 'SKU编码',
+  spec_values JSON NOT NULL COMMENT '规格值',
+  spec_key VARCHAR(255) NOT NULL COMMENT '规格唯一键',
+  sale_price DECIMAL(10,2) NOT NULL COMMENT '售价',
   market_price DECIMAL(10,2) NULL,
   cost_price DECIMAL(10,2) NULL,
   stock INT NOT NULL DEFAULT 0,
@@ -214,6 +147,7 @@ CREATE TABLE IF NOT EXISTS product_op_logs (
   KEY idx_product (product_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 商家端 RBAC
 CREATE TABLE IF NOT EXISTS shop_roles (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   shop_id BIGINT UNSIGNED NOT NULL,
@@ -254,3 +188,38 @@ CREATE TABLE IF NOT EXISTS shop_user_roles (
   role_id BIGINT UNSIGNED NOT NULL,
   PRIMARY KEY (shop_id, user_id, role_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 订单行 SKU 快照
+SET @exists := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='order_items' AND COLUMN_NAME='sku_id');
+SET @sql := IF(@exists=0, "ALTER TABLE order_items ADD COLUMN sku_id BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'SKU ID' AFTER product_id", 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @exists := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='order_items' AND COLUMN_NAME='sku_snapshot');
+SET @sql := IF(@exists=0, "ALTER TABLE order_items ADD COLUMN sku_snapshot JSON NULL COMMENT 'SKU规格快照' AFTER product_name", 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 种子：商家菜单（按模块分层：目录 + 子菜单 + 按钮）
+INSERT INTO shop_menus (id, parent_id, name, type, path, component, icon, perms, sort, visible, status) VALUES
+-- 一级目录
+(100, 0, '商品中心', 'dir', '', '', 'Goods', '', 10, 1, 1),
+(101, 0, '库存管理', 'dir', '', '', 'Box', '', 20, 1, 1),
+(102, 0, '订单中心', 'dir', '', '', 'List', '', 30, 1, 1),
+(103, 0, '店铺设置', 'dir', '', '', 'Setting', '', 90, 1, 1),
+-- 商品中心
+(1, 100, '商品列表', 'menu', '/merchant/products', 'merchant/Products', 'Goods', 'product:list', 10, 1, 1),
+(2, 100, '发布商品', 'menu', '/merchant/products/edit', 'merchant/ProductEdit', 'Edit', 'product:edit', 11, 1, 1),
+(3, 100, '回收站', 'menu', '/merchant/products/recycle', 'merchant/ProductRecycle', 'Delete', 'product:recycle', 12, 1, 1),
+(7, 100, '操作日志', 'menu', '/merchant/products/op-logs', 'merchant/OpLogs', 'Document', 'product:list', 13, 1, 1),
+-- 库存 / 订单 / 设置
+(4, 101, '库存预警', 'menu', '/merchant/stocks/warnings', 'merchant/StockWarnings', 'Warning', 'stock:warn', 10, 1, 1),
+(5, 102, '店铺订单', 'menu', '/merchant/orders', 'merchant/Orders', 'List', 'order:list', 10, 1, 1),
+(6, 103, '员工权限', 'menu', '/merchant/staff', 'merchant/Staff', 'User', 'shop:staff', 10, 1, 1),
+-- 按钮挂在商品列表下
+(11, 1, '商品新增', 'button', '', '', '', 'product:add', 1, 1, 1),
+(12, 1, '商品编辑', 'button', '', '', '', 'product:edit', 2, 1, 1),
+(13, 1, '商品上下架', 'button', '', '', '', 'product:status', 3, 1, 1),
+(14, 1, '批量操作', 'button', '', '', '', 'product:batch', 4, 1, 1),
+(15, 1, '导入导出', 'button', '', '', '', 'product:import', 5, 1, 1)
+ON DUPLICATE KEY UPDATE
+  parent_id=VALUES(parent_id), name=VALUES(name), type=VALUES(type),
+  path=VALUES(path), perms=VALUES(perms), sort=VALUES(sort), visible=VALUES(visible), status=VALUES(status);

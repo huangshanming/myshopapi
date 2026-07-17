@@ -108,19 +108,19 @@ bash scripts/start-all.sh
 
 或在 Docker Desktop → Settings → Docker Engine 中移除限流的 registry mirror（如 `docker.xuanyuan.me`）。
 
-### 3. 本地热调试（改代码立即生效）
+### 3. 本地热更新（air，无需 K8s）
 
-Docker 每次改代码都要重建镜像，**日常开发请用 `dev.sh`**：
+Docker 每次改代码都要重建镜像，**日常开发请用 `dev.sh`**（[air](https://github.com/air-verse/air)，保存 `.go` / `.yaml` 自动重编重启）：
 
 ```bash
 # 只调试正在改的服务（推荐）
 bash scripts/dev.sh order
 
-# 或三个服务一起跑
+# 或四个服务一起跑
 bash scripts/dev.sh
 ```
 
-改完代码 → `Ctrl+C` → 再执行一次，立刻看到效果。
+首次会自动 `go install github.com/air-verse/air@latest`（需 `$(go env GOPATH)/bin` 在 PATH）。改共享包 `pkg/` / `common/` 也会触发对应服务重建。前端仍用 `cd apps/admin-web && npm run dev`（Vite HMR）。
 
 ### 3. K8s 部署
 

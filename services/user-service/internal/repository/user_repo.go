@@ -112,10 +112,15 @@ func (r *UserRepository) FindByID(id uint64) (*model.User, error) {
 	return &user, nil
 }
 
-// FirstShopID 取用户所属第一家店铺（同库 shop_members）
+// FirstShopID 取用户所属第一家店铺（优先 shop_members，兼容 shop_user_roles）
 func (r *UserRepository) FirstShopID(userID uint64) uint64 {
 	var shopID uint64
 	_ = r.db.Table("shop_members").Select("shop_id").Where("user_id = ?", userID).
 		Order("id ASC").Limit(1).Scan(&shopID).Error
+	if shopID > 0 {
+		return shopID
+	}
+	_ = r.db.Table("shop_user_roles").Select("shop_id").Where("user_id = ?", userID).
+		Order("shop_id ASC").Limit(1).Scan(&shopID).Error
 	return shopID
 }

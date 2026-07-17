@@ -22,6 +22,7 @@ message Product {
   int32 stock = 5;
   string status = 6;
   uint64 shop_id = 7;
+  uint64 default_sku_id = 8; // 无规格或下单未传 sku 时的默认 SKU
 }
 
 message BatchGetProductsResponse {
@@ -31,6 +32,7 @@ message BatchGetProductsResponse {
 message StockItem {
   uint64 product_id = 1;
   int32 quantity = 2;
+  uint64 sku_id = 3;
 }
 
 message ReserveStockRequest {

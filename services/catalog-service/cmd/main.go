@@ -13,7 +13,9 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
+	"time"
 
 	"mymall/pkg/cache"
 	"mymall/pkg/config"
@@ -68,6 +70,19 @@ func main() {
 	if err := database.AutoMigrateIfDebug(cfg.Server.Mode, db,
 		&model.Product{},
 		&model.ProductCategory{},
+		&model.ProductSku{},
+		&model.ProductImage{},
+		&model.ProductTag{},
+		&model.ProductTagRel{},
+		&model.ProductAttrTemplate{},
+		&model.ProductAttr{},
+		&model.ProductSchedule{},
+		&model.ProductBatchJob{},
+		&model.ProductOpLog{},
+		&model.ShopRole{},
+		&model.ShopMenu{},
+		&model.ShopRoleMenu{},
+		&model.ShopUserRole{},
 	); err != nil {
 		log.Fatalf("AutoMigrate 失败：%v", err)
 	}
@@ -90,8 +105,24 @@ func main() {
 	}
 
 	svcCtx := svc.NewServiceContext(cfg, db, redisClient, mqClient)
+	if err := svcCtx.ShopRBAC.EnsureShopMenus(); err != nil {
+		logger.Warn(fmt.Sprintf("seed shop menus: %v", err))
+	} else {
+		logger.Info("shop menus seeded (layered)")
+	}
 	catalogLogic := logic.NewCatalogLogic(svcCtx)
 	catalogHandler := handler.NewCatalogHandler(svcCtx)
+	adminH := handler.NewProductAdminHandler(svcCtx)
+	productAdminLogic := logic.NewProductAdminLogic(svcCtx)
+
+	// 定时上下架轮询
+	go func() {
+		t := time.NewTicker(30 * time.Second)
+		defer t.Stop()
+		for range t.C {
+			productAdminLogic.RunSchedules()
+		}
+	}()
 
 	if svcCtx.MQ != nil {
 		consumer := catalogmq.NewConsumer(svcCtx.MQ, catalogLogic, logger)
@@ -143,17 +174,65 @@ func main() {
 		{Method: http.MethodGet, Path: "/api/v1/product_category/list", Handler: rid(catalogHandler.GetCategoryList)},
 		{Method: http.MethodGet, Path: "/api/v1/product_category/detail", Handler: rid(catalogHandler.GetCategoryDetail)},
 
-		{Method: http.MethodGet, Path: "/api/v1/merchant/products", Handler: rid(middleware.Chain(catalogHandler.MerchantListProducts, gwShop, merchantRoles))},
-		{Method: http.MethodPost, Path: "/api/v1/merchant/products", Handler: rid(middleware.Chain(catalogHandler.MerchantCreateProduct, gwShop, merchantRoles))},
-		{Method: http.MethodPut, Path: "/api/v1/merchant/products/:id", Handler: rid(middleware.Chain(catalogHandler.MerchantUpdateProduct, gwShop, merchantRoles))},
-		{Method: http.MethodPut, Path: "/api/v1/merchant/products/:id/status", Handler: rid(middleware.Chain(catalogHandler.MerchantSetStatus, gwShop, merchantRoles))},
+		{Method: http.MethodGet, Path: "/api/v1/merchant/products", Handler: rid(middleware.Chain(adminH.List, gwShop, merchantRoles))},
+		{Method: http.MethodPost, Path: "/api/v1/merchant/products", Handler: rid(middleware.Chain(adminH.Create, gwShop, merchantRoles))},
+		{Method: http.MethodPost, Path: "/api/v1/merchant/products/batch", Handler: rid(middleware.Chain(adminH.Batch, gwShop, merchantRoles))},
+		{Method: http.MethodGet, Path: "/api/v1/merchant/products/jobs/:id", Handler: rid(middleware.Chain(adminH.JobStatus, gwShop, merchantRoles))},
+		{Method: http.MethodPost, Path: "/api/v1/merchant/products/recycle/restore", Handler: rid(middleware.Chain(adminH.RecycleRestore, gwShop, merchantRoles))},
+		{Method: http.MethodDelete, Path: "/api/v1/merchant/products/recycle", Handler: rid(middleware.Chain(adminH.RecycleDelete, gwShop, merchantRoles))},
+		{Method: http.MethodGet, Path: "/api/v1/merchant/products/export", Handler: rid(middleware.Chain(adminH.Export, gwShop, merchantRoles))},
+		{Method: http.MethodPost, Path: "/api/v1/merchant/products/import", Handler: rid(middleware.Chain(adminH.Import, gwShop, merchantRoles))},
+		{Method: http.MethodGet, Path: "/api/v1/merchant/products/op-logs", Handler: rid(middleware.Chain(adminH.OpLogs, gwShop, merchantRoles))},
+		{Method: http.MethodGet, Path: "/api/v1/merchant/products/:id", Handler: rid(middleware.Chain(adminH.Detail, gwShop, merchantRoles))},
+		{Method: http.MethodPut, Path: "/api/v1/merchant/products/:id", Handler: rid(middleware.Chain(adminH.Update, gwShop, merchantRoles))},
+		{Method: http.MethodPut, Path: "/api/v1/merchant/products/:id/status", Handler: rid(middleware.Chain(adminH.SetStatus, gwShop, merchantRoles))},
+		{Method: http.MethodPost, Path: "/api/v1/merchant/products/:id/copy", Handler: rid(middleware.Chain(adminH.Copy, gwShop, merchantRoles))},
+		{Method: http.MethodPost, Path: "/api/v1/merchant/products/:id/schedules", Handler: rid(middleware.Chain(adminH.Schedule, gwShop, merchantRoles))},
+
+		{Method: http.MethodPut, Path: "/api/v1/merchant/skus/:id/stock", Handler: rid(middleware.Chain(adminH.AdjustStock, gwShop, merchantRoles))},
+		{Method: http.MethodPost, Path: "/api/v1/merchant/skus/batch-stock", Handler: rid(middleware.Chain(adminH.BatchStock, gwShop, merchantRoles))},
+		{Method: http.MethodGet, Path: "/api/v1/merchant/stocks/warnings", Handler: rid(middleware.Chain(adminH.StockWarnings, gwShop, merchantRoles))},
+
+		{Method: http.MethodPost, Path: "/api/v1/merchant/uploads/images", Handler: rid(middleware.Chain(adminH.Upload, gwShop, merchantRoles))},
+		{Method: http.MethodDelete, Path: "/api/v1/merchant/schedules/:id", Handler: rid(middleware.Chain(adminH.CancelSchedule, gwShop, merchantRoles))},
+
+		{Method: http.MethodGet, Path: "/api/v1/merchant/tags", Handler: rid(middleware.Chain(adminH.ListTags, gwShop, merchantRoles))},
+		{Method: http.MethodPost, Path: "/api/v1/merchant/tags", Handler: rid(middleware.Chain(adminH.SaveTag, gwShop, merchantRoles))},
+		{Method: http.MethodPut, Path: "/api/v1/merchant/tags/:id", Handler: rid(middleware.Chain(adminH.SaveTag, gwShop, merchantRoles))},
+		{Method: http.MethodDelete, Path: "/api/v1/merchant/tags/:id", Handler: rid(middleware.Chain(adminH.DeleteTag, gwShop, merchantRoles))},
+
+		{Method: http.MethodGet, Path: "/api/v1/merchant/attr-templates", Handler: rid(middleware.Chain(adminH.ListAttrTemplates, gwShop, merchantRoles))},
+		{Method: http.MethodPost, Path: "/api/v1/merchant/attr-templates", Handler: rid(middleware.Chain(adminH.SaveAttrTemplate, gwShop, merchantRoles))},
+		{Method: http.MethodPut, Path: "/api/v1/merchant/attr-templates/:id", Handler: rid(middleware.Chain(adminH.SaveAttrTemplate, gwShop, merchantRoles))},
+		{Method: http.MethodDelete, Path: "/api/v1/merchant/attr-templates/:id", Handler: rid(middleware.Chain(adminH.DeleteAttrTemplate, gwShop, merchantRoles))},
+
+		{Method: http.MethodGet, Path: "/api/v1/merchant/auth/me", Handler: rid(middleware.Chain(adminH.AuthMe, gwShop, merchantRoles))},
+		{Method: http.MethodGet, Path: "/api/v1/merchant/shop/roles", Handler: rid(middleware.Chain(adminH.ListRoles, gwShop, merchantRoles))},
+		{Method: http.MethodGet, Path: "/api/v1/merchant/shop/roles/:id/menus", Handler: rid(middleware.Chain(adminH.RoleMenus, gwShop, merchantRoles))},
+		{Method: http.MethodPost, Path: "/api/v1/merchant/shop/roles", Handler: rid(middleware.Chain(adminH.SaveRole, gwShop, merchantRoles))},
+		{Method: http.MethodPut, Path: "/api/v1/merchant/shop/roles/:id", Handler: rid(middleware.Chain(adminH.SaveRole, gwShop, merchantRoles))},
+		{Method: http.MethodGet, Path: "/api/v1/merchant/shop/menus", Handler: rid(middleware.Chain(adminH.ListMenus, gwShop, merchantRoles))},
+		{Method: http.MethodGet, Path: "/api/v1/merchant/shop/staff", Handler: rid(middleware.Chain(adminH.ListStaff, gwShop, merchantRoles))},
+		{Method: http.MethodPost, Path: "/api/v1/merchant/shop/staff", Handler: rid(middleware.Chain(adminH.BindStaff, gwShop, merchantRoles))},
 
 		{Method: http.MethodGet, Path: "/api/v1/admin/products", Handler: rid(middleware.Chain(catalogHandler.AdminListProducts, gwUser, adminRoles))},
 		{Method: http.MethodPut, Path: "/api/v1/admin/products/:id/off_sale", Handler: rid(middleware.Chain(catalogHandler.AdminForceOffSale, gwUser, adminRoles))},
 		{Method: http.MethodPost, Path: "/api/v1/admin/categories", Handler: rid(middleware.Chain(catalogHandler.AdminCreateCategory, gwUser, adminRoles))},
 		{Method: http.MethodPut, Path: "/api/v1/admin/categories/:id", Handler: rid(middleware.Chain(catalogHandler.AdminUpdateCategory, gwUser, adminRoles))},
 		{Method: http.MethodDelete, Path: "/api/v1/admin/categories/:id", Handler: rid(middleware.Chain(catalogHandler.AdminDeleteCategory, gwUser, adminRoles))},
+
+		// 上传文件：/uploads/products/{shop}/{file}
+		{Method: http.MethodGet, Path: "/uploads/products/:shop/:file", Handler: rid(func(w http.ResponseWriter, r *http.Request) {
+			p := filepath.Join("uploads", "products", httpserver.PathParam(r, "shop"), httpserver.PathParam(r, "file"))
+			http.ServeFile(w, r, p)
+		})},
+		{Method: http.MethodGet, Path: "/uploads/exports/:shop/:file", Handler: rid(func(w http.ResponseWriter, r *http.Request) {
+			p := filepath.Join("uploads", "exports", httpserver.PathParam(r, "shop"), httpserver.PathParam(r, "file"))
+			http.ServeFile(w, r, p)
+		})},
 	})
+
+	_ = os.MkdirAll("uploads", 0o755)
 
 	go func() {
 		logger.Info(fmt.Sprintf("catalog-service HTTP(go-zero) 启动 :%d", cfg.Server.HTTPPort))

@@ -32,13 +32,14 @@ func (s *CatalogGRPCServer) BatchGetProducts(ctx context.Context, req *catalogv1
 	resp := &catalogv1.BatchGetProductsResponse{}
 	for _, p := range products {
 		resp.Products = append(resp.Products, &catalogv1.Product{
-			Id:        p.ID,
-			ProductNo: p.ProductNo,
-			Name:      p.Name,
-			SalePrice: p.SalePrice,
-			Stock:     int32(p.Stock),
-			Status:    p.Status,
-			ShopId:    p.ShopID,
+			Id:           p.ID,
+			ProductNo:    p.ProductNo,
+			Name:         p.Name,
+			SalePrice:    p.SalePrice,
+			Stock:        int32(p.Stock),
+			Status:       p.Status,
+			ShopId:       p.ShopID,
+			DefaultSkuId: s.logic.DefaultSkuID(p.ID),
 		})
 	}
 	return resp, nil
@@ -47,7 +48,7 @@ func (s *CatalogGRPCServer) BatchGetProducts(ctx context.Context, req *catalogv1
 func (s *CatalogGRPCServer) ReserveStock(ctx context.Context, req *catalogv1.ReserveStockRequest) (*catalogv1.ReserveStockResponse, error) {
 	items := make([]repository.StockItem, 0, len(req.GetItems()))
 	for _, it := range req.GetItems() {
-		items = append(items, repository.StockItem{ProductID: it.GetProductId(), Quantity: int(it.GetQuantity())})
+		items = append(items, repository.StockItem{ProductID: it.GetProductId(), SkuID: it.GetSkuId(), Quantity: int(it.GetQuantity())})
 	}
 	if err := s.logic.ReserveStock(items); err != nil {
 		return &catalogv1.ReserveStockResponse{Success: false, Message: err.Error()}, nil
@@ -58,7 +59,7 @@ func (s *CatalogGRPCServer) ReserveStock(ctx context.Context, req *catalogv1.Res
 func (s *CatalogGRPCServer) ReleaseStock(ctx context.Context, req *catalogv1.ReleaseStockRequest) (*catalogv1.ReleaseStockResponse, error) {
 	items := make([]repository.StockItem, 0, len(req.GetItems()))
 	for _, it := range req.GetItems() {
-		items = append(items, repository.StockItem{ProductID: it.GetProductId(), Quantity: int(it.GetQuantity())})
+		items = append(items, repository.StockItem{ProductID: it.GetProductId(), SkuID: it.GetSkuId(), Quantity: int(it.GetQuantity())})
 	}
 	if err := s.logic.ReleaseStock(items); err != nil {
 		return &catalogv1.ReleaseStockResponse{Success: false, Message: err.Error()}, nil

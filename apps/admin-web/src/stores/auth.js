@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import http from '../api/http'
 import { fetchAuthMe } from '../api/system'
+import { fetchMerchantMe } from '../api/merchant-product'
 
 function parseJwt(token) {
   try {
@@ -24,6 +25,7 @@ export const useAuthStore = defineStore('auth', {
     roles: JSON.parse(localStorage.getItem('mymall_roles') || '[]'),
     perms: JSON.parse(localStorage.getItem('mymall_perms') || '[]'),
     menuTree: JSON.parse(localStorage.getItem('mymall_menus') || '[]'),
+    isShopOwner: localStorage.getItem('mymall_shop_owner') === '1',
   }),
   getters: {
     isAdmin: (s) => s.role === 'platform_admin' || s.role === 'admin',
@@ -34,6 +36,9 @@ export const useAuthStore = defineStore('auth', {
     hasPerm(code) {
       if (!code) return true
       if (this.isSuperAdmin) return true
+      if (this.isMerchant && this.isShopOwner) return true
+      // 商家权限未加载时放行，避免首屏误拦；加载后按 perms 校验
+      if (this.isMerchant && (!this.perms || !this.perms.length)) return true
       return this.perms.includes(code)
     },
     async loadAuthMe() {
@@ -45,6 +50,16 @@ export const useAuthStore = defineStore('auth', {
       localStorage.setItem('mymall_roles', JSON.stringify(this.roles))
       localStorage.setItem('mymall_perms', JSON.stringify(this.perms))
       localStorage.setItem('mymall_menus', JSON.stringify(this.menuTree))
+    },
+    async loadMerchantMe() {
+      if (!this.isMerchant) return
+      const body = await fetchMerchantMe()
+      this.perms = body.data?.perms || []
+      this.menuTree = body.data?.menu_tree || body.data?.menus || []
+      this.isShopOwner = !!body.data?.is_owner
+      localStorage.setItem('mymall_perms', JSON.stringify(this.perms))
+      localStorage.setItem('mymall_menus', JSON.stringify(this.menuTree))
+      localStorage.setItem('mymall_shop_owner', this.isShopOwner ? '1' : '0')
     },
     async login(mobile, password, shopId = 0) {
       const body = await http.post('/api/v1/user/login', {
@@ -72,6 +87,13 @@ export const useAuthStore = defineStore('auth', {
           console.warn('loadAuthMe failed', e)
         }
       }
+      if (this.isMerchant) {
+        try {
+          await this.loadMerchantMe()
+        } catch (e) {
+          console.warn('loadMerchantMe failed', e)
+        }
+      }
       return this.role
     },
     logout() {
@@ -83,6 +105,7 @@ export const useAuthStore = defineStore('auth', {
       this.roles = []
       this.perms = []
       this.menuTree = []
+      this.isShopOwner = false
       localStorage.clear()
     },
   },

@@ -162,6 +162,22 @@ spec:
         paths:
           - /api/v1/merchant/products
           - /api/v1/merchant/products/*
+          - /api/v1/merchant/skus
+          - /api/v1/merchant/skus/*
+          - /api/v1/merchant/stocks
+          - /api/v1/merchant/stocks/*
+          - /api/v1/merchant/uploads
+          - /api/v1/merchant/uploads/*
+          - /api/v1/merchant/tags
+          - /api/v1/merchant/tags/*
+          - /api/v1/merchant/attr-templates
+          - /api/v1/merchant/attr-templates/*
+          - /api/v1/merchant/schedules
+          - /api/v1/merchant/schedules/*
+          - /api/v1/merchant/auth
+          - /api/v1/merchant/auth/*
+          - /api/v1/merchant/shop
+          - /api/v1/merchant/shop/*
           - /api/v1/admin/products
           - /api/v1/admin/products/*
           - /api/v1/admin/categories

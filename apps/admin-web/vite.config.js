@@ -1,57 +1,48 @@
-import { defineConfig, loadEnv } from 'vite'
+import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '')
-  const proxyTarget = env.VITE_API_PROXY || 'http://localhost:8881'
+// 本地微服务端口（VITE_API_BASE 为空时生效；更具体的前缀写在前面）
+const svc = {
+  user: 'http://127.0.0.1:8881',
+  catalog: 'http://127.0.0.1:8882',
+  order: 'http://127.0.0.1:8883',
+  merchant: 'http://127.0.0.1:8884',
+}
 
-  return {
-    plugins: [vue()],
-    server: {
-      port: 5174,
-      proxy: {
-        '/api': {
-          target: proxyTarget,
-          changeOrigin: true,
-          configure: (proxy) => {
-            // 开发时按路径分流到不同微服务（无需 APISIX）
-            proxy.on('proxyReq', (proxyReq, req) => {
-              const url = req.url || ''
-              let target = 'http://localhost:8881'
-              if (url.includes('/merchant/products') || url.includes('/admin/products') || url.includes('/admin/categories')) {
-                target = 'http://localhost:8882'
-              } else if (url.includes('/merchant/orders') || url.includes('/admin/orders') || url.match(/\/api\/v1\/orders/)) {
-                target = 'http://localhost:8883'
-              } else if (
-                url.includes('/merchant/') ||
-                url.includes('/admin/applications') ||
-                (url.includes('/admin/shops') && !url.includes('/admin/system'))
-              ) {
-                target = 'http://localhost:8884'
-              }
-              // /admin/auth|/menus|/roles|/users|/admins|/configs → user-service :8881
-              proxyReq.setHeader('host', new URL(target).host)
-            })
-          },
-          router: (req) => {
-            const url = req.url || ''
-            if (url.includes('/merchant/products') || url.includes('/admin/products') || url.includes('/admin/categories')) {
-              return 'http://localhost:8882'
-            }
-            if (url.includes('/merchant/orders') || url.includes('/admin/orders') || /^\/api\/v1\/orders/.test(url)) {
-              return 'http://localhost:8883'
-            }
-            if (
-              url.includes('/merchant/') ||
-              url.includes('/admin/applications') ||
-              (url.includes('/admin/shops') && !url.includes('/admin/system'))
-            ) {
-              return 'http://localhost:8884'
-            }
-            return 'http://localhost:8881'
-          },
-        },
-      },
+function to(target) {
+  return { target, changeOrigin: true }
+}
+
+export default defineConfig({
+  plugins: [vue()],
+  server: {
+    port: 5174,
+    proxy: {
+      // catalog 商家商品中台（需在通用 /api/v1/merchant 之前）
+      '/api/v1/merchant/products': to(svc.catalog),
+      '/api/v1/merchant/skus': to(svc.catalog),
+      '/api/v1/merchant/stocks': to(svc.catalog),
+      '/api/v1/merchant/uploads': to(svc.catalog),
+      '/api/v1/merchant/tags': to(svc.catalog),
+      '/api/v1/merchant/attr-templates': to(svc.catalog),
+      '/api/v1/merchant/schedules': to(svc.catalog),
+      '/api/v1/merchant/auth': to(svc.catalog),
+      '/api/v1/merchant/shop': to(svc.catalog),
+      '/uploads': to(svc.catalog),
+      '/api/v1/admin/products': to(svc.catalog),
+      '/api/v1/admin/categories': to(svc.catalog),
+      '/api/v1/products': to(svc.catalog),
+      '/api/v1/product_category': to(svc.catalog),
+      // order
+      '/api/v1/merchant/orders': to(svc.order),
+      '/api/v1/admin/orders': to(svc.order),
+      '/api/v1/orders': to(svc.order),
+      // merchant（店铺 / 入驻；勿盖住上面的 catalog merchant 路径）
+      '/api/v1/admin/shops': to(svc.merchant),
+      '/api/v1/admin/applications': to(svc.merchant),
+      '/api/v1/merchant': to(svc.merchant),
+      // user + 其余 /api
+      '/api': to(svc.user),
     },
-  }
+  },
 })

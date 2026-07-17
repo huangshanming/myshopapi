@@ -21,6 +21,7 @@
 import { onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import http from '../../api/http'
+import { pickList } from '../../utils/list'
 
 const list = ref([])
 const loading = ref(false)
@@ -29,9 +30,10 @@ async function load() {
   loading.value = true
   try {
     const res = await http.get('/api/v1/admin/applications', { params: { page: 1, page_size: 50 } })
-    list.value = res.data?.list || res.data || []
+    list.value = pickList(res.data)
   } catch (e) {
     ElMessage.error(e.message)
+    list.value = []
   } finally {
     loading.value = false
   }

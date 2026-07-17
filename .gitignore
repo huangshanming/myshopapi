@@ -1,3 +1,4 @@
 docs/.tmp-swag/
 .dev-logs/
 .dev-services.pid
+services/*/tmp/

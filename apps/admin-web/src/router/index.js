@@ -13,6 +13,11 @@ import SystemUsers from '../views/admin/system/Users.vue'
 import SystemAdmins from '../views/admin/system/Admins.vue'
 import SystemConfigs from '../views/admin/system/Configs.vue'
 import MerchantProducts from '../views/merchant/Products.vue'
+import MerchantProductEdit from '../views/merchant/ProductEdit.vue'
+import MerchantProductRecycle from '../views/merchant/ProductRecycle.vue'
+import MerchantStockWarnings from '../views/merchant/StockWarnings.vue'
+import MerchantOpLogs from '../views/merchant/OpLogs.vue'
+import MerchantStaff from '../views/merchant/Staff.vue'
 import MerchantOrders from '../views/merchant/Orders.vue'
 
 const router = createRouter({
@@ -42,8 +47,13 @@ const router = createRouter({
       meta: { role: 'merchant' },
       children: [
         { path: '', redirect: '/merchant/products' },
-        { path: 'products', component: MerchantProducts },
-        { path: 'orders', component: MerchantOrders },
+        { path: 'products', component: MerchantProducts, meta: { shopPerm: 'product:list' } },
+        { path: 'products/edit/:id?', component: MerchantProductEdit, meta: { shopPerm: 'product:edit' } },
+        { path: 'products/recycle', component: MerchantProductRecycle, meta: { shopPerm: 'product:recycle' } },
+        { path: 'stocks/warnings', component: MerchantStockWarnings, meta: { shopPerm: 'stock:warn' } },
+        { path: 'products/op-logs', component: MerchantOpLogs, meta: { shopPerm: 'product:list' } },
+        { path: 'staff', component: MerchantStaff, meta: { shopPerm: 'shop:staff' } },
+        { path: 'orders', component: MerchantOrders, meta: { shopPerm: 'order:list' } },
       ],
     },
     { path: '/', redirect: '/login' },
@@ -63,7 +73,17 @@ router.beforeEach(async (to) => {
       /* ignore */
     }
   }
+  if (to.meta.role === 'merchant' && auth.isMerchant && !auth.menuTree?.length) {
+    try {
+      await auth.loadMerchantMe()
+    } catch (_) {
+      /* ignore */
+    }
+  }
   if (to.meta.perms && !auth.hasPerm(to.meta.perms)) {
+    return '/403'
+  }
+  if (to.meta.shopPerm && !auth.hasPerm(to.meta.shopPerm)) {
     return '/403'
   }
   return true

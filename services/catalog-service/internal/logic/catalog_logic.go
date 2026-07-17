@@ -174,6 +174,27 @@ func (l *CatalogLogic) BatchGetProducts(ids []uint64) ([]model.Product, error) {
 	return l.svcCtx.Products.BatchGetByIDs(ids)
 }
 
+func (l *CatalogLogic) DefaultSkuID(productID uint64) uint64 {
+	if l.svcCtx.ProductAdmin == nil {
+		return 0
+	}
+	return l.svcCtx.ProductAdmin.FirstSkuID(productID)
+}
+
+func (l *CatalogLogic) GetSkuSpecSnapshot(skuID uint64) string {
+	if skuID == 0 || l.svcCtx.ProductAdmin == nil {
+		return "{}"
+	}
+	sku, err := l.svcCtx.ProductAdmin.GetSku(skuID)
+	if err != nil || sku == nil {
+		return "{}"
+	}
+	if sku.SpecValues == "" {
+		return "{}"
+	}
+	return sku.SpecValues
+}
+
 func (l *CatalogLogic) ReserveStock(items []repository.StockItem) error {
 	return l.svcCtx.Products.ReserveStock(items)
 }

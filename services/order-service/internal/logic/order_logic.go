@@ -34,50 +34,68 @@ func (l *OrderLogic) CreateOrder(ctx context.Context, userID uint64, items []typ
 	}
 
 	ids := make([]uint64, 0, len(items))
-	qtyMap := make(map[uint64]int, len(items))
 	for _, it := range items {
 		ids = append(ids, it.ProductID)
-		qtyMap[it.ProductID] = it.Quantity
 	}
 
 	resp, err := l.svcCtx.CatalogRPC.BatchGetProducts(ctx, ids)
 	if err != nil {
 		return nil, fmt.Errorf("查询商品失败: %w", err)
 	}
-	if len(resp.GetProducts()) != len(ids) {
-		return nil, errors.New("部分商品不存在或已下架")
+	productByID := make(map[uint64]*struct {
+		id, shopID uint64
+		name       string
+		price      float64
+		stock      int32
+		defSku     uint64
+	}, len(resp.GetProducts()))
+	for _, p := range resp.GetProducts() {
+		productByID[p.GetId()] = &struct {
+			id, shopID uint64
+			name       string
+			price      float64
+			stock      int32
+			defSku     uint64
+		}{p.GetId(), p.GetShopId(), p.GetName(), p.GetSalePrice(), p.GetStock(), p.GetDefaultSkuId()}
 	}
 
 	var total float64
 	var shopID uint64
 	orderItems := make([]model.OrderItem, 0, len(items))
 	stockItems := make([]model.StockItem, 0, len(items))
-	productMap := make(map[uint64]struct{}, len(resp.GetProducts()))
-	for _, p := range resp.GetProducts() {
-		productMap[p.GetId()] = struct{}{}
-		if shopID == 0 {
-			shopID = p.GetShopId()
-		} else if p.GetShopId() != shopID {
-			return nil, errors.New("一期不支持跨店下单，请分开结算")
-		}
-		qty := qtyMap[p.GetId()]
-		if p.GetStock() < int32(qty) {
-			return nil, fmt.Errorf("商品 %s 库存不足", p.GetName())
-		}
-		lineAmount := p.GetSalePrice() * float64(qty)
-		total += lineAmount
-		orderItems = append(orderItems, model.OrderItem{
-			ProductID:   p.GetId(),
-			ProductName: p.GetName(),
-			Price:       p.GetSalePrice(),
-			Quantity:    qty,
-		})
-		stockItems = append(stockItems, model.StockItem{ProductID: p.GetId(), Quantity: qty})
-	}
-	for _, id := range ids {
-		if _, ok := productMap[id]; !ok {
+	for _, it := range items {
+		p, ok := productByID[it.ProductID]
+		if !ok {
 			return nil, errors.New("部分商品不存在或已下架")
 		}
+		if shopID == 0 {
+			shopID = p.shopID
+		} else if p.shopID != shopID {
+			return nil, errors.New("一期不支持跨店下单，请分开结算")
+		}
+		skuID := it.SkuID
+		if skuID == 0 {
+			skuID = p.defSku
+		}
+		qty := it.Quantity
+		if p.stock < int32(qty) {
+			return nil, fmt.Errorf("商品 %s 库存不足", p.name)
+		}
+		snap := it.SkuSnapshot
+		if snap == "" && skuID > 0 {
+			snap = fmt.Sprintf(`{"sku_id":%d}`, skuID)
+		}
+		lineAmount := p.price * float64(qty)
+		total += lineAmount
+		orderItems = append(orderItems, model.OrderItem{
+			ProductID:   p.id,
+			SkuID:       skuID,
+			ProductName: p.name,
+			SkuSnapshot: snap,
+			Price:       p.price,
+			Quantity:    qty,
+		})
+		stockItems = append(stockItems, model.StockItem{ProductID: p.id, SkuID: skuID, Quantity: qty})
 	}
 
 	orderNo := fmt.Sprintf("ORD%s", uuid.NewString()[:8]+time.Now().Format("150405"))
@@ -131,7 +149,7 @@ func (l *OrderLogic) CancelOrder(ctx context.Context, userID, orderID uint64) er
 	if l.svcCtx.MQ != nil {
 		items := make([]model.StockItem, 0, len(order.Items))
 		for _, it := range order.Items {
-			items = append(items, model.StockItem{ProductID: it.ProductID, Quantity: it.Quantity})
+			items = append(items, model.StockItem{ProductID: it.ProductID, SkuID: it.SkuID, Quantity: it.Quantity})
 		}
 		_ = l.svcCtx.MQ.PublishOrderCancelled(ctx, order.OrderNo, items)
 	}

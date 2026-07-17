@@ -11,21 +11,25 @@ import (
 
 // ServiceContext 全局依赖（go-zero 惯例）
 type ServiceContext struct {
-	Config     *config.Config
-	DB         *gorm.DB
-	Redis      *redis.Client
-	MQ         *mq.Client
-	Products   *repository.ProductRepository
-	Categories *repository.CategoryRepository
+	Config       *config.Config
+	DB           *gorm.DB
+	Redis        *redis.Client
+	MQ           *mq.Client
+	Products     *repository.ProductRepository
+	Categories   *repository.CategoryRepository
+	ProductAdmin *repository.ProductAdminRepository
+	ShopRBAC     *repository.ShopRBACRepository
 }
 
 func NewServiceContext(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, mqClient *mq.Client) *ServiceContext {
 	return &ServiceContext{
-		Config:     cfg,
-		DB:         db,
-		Redis:      redisClient,
-		MQ:         mqClient,
-		Products:   repository.NewProductRepository(db),
-		Categories: repository.NewCategoryRepository(db),
+		Config:       cfg,
+		DB:           db,
+		Redis:        redisClient,
+		MQ:           mqClient,
+		Products:     repository.NewProductRepository(db),
+		Categories:   repository.NewCategoryRepository(db),
+		ProductAdmin: repository.NewProductAdminRepository(db),
+		ShopRBAC:     repository.NewShopRBACRepository(db),
 	}
 }

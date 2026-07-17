@@ -74,6 +74,7 @@ type Product struct {
 	Stock         int32                  `protobuf:"varint,5,opt,name=stock,proto3" json:"stock,omitempty"`
 	Status        string                 `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
 	ShopId        uint64                 `protobuf:"varint,7,opt,name=shop_id,json=shopId,proto3" json:"shop_id,omitempty"`
+	DefaultSkuId  uint64                 `protobuf:"varint,8,opt,name=default_sku_id,json=defaultSkuId,proto3" json:"default_sku_id,omitempty"` // 无规格或下单未传 sku 时的默认 SKU
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -157,6 +158,13 @@ func (x *Product) GetShopId() uint64 {
 	return 0
 }
 
+func (x *Product) GetDefaultSkuId() uint64 {
+	if x != nil {
+		return x.DefaultSkuId
+	}
+	return 0
+}
+
 type BatchGetProductsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Products      []*Product             `protobuf:"bytes,1,rep,name=products,proto3" json:"products,omitempty"`
@@ -205,6 +213,7 @@ type StockItem struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ProductId     uint64                 `protobuf:"varint,1,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
 	Quantity      int32                  `protobuf:"varint,2,opt,name=quantity,proto3" json:"quantity,omitempty"`
+	SkuId         uint64                 `protobuf:"varint,3,opt,name=sku_id,json=skuId,proto3" json:"sku_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -249,6 +258,13 @@ func (x *StockItem) GetProductId() uint64 {
 func (x *StockItem) GetQuantity() int32 {
 	if x != nil {
 		return x.Quantity
+	}
+	return 0
+}
+
+func (x *StockItem) GetSkuId() uint64 {
+	if x != nil {
+		return x.SkuId
 	}
 	return 0
 }
@@ -469,7 +485,7 @@ const file_catalog_v1_catalog_proto_rawDesc = "" +
 	"catalog.v1\":\n" +
 	"\x17BatchGetProductsRequest\x12\x1f\n" +
 	"\vproduct_ids\x18\x01 \x03(\x04R\n" +
-	"productIds\"\xb2\x01\n" +
+	"productIds\"\xd8\x01\n" +
 	"\aProduct\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x04R\x02id\x12\x1d\n" +
 	"\n" +
@@ -479,13 +495,15 @@ const file_catalog_v1_catalog_proto_rawDesc = "" +
 	"sale_price\x18\x04 \x01(\x01R\tsalePrice\x12\x14\n" +
 	"\x05stock\x18\x05 \x01(\x05R\x05stock\x12\x16\n" +
 	"\x06status\x18\x06 \x01(\tR\x06status\x12\x17\n" +
-	"\ashop_id\x18\a \x01(\x04R\x06shopId\"K\n" +
+	"\ashop_id\x18\a \x01(\x04R\x06shopId\x12$\n" +
+	"\x0edefault_sku_id\x18\b \x01(\x04R\fdefaultSkuId\"K\n" +
 	"\x18BatchGetProductsResponse\x12/\n" +
-	"\bproducts\x18\x01 \x03(\v2\x13.catalog.v1.ProductR\bproducts\"F\n" +
+	"\bproducts\x18\x01 \x03(\v2\x13.catalog.v1.ProductR\bproducts\"]\n" +
 	"\tStockItem\x12\x1d\n" +
 	"\n" +
 	"product_id\x18\x01 \x01(\x04R\tproductId\x12\x1a\n" +
-	"\bquantity\x18\x02 \x01(\x05R\bquantity\"]\n" +
+	"\bquantity\x18\x02 \x01(\x05R\bquantity\x12\x15\n" +
+	"\x06sku_id\x18\x03 \x01(\x04R\x05skuId\"]\n" +
 	"\x13ReserveStockRequest\x12\x19\n" +
 	"\border_no\x18\x01 \x01(\tR\aorderNo\x12+\n" +
 	"\x05items\x18\x02 \x03(\v2\x15.catalog.v1.StockItemR\x05items\"J\n" +

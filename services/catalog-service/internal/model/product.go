@@ -39,6 +39,8 @@ type Product struct {
 	Unit       string  `gorm:"column:unit;type:varchar(20);default:null" json:"unit,omitempty"`
 	BrandID    uint64  `gorm:"column:brand_id;type:int;default:null;index" json:"brand_id,omitempty"`
 	CategoryID uint64  `gorm:"column:category_id;type:int;not null;index" json:"category_id"`
+	ProductType string `gorm:"column:product_type;type:enum('physical','fresh','virtual');default:physical" json:"product_type"`
+	SpecJSON   string  `gorm:"column:spec_json;type:json" json:"spec_json,omitempty"`
 	Tags       []uint8 `gorm:"column:tags;type:json;default:null" json:"tags,omitempty"`
 
 	NutritionInfo    []uint8 `gorm:"column:nutrition_info;type:json;default:null" json:"nutrition_info,omitempty"`
@@ -47,7 +49,7 @@ type Product struct {
 	ShelfLife        int64   `gorm:"column:shelf_life;type:int;default:null" json:"shelf_life,omitempty"`
 	StorageCondition string  `gorm:"column:storage_condition;type:varchar(200);default:null" json:"storage_condition,omitempty"`
 
-	Status         string           `gorm:"column:status;type:enum('draft','pending','approved','rejected','on_sale','off_sale','deleted');default:draft;index" json:"status"`
+	Status         string           `gorm:"column:status;type:enum('draft','on_sale','off_sale','deleted','pending','approved','rejected');default:draft;index" json:"status"`
 	IsHot          bool             `gorm:"column:is_hot;type:tinyint(1);default:0;index" json:"is_hot"`
 	IsNew          bool             `gorm:"column:is_new;type:tinyint(1);default:0;index" json:"is_new"`
 	IsRecommend    bool             `gorm:"column:is_recommend;type:tinyint(1);default:0;index" json:"is_recommend"`
@@ -56,6 +58,9 @@ type Product struct {
 	IsOrganic      bool             `gorm:"column:is_organic;type:tinyint(1);default:0" json:"is_organic"`
 	IsGrainFree    bool             `gorm:"column:is_grain_free;type:tinyint(1);default:0" json:"is_grain_free"`
 	PublishTime    common.LocalTime `gorm:"column:publish_time;type:datetime;default:null" json:"publish_time,omitempty"`
+	ScheduleOnAt   *common.LocalTime `gorm:"column:schedule_on_at" json:"schedule_on_at,omitempty"`
+	ScheduleOffAt  *common.LocalTime `gorm:"column:schedule_off_at" json:"schedule_off_at,omitempty"`
+	CopyFromID     *uint64          `gorm:"column:copy_from_id" json:"copy_from_id,omitempty"`
 	DeletedAt      common.LocalTime `gorm:"column:deleted_at;type:timestamp;default:null;index" json:"deleted_at"`
 }
 

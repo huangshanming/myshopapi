@@ -6,6 +6,16 @@ const http = axios.create({
   timeout: 15000,
 })
 
+function pickErrMsg(err) {
+  const data = err?.response?.data
+  if (data && typeof data === 'object') {
+    if (data.msg) return data.msg
+    if (data.message) return data.message
+  }
+  if (err?.message) return err.message
+  return '请求失败'
+}
+
 http.interceptors.request.use((config) => {
   const auth = useAuthStore()
   if (auth.token) {
@@ -32,7 +42,7 @@ http.interceptors.response.use(
     }
     return body
   },
-  (err) => Promise.reject(err)
+  (err) => Promise.reject(new Error(pickErrMsg(err)))
 )
 
 export default http
