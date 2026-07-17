@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 	"time"
 
@@ -34,6 +33,7 @@ import (
 	catalogmq "mymall/services/catalog-service/internal/mq"
 	"mymall/services/catalog-service/internal/server"
 	"mymall/services/catalog-service/internal/svc"
+	"mymall/services/catalog-service/internal/uploadpath"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/zeromicro/go-zero/rest"
@@ -223,16 +223,16 @@ func main() {
 
 		// 上传文件：/uploads/products/{shop}/{file}
 		{Method: http.MethodGet, Path: "/uploads/products/:shop/:file", Handler: rid(func(w http.ResponseWriter, r *http.Request) {
-			p := filepath.Join("uploads", "products", httpserver.PathParam(r, "shop"), httpserver.PathParam(r, "file"))
+			p := uploadpath.Abs("products", httpserver.PathParam(r, "shop"), httpserver.PathParam(r, "file"))
 			http.ServeFile(w, r, p)
 		})},
 		{Method: http.MethodGet, Path: "/uploads/exports/:shop/:file", Handler: rid(func(w http.ResponseWriter, r *http.Request) {
-			p := filepath.Join("uploads", "exports", httpserver.PathParam(r, "shop"), httpserver.PathParam(r, "file"))
+			p := uploadpath.Abs("exports", httpserver.PathParam(r, "shop"), httpserver.PathParam(r, "file"))
 			http.ServeFile(w, r, p)
 		})},
 	})
 
-	_ = os.MkdirAll("uploads", 0o755)
+	_ = os.MkdirAll(uploadpath.Root(), 0o755)
 
 	go func() {
 		logger.Info(fmt.Sprintf("catalog-service HTTP(go-zero) 启动 :%d", cfg.Server.HTTPPort))

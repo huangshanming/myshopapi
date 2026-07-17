@@ -9,6 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@wangeditor/editor": "^5.1.23",
+    "@wangeditor/editor-for-vue": "5.1.12",
     "axios": "^1.7.9",
     "element-plus": "^2.9.1",
     "pinia": "^2.3.0",

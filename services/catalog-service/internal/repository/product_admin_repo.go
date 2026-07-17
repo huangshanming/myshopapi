@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"mymall/common"
@@ -201,7 +202,15 @@ func (r *ProductAdminRepository) SaveProduct(shopID, operatorID uint64, id uint6
 	if err != nil {
 		return nil, err
 	}
-	_ = r.AddOpLog(shopID, &product.ID, operatorID, "save", "", "")
+	action := "create"
+	if id > 0 {
+		action = "update"
+	}
+	after, _ := json.Marshal(map[string]interface{}{
+		"name": product.Name, "status": product.Status, "sale_price": product.SalePrice,
+		"stock": product.Stock, "category_id": product.CategoryID, "product_type": product.ProductType,
+	})
+	_ = r.AddOpLog(shopID, &product.ID, operatorID, action, "", string(after))
 	return product, nil
 }
 
@@ -499,22 +508,230 @@ func (r *ProductAdminRepository) GetBatchJob(id, shopID uint64) (*model.ProductB
 }
 
 func (r *ProductAdminRepository) AddOpLog(shopID uint64, productID *uint64, operatorID uint64, action, before, after string) error {
+	// MySQL JSON 列不能写空字符串，空值必须用 null
+	before = jsonOrNull(before)
+	after = jsonOrNull(after)
 	return r.db.Create(&model.ProductOpLog{
 		ShopID: shopID, ProductID: productID, OperatorID: operatorID,
 		Action: action, BeforeJSON: before, AfterJSON: after,
 	}).Error
 }
 
-func (r *ProductAdminRepository) ListOpLogs(shopID uint64, productID uint64, page, pageSize int) ([]model.ProductOpLog, int64, error) {
+func jsonOrNull(s string) string {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return "null"
+	}
+	if json.Valid([]byte(s)) {
+		return s
+	}
+	b, _ := json.Marshal(s)
+	return string(b)
+}
+
+type OpLogItem struct {
+	ID           uint64           `json:"id"`
+	ShopID       uint64           `json:"shop_id"`
+	ProductID    *uint64          `json:"product_id,omitempty"`
+	ProductName  string           `json:"product_name"`
+	OperatorID   uint64           `json:"operator_id"`
+	OperatorName string           `json:"operator_name"`
+	Action       string           `json:"action"`
+	ActionLabel  string           `json:"action_label"`
+	TargetType   string           `json:"target_type"`
+	TargetName   string           `json:"target_name"`
+	Summary      string           `json:"summary"`
+	BeforeJSON   string           `json:"before_json,omitempty"`
+	AfterJSON    string           `json:"after_json,omitempty"`
+	CreatedAt    common.LocalTime `json:"created_at"`
+}
+
+func (r *ProductAdminRepository) ListOpLogs(shopID uint64, productID uint64, page, pageSize int) ([]OpLogItem, int64, error) {
 	q := r.db.Model(&model.ProductOpLog{}).Where("shop_id = ?", shopID)
 	if productID > 0 {
 		q = q.Where("product_id = ?", productID)
 	}
 	var total int64
 	_ = q.Count(&total)
-	var list []model.ProductOpLog
-	err := q.Order("id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
-	return list, total, err
+	var logs []model.ProductOpLog
+	err := q.Order("id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&logs).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	productIDs := make([]uint64, 0)
+	operatorIDs := make([]uint64, 0)
+	seenP, seenO := map[uint64]struct{}{}, map[uint64]struct{}{}
+	for _, lg := range logs {
+		if lg.ProductID != nil && *lg.ProductID > 0 {
+			if _, ok := seenP[*lg.ProductID]; !ok {
+				seenP[*lg.ProductID] = struct{}{}
+				productIDs = append(productIDs, *lg.ProductID)
+			}
+		}
+		if lg.OperatorID > 0 {
+			if _, ok := seenO[lg.OperatorID]; !ok {
+				seenO[lg.OperatorID] = struct{}{}
+				operatorIDs = append(operatorIDs, lg.OperatorID)
+			}
+		}
+	}
+
+	nameByProduct := map[uint64]string{}
+	if len(productIDs) > 0 {
+		type row struct {
+			ID   uint64
+			Name string
+		}
+		var rows []row
+		_ = r.db.Table("products").Select("id, name").Where("id IN ?", productIDs).Find(&rows).Error
+		for _, x := range rows {
+			nameByProduct[x.ID] = x.Name
+		}
+	}
+	nameByUser := map[uint64]string{}
+	if len(operatorIDs) > 0 {
+		type row struct {
+			ID       uint64
+			Nickname string
+			Mobile   string
+		}
+		var rows []row
+		_ = r.db.Table("users").Select("id, nickname, mobile").Where("id IN ?", operatorIDs).Find(&rows).Error
+		for _, x := range rows {
+			n := strings.TrimSpace(x.Nickname)
+			if n == "" {
+				n = x.Mobile
+			}
+			nameByUser[x.ID] = n
+		}
+	}
+
+	out := make([]OpLogItem, 0, len(logs))
+	for _, lg := range logs {
+		item := OpLogItem{
+			ID: lg.ID, ShopID: lg.ShopID, ProductID: lg.ProductID,
+			OperatorID: lg.OperatorID, Action: lg.Action,
+			BeforeJSON: lg.BeforeJSON, AfterJSON: lg.AfterJSON, CreatedAt: lg.CreatedAt,
+			TargetType: "商品", ActionLabel: opActionLabel(lg.Action),
+		}
+		if lg.OperatorID > 0 {
+			item.OperatorName = nameByUser[lg.OperatorID]
+		}
+		if item.OperatorName == "" && lg.OperatorID > 0 {
+			item.OperatorName = fmt.Sprintf("用户#%d", lg.OperatorID)
+		}
+		if lg.ProductID != nil && *lg.ProductID > 0 {
+			item.ProductName = nameByProduct[*lg.ProductID]
+			if item.ProductName == "" {
+				// 尝试从 after_json 取 name（永久删除后商品可能已不在）
+				item.ProductName = pickJSONString(lg.AfterJSON, "name")
+			}
+			if item.ProductName == "" {
+				item.ProductName = fmt.Sprintf("商品#%d", *lg.ProductID)
+			}
+			item.TargetName = item.ProductName
+		} else if lg.Action == "permanent_delete" {
+			item.TargetName = "批量商品"
+			item.ProductName = summarizeDeletedIDs(lg.AfterJSON)
+		} else {
+			item.TargetName = "-"
+		}
+		item.Summary = buildOpSummary(item)
+		out = append(out, item)
+	}
+	return out, total, nil
+}
+
+func opActionLabel(action string) string {
+	m := map[string]string{
+		"create": "创建商品", "update": "更新商品", "copy": "复制商品",
+		"schedule": "设置定时", "permanent_delete": "永久删除",
+		"status:on_sale": "上架", "status:off_sale": "下架",
+		"status:deleted": "移入回收站", "status:draft": "设为草稿",
+		"save": "保存商品",
+	}
+	if v, ok := m[action]; ok {
+		return v
+	}
+	if strings.HasPrefix(action, "status:") {
+		return "变更状态"
+	}
+	return action
+}
+
+func pickJSONString(raw, key string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" || raw == "null" {
+		return ""
+	}
+	var m map[string]interface{}
+	if err := json.Unmarshal([]byte(raw), &m); err != nil {
+		return ""
+	}
+	if v, ok := m[key]; ok {
+		switch t := v.(type) {
+		case string:
+			return t
+		default:
+			return fmt.Sprint(t)
+		}
+	}
+	return ""
+}
+
+func summarizeDeletedIDs(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" || raw == "null" {
+		return "已删除商品"
+	}
+	var m map[string]interface{}
+	if err := json.Unmarshal([]byte(raw), &m); err != nil {
+		return "已删除商品"
+	}
+	ids, _ := m["deleted_ids"].([]interface{})
+	if len(ids) == 0 {
+		return "已删除商品"
+	}
+	return fmt.Sprintf("共 %d 件商品", len(ids))
+}
+
+func buildOpSummary(item OpLogItem) string {
+	name := item.TargetName
+	if name == "" || name == "-" {
+		name = "商品"
+	}
+	switch {
+	case item.Action == "create":
+		return fmt.Sprintf("创建了「%s」", name)
+	case item.Action == "update":
+		return fmt.Sprintf("更新了「%s」", name)
+	case item.Action == "copy":
+		return fmt.Sprintf("复制生成了「%s」", name)
+	case item.Action == "status:on_sale":
+		return fmt.Sprintf("将「%s」上架", name)
+	case item.Action == "status:off_sale":
+		return fmt.Sprintf("将「%s」下架", name)
+	case item.Action == "status:deleted":
+		return fmt.Sprintf("将「%s」移入回收站", name)
+	case item.Action == "status:draft":
+		return fmt.Sprintf("将「%s」设为草稿", name)
+	case item.Action == "schedule":
+		act := pickJSONString(item.AfterJSON, "action")
+		runAt := pickJSONString(item.AfterJSON, "run_at")
+		actCN := map[string]string{"on_sale": "上架", "off_sale": "下架"}[act]
+		if actCN == "" {
+			actCN = "变更状态"
+		}
+		if runAt != "" {
+			return fmt.Sprintf("为「%s」设置定时%s（%s）", name, actCN, runAt)
+		}
+		return fmt.Sprintf("为「%s」设置定时%s", name, actCN)
+	case item.Action == "permanent_delete":
+		return fmt.Sprintf("永久删除了%s", name)
+	default:
+		return fmt.Sprintf("%s：%s", item.ActionLabel, name)
+	}
 }
 
 func (r *ProductAdminRepository) ReserveSkuStock(items []SkuStockItem) error {

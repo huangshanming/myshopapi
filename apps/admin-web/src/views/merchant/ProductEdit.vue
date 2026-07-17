@@ -36,7 +36,7 @@
         <ImageUploader v-model="form.images" />
       </el-form-item>
       <el-form-item label="详情描述">
-        <el-input v-model="form.description" type="textarea" :rows="4" />
+        <RichTextEditor v-model="form.description" />
       </el-form-item>
 
       <el-divider>规格与 SKU</el-divider>
@@ -64,6 +64,7 @@ import { ElMessage } from 'element-plus'
 import SpecEditor from '../../components/merchant/SpecEditor.vue'
 import SkuTable from '../../components/merchant/SkuTable.vue'
 import ImageUploader from '../../components/merchant/ImageUploader.vue'
+import RichTextEditor from '../../components/merchant/RichTextEditor.vue'
 import { createProduct, getProduct, updateProduct } from '../../api/merchant-product'
 
 const route = useRoute()
@@ -148,6 +149,25 @@ function normalizeSpec(sv) {
   return out
 }
 
+function toRichHtml(text) {
+  if (!text) return ''
+  const t = String(text).trim()
+  if (!t) return ''
+  // 已是 HTML 则直接用
+  if (/<[a-z][\s\S]*>/i.test(t)) return t
+  // 纯文本按空行分段，保留换行
+  return t
+    .split(/\n{2,}/)
+    .map((block) => {
+      const body = block
+        .split('\n')
+        .map((line) => line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'))
+        .join('<br/>')
+      return `<p>${body}</p>`
+    })
+    .join('')
+}
+
 async function load() {
   if (!id) return
   loading.value = true
@@ -158,7 +178,7 @@ async function load() {
     Object.assign(form, {
       name: p.name || '',
       subtitle: p.subtitle || '',
-      description: p.description || '',
+      description: toRichHtml(p.description || ''),
       category_id: p.category_id || 1,
       product_type: p.product_type || 'physical',
       shelf_life: p.shelf_life || 0,
@@ -247,5 +267,6 @@ onMounted(load)
 <style scoped>
 .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .form { max-width: 960px; background: #fff; padding: 20px; border-radius: 8px; }
+.form :deep(.el-form-item__content) { flex: 1; min-width: 0; }
 .sku-block { margin: 16px 0 24px; }
 </style>

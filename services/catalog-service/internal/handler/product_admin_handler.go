@@ -227,14 +227,14 @@ func (h *ProductAdminHandler) RecycleRestore(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *ProductAdminHandler) RecycleDelete(w http.ResponseWriter, r *http.Request) {
-	shopID, _, ok := h.shopUser(r)
+	shopID, uid, ok := h.shopUser(r)
 	if !ok {
 		response.Error(w, "缺少店铺上下文", http.StatusForbidden)
 		return
 	}
 	var req types.RecycleReq
 	_ = json.NewDecoder(r.Body).Decode(&req)
-	if err := h.logic.PermanentDelete(shopID, req.ProductIDs); err != nil {
+	if err := h.logic.PermanentDelete(shopID, uid, req.ProductIDs); err != nil {
 		response.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -318,7 +318,7 @@ func (h *ProductAdminHandler) Upload(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ProductAdminHandler) Schedule(w http.ResponseWriter, r *http.Request) {
-	shopID, _, ok := h.shopUser(r)
+	shopID, uid, ok := h.shopUser(r)
 	if !ok {
 		response.Error(w, "缺少店铺上下文", http.StatusForbidden)
 		return
@@ -326,7 +326,7 @@ func (h *ProductAdminHandler) Schedule(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	var req types.ScheduleReq
 	_ = json.NewDecoder(r.Body).Decode(&req)
-	if err := h.logic.CreateSchedule(shopID, id, req); err != nil {
+	if err := h.logic.CreateSchedule(shopID, uid, id, req); err != nil {
 		response.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}

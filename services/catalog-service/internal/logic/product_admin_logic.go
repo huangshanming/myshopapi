@@ -15,6 +15,7 @@ import (
 	"mymall/services/catalog-service/internal/repository"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
+	"mymall/services/catalog-service/internal/uploadpath"
 )
 
 type ProductAdminLogic struct {
@@ -66,12 +67,19 @@ func (l *ProductAdminLogic) SetStatus(shopID, operatorID, id uint64, status stri
 		return err
 	}
 	pid := id
-	_ = l.svcCtx.ProductAdmin.AddOpLog(shopID, &pid, operatorID, "status:"+status, "", "")
+	after, _ := json.Marshal(map[string]interface{}{"status": status})
+	_ = l.svcCtx.ProductAdmin.AddOpLog(shopID, &pid, operatorID, "status:"+status, "", string(after))
 	return nil
 }
 
 func (l *ProductAdminLogic) Copy(shopID, operatorID, id uint64) (*model.Product, error) {
-	return l.svcCtx.ProductAdmin.CopyProduct(id, shopID, operatorID)
+	p, err := l.svcCtx.ProductAdmin.CopyProduct(id, shopID, operatorID)
+	if err != nil {
+		return nil, err
+	}
+	after, _ := json.Marshal(map[string]interface{}{"copy_from": id, "new_id": p.ID, "name": p.Name})
+	_ = l.svcCtx.ProductAdmin.AddOpLog(shopID, &p.ID, operatorID, "copy", "", string(after))
+	return p, nil
 }
 
 func (l *ProductAdminLogic) Batch(shopID, operatorID uint64, req types.BatchProductReq) (*model.ProductBatchJob, error) {
@@ -167,13 +175,18 @@ func (l *ProductAdminLogic) Restore(shopID, operatorID uint64, ids []uint64) err
 	return nil
 }
 
-func (l *ProductAdminLogic) PermanentDelete(shopID uint64, ids []uint64) error {
+func (l *ProductAdminLogic) PermanentDelete(shopID, operatorID uint64, ids []uint64) error {
 	for _, id := range ids {
 		if !l.guard.CanDelete(id) {
 			return fmt.Errorf("商品 %d 参与活动不可删除", id)
 		}
 	}
-	return l.svcCtx.ProductAdmin.PermanentDelete(shopID, ids)
+	if err := l.svcCtx.ProductAdmin.PermanentDelete(shopID, ids); err != nil {
+		return err
+	}
+	after, _ := json.Marshal(map[string]interface{}{"deleted_ids": ids})
+	_ = l.svcCtx.ProductAdmin.AddOpLog(shopID, nil, operatorID, "permanent_delete", "", string(after))
+	return nil
 }
 
 func (l *ProductAdminLogic) AdjustStock(shopID uint64, req types.StockAdjustReq) error {
@@ -207,7 +220,7 @@ func (l *ProductAdminLogic) SaveUpload(shopID uint64, filename string, data []by
 	default:
 		return "", errors.New("仅支持图片")
 	}
-	dir := filepath.Join("uploads", "products", fmt.Sprintf("%d", shopID))
+	dir := uploadpath.Abs("products", fmt.Sprintf("%d", shopID))
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", err
 	}
@@ -216,10 +229,10 @@ func (l *ProductAdminLogic) SaveUpload(shopID uint64, filename string, data []by
 	if err := os.WriteFile(path, data, 0o644); err != nil {
 		return "", err
 	}
-	return "/" + filepath.ToSlash(path), nil
+	return "/uploads/products/" + fmt.Sprintf("%d", shopID) + "/" + name, nil
 }
 
-func (l *ProductAdminLogic) CreateSchedule(shopID uint64, productID uint64, req types.ScheduleReq) error {
+func (l *ProductAdminLogic) CreateSchedule(shopID, operatorID, productID uint64, req types.ScheduleReq) error {
 	t, err := time.ParseInLocation("2006-01-02 15:04:05", req.RunAt, time.Local)
 	if err != nil {
 		return errors.New("时间格式应为 2006-01-02 15:04:05")
@@ -231,7 +244,12 @@ func (l *ProductAdminLogic) CreateSchedule(shopID uint64, productID uint64, req 
 		ProductID: productID, ShopID: shopID, Action: req.Action,
 		RunAt: common.LocalTime(t), Status: "pending",
 	}
-	return l.svcCtx.ProductAdmin.CreateSchedule(s)
+	if err := l.svcCtx.ProductAdmin.CreateSchedule(s); err != nil {
+		return err
+	}
+	after, _ := json.Marshal(map[string]interface{}{"action": req.Action, "run_at": req.RunAt})
+	_ = l.svcCtx.ProductAdmin.AddOpLog(shopID, &productID, operatorID, "schedule", "", string(after))
+	return nil
 }
 
 func (l *ProductAdminLogic) RunSchedules() {
@@ -269,14 +287,14 @@ func (l *ProductAdminLogic) ExportCSV(shopID uint64) (string, error) {
 		b.WriteString(fmt.Sprintf("%d,%s,%s,%s,%.2f,%d,%d,%s\n",
 			p.ID, p.ProductNo, escapeCSV(p.Name), p.Status, p.SalePrice, p.Stock, p.CategoryID, p.ProductType))
 	}
-	dir := filepath.Join("uploads", "exports", fmt.Sprintf("%d", shopID))
+	dir := uploadpath.Abs("exports", fmt.Sprintf("%d", shopID))
 	_ = os.MkdirAll(dir, 0o755)
 	name := fmt.Sprintf("products_%d.csv", time.Now().Unix())
 	path := filepath.Join(dir, name)
 	if err := os.WriteFile(path, []byte(b.String()), 0o644); err != nil {
 		return "", err
 	}
-	return "/" + filepath.ToSlash(path), nil
+	return "/uploads/exports/" + fmt.Sprintf("%d", shopID) + "/" + name, nil
 }
 
 func escapeCSV(s string) string {

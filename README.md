@@ -72,6 +72,10 @@ mysql -u homestead -p mymall < scripts/seed-admin-merchant.sql
 mysql -u homestead -p mymall < scripts/init-rbac-tables.sql
 mysql -u homestead -p mymall < scripts/seed-rbac.sql
 
+# 可选：商品中台表结构 + 演示商品（images/ 素材）
+# mysql -u homestead -p mymall < scripts/alter-product-center.sql
+# python3 scripts/seed-shop-demo-products.py
+
 # Redis + RabbitMQ（可选 docker-compose）
 docker compose -f deploy/local/docker-compose.infra.yaml up -d
 ```
