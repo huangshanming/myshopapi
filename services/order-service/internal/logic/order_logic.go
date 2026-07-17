@@ -71,7 +71,7 @@ func (l *OrderLogic) CreateOrder(ctx context.Context, userID uint64, items []typ
 		if shopID == 0 {
 			shopID = p.shopID
 		} else if p.shopID != shopID {
-			return nil, errors.New("一期不支持跨店下单，请分开结算")
+			return nil, errors.New("不支持跨店下单，请分开结算")
 		}
 		skuID := it.SkuID
 		if skuID == 0 {
