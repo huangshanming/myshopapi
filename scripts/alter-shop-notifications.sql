@@ -1,0 +1,14 @@
+-- 商家消息通知表（幂等）
+CREATE TABLE IF NOT EXISTS shop_notifications (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  shop_id BIGINT UNSIGNED NOT NULL,
+  type VARCHAR(32) NOT NULL,
+  title VARCHAR(200) NOT NULL,
+  content VARCHAR(1000) NOT NULL DEFAULT '',
+  link VARCHAR(255) DEFAULT '',
+  ref_type VARCHAR(32) DEFAULT '',
+  ref_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  is_read TINYINT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_shop_read_time (shop_id, is_read, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

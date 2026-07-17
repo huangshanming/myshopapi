@@ -32,6 +32,7 @@ export default defineConfig({
       '/api/v1/merchant/article-categories': to(svc.catalog),
       '/api/v1/merchant/article-comments': to(svc.catalog),
       '/api/v1/merchant/article-uploads': to(svc.catalog),
+      '/api/v1/merchant/notifications': to(svc.catalog),
       '/uploads': to(svc.catalog),
       '/api/v1/admin/products': to(svc.catalog),
       '/api/v1/admin/categories': to(svc.catalog),

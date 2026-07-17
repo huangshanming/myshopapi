@@ -3,7 +3,10 @@ package svc
 import (
 	"mymall/pkg/config"
 	"mymall/pkg/mq"
-	"mymall/services/catalog-service/internal/repository"
+	contentrepo "mymall/services/catalog-service/internal/content/repository"
+	notifyrepo "mymall/services/catalog-service/internal/notify/repository"
+	productrepo "mymall/services/catalog-service/internal/product/repository"
+	shopopsrepo "mymall/services/catalog-service/internal/shopops/repository"
 
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
@@ -11,27 +14,29 @@ import (
 
 // ServiceContext 全局依赖（go-zero 惯例）
 type ServiceContext struct {
-	Config       *config.Config
-	DB           *gorm.DB
-	Redis        *redis.Client
-	MQ           *mq.Client
-	Products     *repository.ProductRepository
-	Categories   *repository.CategoryRepository
-	ProductAdmin *repository.ProductAdminRepository
-	ShopRBAC     *repository.ShopRBACRepository
-	Articles     *repository.ArticleRepository
+	Config        *config.Config
+	DB            *gorm.DB
+	Redis         *redis.Client
+	MQ            *mq.Client
+	Products      *productrepo.ProductRepository
+	Categories    *productrepo.CategoryRepository
+	ProductAdmin  *productrepo.ProductAdminRepository
+	ShopRBAC      *shopopsrepo.ShopRBACRepository
+	Articles      *contentrepo.ArticleRepository
+	Notifications *notifyrepo.NotificationRepository
 }
 
 func NewServiceContext(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, mqClient *mq.Client) *ServiceContext {
 	return &ServiceContext{
-		Config:       cfg,
-		DB:           db,
-		Redis:        redisClient,
-		MQ:           mqClient,
-		Products:     repository.NewProductRepository(db),
-		Categories:   repository.NewCategoryRepository(db),
-		ProductAdmin: repository.NewProductAdminRepository(db),
-		ShopRBAC:     repository.NewShopRBACRepository(db),
-		Articles:     repository.NewArticleRepository(db),
+		Config:        cfg,
+		DB:            db,
+		Redis:         redisClient,
+		MQ:            mqClient,
+		Products:      productrepo.NewProductRepository(db),
+		Categories:    productrepo.NewCategoryRepository(db),
+		ProductAdmin:  productrepo.NewProductAdminRepository(db),
+		ShopRBAC:      shopopsrepo.NewShopRBACRepository(db),
+		Articles:      contentrepo.NewArticleRepository(db),
+		Notifications: notifyrepo.NewNotificationRepository(db),
 	}
 }

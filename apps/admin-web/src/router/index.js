@@ -27,6 +27,9 @@ import AdminArticleCategories from '../views/admin/articles/Categories.vue'
 import AdminArticleComments from '../views/admin/articles/Comments.vue'
 import AdminArticleRecycle from '../views/admin/articles/Recycle.vue'
 import AdminArticleStats from '../views/admin/articles/Stats.vue'
+import AdminProducts from '../views/admin/products/Products.vue'
+import AdminProductCategories from '../views/admin/products/Categories.vue'
+import MerchantNotifications from '../views/merchant/Notifications.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -42,12 +45,14 @@ const router = createRouter({
         { path: 'applications', component: AdminApplications, meta: { perms: 'business:application:list' } },
         { path: 'shops', component: AdminShops, meta: { perms: 'business:shop:list' } },
         { path: 'orders', component: AdminOrders, meta: { perms: 'business:order:list' } },
-        { path: 'articles', component: AdminArticles, meta: { perms: 'community:article:list' } },
+        { path: 'products/categories', component: AdminProductCategories, meta: { perms: 'business:category:list' } },
+        { path: 'products', component: AdminProducts, meta: { perms: 'business:product:list' } },
         { path: 'articles/edit/:id?', component: AdminArticleEdit, meta: { perms: 'community:article:list' } },
         { path: 'articles/categories', component: AdminArticleCategories, meta: { perms: 'community:article:category' } },
         { path: 'articles/comments', component: AdminArticleComments, meta: { perms: 'community:article:comment' } },
         { path: 'articles/recycle', component: AdminArticleRecycle, meta: { perms: 'community:article:recycle' } },
         { path: 'articles/stats', component: AdminArticleStats, meta: { perms: 'community:article:stats' } },
+        { path: 'articles', component: AdminArticles, meta: { perms: 'community:article:list' } },
         { path: 'system/menus', component: SystemMenus, meta: { perms: 'system:menu:list' } },
         { path: 'system/roles', component: SystemRoles, meta: { perms: 'system:role:list' } },
         { path: 'system/users', component: SystemUsers, meta: { perms: 'system:user:list' } },
@@ -70,6 +75,7 @@ const router = createRouter({
         { path: 'orders', component: MerchantOrders, meta: { shopPerm: 'order:list' } },
         { path: 'articles', component: MerchantArticles, meta: { shopPerm: 'article:list' } },
         { path: 'articles/edit/:id?', component: MerchantArticleEdit, meta: { shopPerm: 'article:edit' } },
+        { path: 'notifications', component: MerchantNotifications, meta: { shopPerm: 'notif:list' } },
       ],
     },
     { path: '/', redirect: '/login' },

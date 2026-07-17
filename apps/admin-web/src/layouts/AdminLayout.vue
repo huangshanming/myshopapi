@@ -34,17 +34,77 @@ import { useAuthStore } from '../stores/auth'
 const auth = useAuthStore()
 const router = useRouter()
 
+const EXTRA_MENUS = [
+  { id: 5, name: '全站商品', path: '/admin/products', type: 'menu', visible: 1 },
+  { id: 6, name: '商品分类', path: '/admin/products/categories', type: 'menu', visible: 1 },
+]
+
+const EXTRA_ARTICLE_DIR = {
+  id: 90,
+  name: '文章管理',
+  type: 'dir',
+  visible: 1,
+  children: [
+    { id: 91, name: '文章列表', path: '/admin/articles', type: 'menu', visible: 1 },
+    { id: 92, name: '分类管理', path: '/admin/articles/categories', type: 'menu', visible: 1 },
+    { id: 93, name: '评论管理', path: '/admin/articles/comments', type: 'menu', visible: 1 },
+    { id: 94, name: '文章回收站', path: '/admin/articles/recycle', type: 'menu', visible: 1 },
+    { id: 95, name: '文章统计', path: '/admin/articles/stats', type: 'menu', visible: 1 },
+  ],
+}
+
+function ensureBizMenus(tree) {
+  const cloned = tree.map((n) => ({
+    ...n,
+    children: (n.children || []).map((c) => ({ ...c })),
+  }))
+  let biz = cloned.find((n) => n.id === 1 || n.name === '业务管理')
+  if (!biz) {
+    biz = { id: 1, name: '业务管理', type: 'dir', children: [] }
+    cloned.unshift(biz)
+  }
+  biz.children = biz.children || []
+  for (const m of EXTRA_MENUS) {
+    if (!biz.children.some((c) => c.path === m.path || c.id === m.id)) {
+      biz.children.push({ ...m })
+    }
+  }
+  return ensureArticleMenus(cloned)
+}
+
+function ensureArticleMenus(tree) {
+  const cloned = tree.map((n) => ({
+    ...n,
+    children: (n.children || []).map((c) => ({ ...c })),
+  }))
+  let art = cloned.find((n) => n.id === 90 || n.name === '文章管理')
+  if (!art) {
+    cloned.push({
+      ...EXTRA_ARTICLE_DIR,
+      children: EXTRA_ARTICLE_DIR.children.map((c) => ({ ...c })),
+    })
+    return cloned
+  }
+  art.children = art.children || []
+  for (const m of EXTRA_ARTICLE_DIR.children) {
+    if (!art.children.some((c) => c.path === m.path || c.id === m.id)) {
+      art.children.push({ ...m })
+    }
+  }
+  return cloned
+}
+
 const menuNodes = computed(() => {
   const tree = auth.menuTree || []
   if (tree.length) {
-    return tree
+    const filtered = tree
       .filter((n) => n.type !== 'button' && n.visible !== 0)
       .map((n) => ({
         ...n,
         children: (n.children || []).filter((c) => c.type === 'menu' && c.visible !== 0),
       }))
+    return ensureBizMenus(filtered)
   }
-  // fallback 静态
   return [
     {
       id: 1,
@@ -53,6 +113,8 @@ const menuNodes = computed(() => {
         { id: 2, name: '入驻审核', path: '/admin/applications' },
         { id: 3, name: '店铺管理', path: '/admin/shops' },
         { id: 4, name: '全站订单', path: '/admin/orders' },
+        { id: 5, name: '全站商品', path: '/admin/products' },
+        { id: 6, name: '商品分类', path: '/admin/products/categories' },
       ],
     },
     {
@@ -70,7 +132,7 @@ const menuNodes = computed(() => {
 })
 
 onMounted(async () => {
-  if (auth.isAdmin && (!auth.menuTree || !auth.menuTree.length)) {
+  if (auth.isAdmin) {
     try {
       await auth.loadAuthMe()
     } catch (_) {

@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 
 	"mymall/pkg/mq"
-	"mymall/services/catalog-service/internal/logic"
-	"mymall/services/catalog-service/internal/repository"
+	"mymall/services/catalog-service/internal/product/logic"
+	"mymall/services/catalog-service/internal/product/repository"
 
 	"go.uber.org/zap"
 )

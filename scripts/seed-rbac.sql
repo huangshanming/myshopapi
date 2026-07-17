@@ -15,6 +15,8 @@ INSERT INTO sys_menu (id, parent_id, name, type, path, component, icon, perms, s
 (2,  1, '入驻审核', 'menu', '/admin/applications', 'admin/Applications', 'Document', 'business:application:list', 11, 1, 1),
 (3,  1, '店铺管理', 'menu', '/admin/shops', 'admin/Shops', 'Shop', 'business:shop:list', 12, 1, 1),
 (4,  1, '全站订单', 'menu', '/admin/orders', 'admin/Orders', 'List', 'business:order:list', 13, 1, 1),
+(5,  1, '全站商品', 'menu', '/admin/products', 'admin/products/Products', 'Goods', 'business:product:list', 14, 1, 1),
+(6,  1, '商品分类', 'menu', '/admin/products/categories', 'admin/products/Categories', 'Menu', 'business:category:list', 15, 1, 1),
 (10, 0, '系统管理', 'dir',  '', '', 'Setting', '', 90, 1, 1),
 (11, 10, '菜单管理', 'menu', '/admin/system/menus', 'admin/system/Menus', 'Menu', 'system:menu:list', 91, 1, 1),
 (12, 10, '角色管理', 'menu', '/admin/system/roles', 'admin/system/Roles', 'UserFilled', 'system:role:list', 92, 1, 1),
@@ -49,7 +51,12 @@ INSERT INTO sys_menu (id, parent_id, name, type, path, component, icon, perms, s
 (96, 91, '文章新增', 'button', '', '', '', 'community:article:add', 1, 1, 1),
 (97, 91, '文章编辑', 'button', '', '', '', 'community:article:edit', 2, 1, 1),
 (98, 91, '文章审核', 'button', '', '', '', 'community:article:audit', 3, 1, 1),
-(99, 91, '文章置顶', 'button', '', '', '', 'community:article:top', 4, 1, 1)
+(99, 91, '文章置顶', 'button', '', '', '', 'community:article:top', 4, 1, 1),
+(74, 5, '商品下架', 'button', '', '', '', 'business:product:off_sale', 1, 1, 1),
+(75, 5, '商品删除', 'button', '', '', '', 'business:product:delete', 2, 1, 1),
+(76, 6, '分类新增', 'button', '', '', '', 'business:category:add', 1, 1, 1),
+(77, 6, '分类编辑', 'button', '', '', '', 'business:category:edit', 2, 1, 1),
+(78, 6, '分类删除', 'button', '', '', '', 'business:category:delete', 3, 1, 1)
 ON DUPLICATE KEY UPDATE name=VALUES(name), path=VALUES(path), perms=VALUES(perms), sort=VALUES(sort);
 
 -- super_admin 拥有全部菜单

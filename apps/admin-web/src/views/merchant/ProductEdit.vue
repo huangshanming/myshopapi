@@ -16,8 +16,17 @@
       <el-form-item label="副标题">
         <el-input v-model="form.subtitle" />
       </el-form-item>
-      <el-form-item label="分类ID" required>
-        <el-input-number v-model="form.category_id" :min="1" />
+      <el-form-item label="分类" required>
+        <el-tree-select
+          v-model="form.category_id"
+          :data="catTree"
+          :props="{ label: 'name', value: 'id', children: 'children' }"
+          check-strictly
+          filterable
+          clearable
+          placeholder="请选择商品分类"
+          style="width: 320px"
+        />
       </el-form-item>
       <el-form-item label="类型">
         <el-radio-group v-model="form.product_type">
@@ -65,18 +74,21 @@ import SpecEditor from '../../components/merchant/SpecEditor.vue'
 import SkuTable from '../../components/merchant/SkuTable.vue'
 import ImageUploader from '../../components/merchant/ImageUploader.vue'
 import RichTextEditor from '../../components/merchant/RichTextEditor.vue'
-import { createProduct, getProduct, updateProduct } from '../../api/merchant-product'
+import { createProduct, getProduct, updateProduct, listProductCategories } from '../../api/merchant-product'
+import { pickList } from '../../utils/list'
+import { buildCategoryTree } from '../../utils/categoryTree'
 
 const route = useRoute()
 const router = useRouter()
 const id = Number(route.params.id || 0)
 const loading = ref(false)
+const catTree = ref([])
 
 const form = reactive({
   name: '',
   subtitle: '',
   description: '',
-  category_id: 1,
+  category_id: undefined,
   product_type: 'physical',
   shelf_life: 0,
   storage_condition: '',
@@ -179,7 +191,7 @@ async function load() {
       name: p.name || '',
       subtitle: p.subtitle || '',
       description: toRichHtml(p.description || ''),
-      category_id: p.category_id || 1,
+      category_id: p.category_id || undefined,
       product_type: p.product_type || 'physical',
       shelf_life: p.shelf_life || 0,
       storage_condition: p.storage_condition || '',
@@ -215,6 +227,10 @@ async function load() {
 async function save(status) {
   if (!form.name?.trim()) {
     ElMessage.warning('请填写商品名称')
+    return
+  }
+  if (!form.category_id) {
+    ElMessage.warning('请选择商品分类')
     return
   }
   if (!form.skus.length) {
@@ -261,7 +277,19 @@ async function save(status) {
   }
 }
 
-onMounted(load)
+async function loadCategories() {
+  try {
+    const res = await listProductCategories()
+    catTree.value = buildCategoryTree(pickList(res.data))
+  } catch (_) {
+    catTree.value = []
+  }
+}
+
+onMounted(async () => {
+  await loadCategories()
+  await load()
+})
 </script>
 
 <style scoped>

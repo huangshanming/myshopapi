@@ -6,8 +6,8 @@ import (
 
 	catalogv1 "mymall/api/gen/catalog/v1"
 	"mymall/pkg/grpc/interceptor"
-	"mymall/services/catalog-service/internal/logic"
-	"mymall/services/catalog-service/internal/repository"
+	"mymall/services/catalog-service/internal/product/logic"
+	"mymall/services/catalog-service/internal/product/repository"
 
 	"github.com/zeromicro/go-zero/core/service"
 	"github.com/zeromicro/go-zero/zrpc"

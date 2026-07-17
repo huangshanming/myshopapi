@@ -18,8 +18,8 @@ export function updateArticle(id, data) {
   return http.put(`${base}/articles/${id}`, data)
 }
 
-export function deleteArticle(id) {
-  return http.delete(`${base}/articles/${id}`)
+export function deleteArticle(id, remark) {
+  return http.delete(`${base}/articles/${id}`, { data: { remark: remark || '' } })
 }
 
 export function auditArticle(id, data) {
@@ -34,8 +34,8 @@ export function topArticle(id, is_top) {
   return http.post(`${base}/articles/${id}/top`, { is_top })
 }
 
-export function offlineArticle(id) {
-  return http.post(`${base}/articles/${id}/offline`)
+export function offlineArticle(id, remark) {
+  return http.post(`${base}/articles/${id}/offline`, { remark: remark || '' })
 }
 
 export function listArticleRecycle(params) {
@@ -82,8 +82,9 @@ export function deleteArticleComment(id) {
   return http.delete(`${base}/article-comments/${id}`)
 }
 
-export function uploadArticleImage(file, shopId) {
+export function uploadArticleImage(file, shopId = 0) {
   const fd = new FormData()
   fd.append('file', file)
-  return http.post(`${base}/article-uploads?shop_id=${shopId}`, fd)
+  const q = shopId ? `?shop_id=${shopId}` : ''
+  return http.post(`${base}/article-uploads${q}`, fd)
 }

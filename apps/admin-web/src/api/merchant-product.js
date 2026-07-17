@@ -127,3 +127,7 @@ export function listShopStaff() {
 export function bindShopStaff(data) {
   return http.post(`${base}/shop/staff`, data)
 }
+
+export function listProductCategories(params = {}) {
+  return http.get('/api/v1/product_category/list', { params: { page: 1, page_size: 500, ...params } })
+}

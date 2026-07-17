@@ -18,8 +18,20 @@
     </el-aside>
     <el-container>
       <el-header class="header">
-        <span>店铺 #{{ auth.shopId || '-' }} · {{ auth.user?.nickname || auth.user?.mobile }}</span>
-        <el-button link type="danger" @click="onLogout">退出</el-button>
+        <span class="shop-info">店铺 #{{ auth.shopId || '-' }} · {{ auth.user?.nickname || auth.user?.mobile }}</span>
+        <div class="header-actions">
+          <el-badge :value="unread" :hidden="!unread" :max="99" class="bell-badge">
+            <el-button
+              class="bell-btn"
+              :class="{ 'bell-shake': unread > 0 }"
+              circle
+              @click="goNotifications"
+            >
+              <span class="bell-icon">🔔</span>
+            </el-button>
+          </el-badge>
+          <el-button link type="danger" @click="onLogout">退出</el-button>
+        </div>
       </el-header>
       <el-main><router-view /></el-main>
     </el-container>
@@ -27,14 +39,16 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { unreadNotificationCount } from '../api/merchant-notification'
 
 const auth = useAuthStore()
 const router = useRouter()
+const unread = ref(0)
+let pollTimer = null
 
-// 无后端菜单时的分层兜底
 const fallbackMenus = [
   {
     id: 100,
@@ -78,6 +92,7 @@ const fallbackMenus = [
     type: 'dir',
     children: [
       { id: 6, name: '员工权限', path: '/merchant/staff', type: 'menu' },
+      { id: 10, name: '消息通知', path: '/merchant/notifications', type: 'menu' },
     ],
   },
 ]
@@ -99,6 +114,19 @@ const menuNodes = computed(() => {
 
 const opened = computed(() => menuNodes.value.filter((n) => n.children?.length).map((n) => 'dir-' + n.id))
 
+async function refreshUnread() {
+  try {
+    const res = await unreadNotificationCount()
+    unread.value = Number(res.data?.count || 0)
+  } catch (_) {
+    /* ignore */
+  }
+}
+
+function goNotifications() {
+  router.push('/merchant/notifications')
+}
+
 onMounted(async () => {
   if (auth.isMerchant) {
     try {
@@ -106,7 +134,13 @@ onMounted(async () => {
     } catch (_) {
       /* ignore */
     }
+    await refreshUnread()
+    pollTimer = setInterval(refreshUnread, 30000)
   }
+})
+
+onUnmounted(() => {
+  if (pollTimer) clearInterval(pollTimer)
 })
 
 function onLogout() {
@@ -124,5 +158,30 @@ function onLogout() {
 .aside :deep(.el-sub-menu__title) { color: #a8c5c6; }
 .aside :deep(.el-menu-item.is-active) { background: #155e63; color: #fff; }
 .aside :deep(.el-sub-menu .el-menu-item) { min-width: auto; }
-.header { display: flex; justify-content: flex-end; align-items: center; gap: 12px; border-bottom: 1px solid #eee; }
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid #eee;
+}
+.header-actions { display: flex; align-items: center; gap: 12px; }
+.bell-badge { line-height: 1; }
+.bell-btn { width: 36px; height: 36px; padding: 0; }
+.bell-icon { font-size: 16px; line-height: 1; }
+.bell-shake {
+  animation: bell-shake 2.4s ease-in-out infinite;
+  transform-origin: top center;
+}
+@keyframes bell-shake {
+  0% { transform: rotate(0deg); }
+  4% { transform: rotate(16deg); }
+  8% { transform: rotate(-14deg); }
+  12% { transform: rotate(12deg); }
+  16% { transform: rotate(-10deg); }
+  20% { transform: rotate(8deg); }
+  24% { transform: rotate(-4deg); }
+  28% { transform: rotate(0deg); }
+  100% { transform: rotate(0deg); }
+}
 </style>

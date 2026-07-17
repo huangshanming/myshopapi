@@ -18,7 +18,7 @@
       </el-table-column>
       <el-table-column label="操作类型" width="120">
         <template #default="{ row }">
-          <el-tag size="small" :type="tagType(row.action)">{{ row.action_label || actionLabel(row.action) }}</el-tag>
+          <el-tag size="small" :type="tagType(row.action)">{{ actionLabel(row.action) || row.action_label || '-' }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="对象" min-width="200">
@@ -36,7 +36,7 @@
         </template>
       </el-table-column>
       <el-table-column label="操作摘要" min-width="260" show-overflow-tooltip>
-        <template #default="{ row }">{{ row.summary || formatChange(row) }}</template>
+        <template #default="{ row }">{{ summaryText(row) }}</template>
       </el-table-column>
       <el-table-column label="操作人" width="120">
         <template #default="{ row }">{{ row.operator_name || (row.operator_id ? ('用户#' + row.operator_id) : '-') }}</template>
@@ -83,6 +83,8 @@ const ACTION_MAP = {
   'status:deleted': '移入回收站',
   'status:draft': '设为草稿',
   save: '保存商品',
+  platform_off_sale: '平台强制下架',
+  platform_delete: '平台删除',
 }
 
 function actionLabel(action) {
@@ -91,8 +93,8 @@ function actionLabel(action) {
 
 function tagType(action) {
   if (action === 'create' || action === 'status:on_sale') return 'success'
-  if (action === 'status:off_sale' || action === 'status:draft') return 'warning'
-  if (action === 'status:deleted' || action === 'permanent_delete') return 'danger'
+  if (action === 'status:off_sale' || action === 'status:draft' || action === 'platform_off_sale') return 'warning'
+  if (action === 'status:deleted' || action === 'permanent_delete' || action === 'platform_delete') return 'danger'
   if (action === 'copy' || action === 'schedule') return 'info'
   return ''
 }
@@ -130,6 +132,25 @@ function formatChange(row) {
   } catch {
     return String(raw)
   }
+}
+
+function summaryText(row) {
+  const name = row.target_name || row.product_name || '商品'
+  if (row.action === 'platform_off_sale') {
+    let remark = ''
+    try {
+      remark = JSON.parse(row.after_json || '{}').remark || ''
+    } catch (_) { /* ignore */ }
+    return remark ? `平台强制下架「${name}」，备注：${remark}` : `平台强制下架「${name}」`
+  }
+  if (row.action === 'platform_delete') {
+    let remark = ''
+    try {
+      remark = JSON.parse(row.after_json || '{}').remark || ''
+    } catch (_) { /* ignore */ }
+    return remark ? `平台将「${name}」移入回收站，备注：${remark}` : `平台将「${name}」移入回收站`
+  }
+  return row.summary || formatChange(row)
 }
 
 async function load() {

@@ -196,6 +196,8 @@ spec:
           - /api/v1/merchant/article-comments
           - /api/v1/merchant/article-comments/*
           - /api/v1/merchant/article-uploads
+          - /api/v1/merchant/notifications
+          - /api/v1/merchant/notifications/*
         methods:
           - GET
           - POST
