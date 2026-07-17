@@ -24,12 +24,13 @@ import { onBeforeUnmount, shallowRef, watch } from 'vue'
 import { Editor, Toolbar } from '@wangeditor/editor-for-vue'
 import '@wangeditor/editor/dist/css/style.css'
 import { ElMessage } from 'element-plus'
-import { uploadImage } from '../../api/merchant-product'
+import { uploadImage as defaultUpload } from '../../api/merchant-product'
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
   height: { type: String, default: '360px' },
   placeholder: { type: String, default: '请输入商品详情，支持标题、列表、图片等' },
+  uploadFn: { type: Function, default: null },
 })
 const emit = defineEmits(['update:modelValue'])
 
@@ -46,7 +47,8 @@ const editorConfig = {
     uploadImage: {
       async customUpload(file, insertFn) {
         try {
-          const res = await uploadImage(file)
+          const up = props.uploadFn || defaultUpload
+          const res = await up(file)
           const url = res.data?.url || res.data
           if (!url) throw new Error('上传未返回地址')
           insertFn(url, file.name || '图片', url)

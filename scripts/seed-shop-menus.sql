@@ -14,11 +14,17 @@ INSERT INTO shop_menus (id, parent_id, name, type, path, component, icon, perms,
 (4, 101, '库存预警', 'menu', '/merchant/stocks/warnings', 'merchant/StockWarnings', 'Warning', 'stock:warn', 10, 1, 1),
 (5, 102, '店铺订单', 'menu', '/merchant/orders', 'merchant/Orders', 'List', 'order:list', 10, 1, 1),
 (6, 103, '员工权限', 'menu', '/merchant/staff', 'merchant/Staff', 'User', 'shop:staff', 10, 1, 1),
+(104, 0, '内容中心', 'dir', '', '', 'Document', '', 40, 1, 1),
+(8, 104, '我的文章', 'menu', '/merchant/articles', 'merchant/Articles', 'Document', 'article:list', 10, 1, 1),
+(9, 104, '发布文章', 'menu', '/merchant/articles/edit', 'merchant/ArticleEdit', 'Edit', 'article:edit', 11, 1, 1),
 (11, 1, '商品新增', 'button', '', '', '', 'product:add', 1, 1, 1),
 (12, 1, '商品编辑', 'button', '', '', '', 'product:edit', 2, 1, 1),
 (13, 1, '商品上下架', 'button', '', '', '', 'product:status', 3, 1, 1),
 (14, 1, '批量操作', 'button', '', '', '', 'product:batch', 4, 1, 1),
-(15, 1, '导入导出', 'button', '', '', '', 'product:import', 5, 1, 1)
+(15, 1, '导入导出', 'button', '', '', '', 'product:import', 5, 1, 1),
+(16, 8, '文章新增', 'button', '', '', '', 'article:add', 1, 1, 1),
+(17, 8, '文章编辑', 'button', '', '', '', 'article:edit', 2, 1, 1),
+(18, 8, '文章删除', 'button', '', '', '', 'article:delete', 3, 1, 1)
 ON DUPLICATE KEY UPDATE
   parent_id=VALUES(parent_id), name=VALUES(name), type=VALUES(type),
   path=VALUES(path), component=VALUES(component), icon=VALUES(icon),

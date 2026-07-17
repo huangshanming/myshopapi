@@ -64,6 +64,15 @@ const fallbackMenus = [
     ],
   },
   {
+    id: 104,
+    name: '内容中心',
+    type: 'dir',
+    children: [
+      { id: 8, name: '我的文章', path: '/merchant/articles', type: 'menu' },
+      { id: 9, name: '发布文章', path: '/merchant/articles/edit', type: 'menu' },
+    ],
+  },
+  {
     id: 103,
     name: '店铺设置',
     type: 'dir',

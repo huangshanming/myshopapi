@@ -29,10 +29,11 @@
 <script setup>
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { uploadImage } from '../../api/merchant-product'
+import { uploadImage as defaultUpload } from '../../api/merchant-product'
 
 const props = defineProps({
   modelValue: { type: Array, default: () => [] },
+  uploadFn: { type: Function, default: null },
 })
 const emit = defineEmits(['update:modelValue'])
 
@@ -40,7 +41,8 @@ const dragFrom = ref(-1)
 
 async function doUpload({ file }) {
   try {
-    const res = await uploadImage(file)
+    const up = props.uploadFn || defaultUpload
+    const res = await up(file)
     const url = res.data?.url || res.data
     const next = [...props.modelValue, { url, typ: props.modelValue.length ? 'gallery' : 'main', sort: props.modelValue.length }]
     if (next.length === 1) next[0].typ = 'main'

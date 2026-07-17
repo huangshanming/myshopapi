@@ -19,6 +19,7 @@ type ServiceContext struct {
 	Categories   *repository.CategoryRepository
 	ProductAdmin *repository.ProductAdminRepository
 	ShopRBAC     *repository.ShopRBACRepository
+	Articles     *repository.ArticleRepository
 }
 
 func NewServiceContext(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, mqClient *mq.Client) *ServiceContext {
@@ -31,5 +32,6 @@ func NewServiceContext(cfg *config.Config, db *gorm.DB, redisClient *redis.Clien
 		Categories:   repository.NewCategoryRepository(db),
 		ProductAdmin: repository.NewProductAdminRepository(db),
 		ShopRBAC:     repository.NewShopRBACRepository(db),
+		Articles:     repository.NewArticleRepository(db),
 	}
 }

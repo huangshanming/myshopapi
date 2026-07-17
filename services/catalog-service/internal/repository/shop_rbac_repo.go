@@ -54,6 +54,7 @@ func (r *ShopRBACRepository) EnsureShopMenus() error {
 		{ID: 100, ParentID: 0, Name: "商品中心", Type: "dir", Path: "", Icon: "Goods", Perms: "", Sort: 10, Visible: 1, Status: 1},
 		{ID: 101, ParentID: 0, Name: "库存管理", Type: "dir", Path: "", Icon: "Box", Perms: "", Sort: 20, Visible: 1, Status: 1},
 		{ID: 102, ParentID: 0, Name: "订单中心", Type: "dir", Path: "", Icon: "List", Perms: "", Sort: 30, Visible: 1, Status: 1},
+		{ID: 104, ParentID: 0, Name: "内容中心", Type: "dir", Path: "", Icon: "Document", Perms: "", Sort: 40, Visible: 1, Status: 1},
 		{ID: 103, ParentID: 0, Name: "店铺设置", Type: "dir", Path: "", Icon: "Setting", Perms: "", Sort: 90, Visible: 1, Status: 1},
 
 		{ID: 1, ParentID: 100, Name: "商品列表", Type: "menu", Path: "/merchant/products", Component: "merchant/Products", Icon: "Goods", Perms: "product:list", Sort: 10, Visible: 1, Status: 1},
@@ -63,6 +64,8 @@ func (r *ShopRBACRepository) EnsureShopMenus() error {
 
 		{ID: 4, ParentID: 101, Name: "库存预警", Type: "menu", Path: "/merchant/stocks/warnings", Component: "merchant/StockWarnings", Icon: "Warning", Perms: "stock:warn", Sort: 10, Visible: 1, Status: 1},
 		{ID: 5, ParentID: 102, Name: "店铺订单", Type: "menu", Path: "/merchant/orders", Component: "merchant/Orders", Icon: "List", Perms: "order:list", Sort: 10, Visible: 1, Status: 1},
+		{ID: 8, ParentID: 104, Name: "我的文章", Type: "menu", Path: "/merchant/articles", Component: "merchant/Articles", Icon: "Document", Perms: "article:list", Sort: 10, Visible: 1, Status: 1},
+		{ID: 9, ParentID: 104, Name: "发布文章", Type: "menu", Path: "/merchant/articles/edit", Component: "merchant/ArticleEdit", Icon: "Edit", Perms: "article:edit", Sort: 11, Visible: 1, Status: 1},
 		{ID: 6, ParentID: 103, Name: "员工权限", Type: "menu", Path: "/merchant/staff", Component: "merchant/Staff", Icon: "User", Perms: "shop:staff", Sort: 10, Visible: 1, Status: 1},
 
 		{ID: 11, ParentID: 1, Name: "商品新增", Type: "button", Perms: "product:add", Sort: 1, Visible: 1, Status: 1},
@@ -70,6 +73,9 @@ func (r *ShopRBACRepository) EnsureShopMenus() error {
 		{ID: 13, ParentID: 1, Name: "商品上下架", Type: "button", Perms: "product:status", Sort: 3, Visible: 1, Status: 1},
 		{ID: 14, ParentID: 1, Name: "批量操作", Type: "button", Perms: "product:batch", Sort: 4, Visible: 1, Status: 1},
 		{ID: 15, ParentID: 1, Name: "导入导出", Type: "button", Perms: "product:import", Sort: 5, Visible: 1, Status: 1},
+		{ID: 16, ParentID: 8, Name: "文章新增", Type: "button", Perms: "article:add", Sort: 1, Visible: 1, Status: 1},
+		{ID: 17, ParentID: 8, Name: "文章编辑", Type: "button", Perms: "article:edit", Sort: 2, Visible: 1, Status: 1},
+		{ID: 18, ParentID: 8, Name: "文章删除", Type: "button", Perms: "article:delete", Sort: 3, Visible: 1, Status: 1},
 	}
 	for _, m := range seed {
 		var exists model.ShopMenu

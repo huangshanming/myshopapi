@@ -55,6 +55,17 @@ const menuNodes = computed(() => {
         { id: 4, name: '全站订单', path: '/admin/orders' },
       ],
     },
+    {
+      id: 90,
+      name: '文章管理',
+      children: [
+        { id: 91, name: '文章列表', path: '/admin/articles' },
+        { id: 92, name: '分类管理', path: '/admin/articles/categories' },
+        { id: 93, name: '评论管理', path: '/admin/articles/comments' },
+        { id: 94, name: '文章回收站', path: '/admin/articles/recycle' },
+        { id: 95, name: '文章统计', path: '/admin/articles/stats' },
+      ],
+    },
   ]
 })
 

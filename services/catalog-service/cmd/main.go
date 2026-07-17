@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -83,6 +84,10 @@ func main() {
 		&model.ShopMenu{},
 		&model.ShopRoleMenu{},
 		&model.ShopUserRole{},
+		&model.CommunityArticle{},
+		&model.CommunityArticleCategory{},
+		&model.CommunityArticleComment{},
+		&model.CommunityArticleImg{},
 	); err != nil {
 		log.Fatalf("AutoMigrate 失败：%v", err)
 	}
@@ -113,14 +118,21 @@ func main() {
 	catalogLogic := logic.NewCatalogLogic(svcCtx)
 	catalogHandler := handler.NewCatalogHandler(svcCtx)
 	adminH := handler.NewProductAdminHandler(svcCtx)
+	articleAdminH := handler.NewArticleAdminHandler(svcCtx)
+	articleMerchantH := handler.NewArticleMerchantHandler(svcCtx)
 	productAdminLogic := logic.NewProductAdminLogic(svcCtx)
+	articleLogic := logic.NewArticleLogic(svcCtx)
 
-	// 定时上下架轮询
+	// 商品定时上下架 + 文章定时发布（同进程 Mutex 防叠跑）
 	go func() {
+		var scheduleMu sync.Mutex
 		t := time.NewTicker(30 * time.Second)
 		defer t.Stop()
 		for range t.C {
+			scheduleMu.Lock()
 			productAdminLogic.RunSchedules()
+			articleLogic.RunPublishSchedules()
+			scheduleMu.Unlock()
 		}
 	}()
 
@@ -221,6 +233,41 @@ func main() {
 		{Method: http.MethodPut, Path: "/api/v1/admin/categories/:id", Handler: rid(middleware.Chain(catalogHandler.AdminUpdateCategory, gwUser, adminRoles))},
 		{Method: http.MethodDelete, Path: "/api/v1/admin/categories/:id", Handler: rid(middleware.Chain(catalogHandler.AdminDeleteCategory, gwUser, adminRoles))},
 
+		// 社区文章 — 平台
+		{Method: http.MethodGet, Path: "/api/v1/admin/articles/stats", Handler: rid(middleware.Chain(articleAdminH.Stats, gwUser, adminRoles))},
+		{Method: http.MethodGet, Path: "/api/v1/admin/articles/recycle", Handler: rid(middleware.Chain(articleAdminH.List, gwUser, adminRoles))},
+		{Method: http.MethodPost, Path: "/api/v1/admin/articles/recycle/restore", Handler: rid(middleware.Chain(articleAdminH.RecycleRestore, gwUser, adminRoles))},
+		{Method: http.MethodDelete, Path: "/api/v1/admin/articles/recycle", Handler: rid(middleware.Chain(articleAdminH.RecycleDelete, gwUser, adminRoles))},
+		{Method: http.MethodPost, Path: "/api/v1/admin/articles/batch-audit", Handler: rid(middleware.Chain(articleAdminH.BatchAudit, gwUser, adminRoles))},
+		{Method: http.MethodGet, Path: "/api/v1/admin/articles", Handler: rid(middleware.Chain(articleAdminH.List, gwUser, adminRoles))},
+		{Method: http.MethodPost, Path: "/api/v1/admin/articles", Handler: rid(middleware.Chain(articleAdminH.Create, gwUser, adminRoles))},
+		{Method: http.MethodGet, Path: "/api/v1/admin/articles/:id", Handler: rid(middleware.Chain(articleAdminH.Detail, gwUser, adminRoles))},
+		{Method: http.MethodPut, Path: "/api/v1/admin/articles/:id", Handler: rid(middleware.Chain(articleAdminH.Update, gwUser, adminRoles))},
+		{Method: http.MethodDelete, Path: "/api/v1/admin/articles/:id", Handler: rid(middleware.Chain(articleAdminH.SoftDelete, gwUser, adminRoles))},
+		{Method: http.MethodPost, Path: "/api/v1/admin/articles/:id/audit", Handler: rid(middleware.Chain(articleAdminH.Audit, gwUser, adminRoles))},
+		{Method: http.MethodPost, Path: "/api/v1/admin/articles/:id/top", Handler: rid(middleware.Chain(articleAdminH.Top, gwUser, adminRoles))},
+		{Method: http.MethodPost, Path: "/api/v1/admin/articles/:id/offline", Handler: rid(middleware.Chain(articleAdminH.Offline, gwUser, adminRoles))},
+		{Method: http.MethodGet, Path: "/api/v1/admin/article-categories", Handler: rid(middleware.Chain(articleAdminH.CategoryList, gwUser, adminRoles))},
+		{Method: http.MethodPost, Path: "/api/v1/admin/article-categories", Handler: rid(middleware.Chain(articleAdminH.CategoryCreate, gwUser, adminRoles))},
+		{Method: http.MethodPut, Path: "/api/v1/admin/article-categories/:id", Handler: rid(middleware.Chain(articleAdminH.CategoryUpdate, gwUser, adminRoles))},
+		{Method: http.MethodDelete, Path: "/api/v1/admin/article-categories/:id", Handler: rid(middleware.Chain(articleAdminH.CategoryDelete, gwUser, adminRoles))},
+		{Method: http.MethodGet, Path: "/api/v1/admin/article-comments", Handler: rid(middleware.Chain(articleAdminH.CommentList, gwUser, adminRoles))},
+		{Method: http.MethodPatch, Path: "/api/v1/admin/article-comments/:id", Handler: rid(middleware.Chain(articleAdminH.CommentPatch, gwUser, adminRoles))},
+		{Method: http.MethodDelete, Path: "/api/v1/admin/article-comments/:id", Handler: rid(middleware.Chain(articleAdminH.CommentDelete, gwUser, adminRoles))},
+		{Method: http.MethodPost, Path: "/api/v1/admin/article-uploads", Handler: rid(middleware.Chain(articleAdminH.Upload, gwUser, adminRoles))},
+
+		// 社区文章 — 商家
+		{Method: http.MethodGet, Path: "/api/v1/merchant/articles", Handler: rid(middleware.Chain(articleMerchantH.List, gwShop, merchantRoles))},
+		{Method: http.MethodPost, Path: "/api/v1/merchant/articles", Handler: rid(middleware.Chain(articleMerchantH.Create, gwShop, merchantRoles))},
+		{Method: http.MethodGet, Path: "/api/v1/merchant/articles/:id", Handler: rid(middleware.Chain(articleMerchantH.Detail, gwShop, merchantRoles))},
+		{Method: http.MethodPut, Path: "/api/v1/merchant/articles/:id", Handler: rid(middleware.Chain(articleMerchantH.Update, gwShop, merchantRoles))},
+		{Method: http.MethodDelete, Path: "/api/v1/merchant/articles/:id", Handler: rid(middleware.Chain(articleMerchantH.Delete, gwShop, merchantRoles))},
+		{Method: http.MethodGet, Path: "/api/v1/merchant/article-categories", Handler: rid(middleware.Chain(articleMerchantH.CategoryList, gwShop, merchantRoles))},
+		{Method: http.MethodGet, Path: "/api/v1/merchant/article-comments", Handler: rid(middleware.Chain(articleMerchantH.CommentList, gwShop, merchantRoles))},
+		{Method: http.MethodPatch, Path: "/api/v1/merchant/article-comments/:id", Handler: rid(middleware.Chain(articleMerchantH.CommentPatch, gwShop, merchantRoles))},
+		{Method: http.MethodDelete, Path: "/api/v1/merchant/article-comments/:id", Handler: rid(middleware.Chain(articleMerchantH.CommentDelete, gwShop, merchantRoles))},
+		{Method: http.MethodPost, Path: "/api/v1/merchant/article-uploads", Handler: rid(middleware.Chain(articleMerchantH.Upload, gwShop, merchantRoles))},
+
 		// 上传文件：/uploads/products/{shop}/{file}
 		{Method: http.MethodGet, Path: "/uploads/products/:shop/:file", Handler: rid(func(w http.ResponseWriter, r *http.Request) {
 			p := uploadpath.Abs("products", httpserver.PathParam(r, "shop"), httpserver.PathParam(r, "file"))
@@ -228,6 +275,10 @@ func main() {
 		})},
 		{Method: http.MethodGet, Path: "/uploads/exports/:shop/:file", Handler: rid(func(w http.ResponseWriter, r *http.Request) {
 			p := uploadpath.Abs("exports", httpserver.PathParam(r, "shop"), httpserver.PathParam(r, "file"))
+			http.ServeFile(w, r, p)
+		})},
+		{Method: http.MethodGet, Path: "/uploads/articles/:shop/:file", Handler: rid(func(w http.ResponseWriter, r *http.Request) {
+			p := uploadpath.Abs("articles", httpserver.PathParam(r, "shop"), httpserver.PathParam(r, "file"))
 			http.ServeFile(w, r, p)
 		})},
 	})
