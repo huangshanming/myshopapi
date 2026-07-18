@@ -37,6 +37,8 @@ const router = useRouter()
 const EXTRA_MENUS = [
   { id: 5, name: '全站商品', path: '/admin/products', type: 'menu', visible: 1 },
   { id: 6, name: '商品分类', path: '/admin/products/categories', type: 'menu', visible: 1 },
+  { id: 7, name: '售后管理', path: '/admin/after-sales', type: 'menu', visible: 1 },
+  { id: 8, name: '物流管理', path: '/admin/logistics', type: 'menu', visible: 1 },
 ]
 
 const EXTRA_ARTICLE_DIR = {

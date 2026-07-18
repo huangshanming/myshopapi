@@ -263,6 +263,39 @@ func (l *RBACLogic) ResetUserPassword(id uint64, plain string) error {
 	return l.svcCtx.Repo.UpdatePassword(id, plain)
 }
 
+// GenerateUserToken 为指定用户签发与登录一致的 JWT（并发压测 / 调试用）。
+func (l *RBACLogic) GenerateUserToken(id uint64) (map[string]interface{}, error) {
+	user, err := l.svcCtx.Repo.FindByID(id)
+	if err != nil {
+		return nil, errors.New("用户不存在")
+	}
+	if user.Status != 1 {
+		return nil, errors.New("用户已禁用")
+	}
+	role := ResolveLoginRole(l.svcCtx, user)
+	var shopID uint64
+	if jwt.IsMerchant(role) {
+		shopID = l.svcCtx.Repo.FirstShopID(user.ID)
+	}
+	token, err := jwt.GenerateTokenWithShop(user.ID, role, shopID, l.svcCtx.JWT)
+	if err != nil {
+		return nil, err
+	}
+	expireHours := l.svcCtx.JWT.ExpireHours
+	if expireHours <= 0 {
+		expireHours = 24
+	}
+	return map[string]interface{}{
+		"token":        token,
+		"user_id":      user.ID,
+		"mobile":       user.Mobile,
+		"nickname":     user.Nickname,
+		"role":         role,
+		"shop_id":      shopID,
+		"expire_hours": expireHours,
+	}, nil
+}
+
 func (l *RBACLogic) ListAdmins(page, pageSize int) ([]model.User, int64, error) {
 	if page < 1 {
 		page = 1

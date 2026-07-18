@@ -213,13 +213,18 @@ INSERT INTO shop_menus (id, parent_id, name, type, path, component, icon, perms,
 -- 库存 / 订单 / 设置
 (4, 101, '库存预警', 'menu', '/merchant/stocks/warnings', 'merchant/StockWarnings', 'Warning', 'stock:warn', 10, 1, 1),
 (5, 102, '店铺订单', 'menu', '/merchant/orders', 'merchant/Orders', 'List', 'order:list', 10, 1, 1),
+(19, 102, '售后管理', 'menu', '/merchant/after-sales', 'merchant/after-sales/AfterSales', 'RefreshLeft', 'aftersale:list', 11, 1, 1),
 (6, 103, '员工权限', 'menu', '/merchant/staff', 'merchant/Staff', 'User', 'shop:staff', 10, 1, 1),
 -- 按钮挂在商品列表下
 (11, 1, '商品新增', 'button', '', '', '', 'product:add', 1, 1, 1),
 (12, 1, '商品编辑', 'button', '', '', '', 'product:edit', 2, 1, 1),
 (13, 1, '商品上下架', 'button', '', '', '', 'product:status', 3, 1, 1),
 (14, 1, '批量操作', 'button', '', '', '', 'product:batch', 4, 1, 1),
-(15, 1, '导入导出', 'button', '', '', '', 'product:import', 5, 1, 1)
+(15, 1, '导入导出', 'button', '', '', '', 'product:import', 5, 1, 1),
+(20, 5, '订单发货', 'button', '', '', '', 'order:ship', 1, 1, 1),
+(21, 5, '订单完成', 'button', '', '', '', 'order:complete', 2, 1, 1),
+(22, 5, '订单备注', 'button', '', '', '', 'order:remark', 3, 1, 1),
+(23, 19, '售后处理', 'button', '', '', '', 'aftersale:handle', 1, 1, 1)
 ON DUPLICATE KEY UPDATE
   parent_id=VALUES(parent_id), name=VALUES(name), type=VALUES(type),
   path=VALUES(path), perms=VALUES(perms), sort=VALUES(sort), visible=VALUES(visible), status=VALUES(status);

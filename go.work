@@ -2,8 +2,9 @@ go 1.24
 
 use (
 	.
-	./services/user-service
 	./services/catalog-service
-	./services/order-service
+	./services/inventory-sync-service
 	./services/merchant-service
+	./services/order-service
+	./services/user-service
 )

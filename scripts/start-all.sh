@@ -55,12 +55,14 @@ start_stack() {
   fi
   docker compose "${args[@]}"
 
-  green "    user-service     → http://localhost:8881  (gRPC :9090)"
-  green "    catalog-service  → http://localhost:8882  (gRPC :9091)"
-  green "    order-service    → http://localhost:8883"
-  green "    merchant-service → http://localhost:8884"
-  green "    Redis            → 127.0.0.1:6379"
-  green "    RabbitMQ 管理台  → http://localhost:15672  (mymall/mymall)"
+  green "    user-service            → http://localhost:8881  (gRPC :9090)"
+  green "    catalog-service         → http://localhost:8882  (gRPC :9091)"
+  green "    order-service           → http://localhost:8883"
+  green "    merchant-service        → http://localhost:8884"
+  green "    inventory-sync-service  → http://localhost:8885"
+  green "    Redis                   → 127.0.0.1:6379"
+  green "    Canal                   → 127.0.0.1:11111"
+  green "    RabbitMQ 管理台         → http://localhost:15672  (mymall/mymall)"
 }
 
 wait_healthy() {
@@ -70,6 +72,7 @@ wait_healthy() {
     "http://localhost:8882/healthz"
     "http://localhost:8883/healthz"
     "http://localhost:8884/healthz"
+    "http://localhost:8885/healthz"
   )
   for url in "${urls[@]}"; do
     for i in $(seq 1 60); do

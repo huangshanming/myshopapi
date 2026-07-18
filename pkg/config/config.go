@@ -9,13 +9,26 @@ import (
 )
 
 type Config struct {
-	Server   ServerConfig   `mapstructure:"server"`
-	MySQL    MySQLConfig    `mapstructure:"mysql"`
-	JWT      JWTConfig      `mapstructure:"jwt"`
-	Redis    RedisConfig    `mapstructure:"redis"`
-	RabbitMQ RabbitMQConfig `mapstructure:"rabbitmq"`
-	GRPC     GRPCConfig     `mapstructure:"grpc"`
+	Server    ServerConfig    `mapstructure:"server"`
+	MySQL     MySQLConfig     `mapstructure:"mysql"`
+	JWT       JWTConfig       `mapstructure:"jwt"`
+	Redis     RedisConfig     `mapstructure:"redis"`
+	RabbitMQ  RabbitMQConfig  `mapstructure:"rabbitmq"`
+	GRPC      GRPCConfig      `mapstructure:"grpc"`
 	Telemetry TelemetryConfig `mapstructure:"telemetry"`
+	Canal     CanalConfig     `mapstructure:"canal"`
+}
+
+// CanalConfig is used by inventory-sync-service (canal-go client).
+type CanalConfig struct {
+	Host        string `mapstructure:"host"`
+	Port        int    `mapstructure:"port"`
+	Destination string `mapstructure:"destination"`
+	Username    string `mapstructure:"username"`
+	Password    string `mapstructure:"password"`
+	Filter      string `mapstructure:"filter"`
+	SoTimeout   int    `mapstructure:"so_timeout"`
+	IdleTimeout int    `mapstructure:"idle_timeout"`
 }
 
 type ServerConfig struct {
@@ -107,6 +120,8 @@ func Load(path string) (*Config, error) {
 		"rabbitmq.host", "rabbitmq.port", "rabbitmq.username", "rabbitmq.password", "rabbitmq.vhost", "rabbitmq.exchange",
 		"grpc.user_service", "grpc.catalog_service",
 		"telemetry.enabled", "telemetry.endpoint", "telemetry.service",
+		"canal.host", "canal.port", "canal.destination", "canal.username", "canal.password", "canal.filter",
+		"canal.so_timeout", "canal.idle_timeout",
 	} {
 		_ = v.BindEnv(key)
 	}
@@ -237,6 +252,25 @@ func overlayFromViper(cfg *Config, v *viper.Viper) {
 	if s := envOr("MYMALL_TELEMETRY_SERVICE", "telemetry.service"); s != "" {
 		cfg.Telemetry.Service = s
 	}
+
+	if s := envOr("MYMALL_CANAL_HOST", "canal.host"); s != "" {
+		cfg.Canal.Host = s
+	}
+	cfg.Canal.Port = envIntOr("MYMALL_CANAL_PORT", "canal.port", cfg.Canal.Port)
+	if s := envOr("MYMALL_CANAL_DESTINATION", "canal.destination"); s != "" {
+		cfg.Canal.Destination = s
+	}
+	if s := envOr("MYMALL_CANAL_USERNAME", "canal.username"); s != "" {
+		cfg.Canal.Username = s
+	}
+	if s := envOr("MYMALL_CANAL_PASSWORD", "canal.password"); s != "" {
+		cfg.Canal.Password = s
+	}
+	if s := envOr("MYMALL_CANAL_FILTER", "canal.filter"); s != "" {
+		cfg.Canal.Filter = s
+	}
+	cfg.Canal.SoTimeout = envIntOr("MYMALL_CANAL_SO_TIMEOUT", "canal.so_timeout", cfg.Canal.SoTimeout)
+	cfg.Canal.IdleTimeout = envIntOr("MYMALL_CANAL_IDLE_TIMEOUT", "canal.idle_timeout", cfg.Canal.IdleTimeout)
 }
 
 func (c *Config) applyDefaults() {
@@ -290,5 +324,23 @@ func (c *Config) applyDefaults() {
 	}
 	if c.GRPC.CatalogService == "" {
 		c.GRPC.CatalogService = "localhost:9091"
+	}
+	if c.Canal.Host == "" {
+		c.Canal.Host = "127.0.0.1"
+	}
+	if c.Canal.Port == 0 {
+		c.Canal.Port = 11111
+	}
+	if c.Canal.Destination == "" {
+		c.Canal.Destination = "mymall"
+	}
+	if c.Canal.Filter == "" {
+		c.Canal.Filter = `mymall\.product_skus`
+	}
+	if c.Canal.SoTimeout == 0 {
+		c.Canal.SoTimeout = 60000
+	}
+	if c.Canal.IdleTimeout == 0 {
+		c.Canal.IdleTimeout = 60 * 60 * 1000
 	}
 }

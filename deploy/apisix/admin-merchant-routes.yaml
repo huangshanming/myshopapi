@@ -267,12 +267,21 @@ spec:
         paths:
           - /api/v1/merchant/orders
           - /api/v1/merchant/orders/*
+          - /api/v1/merchant/after-sales
+          - /api/v1/merchant/after-sales/*
           - /api/v1/admin/orders
           - /api/v1/admin/orders/*
+          - /api/v1/admin/after-sales
+          - /api/v1/admin/after-sales/*
+          - /api/v1/admin/logistics
+          - /api/v1/admin/logistics/*
+          - /api/v1/logistics
+          - /api/v1/logistics/*
         methods:
           - GET
           - POST
           - PUT
+          - DELETE
           - OPTIONS
       backends:
         - serviceName: order-service

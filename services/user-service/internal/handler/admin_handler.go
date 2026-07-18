@@ -221,6 +221,16 @@ func (h *AdminHandler) ResetUserPassword(w http.ResponseWriter, r *http.Request)
 	response.Success(w, nil, "重置成功")
 }
 
+func (h *AdminHandler) GenerateUserToken(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	data, err := h.logic.GenerateUserToken(id)
+	if err != nil {
+		response.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	response.Success(w, data, "ok")
+}
+
 func (h *AdminHandler) ListAdmins(w http.ResponseWriter, r *http.Request) {
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))

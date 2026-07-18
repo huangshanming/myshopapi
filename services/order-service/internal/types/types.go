@@ -4,7 +4,7 @@ package types
 type CreateOrderItem struct {
 	ProductID   uint64 `json:"product_id"`
 	SkuID       uint64 `json:"sku_id"`
-	SkuSnapshot string `json:"sku_snapshot"` // 可选；不传则由服务端用默认 SKU 规格填充
+	SkuSnapshot string `json:"sku_snapshot"`
 	Quantity    int    `json:"quantity"`
 }
 
@@ -17,4 +17,35 @@ type CreateOrderReq struct {
 type PageListResp struct {
 	Total int64       `json:"total"`
 	List  interface{} `json:"list"`
+}
+
+type ShipReq struct {
+	ShipCompany string `json:"ship_company"`
+	ShipNo      string `json:"ship_no"`
+}
+
+type RemarkReq struct {
+	Remark string `json:"remark"`
+}
+
+type CreateAfterSaleReq struct {
+	Type   string  `json:"type"` // refund | return_refund
+	Reason string  `json:"reason"`
+	Amount float64 `json:"amount"`
+}
+
+type HandleAfterSaleReq struct {
+	Action      string `json:"action"` // approve | reject | refunded | closed
+	AdminRemark string `json:"admin_remark"`
+}
+
+type LogisticsSaveReq struct {
+	Name   string `json:"name"`
+	Code   string `json:"code"`
+	Sort   int    `json:"sort"`
+	Status *int8  `json:"status"`
+}
+
+type LogisticsStatusReq struct {
+	Status int8 `json:"status"`
 }

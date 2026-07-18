@@ -44,7 +44,11 @@ export default defineConfig({
       '/api/v1/product_category': to(svc.catalog),
       // order
       '/api/v1/merchant/orders': to(svc.order),
+      '/api/v1/merchant/after-sales': to(svc.order),
       '/api/v1/admin/orders': to(svc.order),
+      '/api/v1/admin/after-sales': to(svc.order),
+      '/api/v1/admin/logistics': to(svc.order),
+      '/api/v1/logistics': to(svc.order),
       '/api/v1/orders': to(svc.order),
       // merchant（店铺 / 入驻；勿盖住上面的 catalog merchant 路径）
       '/api/v1/admin/shops': to(svc.merchant),

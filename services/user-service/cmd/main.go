@@ -137,6 +137,7 @@ func main() {
 		{Method: http.MethodPut, Path: "/api/v1/admin/users/:id", Handler: adminAuth("system:user:edit", adminHandler.UpdateUser)},
 		{Method: http.MethodPut, Path: "/api/v1/admin/users/:id/status", Handler: adminAuth("system:user:status", adminHandler.SetUserStatus)},
 		{Method: http.MethodPut, Path: "/api/v1/admin/users/:id/password", Handler: adminAuth("system:user:reset", adminHandler.ResetUserPassword)},
+		{Method: http.MethodPost, Path: "/api/v1/admin/users/:id/token", Handler: adminAuth("system:user:list", adminHandler.GenerateUserToken)},
 
 		{Method: http.MethodGet, Path: "/api/v1/admin/admins", Handler: adminAuth("system:admin:list", adminHandler.ListAdmins)},
 		{Method: http.MethodPost, Path: "/api/v1/admin/admins", Handler: adminAuth("system:admin:add", adminHandler.CreateAdmin)},

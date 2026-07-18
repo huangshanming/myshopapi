@@ -2,13 +2,14 @@
 # 本地热更新：air 监听 .go/.yaml，保存后自动重新编译启动（无需 Docker/K8s）
 #
 # 用法:
-#   bash scripts/dev.sh              # 四个服务一起（air）
+#   bash scripts/dev.sh              # 全部服务一起（air）
 #   bash scripts/dev.sh user         # 只跑 user-service
 #   bash scripts/dev.sh catalog
 #   bash scripts/dev.sh order
 #   bash scripts/dev.sh merchant
+#   bash scripts/dev.sh inventory    # inventory-sync-service（Canal→Redis）
 #
-# 前提: 本机 MySQL 已启动；脚本会自动拉起 Redis + RabbitMQ 容器
+# 前提: 本机 MySQL 已启动并开启 ROW binlog；脚本会自动拉起 Redis + RabbitMQ + Canal
 # 首次会 go install github.com/air-verse/air@latest
 set -euo pipefail
 
@@ -39,10 +40,10 @@ ensure_air() {
 
 start_infra() {
   if ! docker info >/dev/null 2>&1; then
-    red "Docker 未运行。Redis/RabbitMQ 需要 Docker，请先启动 Docker Desktop"
+    red "Docker 未运行。Redis/RabbitMQ/Canal 需要 Docker，请先启动 Docker Desktop"
     exit 1
   fi
-  yellow "==> 启动 Redis + RabbitMQ（基础设施）"
+  yellow "==> 启动 Redis + RabbitMQ + Canal（基础设施）"
   docker compose -f "$INFRA_FILE" up -d
 }
 
@@ -73,27 +74,32 @@ case "$TARGET" in
   merchant)
     run_service "merchant-service" "merchant-service" "8884"
     ;;
+  inventory|inventory-sync)
+    run_service "inventory-sync-service" "inventory-sync-service" "8885"
+    ;;
   all)
-    yellow "==> 启动四个服务（air 热更新）"
-    green "    user-service     → http://localhost:8881"
-    green "    catalog-service  → http://localhost:8882"
-    green "    order-service    → http://localhost:8883"
-    green "    merchant-service → http://localhost:8884"
-    echo "    单独调试: bash scripts/dev.sh <user|catalog|order|merchant>"
+    yellow "==> 启动全部服务（air 热更新）"
+    green "    user-service            → http://localhost:8881"
+    green "    catalog-service         → http://localhost:8882"
+    green "    order-service           → http://localhost:8883"
+    green "    merchant-service        → http://localhost:8884"
+    green "    inventory-sync-service  → http://localhost:8885"
+    echo "    单独调试: bash scripts/dev.sh <user|catalog|order|merchant|inventory>"
     echo "    保存 .go 文件后会自动重编；Ctrl+C 停止全部"
     echo ""
     PIDS=()
     cleanup() { for pid in "${PIDS[@]}"; do kill "$pid" 2>/dev/null || true; done; }
     trap cleanup EXIT INT TERM
-    (cd "$ROOT/services/user-service"     && air -c .air.toml) & PIDS+=($!)
-    (cd "$ROOT/services/catalog-service"  && air -c .air.toml) & PIDS+=($!)
-    (cd "$ROOT/services/order-service"    && air -c .air.toml) & PIDS+=($!)
-    (cd "$ROOT/services/merchant-service" && air -c .air.toml) & PIDS+=($!)
+    (cd "$ROOT/services/user-service"              && air -c .air.toml) & PIDS+=($!)
+    (cd "$ROOT/services/catalog-service"           && air -c .air.toml) & PIDS+=($!)
+    (cd "$ROOT/services/order-service"             && air -c .air.toml) & PIDS+=($!)
+    (cd "$ROOT/services/merchant-service"          && air -c .air.toml) & PIDS+=($!)
+    (cd "$ROOT/services/inventory-sync-service"    && air -c .air.toml) & PIDS+=($!)
     wait
     ;;
   *)
     red "未知参数: $TARGET"
-    echo "用法: bash scripts/dev.sh [user|catalog|order|merchant|all]"
+    echo "用法: bash scripts/dev.sh [user|catalog|order|merchant|inventory|all]"
     exit 1
     ;;
 esac

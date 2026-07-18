@@ -1,5 +1,6 @@
-# Redis + RabbitMQ（仅基础设施，不含微服务）
+# Redis + RabbitMQ + Canal（仅基础设施，不含微服务）
 # 完整一键启动请用: bash scripts/start-all.sh
+# Canal 前请先: mysql ... < scripts/init-canal-mysql.sql，并开启 ROW binlog
 services:
   redis:
     image: redis:7-alpine
@@ -18,6 +19,25 @@ services:
       RABBITMQ_DEFAULT_PASS: mymall
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+
+  canal-server:
+    image: canal/canal-server:v1.1.7
+    ports:
+      - "11111:11111"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      canal.auto.scan: "false"
+      canal.destinations: mymall
+      canal.instance.master.address: host.docker.internal:3306
+      canal.instance.dbUsername: canal
+      canal.instance.dbPassword: canal
+      canal.instance.connectionCharset: UTF-8
+      canal.instance.tsdb.enable: "false"
+      canal.instance.gtidon: "false"
+      canal.instance.filter.regex: mymall\\.product_skus,mymall\\.products
+    volumes:
+      - ./canal/instance.properties:/home/admin/canal-server/conf/mymall/instance.properties:ro
 
 volumes:
   redis_data:

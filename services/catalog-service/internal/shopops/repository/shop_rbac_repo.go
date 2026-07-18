@@ -64,6 +64,7 @@ func (r *ShopRBACRepository) EnsureShopMenus() error {
 
 		{ID: 4, ParentID: 101, Name: "库存预警", Type: "menu", Path: "/merchant/stocks/warnings", Component: "merchant/StockWarnings", Icon: "Warning", Perms: "stock:warn", Sort: 10, Visible: 1, Status: 1},
 		{ID: 5, ParentID: 102, Name: "店铺订单", Type: "menu", Path: "/merchant/orders", Component: "merchant/Orders", Icon: "List", Perms: "order:list", Sort: 10, Visible: 1, Status: 1},
+		{ID: 19, ParentID: 102, Name: "售后管理", Type: "menu", Path: "/merchant/after-sales", Component: "merchant/after-sales/AfterSales", Icon: "RefreshLeft", Perms: "aftersale:list", Sort: 11, Visible: 1, Status: 1},
 		{ID: 8, ParentID: 104, Name: "我的文章", Type: "menu", Path: "/merchant/articles", Component: "merchant/Articles", Icon: "Document", Perms: "article:list", Sort: 10, Visible: 1, Status: 1},
 		{ID: 9, ParentID: 104, Name: "发布文章", Type: "menu", Path: "/merchant/articles/edit", Component: "merchant/ArticleEdit", Icon: "Edit", Perms: "article:edit", Sort: 11, Visible: 1, Status: 1},
 		{ID: 6, ParentID: 103, Name: "员工权限", Type: "menu", Path: "/merchant/staff", Component: "merchant/Staff", Icon: "User", Perms: "shop:staff", Sort: 10, Visible: 1, Status: 1},
@@ -77,6 +78,10 @@ func (r *ShopRBACRepository) EnsureShopMenus() error {
 		{ID: 16, ParentID: 8, Name: "文章新增", Type: "button", Perms: "article:add", Sort: 1, Visible: 1, Status: 1},
 		{ID: 17, ParentID: 8, Name: "文章编辑", Type: "button", Perms: "article:edit", Sort: 2, Visible: 1, Status: 1},
 		{ID: 18, ParentID: 8, Name: "文章删除", Type: "button", Perms: "article:delete", Sort: 3, Visible: 1, Status: 1},
+		{ID: 20, ParentID: 5, Name: "订单发货", Type: "button", Perms: "order:ship", Sort: 1, Visible: 1, Status: 1},
+		{ID: 21, ParentID: 5, Name: "订单完成", Type: "button", Perms: "order:complete", Sort: 2, Visible: 1, Status: 1},
+		{ID: 22, ParentID: 5, Name: "订单备注", Type: "button", Perms: "order:remark", Sort: 3, Visible: 1, Status: 1},
+		{ID: 23, ParentID: 19, Name: "售后处理", Type: "button", Perms: "aftersale:handle", Sort: 1, Visible: 1, Status: 1},
 	}
 	for _, m := range seed {
 		var exists model.ShopMenu

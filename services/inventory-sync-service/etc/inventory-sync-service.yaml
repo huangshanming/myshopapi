@@ -1,0 +1,34 @@
+# 仅本地 go run 默认值。Docker Compose / K8s 用 MYMALL_* 覆盖
+server:
+  http_port: 8885
+  mode: debug
+mysql:
+  host: 127.0.0.1
+  port: 3306
+  username: homestead
+  password: secret
+  charset: utf8mb4
+  dbname: mymall
+  max_open_conns: 20
+  max_idle_conns: 5
+  conn_max_lifetime: 3600
+  conn_max_idle_time: 3600
+redis:
+  host: 127.0.0.1
+  port: 6379
+  password: ""
+  db: 0
+canal:
+  host: 127.0.0.1
+  port: 11111
+  destination: mymall
+  username: ""
+  password: ""
+  # Perl 正则；转义在 yaml 里写成单反斜杠即可
+  filter: mymall\.product_skus
+  so_timeout: 60000
+  idle_timeout: 3600000
+telemetry:
+  enabled: false
+  endpoint: jaeger-collector.mymall:4318
+  service: inventory-sync-service

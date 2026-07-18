@@ -7,6 +7,8 @@ import MerchantLayout from '../layouts/MerchantLayout.vue'
 import AdminShops from '../views/admin/Shops.vue'
 import AdminApplications from '../views/admin/Applications.vue'
 import AdminOrders from '../views/admin/Orders.vue'
+import AdminAfterSales from '../views/admin/after-sales/AfterSales.vue'
+import AdminLogistics from '../views/admin/Logistics.vue'
 import SystemMenus from '../views/admin/system/Menus.vue'
 import SystemRoles from '../views/admin/system/Roles.vue'
 import SystemUsers from '../views/admin/system/Users.vue'
@@ -19,6 +21,7 @@ import MerchantStockWarnings from '../views/merchant/StockWarnings.vue'
 import MerchantOpLogs from '../views/merchant/OpLogs.vue'
 import MerchantStaff from '../views/merchant/Staff.vue'
 import MerchantOrders from '../views/merchant/Orders.vue'
+import MerchantAfterSales from '../views/merchant/after-sales/AfterSales.vue'
 import MerchantArticles from '../views/merchant/Articles.vue'
 import MerchantArticleEdit from '../views/merchant/ArticleEdit.vue'
 import AdminArticles from '../views/admin/articles/Articles.vue'
@@ -29,6 +32,7 @@ import AdminArticleRecycle from '../views/admin/articles/Recycle.vue'
 import AdminArticleStats from '../views/admin/articles/Stats.vue'
 import AdminProducts from '../views/admin/products/Products.vue'
 import AdminProductCategories from '../views/admin/products/Categories.vue'
+import AdminProductDetail from '../views/admin/products/ProductDetail.vue'
 import MerchantNotifications from '../views/merchant/Notifications.vue'
 
 const router = createRouter({
@@ -45,7 +49,10 @@ const router = createRouter({
         { path: 'applications', component: AdminApplications, meta: { perms: 'business:application:list' } },
         { path: 'shops', component: AdminShops, meta: { perms: 'business:shop:list' } },
         { path: 'orders', component: AdminOrders, meta: { perms: 'business:order:list' } },
+        { path: 'after-sales', component: AdminAfterSales, meta: { perms: 'business:aftersale:list' } },
+        { path: 'logistics', component: AdminLogistics, meta: { perms: 'business:logistics:list' } },
         { path: 'products/categories', component: AdminProductCategories, meta: { perms: 'business:category:list' } },
+        { path: 'products/detail/:id', component: AdminProductDetail, meta: { perms: 'business:product:list' } },
         { path: 'products', component: AdminProducts, meta: { perms: 'business:product:list' } },
         { path: 'articles/edit/:id?', component: AdminArticleEdit, meta: { perms: 'community:article:list' } },
         { path: 'articles/categories', component: AdminArticleCategories, meta: { perms: 'community:article:category' } },
@@ -73,6 +80,7 @@ const router = createRouter({
         { path: 'products/op-logs', component: MerchantOpLogs, meta: { shopPerm: 'product:list' } },
         { path: 'staff', component: MerchantStaff, meta: { shopPerm: 'shop:staff' } },
         { path: 'orders', component: MerchantOrders, meta: { shopPerm: 'order:list' } },
+        { path: 'after-sales', component: MerchantAfterSales, meta: { shopPerm: 'aftersale:list' } },
         { path: 'articles', component: MerchantArticles, meta: { shopPerm: 'article:list' } },
         { path: 'articles/edit/:id?', component: MerchantArticleEdit, meta: { shopPerm: 'article:edit' } },
         { path: 'notifications', component: MerchantNotifications, meta: { shopPerm: 'notif:list' } },

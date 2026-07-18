@@ -24,6 +24,25 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
 
+  canal-server:
+    image: canal/canal-server:v1.1.7
+    ports:
+      - "11111:11111"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      canal.auto.scan: "false"
+      canal.destinations: mymall
+      canal.instance.master.address: host.docker.internal:3306
+      canal.instance.dbUsername: canal
+      canal.instance.dbPassword: canal
+      canal.instance.connectionCharset: UTF-8
+      canal.instance.tsdb.enable: "false"
+      canal.instance.gtidon: "false"
+      canal.instance.filter.regex: mymall\\.product_skus,mymall\\.products
+    volumes:
+      - ./canal/instance.properties:/home/admin/canal-server/conf/mymall/instance.properties:ro
+
   user-service:
     build:
       context: ../..
@@ -89,6 +108,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
+      - redis
       - rabbitmq
       - user-service
       - catalog-service
@@ -99,12 +119,42 @@ services:
       MYMALL_MYSQL_USERNAME: homestead
       MYMALL_MYSQL_PASSWORD: secret
       MYMALL_MYSQL_DBNAME: mymall
+      MYMALL_REDIS_HOST: redis
+      MYMALL_REDIS_PORT: "6379"
       MYMALL_GRPC_USER_SERVICE: user-service:9090
       MYMALL_GRPC_CATALOG_SERVICE: catalog-service:9090
       MYMALL_RABBITMQ_HOST: rabbitmq
       MYMALL_RABBITMQ_PORT: "5672"
       MYMALL_RABBITMQ_USERNAME: mymall
       MYMALL_RABBITMQ_PASSWORD: mymall
+
+  inventory-sync-service:
+    build:
+      context: ../..
+      dockerfile: services/inventory-sync-service/Dockerfile
+      args:
+        <<: *service-build-args
+    image: mymall-inventory-sync-service:local
+    ports:
+      - "8885:8888"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - redis
+      - canal-server
+    environment:
+      MYMALL_SERVER_HTTP_PORT: "8888"
+      MYMALL_MYSQL_HOST: host.docker.internal
+      MYMALL_MYSQL_PORT: "3306"
+      MYMALL_MYSQL_USERNAME: homestead
+      MYMALL_MYSQL_PASSWORD: secret
+      MYMALL_MYSQL_DBNAME: mymall
+      MYMALL_REDIS_HOST: redis
+      MYMALL_REDIS_PORT: "6379"
+      MYMALL_CANAL_HOST: canal-server
+      MYMALL_CANAL_PORT: "11111"
+      MYMALL_CANAL_DESTINATION: mymall
+      MYMALL_CANAL_FILTER: mymall\\.product_skus
 
   merchant-service:
     build:

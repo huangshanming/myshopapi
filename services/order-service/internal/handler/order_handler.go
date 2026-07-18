@@ -9,6 +9,7 @@ import (
 	"mymall/pkg/middleware"
 	"mymall/pkg/response"
 	"mymall/services/order-service/internal/logic"
+	"mymall/services/order-service/internal/repository"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
 )
@@ -25,17 +26,6 @@ func NewOrderHandler(svcCtx *svc.ServiceContext) *OrderHandler {
 	}
 }
 
-// Create 创建订单
-// @Summary      创建订单
-// @Description  需要 JWT；经 APISIX 网关时从 Authorization 注入 X-User-Id
-// @Tags         订单
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        X-User-Id  header  int             false  "用户 ID（网关注入，直连调试时必填）"
-// @Param        body       body    dto.CreateOrderReq  true  "下单商品"
-// @Success      201  {object}  apidoc.Response{data=dto.OrderInfo}  "创建成功"
-// @Router       /api/v1/orders [post]
 func (h *OrderHandler) Create(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -55,17 +45,6 @@ func (h *OrderHandler) Create(w http.ResponseWriter, r *http.Request) {
 	response.Success(w, order, "创建成功")
 }
 
-// List 我的订单列表
-// @Summary      我的订单列表
-// @Description  分页查询当前用户订单
-// @Tags         订单
-// @Produce      json
-// @Security     BearerAuth
-// @Param        X-User-Id  header  int  false  "用户 ID（网关注入）"
-// @Param        page       query   int  false  "页码"      default(1)
-// @Param        page_size  query   int  false  "每页数量"  default(10)
-// @Success      200  {object}  apidoc.Response{data=dto.OrderListResp}  "查询成功"
-// @Router       /api/v1/orders [get]
 func (h *OrderHandler) List(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -81,15 +60,6 @@ func (h *OrderHandler) List(w http.ResponseWriter, r *http.Request) {
 	response.Success(w, types.PageListResp{Total: total, List: orders}, "查询成功")
 }
 
-// Detail 订单详情
-// @Summary      订单详情
-// @Tags         订单
-// @Produce      json
-// @Security     BearerAuth
-// @Param        X-User-Id  header  int  false  "用户 ID（网关注入）"
-// @Param        id         path    int  true   "订单 ID"
-// @Success      200  {object}  apidoc.Response{data=dto.OrderInfo}  "查询成功"
-// @Router       /api/v1/orders/{id} [get]
 func (h *OrderHandler) Detail(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -98,7 +68,7 @@ func (h *OrderHandler) Detail(w http.ResponseWriter, r *http.Request) {
 	}
 	orderID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
-		response.Error(w, "订单 ID 无效", http.StatusBadRequest)
+		response.Error(w, "订单ID无效", http.StatusBadRequest)
 		return
 	}
 	order, err := h.logic.GetOrder(userID, orderID)
@@ -109,16 +79,6 @@ func (h *OrderHandler) Detail(w http.ResponseWriter, r *http.Request) {
 	response.Success(w, order, "查询成功")
 }
 
-// Cancel 取消订单
-// @Summary      取消订单
-// @Description  pending/confirmed 状态可取消，会触发库存回滚
-// @Tags         订单
-// @Produce      json
-// @Security     BearerAuth
-// @Param        X-User-Id  header  int  false  "用户 ID（网关注入）"
-// @Param        id         path    int  true   "订单 ID"
-// @Success      200  {object}  apidoc.Response{data=apidoc.EmptyData}  "取消成功"
-// @Router       /api/v1/orders/{id}/cancel [put]
 func (h *OrderHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -127,7 +87,7 @@ func (h *OrderHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 	}
 	orderID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
-		response.Error(w, "订单 ID 无效", http.StatusBadRequest)
+		response.Error(w, "订单ID无效", http.StatusBadRequest)
 		return
 	}
 	if err := h.logic.CancelOrder(r.Context(), userID, orderID); err != nil {
@@ -135,4 +95,226 @@ func (h *OrderHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response.Success(w, nil, "取消成功")
+}
+
+func (h *OrderHandler) CreateAfterSale(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		response.Error(w, "未授权", http.StatusUnauthorized)
+		return
+	}
+	orderID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	if err != nil {
+		response.Error(w, "订单ID无效", http.StatusBadRequest)
+		return
+	}
+	var req types.CreateAfterSaleReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, "参数错误", http.StatusBadRequest)
+		return
+	}
+	as, err := h.logic.CreateAfterSale(userID, orderID, req)
+	if err != nil {
+		response.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	response.Success(w, as, "申请成功")
+}
+
+func (h *OrderHandler) MerchantList(w http.ResponseWriter, r *http.Request) {
+	shopID := middleware.GetShopID(r.Context())
+	if shopID == 0 {
+		response.Error(w, "缺少 shop_id", http.StatusForbidden)
+		return
+	}
+	p, ps := middleware.ParsePage(r)
+	orders, total, err := h.logic.ListByShop(shopID, p, ps, r.URL.Query().Get("status"), r.URL.Query().Get("order_no"))
+	if err != nil {
+		response.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	response.Success(w, types.PageListResp{Total: total, List: orders}, "查询成功")
+}
+
+func (h *OrderHandler) MerchantDetail(w http.ResponseWriter, r *http.Request) {
+	shopID := middleware.GetShopID(r.Context())
+	if shopID == 0 {
+		response.Error(w, "缺少 shop_id", http.StatusForbidden)
+		return
+	}
+	orderID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	if err != nil {
+		response.Error(w, "订单ID无效", http.StatusBadRequest)
+		return
+	}
+	order, err := h.logic.GetOrderByShop(shopID, orderID)
+	if err != nil {
+		response.Error(w, "订单不存在", http.StatusNotFound)
+		return
+	}
+	as, _ := h.logic.ListAfterSalesByOrder(orderID)
+	response.Success(w, map[string]interface{}{"order": order, "after_sales": as}, "查询成功")
+}
+
+func (h *OrderHandler) MerchantShip(w http.ResponseWriter, r *http.Request) {
+	shopID := middleware.GetShopID(r.Context())
+	h.ship(w, r, shopID)
+}
+
+func (h *OrderHandler) MerchantComplete(w http.ResponseWriter, r *http.Request) {
+	shopID := middleware.GetShopID(r.Context())
+	h.complete(w, r, shopID)
+}
+
+func (h *OrderHandler) MerchantRemark(w http.ResponseWriter, r *http.Request) {
+	shopID := middleware.GetShopID(r.Context())
+	h.remark(w, r, shopID)
+}
+
+func (h *OrderHandler) MerchantAfterSales(w http.ResponseWriter, r *http.Request) {
+	shopID := middleware.GetShopID(r.Context())
+	if shopID == 0 {
+		response.Error(w, "缺少 shop_id", http.StatusForbidden)
+		return
+	}
+	p, ps := middleware.ParsePage(r)
+	list, total, err := h.logic.ListAfterSales(repository.AfterSaleListFilter{
+		ShopID: shopID, Status: r.URL.Query().Get("status"), OrderNo: r.URL.Query().Get("order_no"),
+		Page: p, PageSize: ps,
+	})
+	if err != nil {
+		response.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	response.Success(w, types.PageListResp{Total: total, List: list}, "查询成功")
+}
+
+func (h *OrderHandler) MerchantHandleAfterSale(w http.ResponseWriter, r *http.Request) {
+	shopID := middleware.GetShopID(r.Context())
+	uid, _ := middleware.GetUserID(r.Context())
+	h.handleAfterSale(w, r, shopID, uid)
+}
+
+func (h *OrderHandler) AdminList(w http.ResponseWriter, r *http.Request) {
+	p, ps := middleware.ParsePage(r)
+	shopID, _ := strconv.ParseUint(r.URL.Query().Get("shop_id"), 10, 64)
+	orders, total, err := h.logic.ListAll(shopID, p, ps, r.URL.Query().Get("status"), r.URL.Query().Get("order_no"))
+	if err != nil {
+		response.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	response.Success(w, types.PageListResp{Total: total, List: orders}, "查询成功")
+}
+
+func (h *OrderHandler) AdminDetail(w http.ResponseWriter, r *http.Request) {
+	orderID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	if err != nil {
+		response.Error(w, "订单ID无效", http.StatusBadRequest)
+		return
+	}
+	order, err := h.logic.GetOrderAdmin(orderID)
+	if err != nil {
+		response.Error(w, "订单不存在", http.StatusNotFound)
+		return
+	}
+	as, _ := h.logic.ListAfterSalesByOrder(orderID)
+	response.Success(w, map[string]interface{}{"order": order, "after_sales": as}, "查询成功")
+}
+
+func (h *OrderHandler) AdminShip(w http.ResponseWriter, r *http.Request) {
+	h.ship(w, r, 0)
+}
+
+func (h *OrderHandler) AdminComplete(w http.ResponseWriter, r *http.Request) {
+	h.complete(w, r, 0)
+}
+
+func (h *OrderHandler) AdminRemark(w http.ResponseWriter, r *http.Request) {
+	h.remark(w, r, 0)
+}
+
+func (h *OrderHandler) AdminAfterSales(w http.ResponseWriter, r *http.Request) {
+	p, ps := middleware.ParsePage(r)
+	shopID, _ := strconv.ParseUint(r.URL.Query().Get("shop_id"), 10, 64)
+	list, total, err := h.logic.ListAfterSales(repository.AfterSaleListFilter{
+		ShopID: shopID, Status: r.URL.Query().Get("status"), OrderNo: r.URL.Query().Get("order_no"),
+		Page: p, PageSize: ps,
+	})
+	if err != nil {
+		response.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	response.Success(w, types.PageListResp{Total: total, List: list}, "查询成功")
+}
+
+func (h *OrderHandler) AdminHandleAfterSale(w http.ResponseWriter, r *http.Request) {
+	uid, _ := middleware.GetUserID(r.Context())
+	h.handleAfterSale(w, r, 0, uid)
+}
+
+func (h *OrderHandler) ship(w http.ResponseWriter, r *http.Request, shopID uint64) {
+	orderID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	if err != nil {
+		response.Error(w, "订单ID无效", http.StatusBadRequest)
+		return
+	}
+	var req types.ShipReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, "参数错误", http.StatusBadRequest)
+		return
+	}
+	if err := h.logic.Ship(orderID, shopID, req.ShipCompany, req.ShipNo); err != nil {
+		response.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	response.Success(w, nil, "发货成功")
+}
+
+func (h *OrderHandler) complete(w http.ResponseWriter, r *http.Request, shopID uint64) {
+	orderID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	if err != nil {
+		response.Error(w, "订单ID无效", http.StatusBadRequest)
+		return
+	}
+	if err := h.logic.Complete(orderID, shopID); err != nil {
+		response.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	response.Success(w, nil, "已完成")
+}
+
+func (h *OrderHandler) remark(w http.ResponseWriter, r *http.Request, shopID uint64) {
+	orderID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	if err != nil {
+		response.Error(w, "订单ID无效", http.StatusBadRequest)
+		return
+	}
+	var req types.RemarkReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, "参数错误", http.StatusBadRequest)
+		return
+	}
+	if err := h.logic.UpdateRemark(orderID, shopID, req.Remark); err != nil {
+		response.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	response.Success(w, nil, "已更新")
+}
+
+func (h *OrderHandler) handleAfterSale(w http.ResponseWriter, r *http.Request, shopID, handledBy uint64) {
+	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	if err != nil {
+		response.Error(w, "ID无效", http.StatusBadRequest)
+		return
+	}
+	var req types.HandleAfterSaleReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, "参数错误", http.StatusBadRequest)
+		return
+	}
+	if err := h.logic.HandleAfterSale(r.Context(), id, shopID, handledBy, req.Action, req.AdminRemark); err != nil {
+		response.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	response.Success(w, nil, "处理成功")
 }

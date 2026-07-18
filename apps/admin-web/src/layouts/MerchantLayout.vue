@@ -75,6 +75,7 @@ const fallbackMenus = [
     type: 'dir',
     children: [
       { id: 5, name: '店铺订单', path: '/merchant/orders', type: 'menu' },
+      { id: 19, name: '售后管理', path: '/merchant/after-sales', type: 'menu' },
     ],
   },
   {

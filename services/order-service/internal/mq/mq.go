@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 
+	"mymall/pkg/cache"
 	"mymall/pkg/mq"
 	"mymall/services/order-service/internal/model"
 	"mymall/services/order-service/internal/repository"
 
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
@@ -45,11 +47,12 @@ type InventoryResultEvent struct {
 type Consumer struct {
 	client *mq.Client
 	repo   *repository.OrderRepository
+	rdb    *redis.Client
 	logger *zap.Logger
 }
 
-func NewConsumer(client *mq.Client, repo *repository.OrderRepository, logger *zap.Logger) *Consumer {
-	return &Consumer{client: client, repo: repo, logger: logger}
+func NewConsumer(client *mq.Client, repo *repository.OrderRepository, rdb *redis.Client, logger *zap.Logger) *Consumer {
+	return &Consumer{client: client, repo: repo, rdb: rdb, logger: logger}
 }
 
 func (c *Consumer) Start() error {
@@ -73,5 +76,28 @@ func (c *Consumer) handleFailed(ctx context.Context, _ string, body []byte) erro
 		return err
 	}
 	c.logger.Warn("inventory failed", zap.String("order_no", evt.OrderNo), zap.String("message", evt.Message))
-	return c.repo.UpdateStatus(evt.OrderNo, model.OrderStatusFailed)
+	if err := c.repo.UpdateStatus(evt.OrderNo, model.OrderStatusFailed); err != nil {
+		return err
+	}
+	if c.rdb == nil {
+		return nil
+	}
+	order, err := c.repo.FindByOrderNo(evt.OrderNo)
+	if err != nil {
+		c.logger.Warn("load order for redis restore failed", zap.String("order_no", evt.OrderNo), zap.Error(err))
+		return nil
+	}
+	items := make([]cache.StockItem, 0, len(order.Items))
+	for _, it := range order.Items {
+		if it.SkuID > 0 && it.Quantity > 0 {
+			items = append(items, cache.StockItem{SkuID: it.SkuID, Quantity: it.Quantity})
+		}
+	}
+	if len(items) == 0 {
+		return nil
+	}
+	if err := cache.StockRestore(ctx, c.rdb, items); err != nil {
+		c.logger.Warn("redis stock restore failed", zap.String("order_no", evt.OrderNo), zap.Error(err))
+	}
+	return nil
 }

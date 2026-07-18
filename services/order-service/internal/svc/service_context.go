@@ -1,6 +1,7 @@
 package svc
 
 import (
+	"mymall/pkg/cache"
 	"mymall/pkg/config"
 	"mymall/pkg/mq"
 	"mymall/services/order-service/internal/client/catalogrpc"
@@ -8,18 +9,21 @@ import (
 	ordermq "mymall/services/order-service/internal/mq"
 	"mymall/services/order-service/internal/repository"
 
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
 // ServiceContext 全局依赖（go-zero 惯例）
 type ServiceContext struct {
-	Config     *config.Config
-	DB         *gorm.DB
-	Repo       *repository.OrderRepository
-	UserRPC    *userrpc.Client
-	CatalogRPC *catalogrpc.Client
-	MQ         *ordermq.Publisher
-	MQClient   *mq.Client
+	Config        *config.Config
+	DB            *gorm.DB
+	Redis         *redis.Client
+	Repo          *repository.OrderRepository
+	LogisticsRepo *repository.LogisticsRepository
+	UserRPC       *userrpc.Client
+	CatalogRPC    *catalogrpc.Client
+	MQ            *ordermq.Publisher
+	MQClient      *mq.Client
 }
 
 func NewServiceContext(cfg *config.Config, db *gorm.DB) (*ServiceContext, error) {
@@ -40,14 +44,24 @@ func NewServiceContext(cfg *config.Config, db *gorm.DB) (*ServiceContext, error)
 		publisher = ordermq.NewPublisher(mqc)
 	}
 
+	var rdb *redis.Client
+	if c, err := cache.NewRedis(cfg.Redis); err == nil {
+		rdb = c
+	}
+
+	logisticsRepo := repository.NewLogisticsRepository(db)
+	_ = logisticsRepo.SeedDefaults()
+
 	return &ServiceContext{
-		Config:     cfg,
-		DB:         db,
-		Repo:       repository.NewOrderRepository(db),
-		UserRPC:    userRPC,
-		CatalogRPC: catalogRPC,
-		MQ:         publisher,
-		MQClient:   mqClient,
+		Config:        cfg,
+		DB:            db,
+		Redis:         rdb,
+		Repo:          repository.NewOrderRepository(db),
+		LogisticsRepo: logisticsRepo,
+		UserRPC:       userRPC,
+		CatalogRPC:    catalogRPC,
+		MQ:            publisher,
+		MQClient:      mqClient,
 	}, nil
 }
 
@@ -60,5 +74,8 @@ func (s *ServiceContext) Close() {
 	}
 	if s.MQClient != nil {
 		_ = s.MQClient.Close()
+	}
+	if s.Redis != nil {
+		_ = s.Redis.Close()
 	}
 }

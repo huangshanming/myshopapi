@@ -7,15 +7,17 @@ Go 1.24 Monorepo，user / catalog / order / merchant 微服务，**HTTP 框架�
 ```
 Client → APISIX (JWT) → user-service     (go-zero rest :8888, zrpc :9090)
                        → catalog-service (go-zero rest :8888, zrpc :9090, Redis, MQ)
-                       → order-service   (go-zero rest :8888, zrpc Client, MQ)
+                       → order-service   (go-zero rest :8888, zrpc Client, Redis, MQ)
                        → merchant-service(go-zero rest :8888)
+                       → inventory-sync  (health :8885, Canal→Redis 库存预热)
 ```
 
 - **HTTP**：go-zero `rest`（已替换 Gin）
 - **同步调用**：order-service 通过 **zrpc** 调用 user / catalog（沿用 `api/proto` 生成代码）
 - **异步事件**：RabbitMQ `mymall.events` exchange（下单、库存 Saga）
-- **数据库**：本机 MySQL，四服务共用 **`mymall`** 库（本地开发简化；上线可再拆库）
-- **缓存**：本机 Redis（catalog 商品列表）
+- **库存**：下单先扣 Redis（`catalog:sku:stock:{skuId}`），再发 MQ；catalog 用 MySQL 乐观锁落库；`inventory-sync-service` 经 Canal 监听 binlog 同步/预热 Redis
+- **数据库**：本机 MySQL，服务共用 **`mymall`** 库（本地开发简化；上线可再拆库）
+- **缓存**：本机 Redis（catalog 商品列表 + SKU 库存）
 - **K8s Pod 访问本机**：`host.docker.internal`
 - **接口文档**：`bash scripts/serve-docs.sh`（Scalar）；服务内不再挂 gin-swagger
 
@@ -28,7 +30,7 @@ mymall/
 ├── pkg/                 # 共享库（config/jwt/database/httpserver/middleware…）
 ├── common/              # LocalTime 等
 ├── apps/admin-web/      # 管理端 / 商家端 Vue3
-├── services/<svc>/      # goctl 风格目录（四服务同构）
+├── services/<svc>/      # goctl 风格目录（业务服务 + inventory-sync）
 │   ├── etc/<svc>.yaml   # 本地/镜像默认配置（CONFIG_PATH）
 │   ├── cmd/main.go
 │   └── internal/
@@ -76,11 +78,42 @@ mysql -u homestead -p mymall < scripts/seed-rbac.sql
 # mysql -u homestead -p mymall < scripts/alter-product-center.sql
 # python3 scripts/seed-shop-demo-products.py
 
-# Redis + RabbitMQ（可选 docker-compose）
+# Redis + RabbitMQ + Canal（可选 docker-compose）
 docker compose -f deploy/local/docker-compose.infra.yaml up -d
+
+# Canal 复制账号（一次即可；需本机 MySQL 已开 ROW binlog）
+mysql -u root -p < scripts/init-canal-mysql.sql
 ```
 
 若基础表早已建好，**补** `init-merchant-tables.sql` + `seed-admin-merchant.sql`；后台 RBAC 再补 `init-rbac-tables.sql` + `seed-rbac.sql`。改代码后需重建对应服务镜像。
+
+### Canal / 库存预热
+
+本机 MySQL 需开启 ROW binlog（Homestead / 自建均可），例如 `my.cnf`：
+
+```ini
+[mysqld]
+server-id=1
+log-bin=mysql-bin
+binlog_format=ROW
+binlog_row_image=FULL
+```
+
+检查：
+
+```bash
+mysql -u homestead -p -e "SHOW VARIABLES LIKE 'log_bin'; SHOW VARIABLES LIKE 'binlog_format';"
+```
+
+`inventory-sync-service` 启动时全量预热 `product_skus.stock` → Redis，随后用 [canal-go](https://github.com/withlin/canal-go) 增量 CAS 同步。下单路径：Redis 预扣 → MQ → MySQL 乐观锁；`inventory.failed` / 取消订单会补偿 Redis。
+
+```bash
+bash scripts/dev.sh inventory   # 单独跑 sync
+# 或
+bash scripts/dev.sh             # 含 inventory-sync
+```
+
+验证：`redis-cli KEYS 'catalog:sku:stock:*'`；管理端改 SKU 库存后 Redis 应跟随。
 
 本地 `server.mode: debug`（默认）启动时会按各服务 model 做 **GORM AutoMigrate**（加表/加列，类似 Beego sync；**不删列**）。K8s `release` 不会跑。可用 `MYMALL_MYSQL_AUTO_MIGRATE=true|false` 强制开关。种子数据仍靠 SQL，AutoMigrate 不会插账号。
 
@@ -96,6 +129,7 @@ bash scripts/start-all.sh
 | catalog-service | http://localhost:8882 |
 | order-service | http://localhost:8883 |
 | merchant-service | http://localhost:8884 |
+| inventory-sync-service | http://localhost:8885 |
 | admin-web（Vue） | `cd apps/admin-web && npm i && npm run dev` → http://localhost:5174 |
 
 停止：`bash scripts/stop-all.sh`
@@ -120,7 +154,7 @@ Docker 每次改代码都要重建镜像，**日常开发请用 `dev.sh`**（[ai
 # 只调试正在改的服务（推荐）
 bash scripts/dev.sh order
 
-# 或四个服务一起跑
+# 或全部服务一起跑（含 inventory-sync）
 bash scripts/dev.sh
 ```
 

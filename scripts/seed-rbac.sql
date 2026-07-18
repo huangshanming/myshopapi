@@ -15,6 +15,8 @@ INSERT INTO sys_menu (id, parent_id, name, type, path, component, icon, perms, s
 (2,  1, '入驻审核', 'menu', '/admin/applications', 'admin/Applications', 'Document', 'business:application:list', 11, 1, 1),
 (3,  1, '店铺管理', 'menu', '/admin/shops', 'admin/Shops', 'Shop', 'business:shop:list', 12, 1, 1),
 (4,  1, '全站订单', 'menu', '/admin/orders', 'admin/Orders', 'List', 'business:order:list', 13, 1, 1),
+(7,  1, '售后管理', 'menu', '/admin/after-sales', 'admin/after-sales/AfterSales', 'RefreshLeft', 'business:aftersale:list', 16, 1, 1),
+(8,  1, '物流管理', 'menu', '/admin/logistics', 'admin/Logistics', 'Van', 'business:logistics:list', 17, 1, 1),
 (5,  1, '全站商品', 'menu', '/admin/products', 'admin/products/Products', 'Goods', 'business:product:list', 14, 1, 1),
 (6,  1, '商品分类', 'menu', '/admin/products/categories', 'admin/products/Categories', 'Menu', 'business:category:list', 15, 1, 1),
 (10, 0, '系统管理', 'dir',  '', '', 'Setting', '', 90, 1, 1),
@@ -56,8 +58,16 @@ INSERT INTO sys_menu (id, parent_id, name, type, path, component, icon, perms, s
 (75, 5, '商品删除', 'button', '', '', '', 'business:product:delete', 2, 1, 1),
 (76, 6, '分类新增', 'button', '', '', '', 'business:category:add', 1, 1, 1),
 (77, 6, '分类编辑', 'button', '', '', '', 'business:category:edit', 2, 1, 1),
-(78, 6, '分类删除', 'button', '', '', '', 'business:category:delete', 3, 1, 1)
-ON DUPLICATE KEY UPDATE name=VALUES(name), path=VALUES(path), perms=VALUES(perms), sort=VALUES(sort);
+(78, 6, '分类删除', 'button', '', '', '', 'business:category:delete', 3, 1, 1),
+(81, 4, '订单发货', 'button', '', '', '', 'business:order:ship', 1, 1, 1),
+(82, 4, '订单完成', 'button', '', '', '', 'business:order:complete', 2, 1, 1),
+(83, 4, '订单备注', 'button', '', '', '', 'business:order:remark', 3, 1, 1),
+(84, 7, '售后处理', 'button', '', '', '', 'business:aftersale:handle', 1, 1, 1),
+(85, 8, '物流新增', 'button', '', '', '', 'business:logistics:add', 1, 1, 1),
+(86, 8, '物流编辑', 'button', '', '', '', 'business:logistics:edit', 2, 1, 1),
+(87, 8, '物流删除', 'button', '', '', '', 'business:logistics:delete', 3, 1, 1),
+(88, 8, '物流启停', 'button', '', '', '', 'business:logistics:status', 4, 1, 1)
+ON DUPLICATE KEY UPDATE name=VALUES(name), path=VALUES(path), component=VALUES(component), icon=VALUES(icon), perms=VALUES(perms), sort=VALUES(sort);
 
 -- super_admin 拥有全部菜单
 INSERT IGNORE INTO sys_role_menu (role_id, menu_id)
