@@ -30,6 +30,7 @@ mymall/
 ├── pkg/                 # 共享库（config/jwt/database/httpserver/middleware…）
 ├── common/              # LocalTime 等
 ├── apps/admin-web/      # 管理端 / 商家端 Vue3
+├── apps/mall-uni/       # 用户端 UniApp（Vue3+Vite，H5）
 ├── services/<svc>/      # goctl 风格目录（业务服务 + inventory-sync）
 │   ├── etc/<svc>.yaml   # 本地/镜像默认配置（CONFIG_PATH）
 │   ├── cmd/main.go
@@ -131,6 +132,7 @@ bash scripts/start-all.sh
 | merchant-service | http://localhost:8884 |
 | inventory-sync-service | http://localhost:8885 |
 | admin-web（Vue） | `cd apps/admin-web && npm i && npm run dev` → http://localhost:5174 |
+| mall-uni（用户端） | `cd apps/mall-uni && yarn && yarn dev:h5` → http://localhost:5175 |
 
 停止：`bash scripts/stop-all.sh`
 
