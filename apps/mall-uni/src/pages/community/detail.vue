@@ -78,7 +78,12 @@
       <view v-if="cmtHasMore" class="more" @tap="loadComments(false)">加载更多</view>
     </view>
 
-    <view class="composer" :class="{ open: composerOpen || replyTarget }">
+    <view
+      v-if="composerVisible"
+      class="composer-mask"
+      @tap="closeComposer"
+    />
+    <view v-if="composerVisible" class="composer" @tap.stop>
       <view v-if="replyTarget" class="reply-tip">
         <text>回复 {{ replyTarget.user_nickname || '用户' }}</text>
         <text class="cancel" @tap="cancelReply">取消</text>
@@ -87,17 +92,18 @@
         <input
           class="input"
           v-model="draft"
+          :focus="inputFocus"
           :placeholder="replyTarget ? '写回复…' : '写评论…'"
           confirm-type="send"
           @confirm="submitComment"
           @focus="composerOpen = true"
         />
-        <view class="em-btn" :class="{ on: emojiOpen }" @tap="toggleEmoji">
-          <image class="em-logo" src="/static/logo.png" mode="aspectFit" />
+        <view class="em-btn" :class="{ on: emojiOpen }" @tap.stop="toggleEmoji">
+          <image class="em-logo" src="/static/emoji-btn.png" mode="aspectFit" />
         </view>
         <text class="send" @tap="submitComment">发送</text>
       </view>
-      <scroll-view v-if="emojiOpen" class="emoji-panel" scroll-y>
+      <scroll-view v-if="emojiOpen" class="emoji-panel" scroll-y @tap.stop>
         <view class="emoji-grid">
           <view v-for="e in emojis" :key="e.id" class="emoji-item" @tap="insertEmoji(e)">
             <image class="emoji-img bounce" :src="e.image_url" mode="aspectFit" />
@@ -127,7 +133,7 @@
 </template>
 
 <script setup>
-import { nextTick, reactive, ref } from 'vue'
+import { computed, nextTick, reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import {
   createArticleComment,
@@ -162,8 +168,19 @@ const replyTarget = ref(null)
 const replyRoot = ref(null)
 const composerOpen = ref(false)
 const emojiOpen = ref(false)
+const inputFocus = ref(false)
 const emojis = ref([])
 const emojiMap = ref({})
+
+const composerVisible = computed(() => composerOpen.value || !!replyTarget.value || emojiOpen.value)
+
+function closeComposer() {
+  composerOpen.value = false
+  emojiOpen.value = false
+  inputFocus.value = false
+  replyTarget.value = null
+  replyRoot.value = null
+}
 
 function ensureLogin() {
   if (isLoggedIn()) return true
