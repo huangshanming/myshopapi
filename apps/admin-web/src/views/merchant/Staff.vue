@@ -210,9 +210,9 @@ async function load() {
   loading.value = true
   try {
     const [s, r, m] = await Promise.all([listShopStaff(), listShopRoles(), listShopMenus()])
-    staff.value = Array.isArray(s.data) ? s.data : []
-    roles.value = Array.isArray(r.data) ? r.data : []
-    menuTree.value = Array.isArray(m.data) ? m.data : []
+    staff.value = Array.isArray(s) ? s : []
+    roles.value = Array.isArray(r) ? r : []
+    menuTree.value = Array.isArray(m) ? m : []
   } catch (e) {
     ElMessage.error(errMsg(e))
   } finally {
@@ -285,7 +285,7 @@ async function openRole(row) {
     })
     try {
       const res = await getRoleMenus(row.id)
-      roleForm.menu_ids = Array.isArray(res.data) ? res.data.map(Number) : []
+      roleForm.menu_ids = Array.isArray(res) ? res.map(Number) : []
     } catch (e) {
       roleForm.menu_ids = []
       ElMessage.error(errMsg(e))

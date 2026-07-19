@@ -1,0 +1,22 @@
+syntax = "v1"
+
+type HealthResp {
+	Status  string `json:"status"`
+	Service string `json:"service"`
+}
+
+type ReadyResp {
+	Status string `json:"status"`
+}
+
+service inventorysync {
+	@handler Healthz
+	get /healthz returns (HealthResp)
+
+	@handler Readyz
+	get /readyz returns (ReadyResp)
+
+	@handler Metrics
+	get /metrics
+}
+

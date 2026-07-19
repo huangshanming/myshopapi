@@ -24,19 +24,23 @@ func (r *Registry) Register(name string, checker Checker) {
 	r.checkers[name] = checker
 }
 
+func (r *Registry) CheckAll(ctx context.Context) (ready bool, failed map[string]string) {
+	failed = make(map[string]string)
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	for name, checker := range r.checkers {
+		if err := checker(ctx); err != nil {
+			failed[name] = err.Error()
+		}
+	}
+	return len(failed) == 0, failed
+}
+
 func (r *Registry) ReadyHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
-		ctx := req.Context()
-		failed := make(map[string]string)
-		r.mu.RLock()
-		defer r.mu.RUnlock()
-		for name, checker := range r.checkers {
-			if err := checker(ctx); err != nil {
-				failed[name] = err.Error()
-			}
-		}
+		ok, failed := r.CheckAll(req.Context())
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		if len(failed) > 0 {
+		if !ok {
 			w.WriteHeader(http.StatusServiceUnavailable)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{"status": "not_ready", "checks": failed})
 			return

@@ -28,6 +28,7 @@ import (
 	applog "mymall/pkg/log"
 	"mymall/pkg/metrics"
 	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
 	"mymall/pkg/telemetry"
 	"mymall/services/order-service/internal/handler"
 	"mymall/services/order-service/internal/model"
@@ -38,6 +39,8 @@ import (
 )
 
 func main() {
+	xerr.RegisterErrorHandler()
+
 	configPath := os.Getenv("CONFIG_PATH")
 	if configPath == "" {
 		configPath = "./etc/order-service.yaml"
@@ -70,6 +73,8 @@ func main() {
 		&model.OrderItem{},
 		&model.OrderAfterSale{},
 		&model.LogisticsCompany{},
+		&model.ProductReview{},
+		&model.ProductReviewImage{},
 	); err != nil {
 		log.Fatalf("AutoMigrate 失败：%v", err)
 	}
@@ -96,6 +101,7 @@ func main() {
 	}
 
 	orderHandler := handler.NewOrderHandler(svcCtx)
+	reviewHandler := handler.NewReviewHandler(svcCtx)
 	logisticsHandler := handler.NewLogisticsHandler(svcCtx)
 
 	healthReg := health.NewRegistry()
@@ -134,9 +140,19 @@ func main() {
 		{Method: http.MethodGet, Path: "/api/v1/orders", Handler: rid(gw(orderHandler.List))},
 		{Method: http.MethodGet, Path: "/api/v1/orders/:id", Handler: rid(gw(orderHandler.Detail))},
 		{Method: http.MethodPut, Path: "/api/v1/orders/:id/cancel", Handler: rid(gw(orderHandler.Cancel))},
+		{Method: http.MethodPut, Path: "/api/v1/orders/:id/confirm-receive", Handler: rid(gw(orderHandler.ConfirmReceive))},
 		{Method: http.MethodPost, Path: "/api/v1/orders/:id/after-sales", Handler: rid(gw(orderHandler.CreateAfterSale))},
+		{Method: http.MethodGet, Path: "/api/v1/orders/:id/review-eligible", Handler: rid(gw(reviewHandler.Eligible))},
+		{Method: http.MethodPost, Path: "/api/v1/orders/:id/reviews", Handler: rid(gw(reviewHandler.Create))},
+		{Method: http.MethodGet, Path: "/api/v1/orders/:id/review", Handler: rid(gw(reviewHandler.GetByOrder))},
+		{Method: http.MethodPost, Path: "/api/v1/user/review-uploads", Handler: rid(gw(reviewHandler.Upload))},
+		{Method: http.MethodGet, Path: "/api/v1/products/:id/reviews", Handler: rid(reviewHandler.ProductList)},
 
 		{Method: http.MethodGet, Path: "/api/v1/logistics/options", Handler: rid(middleware.Chain(logisticsHandler.Options, gw, platOrMerchant))},
+
+		{Method: http.MethodGet, Path: "/api/v1/merchant/reviews", Handler: rid(middleware.Chain(reviewHandler.MerchantList, gwShop, merchantRoles))},
+		{Method: http.MethodPut, Path: "/api/v1/merchant/reviews/:id/reply", Handler: rid(middleware.Chain(reviewHandler.MerchantReply, gwShop, merchantRoles))},
+		{Method: http.MethodDelete, Path: "/api/v1/merchant/reviews/:id", Handler: rid(middleware.Chain(reviewHandler.MerchantDelete, gwShop, merchantRoles))},
 
 		{Method: http.MethodGet, Path: "/api/v1/merchant/orders", Handler: rid(middleware.Chain(orderHandler.MerchantList, gwShop, merchantRoles))},
 		{Method: http.MethodGet, Path: "/api/v1/merchant/orders/:id", Handler: rid(middleware.Chain(orderHandler.MerchantDetail, gwShop, merchantRoles))},
@@ -145,6 +161,9 @@ func main() {
 		{Method: http.MethodPut, Path: "/api/v1/merchant/orders/:id/remark", Handler: rid(middleware.Chain(orderHandler.MerchantRemark, gwShop, merchantRoles))},
 		{Method: http.MethodGet, Path: "/api/v1/merchant/after-sales", Handler: rid(middleware.Chain(orderHandler.MerchantAfterSales, gwShop, merchantRoles))},
 		{Method: http.MethodPut, Path: "/api/v1/merchant/after-sales/:id/handle", Handler: rid(middleware.Chain(orderHandler.MerchantHandleAfterSale, gwShop, merchantRoles))},
+
+		{Method: http.MethodGet, Path: "/api/v1/admin/reviews", Handler: rid(middleware.Chain(reviewHandler.AdminList, gw, plat))},
+		{Method: http.MethodDelete, Path: "/api/v1/admin/reviews/:id", Handler: rid(middleware.Chain(reviewHandler.AdminDelete, gw, plat))},
 
 		{Method: http.MethodGet, Path: "/api/v1/admin/orders", Handler: rid(middleware.Chain(orderHandler.AdminList, gw, plat))},
 		{Method: http.MethodGet, Path: "/api/v1/admin/orders/:id", Handler: rid(middleware.Chain(orderHandler.AdminDetail, gw, plat))},

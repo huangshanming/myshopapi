@@ -65,8 +65,8 @@ async function load() {
       title: q.title || undefined,
       audit_status: q.audit_status || undefined,
     })
-    list.value = res.data?.list || []
-    total.value = res.data?.total || 0
+    list.value = res?.list || []
+    total.value = res?.total || 0
   } catch (e) {
     ElMessage.error(e.message)
   } finally {

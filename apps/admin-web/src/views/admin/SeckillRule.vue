@@ -44,10 +44,10 @@ async function load() {
   try {
     const res = await getSeckillRule()
     Object.assign(form, {
-      duration_hours: res.data?.duration_hours ?? 24,
-      apply_fee: Number(res.data?.apply_fee ?? 10),
-      max_entries_per_shop: res.data?.max_entries_per_shop ?? 5,
-      status: res.data?.status ?? 1,
+      duration_hours: res?.duration_hours ?? 24,
+      apply_fee: Number(res?.apply_fee ?? 10),
+      max_entries_per_shop: res?.max_entries_per_shop ?? 5,
+      status: res?.status ?? 1,
     })
   } catch (e) {
     ElMessage.error(e.message)

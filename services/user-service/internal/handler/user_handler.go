@@ -1,16 +1,18 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
 	"mymall/pkg/jwt"
 	"mymall/pkg/middleware"
-	"mymall/pkg/response"
 	"mymall/services/user-service/internal/logic"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
-)
+
+	"github.com/zeromicro/go-zero/rest/httpx"
+	"mymall/pkg/xerr")
 
 type UserHandler struct {
 	svcCtx *svc.ServiceContext
@@ -20,22 +22,22 @@ type UserHandler struct {
 func NewUserHandler(svcCtx *svc.ServiceContext) *UserHandler {
 	return &UserHandler{
 		svcCtx: svcCtx,
-		logic:  logic.NewUserLogic(svcCtx),
+		logic:  logic.NewUserLogic(context.Background(), svcCtx),
 	}
 }
 
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req types.LoginReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, "参数错误", http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
 		return
 	}
 	token, user, err := h.logic.LoginWithShop(req.Mobile, req.Password, req.ShopID)
 	if err != nil {
-		response.Error(w, err.Error(), http.StatusUnauthorized)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, err.Error()))
 		return
 	}
-	response.Success(w, map[string]interface{}{
+	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{
 		"token": token,
 		"user": map[string]interface{}{
 			"id":       user.ID,
@@ -45,21 +47,21 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 			"role":     user.Role,
 			"status":   user.Status,
 		},
-	}, "登录成功")
+	})
 }
 
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req types.RegisterReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, "参数错误", http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
 		return
 	}
 	user, err := h.logic.Register(req.Mobile, req.Password)
 	if err != nil {
-		response.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
 		return
 	}
-	response.Success(w, user, "注册成功")
+	httpx.OkJsonCtx(r.Context(), w, user)
 }
 
 func (h *UserHandler) Profile(w http.ResponseWriter, r *http.Request) {
@@ -69,13 +71,13 @@ func (h *UserHandler) Profile(w http.ResponseWriter, r *http.Request) {
 	} else if claims, ok := jwt.ClaimsFromContext(r.Context()); ok {
 		userID = claims.UserID
 	} else {
-		response.Error(w, "未授权", http.StatusUnauthorized)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
 		return
 	}
 	user, err := h.logic.GetProfile(userID)
 	if err != nil {
-		response.Error(w, "用户不存在", http.StatusNotFound)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusNotFound, "用户不存在"))
 		return
 	}
-	response.Success(w, user, "查询成功")
+	httpx.OkJsonCtx(r.Context(), w, user)
 }

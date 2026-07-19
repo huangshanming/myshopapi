@@ -58,8 +58,8 @@ async function load() {
   loading.value = true
   try {
     const res = await fetchSeckillSessions({ page: page.value, page_size: pageSize })
-    list.value = res.data?.list || []
-    total.value = res.data?.total || 0
+    list.value = res?.list || []
+    total.value = res?.total || 0
   } catch (e) {
     ElMessage.error(e.message)
   } finally {
@@ -73,7 +73,7 @@ async function openEntries(row) {
   entryLoading.value = true
   try {
     const res = await fetchSeckillEntries({ session_id: row.id, page: 1, page_size: 100 })
-    entries.value = res.data?.list || []
+    entries.value = res?.list || []
   } catch (e) {
     ElMessage.error(e.message)
   } finally {

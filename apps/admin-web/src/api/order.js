@@ -57,11 +57,24 @@ export function listLogisticsOptions(keyword) {
   return http.get('/api/v1/logistics/options', { params: { keyword: keyword || undefined } })
 }
 
+export function listReviews(scope, params) {
+  return http.get(`${base(scope)}/reviews`, { params })
+}
+
+export function replyReview(id, data) {
+  return http.put(`/api/v1/merchant/reviews/${id}/reply`, data)
+}
+
+export function deleteReview(scope, id) {
+  return http.delete(`${base(scope)}/reviews/${id}`)
+}
+
 export const ORDER_STATUS_OPTIONS = [
   { value: 'pending', label: '待确认' },
   { value: 'confirmed', label: '待发货' },
   { value: 'shipped', label: '已发货' },
   { value: 'completed', label: '已完成' },
+  { value: 'reviewed', label: '已评价' },
   { value: 'cancelled', label: '已取消' },
   { value: 'failed', label: '失败' },
 ]
@@ -91,6 +104,7 @@ export function orderStatusType(s) {
     confirmed: 'warning',
     shipped: 'primary',
     completed: 'success',
+    reviewed: 'success',
     cancelled: 'info',
     failed: 'danger',
   }

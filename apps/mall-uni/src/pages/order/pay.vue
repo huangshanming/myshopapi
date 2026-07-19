@@ -40,7 +40,7 @@ const total = computed(() =>
 async function loadWallet() {
   try {
     const res = await getUserWallet()
-    balance.value = Number(res.data?.balance) || 0
+    balance.value = Number(res?.balance) || 0
   } catch {
     balance.value = 0
   }
@@ -67,7 +67,7 @@ async function pay() {
       return it
     })
     const res = await createOrder(orderItems, addressId.value)
-    const id = res.data?.id
+    const id = res?.id
     if (fromCart.value) {
       clearCartItems(items.value)
     }

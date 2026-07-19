@@ -118,7 +118,7 @@ async function searchShops(keyword) {
   shopLoading.value = true
   try {
     const res = await fetchShops({ name: keyword || undefined, page: 1, page_size: 50 })
-    shops.value = res.data?.list || res.data?.items || []
+    shops.value = res?.list || res?.items || []
   } finally {
     shopLoading.value = false
   }
@@ -139,8 +139,8 @@ async function load() {
       params.shop_id = q.shop_id
     }
     const res = await listArticles(params)
-    list.value = res.data?.list || []
-    total.value = res.data?.total || 0
+    list.value = res?.list || []
+    total.value = res?.total || 0
   } catch (e) {
     ElMessage.error(e.message)
   } finally {

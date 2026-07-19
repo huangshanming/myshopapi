@@ -84,7 +84,7 @@ async function load(reset = false) {
       items.value = []
     }
     const res = await listSeckill({ page: page.value, page_size: pageSize })
-    const data = res.data || {}
+    const data = res || {}
     if (data.end_at) {
       endAt.value = parseEndAt(data.end_at)
       tick()

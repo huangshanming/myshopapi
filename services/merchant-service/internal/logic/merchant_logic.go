@@ -1,6 +1,7 @@
 package logic
 
 import (
+	"context"
 	"errors"
 
 	"mymall/services/merchant-service/internal/model"
@@ -11,11 +12,15 @@ import (
 )
 
 type MerchantLogic struct {
+	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewMerchantLogic(svcCtx *svc.ServiceContext) *MerchantLogic {
-	return &MerchantLogic{svcCtx: svcCtx}
+func NewMerchantLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantLogic {
+	return &MerchantLogic{
+		ctx:    ctx,
+		svcCtx: svcCtx,
+	}
 }
 
 func (l *MerchantLogic) Apply(userID uint64, in types.ApplyReq) (*model.ShopApplication, error) {

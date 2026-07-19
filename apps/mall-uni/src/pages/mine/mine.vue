@@ -29,6 +29,14 @@
         <text>我的订单</text>
         <text class="arrow">›</text>
       </view>
+      <view v-if="user" class="menu-item" @tap="goFavorites">
+        <text>我的收藏</text>
+        <text class="arrow">›</text>
+      </view>
+      <view v-if="user" class="menu-item" @tap="goLikes">
+        <text>我的点赞</text>
+        <text class="arrow">›</text>
+      </view>
       <view v-if="user" class="menu-item" @tap="goAddresses">
         <text>收货地址</text>
         <text class="arrow">›</text>
@@ -65,7 +73,7 @@ async function loadWallet() {
   }
   try {
     const res = await getUserWallet()
-    wallet.value = res.data || { balance: 0, frozen_balance: 0 }
+    wallet.value = res || { balance: 0, frozen_balance: 0 }
   } catch {
     wallet.value = { balance: 0, frozen_balance: 0 }
   }
@@ -102,6 +110,22 @@ function goAddresses() {
     return
   }
   uni.navigateTo({ url: '/pages/address/list' })
+}
+
+function goFavorites() {
+  if (!isLoggedIn()) {
+    goLogin()
+    return
+  }
+  uni.navigateTo({ url: '/pages/favorite/list' })
+}
+
+function goLikes() {
+  if (!isLoggedIn()) {
+    goLogin()
+    return
+  }
+  uni.navigateTo({ url: '/pages/community/liked' })
 }
 
 function logout() {

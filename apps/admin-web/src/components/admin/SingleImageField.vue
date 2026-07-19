@@ -27,7 +27,7 @@ const emit = defineEmits(['update:modelValue'])
 async function doUpload({ file }) {
   try {
     const res = await props.uploadFn(file)
-    const url = res.data?.url || res.data
+    const url = res?.url || res.data
     if (!url) throw new Error('未返回图片地址')
     emit('update:modelValue', url)
   } catch (e) {

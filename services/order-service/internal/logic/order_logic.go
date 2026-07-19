@@ -17,11 +17,15 @@ import (
 )
 
 type OrderLogic struct {
+	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewOrderLogic(svcCtx *svc.ServiceContext) *OrderLogic {
-	return &OrderLogic{svcCtx: svcCtx}
+func NewOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *OrderLogic {
+	return &OrderLogic{
+		ctx:    ctx,
+		svcCtx: svcCtx,
+	}
 }
 
 func (l *OrderLogic) CreateOrder(ctx context.Context, userID uint64, addressID uint64, items []types.CreateOrderItem) (*model.Order, error) {
@@ -327,6 +331,16 @@ func (l *OrderLogic) Ship(id, shopID uint64, company, shipNo string) error {
 
 func (l *OrderLogic) Complete(id, shopID uint64) error {
 	if err := l.svcCtx.Repo.Complete(id, shopID); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("订单不存在或状态不是已发货")
+		}
+		return err
+	}
+	return nil
+}
+
+func (l *OrderLogic) ConfirmReceive(userID, orderID uint64) error {
+	if err := l.svcCtx.Repo.ConfirmReceive(orderID, userID); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("订单不存在或状态不是已发货")
 		}

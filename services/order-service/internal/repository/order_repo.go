@@ -166,6 +166,40 @@ func (r *OrderRepository) Complete(id uint64, shopID uint64) error {
 	return nil
 }
 
+func (r *OrderRepository) ConfirmReceive(id, userID uint64) error {
+	now := common.LocalTime(time.Now())
+	res := r.db.Model(&model.Order{}).
+		Where("id = ? AND user_id = ? AND status = ?", id, userID, model.OrderStatusShipped).
+		Updates(map[string]interface{}{
+			"status":       model.OrderStatusCompleted,
+			"completed_at": &now,
+		})
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
+}
+
+func (r *OrderRepository) MarkReviewed(id, userID uint64) error {
+	now := common.LocalTime(time.Now())
+	res := r.db.Model(&model.Order{}).
+		Where("id = ? AND user_id = ? AND status = ?", id, userID, model.OrderStatusCompleted).
+		Updates(map[string]interface{}{
+			"status":      model.OrderStatusReviewed,
+			"reviewed_at": &now,
+		})
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
+}
+
 func (r *OrderRepository) UpdateRemark(id uint64, shopID uint64, remark string) error {
 	q := r.db.Model(&model.Order{}).Where("id = ?", id)
 	if shopID > 0 {

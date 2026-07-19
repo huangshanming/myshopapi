@@ -7,6 +7,72 @@ metadata:
 spec:
   ingressClassName: apisix
   http:
+    # 比 user-admin 的 /admin/users/* 更具体，需更高 priority 以免打到 user-service
+    - name: catalog-user-favorites-admin
+      priority: 20
+      match:
+        paths:
+          - /api/v1/admin/users/*/favorites
+        methods:
+          - GET
+          - OPTIONS
+      backends:
+        - serviceName: catalog-service
+          servicePort: 8888
+      plugins:
+        - name: cors
+          enable: true
+          config:
+            allow_origins: "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:9099"
+            allow_methods: "GET,POST,PUT,DELETE,OPTIONS"
+            allow_headers: "Authorization,Content-Type,X-User-Id,X-User-Role,X-Shop-Id"
+            allow_credential: true
+        - name: jwt-auth
+          enable: true
+        - name: serverless-post-function
+          enable: true
+          config:
+            phase: access
+            functions:
+              - |
+                return function(conf, ctx)
+                  local core = require("apisix.core")
+                  local cjson = require("cjson.safe")
+                  local payload = ctx.var.jwt_payload
+                  if type(payload) == "string" then
+                    payload = cjson.decode(payload)
+                  end
+                  if type(payload) ~= "table" then
+                    local auth = core.request.header(ctx, "Authorization") or ""
+                    local token = auth:match("[Bb]earer%s+(.+)")
+                    if token then
+                      local i = 0
+                      local mid
+                      for part in token:gmatch("[^%.]+") do
+                        i = i + 1
+                        if i == 2 then mid = part break end
+                      end
+                      if mid then
+                        mid = mid:gsub("-", "+"):gsub("_", "/")
+                        local pad = #mid % 4
+                        if pad > 0 then mid = mid .. string.rep("=", 4 - pad) end
+                        payload = cjson.decode(ngx.decode_base64(mid))
+                      end
+                    end
+                  end
+                  if type(payload) == "table" then
+                    if payload.user_id then
+                      core.request.set_header(ctx, "X-User-Id", tostring(payload.user_id))
+                    end
+                    if payload.role then
+                      core.request.set_header(ctx, "X-User-Role", tostring(payload.role))
+                    end
+                    if payload.shop_id then
+                      core.request.set_header(ctx, "X-Shop-Id", tostring(payload.shop_id))
+                    end
+                  end
+                end
+
     - name: user-admin-rbac
       match:
         paths:
@@ -100,6 +166,25 @@ spec:
           - /api/v1/merchant/wallet/*
           - /api/v1/merchant/seckill
           - /api/v1/merchant/seckill/*
+          - /api/v1/merchant/homepage-packages
+          - /api/v1/merchant/homepage-packages/*
+          - /api/v1/merchant/homepage-orders
+          - /api/v1/merchant/homepage-orders/*
+          - /api/v1/admin/homepage-packages
+          - /api/v1/admin/homepage-packages/*
+          - /api/v1/admin/homepage-settings
+          - /api/v1/admin/homepage-orders
+          - /api/v1/admin/homepage-orders/*
+          - /api/v1/merchant/theme-slots
+          - /api/v1/merchant/theme-packages
+          - /api/v1/merchant/theme-orders
+          - /api/v1/merchant/theme-orders/*
+          - /api/v1/admin/theme-slots
+          - /api/v1/admin/theme-slots/*
+          - /api/v1/admin/theme-packages
+          - /api/v1/admin/theme-packages/*
+          - /api/v1/admin/theme-orders
+          - /api/v1/admin/theme-orders/*
         methods:
           - GET
           - POST
@@ -195,6 +280,8 @@ spec:
           - /api/v1/admin/article-comments
           - /api/v1/admin/article-comments/*
           - /api/v1/admin/article-uploads
+          - /api/v1/admin/banners
+          - /api/v1/admin/banners/*
           - /api/v1/admin/shop-uploads
           - /api/v1/merchant/articles
           - /api/v1/merchant/articles/*
@@ -276,10 +363,14 @@ spec:
           - /api/v1/merchant/orders/*
           - /api/v1/merchant/after-sales
           - /api/v1/merchant/after-sales/*
+          - /api/v1/merchant/reviews
+          - /api/v1/merchant/reviews/*
           - /api/v1/admin/orders
           - /api/v1/admin/orders/*
           - /api/v1/admin/after-sales
           - /api/v1/admin/after-sales/*
+          - /api/v1/admin/reviews
+          - /api/v1/admin/reviews/*
           - /api/v1/admin/logistics
           - /api/v1/admin/logistics/*
           - /api/v1/logistics

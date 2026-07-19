@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -8,12 +9,13 @@ import (
 
 	"mymall/pkg/httpserver"
 	"mymall/pkg/middleware"
-	"mymall/pkg/response"
 	"mymall/services/catalog-service/internal/product/logic"
 	"mymall/services/catalog-service/internal/product/repository"
 	"mymall/services/catalog-service/internal/product/types"
 	"mymall/services/catalog-service/internal/svc"
-)
+
+	"github.com/zeromicro/go-zero/rest/httpx"
+	"mymall/pkg/xerr")
 
 type PlatformProductHandler struct {
 	svcCtx *svc.ServiceContext
@@ -21,7 +23,7 @@ type PlatformProductHandler struct {
 }
 
 func NewPlatformProductHandler(svcCtx *svc.ServiceContext) *PlatformProductHandler {
-	return &PlatformProductHandler{svcCtx: svcCtx, logic: logic.NewPlatformProductLogic(svcCtx)}
+	return &PlatformProductHandler{svcCtx: svcCtx, logic: logic.NewPlatformProductLogic(context.Background(), svcCtx)}
 }
 
 func (h *PlatformProductHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -58,10 +60,10 @@ func (h *PlatformProductHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 	data, err := h.logic.List(f)
 	if err != nil {
-		response.Error(w, err.Error(), http.StatusInternalServerError)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
 		return
 	}
-	response.Success(w, data, "ok")
+	httpx.OkJsonCtx(r.Context(), w, data)
 }
 
 func (h *PlatformProductHandler) OffSale(w http.ResponseWriter, r *http.Request) {
@@ -70,10 +72,10 @@ func (h *PlatformProductHandler) OffSale(w http.ResponseWriter, r *http.Request)
 	var req types.PlatformProductRemarkReq
 	_ = json.NewDecoder(r.Body).Decode(&req)
 	if err := h.logic.ForceOffSale(id, uid, req.Remark); err != nil {
-		response.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
 		return
 	}
-	response.Success(w, nil, "已强制下架")
+	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
 func (h *PlatformProductHandler) Delete(w http.ResponseWriter, r *http.Request) {
@@ -82,8 +84,8 @@ func (h *PlatformProductHandler) Delete(w http.ResponseWriter, r *http.Request) 
 	var req types.PlatformProductRemarkReq
 	_ = json.NewDecoder(r.Body).Decode(&req)
 	if err := h.logic.SoftDelete(id, uid, req.Remark); err != nil {
-		response.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
 		return
 	}
-	response.Success(w, nil, "已移入回收站")
+	httpx.OkJsonCtx(r.Context(), w, nil)
 }

@@ -86,7 +86,7 @@ function onChange(codes) {
 onMounted(async () => {
   try {
     const res = await http.get('/api/v1/regions/tree')
-    options.value = res.data || []
+    options.value = res || []
     flat.value = new Map()
     walk(options.value)
     syncFromProps()

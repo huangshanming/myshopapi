@@ -1,0 +1,124 @@
+syntax = "v1"
+
+// Auto-extracted route table for goctl; handlers wired manually to existing logic.
+// Regenerate stubs: goctl api go -api api/order.api -dir ./_goctl_out -style go_zero
+
+service orderapi {
+	@handler Healthz
+	get /healthz
+
+	@handler Readyz
+	get /readyz
+
+	@handler Metrics
+	get /metrics
+
+	@handler ApiV1Orders
+	post /api/v1/orders
+
+	@handler ApiV1Orders
+	get /api/v1/orders
+
+	@handler V1OrdersId
+	get /api/v1/orders/:id
+
+	@handler OrdersIdCancel
+	put /api/v1/orders/:id/cancel
+
+	@handler OrdersIdConfirmReceive
+	put /api/v1/orders/:id/confirm-receive
+
+	@handler OrdersIdAfterSales
+	post /api/v1/orders/:id/after-sales
+
+	@handler OrdersIdReviewEligible
+	get /api/v1/orders/:id/review-eligible
+
+	@handler OrdersIdReviews
+	post /api/v1/orders/:id/reviews
+
+	@handler OrdersIdReview
+	get /api/v1/orders/:id/review
+
+	@handler V1UserReviewUploads
+	post /api/v1/user/review-uploads
+
+	@handler ProductsIdReviews
+	get /api/v1/products/:id/reviews
+
+	@handler V1LogisticsOptions
+	get /api/v1/logistics/options
+
+	@handler V1MerchantReviews
+	get /api/v1/merchant/reviews
+
+	@handler ReviewsIdReply
+	put /api/v1/merchant/reviews/:id/reply
+
+	@handler MerchantReviewsId
+	delete /api/v1/merchant/reviews/:id
+
+	@handler V1MerchantOrders
+	get /api/v1/merchant/orders
+
+	@handler MerchantOrdersId
+	get /api/v1/merchant/orders/:id
+
+	@handler OrdersIdShip
+	put /api/v1/merchant/orders/:id/ship
+
+	@handler OrdersIdComplete
+	put /api/v1/merchant/orders/:id/complete
+
+	@handler OrdersIdRemark
+	put /api/v1/merchant/orders/:id/remark
+
+	@handler V1MerchantAfterSales
+	get /api/v1/merchant/after-sales
+
+	@handler AfterSalesIdHandle
+	put /api/v1/merchant/after-sales/:id/handle
+
+	@handler V1AdminReviews
+	get /api/v1/admin/reviews
+
+	@handler AdminReviewsId
+	delete /api/v1/admin/reviews/:id
+
+	@handler V1AdminOrders
+	get /api/v1/admin/orders
+
+	@handler AdminOrdersId
+	get /api/v1/admin/orders/:id
+
+	@handler OrdersIdShip
+	put /api/v1/admin/orders/:id/ship
+
+	@handler OrdersIdComplete
+	put /api/v1/admin/orders/:id/complete
+
+	@handler OrdersIdRemark
+	put /api/v1/admin/orders/:id/remark
+
+	@handler V1AdminAfterSales
+	get /api/v1/admin/after-sales
+
+	@handler AfterSalesIdHandle
+	put /api/v1/admin/after-sales/:id/handle
+
+	@handler V1AdminLogistics
+	get /api/v1/admin/logistics
+
+	@handler V1AdminLogistics
+	post /api/v1/admin/logistics
+
+	@handler AdminLogisticsId
+	put /api/v1/admin/logistics/:id
+
+	@handler LogisticsIdStatus
+	put /api/v1/admin/logistics/:id/status
+
+	@handler AdminLogisticsId
+	delete /api/v1/admin/logistics/:id
+
+}

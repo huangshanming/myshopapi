@@ -22,8 +22,8 @@
     <!-- Banner -->
     <view class="banner-wrap">
       <swiper class="banner" circular autoplay interval="3500" indicator-dots indicator-active-color="#C8A876">
-        <swiper-item v-for="(b, i) in banners" :key="i">
-          <image class="banner-img" :src="b" mode="aspectFill" />
+        <swiper-item v-for="(b, i) in banners" :key="b.id || i">
+          <image class="banner-img" :src="b.image_url || b" mode="aspectFill" @tap="onBannerTap(b)" />
         </swiper-item>
       </swiper>
       <view class="corner-tag"><text class="corner-text sale-gradient">限时特惠</text></view>
@@ -80,19 +80,27 @@
     <view class="block">
       <view class="block-head">
         <text class="sec-title">👑 头部品牌商户</text>
-        <text class="sec-more">全部品牌店 ›</text>
+        <text class="sec-more" @tap="goShopList('brand_shop')">全部品牌店 ›</text>
       </view>
       <scroll-view scroll-x :show-scrollbar="false" class="scroll-hide">
         <view class="brand-row">
-          <view v-for="s in brandShops" :key="s.id || s.name" class="brand-card">
+          <view
+            v-for="s in brandShops"
+            :key="s.id || s.name"
+            class="brand-card"
+            @tap="goShopDetail(s.id)"
+          >
             <image class="brand-cover" :src="s.img" mode="aspectFill" />
             <view class="brand-body">
               <text class="line-1 brand-name">{{ s.name }}</text>
               <view class="brand-meta">
                 <text class="gold">{{ s.tag }}</text>
-                <text class="sub">{{ s.score }}</text>
+                <text v-if="s.paid" class="sub">推广</text>
               </view>
             </view>
+          </view>
+          <view v-if="!brandShops.length" class="seckill-empty">
+            <text class="sub">暂无品牌商户</text>
           </view>
         </view>
       </scroll-view>
@@ -102,34 +110,29 @@
     <view class="block">
       <view class="block-head">
         <text class="sec-title">✍️ 好物种草社区</text>
-        <text class="sec-more">更多精选 ›</text>
+        <text class="sec-more" @tap="goCommunityList">更多精选 ›</text>
       </view>
-      <scroll-view scroll-x :show-scrollbar="false" class="scroll-hide tag-scroll">
-        <view class="tag-row">
-          <text
-            v-for="t in noteTags"
-            :key="t"
-            class="note-tag"
-            :class="{ active: t === noteTag }"
-            @tap="noteTag = t"
-          >{{ t }}</text>
-        </view>
-      </scroll-view>
       <scroll-view scroll-x :show-scrollbar="false" class="scroll-hide">
         <view class="note-row">
-          <view v-for="(n, i) in notes" :key="i" class="note-card" :class="'w-' + n.w">
-            <image v-if="n.imgs.length === 1" class="note-cover" :src="n.imgs[0]" mode="aspectFill" />
-            <view v-else class="note-grid">
-              <image v-for="(im, j) in n.imgs" :key="j" :src="im" mode="aspectFill" class="note-grid-img" />
-            </view>
+          <view
+            v-for="(n, i) in notes"
+            :key="n.id || i"
+            class="note-card"
+            :class="'w-' + n.w"
+            @tap="goArticle(n.id)"
+          >
+            <image class="note-cover" :src="n.imgs[0] || placeholder" mode="aspectFill" />
             <view class="note-body">
               <text class="note-label">{{ n.label }}</text>
               <text class="line-2 note-title">{{ n.title }}</text>
               <view class="note-foot">
-                <text>{{ n.author }}</text>
+                <text>阅 {{ n.reads }}</text>
                 <text>❤ {{ n.likes }}</text>
               </view>
             </view>
+          </view>
+          <view v-if="!notes.length" class="seckill-empty">
+            <text class="sub">暂无种草内容</text>
           </view>
         </view>
       </scroll-view>
@@ -139,12 +142,18 @@
     <view class="section-card theme">
       <text class="sec-title theme-title">▦ 主题好物集市</text>
       <view class="theme-grid">
-        <view v-for="(t, i) in themes" :key="i" class="theme-item">
-          <image class="theme-img" :src="t.img" mode="aspectFill" />
+        <view
+          v-for="t in themes"
+          :key="t.slot_id || t.position"
+          class="theme-item"
+          @tap="onThemeTap(t)"
+        >
+          <image class="theme-img" :src="t.cover_url || placeholder" mode="aspectFill" />
           <view class="theme-mask">
             <text class="theme-name">{{ t.name }}</text>
             <text class="theme-desc">{{ t.desc }}</text>
           </view>
+          <text v-if="t.paid" class="theme-paid">推广</text>
         </view>
       </view>
     </view>
@@ -153,20 +162,27 @@
     <view class="block">
       <view class="block-head">
         <text class="sec-title">🏪 优质入驻商户</text>
-        <text class="sec-more">全部店铺 ›</text>
+        <text class="sec-more" @tap="goShopList('quality_shop')">全部店铺 ›</text>
       </view>
       <scroll-view scroll-x :show-scrollbar="false" class="scroll-hide">
         <view class="shop-row">
-          <view v-for="s in shops" :key="s.id || s.name" class="shop-card">
+          <view
+            v-for="s in shops"
+            :key="s.id || s.name"
+            class="shop-card"
+            @tap="goShopDetail(s.id)"
+          >
             <image class="shop-cover" :src="s.img" mode="aspectFill" />
             <view class="shop-body">
               <text class="line-1 brand-name">{{ s.name }}</text>
-              <text class="sub shop-score">★ {{ s.score }} · {{ s.reviews }}</text>
+              <text class="sub shop-score">{{ s.category || '优选商户' }}{{ s.paid ? ' · 推广' : '' }}</text>
               <view class="shop-promo">
-                <text class="price">{{ s.promo }}</text>
-                <text class="sub">{{ s.ship }}</text>
+                <text class="sub line-1">{{ s.desc || '品质好店' }}</text>
               </view>
             </view>
+          </view>
+          <view v-if="!shops.length" class="seckill-empty">
+            <text class="sub">暂无优质商户</text>
           </view>
         </view>
       </scroll-view>
@@ -176,16 +192,24 @@
     <view class="section-card rank">
       <view class="block-head no-pad">
         <text class="sec-title">🏆 今日必买销量榜</text>
-        <text class="sec-more">完整榜单 ›</text>
+        <text class="sec-more" @tap="goSalesRank">完整榜单 ›</text>
       </view>
-      <view v-for="(r, i) in rankList" :key="i" class="rank-item">
+      <view v-if="!rankList.length" class="rank-empty">
+        <text class="sub">暂无上榜商品</text>
+      </view>
+      <view
+        v-for="(r, i) in rankList"
+        :key="r.id"
+        class="rank-item"
+        @tap="goDetail(r.id)"
+      >
         <view class="rank-no" :class="'r' + (i + 1)">{{ i + 1 }}</view>
-        <image class="rank-img" :src="r.img" mode="aspectFill" />
+        <image class="rank-img" :src="r.main_image || placeholder" mode="aspectFill" />
         <view class="rank-info">
-          <text class="line-1 rank-name">{{ r.name }}</text>
+          <text class="line-1 rank-name">{{ rankDisplayName(r) }}</text>
           <view class="rank-foot">
-            <text class="price">¥{{ r.price }}</text>
-            <text class="sub">今日售出{{ r.sold }}</text>
+            <text class="price">¥{{ r.sale_price }}</text>
+            <text class="sub">{{ rankSoldText(r) }}</text>
           </view>
         </view>
       </view>
@@ -195,7 +219,7 @@
     <view class="section-card goods">
       <view class="block-head no-pad">
         <text class="sec-title">🛍 全城商户热销好物</text>
-        <text class="sec-more">全部商品 ›</text>
+        <text class="sec-more" @tap="goCategoryPage()">全部商品 ›</text>
       </view>
       <view class="goods-grid">
         <view v-for="p in products" :key="p.id" class="goods-card" @tap="goDetail(p.id)">
@@ -220,14 +244,15 @@
 <script setup>
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { onReachBottom } from '@dcloudio/uni-app'
-import { getSeckillCurrent, listCategories, listProducts, listShops } from '../../api/index'
+import { getSeckillCurrent, listArticles, listBanners, listCategories, listHomeSlots, listProducts, listSalesRank, listThemeTiles } from '../../api/index'
 
 const placeholder = 'https://picsum.photos/id/96/400/400'
-const banners = [
-  'https://picsum.photos/id/1059/750/340',
-  'https://picsum.photos/id/1062/750/340',
-  'https://picsum.photos/id/1068/750/340',
+const fallbackBanners = [
+  { id: 'f1', image_url: 'https://picsum.photos/id/1059/750/340', link_type: 'none' },
+  { id: 'f2', image_url: 'https://picsum.photos/id/1062/750/340', link_type: 'none' },
+  { id: 'f3', image_url: 'https://picsum.photos/id/1068/750/340', link_type: 'none' },
 ]
+const banners = ref([...fallbackBanners])
 
 const fixedCats = [
   { name: '全部商户', emoji: '🏬', bg: 'rgba(230,213,188,.35)', color: '#C8A876' },
@@ -253,39 +278,11 @@ const categoryEntries = computed(() => {
 const seckillItems = ref([])
 const brandShops = ref([])
 const shops = ref([])
+const notes = ref([])
 
-const noteTags = ['全部', '生鲜测评', '数码实测', '穿搭分享', '零食清单']
-const noteTag = ref('全部')
-const notes = [
-  {
-    w: 64, label: '生鲜商户 · 2小时前', author: '美食达人阿柚', likes: 1289,
-    title: '阳光玫瑰深度测评｜这家自营商户5斤不到90，无籽爆甜回购率98%',
-    imgs: ['https://picsum.photos/id/102/600/320'],
-  },
-  {
-    w: 44, label: '数码商户 · 实测推荐', author: '数码测评君', likes: 862,
-    title: '百元降噪蓝牙耳机推荐，小米旗舰店性价比之王',
-    imgs: ['https://picsum.photos/id/1/200/200', 'https://picsum.photos/id/26/200/200'],
-  },
-  {
-    w: 44, label: '服饰商户 · 穿搭分享', author: '穿搭小梨', likes: 645,
-    title: '夏季冰丝T恤平价搭配，质感不输大牌',
-    imgs: ['https://picsum.photos/id/64/200/200', 'https://picsum.photos/id/145/200/200'],
-  },
-]
+const themes = ref([])
 
-const themes = [
-  { name: '生鲜果蔬专区', desc: '200+生鲜商户当日达', img: 'https://picsum.photos/id/102/400/200' },
-  { name: '数码3C好物', desc: '品牌数码官方直营', img: 'https://picsum.photos/id/1/400/200' },
-  { name: '男女潮流服饰', desc: '上千款平价穿搭', img: 'https://picsum.photos/id/64/400/200' },
-  { name: '零食酒水集合', desc: '全网低价追剧零食', img: 'https://picsum.photos/id/96/400/200' },
-]
-
-const rankList = [
-  { name: '阳光玫瑰晴王葡萄5斤装 | 鲜优生鲜自营店', price: 89, sold: '3200+件', img: 'https://picsum.photos/id/102/100/100' },
-  { name: '无线降噪蓝牙耳机 | 小米数码官方旗舰店', price: 149, sold: '1.2w+件', img: 'https://picsum.photos/id/1/100/100' },
-  { name: '冰丝宽松短袖T恤 | 潮搭男女服饰店', price: 59, sold: '5600+件', img: 'https://picsum.photos/id/64/100/100' },
-]
+const rankList = ref([])
 
 const products = ref([])
 const page = ref(1)
@@ -322,7 +319,7 @@ function parseEndAt(v) {
 async function loadSeckill() {
   try {
     const res = await getSeckillCurrent()
-    const data = res.data || {}
+    const data = res || {}
     endAt.value = parseEndAt(data.end_at)
     seckillItems.value = data.items || []
     tick()
@@ -336,11 +333,61 @@ function toast(title) {
 }
 
 function onCategory(c) {
+  if (c.name === '全部商户') {
+    goShopList('quality_shop')
+    return
+  }
+  if (c.name === '种草社区') {
+    goCommunityList()
+    return
+  }
+  if (c.name === '限时秒杀') {
+    goSeckillList()
+    return
+  }
   if (c.id) {
-    toast(`分类：${c.name}`)
+    goCategoryPage(c.id)
     return
   }
   toast(`${c.name}即将开放`)
+}
+
+function goCategoryPage(categoryId) {
+  if (categoryId) {
+    uni.setStorageSync('category_focus_id', categoryId)
+  } else {
+    uni.removeStorageSync('category_focus_id')
+  }
+  uni.switchTab({ url: '/pages/category/index' })
+}
+
+function onBannerTap(b) {
+  if (!b || typeof b === 'string') return
+  if (b.link_type === 'product' && b.link_id) {
+    goDetail(b.link_id)
+    return
+  }
+  if (b.link_type === 'article' && b.link_id) {
+    goArticle(b.link_id)
+  }
+}
+
+function goShopList(slotType) {
+  uni.navigateTo({ url: `/pages/shop/list?slot_type=${slotType || 'quality_shop'}` })
+}
+
+function goShopDetail(id) {
+  if (!id) return
+  uni.navigateTo({ url: `/pages/shop/detail?id=${id}` })
+}
+
+function goCommunityList() {
+  uni.navigateTo({ url: '/pages/community/list' })
+}
+
+function goArticle(id) {
+  if (!id) return
+  uni.navigateTo({ url: `/pages/community/detail?id=${id}` })
 }
 
 function goDetail(id) {
@@ -357,51 +404,116 @@ function goSeckillList() {
   uni.navigateTo({ url: '/pages/seckill/list' })
 }
 
+function goSalesRank() {
+  uni.navigateTo({ url: '/pages/product/rank' })
+}
+
+function onThemeTap(t) {
+  if (!t) return
+  if (t.link_type === 'shop' && t.link_id) {
+    goShopDetail(t.link_id)
+    return
+  }
+  if (t.link_type === 'product' && t.link_id) {
+    goDetail(t.link_id)
+    return
+  }
+  if (t.link_type === 'category' && t.link_id) {
+    goCategoryPage(t.link_id)
+  }
+}
+
+async function loadThemes() {
+  try {
+    const res = await listThemeTiles()
+    themes.value = res?.list || []
+  } catch {
+    themes.value = []
+  }
+}
+
+function rankDisplayName(r) {
+  if (r.shop_name) return `${r.name} | ${r.shop_name}`
+  return r.name
+}
+
+function rankSoldText(r) {
+  if (r.today_sold > 0) return `今日售出${r.today_sold}`
+  return `总销量${r.sold_count || 0}`
+}
+
+async function loadSalesRank() {
+  try {
+    const res = await listSalesRank({ page: 1, page_size: 3 })
+    rankList.value = res?.list || []
+  } catch {
+    rankList.value = []
+  }
+}
+
 async function loadCats() {
   try {
     const res = await listCategories({ page: 1, page_size: 20 })
-    apiCats.value = res.data?.list || []
+    apiCats.value = res?.list || []
   } catch {
     apiCats.value = []
   }
 }
 
-function mapBrandShop(s, i) {
-  const scores = ['4.9高分店铺', '30分钟达全城', '全场两件8折']
+function mapShop(s) {
   return {
     id: s.id,
     name: s.name,
     tag: s.category || '优选商户',
-    score: scores[i % scores.length],
+    category: s.category,
+    desc: s.description || '',
+    paid: !!s.paid,
     img: s.storefront_image || s.logo || placeholder,
   }
 }
 
-function mapQualityShop(s, i) {
-  const scores = ['4.8', '4.9', '4.7']
-  const reviews = ['1.2w+评价', '3w+评价', '8k+评价']
-  const promos = ['满59减10', '满199减30', '两件8折']
-  const ships = ['30分钟达', '次日送达', '全场包邮']
+function mapNote(a, i) {
   return {
-    id: s.id,
-    name: s.name,
-    score: scores[i % scores.length],
-    reviews: reviews[i % reviews.length],
-    promo: promos[i % promos.length],
-    ship: ships[i % ships.length],
-    img: s.storefront_image || s.logo || placeholder,
+    id: a.id,
+    w: i % 3 === 0 ? 64 : 44,
+    label: a.paid ? '推广精选' : '种草笔记',
+    likes: a.like_count || 0,
+    reads: a.read_count || 0,
+    title: a.title,
+    imgs: [a.cover_url || placeholder],
   }
 }
 
-async function loadShops() {
+async function loadHomeSlots() {
   try {
-    const res = await listShops({ page: 1, page_size: 20 })
-    const list = res.data?.list || []
-    brandShops.value = list.map(mapBrandShop)
-    shops.value = list.map(mapQualityShop)
+    const [brandRes, qualityRes] = await Promise.all([
+      listHomeSlots('brand_shop'),
+      listHomeSlots('quality_shop'),
+    ])
+    brandShops.value = (Array.isArray(brandRes) ? brandRes : []).map(mapShop)
+    shops.value = (Array.isArray(qualityRes) ? qualityRes : []).map(mapShop)
   } catch {
     brandShops.value = []
     shops.value = []
+  }
+}
+
+async function loadNotes() {
+  try {
+    const res = await listArticles({ page: 1, page_size: 10, home: 1 })
+    notes.value = (res?.list || []).map(mapNote)
+  } catch {
+    notes.value = []
+  }
+}
+
+async function loadBanners() {
+  try {
+    const res = await listBanners()
+    const rows = res?.list || []
+    banners.value = rows.length ? rows : [...fallbackBanners]
+  } catch {
+    banners.value = [...fallbackBanners]
   }
 }
 
@@ -414,10 +526,10 @@ async function loadProducts(reset = false) {
       finished.value = false
       products.value = []
     }
-    const res = await listProducts({ page: page.value, page_size: pageSize })
-    const list = res.data?.list || []
+    const res = await listProducts({ page: page.value, page_size: pageSize, order_by: 'sold_count_desc' })
+    const list = res?.list || []
     products.value = reset ? list : products.value.concat(list)
-    const total = res.data?.total || 0
+    const total = res?.total || 0
     if (products.value.length >= total || list.length < pageSize) {
       finished.value = true
     } else {
@@ -439,9 +551,13 @@ onReachBottom(() => loadMore())
 onMounted(() => {
   tick()
   timer = setInterval(tick, 1000)
+  loadBanners()
   loadCats()
-  loadShops()
+  loadHomeSlots()
+  loadNotes()
   loadSeckill()
+  loadThemes()
+  loadSalesRank()
   loadProducts(true)
 })
 
@@ -538,6 +654,10 @@ onUnmounted(() => {
 .theme-title { display: block; margin-bottom: 24rpx; }
 .theme-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20rpx; }
 .theme-item { position: relative; height: 200rpx; border-radius: 24rpx; overflow: hidden; }
+.theme-paid {
+  position: absolute; top: 12rpx; right: 12rpx; font-size: 18rpx;
+  color: #c8a876; background: rgba(0,0,0,.45); padding: 2rpx 10rpx; border-radius: 6rpx;
+}
 .theme-img { width: 100%; height: 100%; }
 .theme-mask {
   position: absolute; left: 20rpx; bottom: 20rpx; color: #fff;
@@ -549,6 +669,9 @@ onUnmounted(() => {
 .shop-promo { display: flex; justify-content: space-between; margin-top: 12rpx; font-size: 22rpx; }
 .rank, .goods { padding: 28rpx; margin-bottom: 24rpx; }
 .rank-item { display: flex; align-items: center; gap: 20rpx; margin-bottom: 20rpx; }
+.rank-empty { padding: 12rpx 0 8rpx; }
+.rank-no.r2 { background: linear-gradient(135deg,#f59e0b,#fbbf24); }
+.rank-no.r3 { background: linear-gradient(135deg,#94a3b8,#cbd5e1); }
 .rank-no {
   width: 40rpx; height: 40rpx; border-radius: 50%; color: #fff; font-size: 22rpx; font-weight: 700;
   display: flex; align-items: center; justify-content: center; background: var(--shop-gold);

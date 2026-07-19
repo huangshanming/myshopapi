@@ -1,0 +1,349 @@
+syntax = "v1"
+
+// Auto-extracted route table for goctl; handlers wired manually to existing logic.
+// Regenerate stubs: goctl api go -api api/catalog.api -dir ./_goctl_out -style go_zero
+
+service catalogapi {
+	@handler Healthz
+	get /healthz
+
+	@handler Readyz
+	get /readyz
+
+	@handler Metrics
+	get /metrics
+
+	@handler V1ProductsList
+	get /api/v1/products/list
+
+	@handler V1ProductsDetail
+	get /api/v1/products/detail
+
+	@handler V1ProductsSalesRank
+	get /api/v1/products/sales-rank
+
+	@handler V1ProductCategoryList
+	get /api/v1/product_category/list
+
+	@handler V1ProductCategoryDetail
+	get /api/v1/product_category/detail
+
+	@handler V1Banners
+	get /api/v1/banners
+
+	@handler V1ArticlesList
+	get /api/v1/articles/list
+
+	@handler V1ArticlesId
+	get /api/v1/articles/:id
+
+	@handler ArticlesIdLike
+	post /api/v1/articles/:id/like
+
+	@handler ArticlesIdLike
+	delete /api/v1/articles/:id/like
+
+	@handler ArticlesIdFavorite
+	post /api/v1/articles/:id/favorite
+
+	@handler ArticlesIdFavorite
+	delete /api/v1/articles/:id/favorite
+
+	@handler ArticlesIdEngagement
+	get /api/v1/articles/:id/engagement
+
+	@handler V1UserArticleFavorites
+	get /api/v1/user/article-favorites
+
+	@handler V1UserArticleLikes
+	get /api/v1/user/article-likes
+
+	@handler V1UserFavorites
+	post /api/v1/user/favorites
+
+	@handler UserFavoritesProductId
+	delete /api/v1/user/favorites/:product_id
+
+	@handler UserFavoritesBatchRemove
+	post /api/v1/user/favorites/batch-remove
+
+	@handler V1UserFavorites
+	get /api/v1/user/favorites
+
+	@handler ProductsIdFavorite
+	get /api/v1/products/:id/favorite
+
+	@handler ProductsIdFavoriteCount
+	get /api/v1/products/:id/favorite-count
+
+	@handler UsersIdFavorites
+	get /api/v1/admin/users/:id/favorites
+
+	@handler V1MerchantProducts
+	get /api/v1/merchant/products
+
+	@handler V1MerchantProducts
+	post /api/v1/merchant/products
+
+	@handler MerchantProductsBatch
+	post /api/v1/merchant/products/batch
+
+	@handler ProductsJobsId
+	get /api/v1/merchant/products/jobs/:id
+
+	@handler ProductsRecycleRestore
+	post /api/v1/merchant/products/recycle/restore
+
+	@handler MerchantProductsRecycle
+	delete /api/v1/merchant/products/recycle
+
+	@handler MerchantProductsExport
+	get /api/v1/merchant/products/export
+
+	@handler MerchantProductsImport
+	post /api/v1/merchant/products/import
+
+	@handler MerchantProductsOpLogs
+	get /api/v1/merchant/products/op-logs
+
+	@handler MerchantProductsId
+	get /api/v1/merchant/products/:id
+
+	@handler MerchantProductsId
+	put /api/v1/merchant/products/:id
+
+	@handler ProductsIdStatus
+	put /api/v1/merchant/products/:id/status
+
+	@handler ProductsIdCopy
+	post /api/v1/merchant/products/:id/copy
+
+	@handler ProductsIdSchedules
+	post /api/v1/merchant/products/:id/schedules
+
+	@handler SkusIdStock
+	put /api/v1/merchant/skus/:id/stock
+
+	@handler MerchantSkusBatchStock
+	post /api/v1/merchant/skus/batch-stock
+
+	@handler MerchantStocksWarnings
+	get /api/v1/merchant/stocks/warnings
+
+	@handler MerchantUploadsImages
+	post /api/v1/merchant/uploads/images
+
+	@handler MerchantSchedulesId
+	delete /api/v1/merchant/schedules/:id
+
+	@handler V1MerchantTags
+	get /api/v1/merchant/tags
+
+	@handler V1MerchantTags
+	post /api/v1/merchant/tags
+
+	@handler MerchantTagsId
+	put /api/v1/merchant/tags/:id
+
+	@handler MerchantTagsId
+	delete /api/v1/merchant/tags/:id
+
+	@handler V1MerchantAttrTemplates
+	get /api/v1/merchant/attr-templates
+
+	@handler V1MerchantAttrTemplates
+	post /api/v1/merchant/attr-templates
+
+	@handler MerchantAttrTemplatesId
+	put /api/v1/merchant/attr-templates/:id
+
+	@handler MerchantAttrTemplatesId
+	delete /api/v1/merchant/attr-templates/:id
+
+	@handler MerchantAuthMe
+	get /api/v1/merchant/auth/me
+
+	@handler MerchantShopRoles
+	get /api/v1/merchant/shop/roles
+
+	@handler RolesIdMenus
+	get /api/v1/merchant/shop/roles/:id/menus
+
+	@handler MerchantShopRoles
+	post /api/v1/merchant/shop/roles
+
+	@handler ShopRolesId
+	put /api/v1/merchant/shop/roles/:id
+
+	@handler MerchantShopMenus
+	get /api/v1/merchant/shop/menus
+
+	@handler MerchantShopStaff
+	get /api/v1/merchant/shop/staff
+
+	@handler MerchantShopStaff
+	post /api/v1/merchant/shop/staff
+
+	@handler V1AdminProducts
+	get /api/v1/admin/products
+
+	@handler ProductsIdOffSale
+	put /api/v1/admin/products/:id/off_sale
+
+	@handler AdminProductsId
+	delete /api/v1/admin/products/:id
+
+	@handler V1AdminCategories
+	get /api/v1/admin/categories
+
+	@handler V1AdminCategories
+	post /api/v1/admin/categories
+
+	@handler AdminCategoriesId
+	put /api/v1/admin/categories/:id
+
+	@handler AdminCategoriesId
+	delete /api/v1/admin/categories/:id
+
+	@handler AdminArticlesStats
+	get /api/v1/admin/articles/stats
+
+	@handler AdminArticlesRecycle
+	get /api/v1/admin/articles/recycle
+
+	@handler ArticlesRecycleRestore
+	post /api/v1/admin/articles/recycle/restore
+
+	@handler AdminArticlesRecycle
+	delete /api/v1/admin/articles/recycle
+
+	@handler AdminArticlesBatchAudit
+	post /api/v1/admin/articles/batch-audit
+
+	@handler V1AdminArticles
+	get /api/v1/admin/articles
+
+	@handler V1AdminArticles
+	post /api/v1/admin/articles
+
+	@handler AdminArticlesId
+	get /api/v1/admin/articles/:id
+
+	@handler AdminArticlesId
+	put /api/v1/admin/articles/:id
+
+	@handler AdminArticlesId
+	delete /api/v1/admin/articles/:id
+
+	@handler ArticlesIdAudit
+	post /api/v1/admin/articles/:id/audit
+
+	@handler ArticlesIdTop
+	post /api/v1/admin/articles/:id/top
+
+	@handler ArticlesIdOffline
+	post /api/v1/admin/articles/:id/offline
+
+	@handler V1AdminArticleCategories
+	get /api/v1/admin/article-categories
+
+	@handler V1AdminArticleCategories
+	post /api/v1/admin/article-categories
+
+	@handler AdminArticleCategoriesId
+	put /api/v1/admin/article-categories/:id
+
+	@handler AdminArticleCategoriesId
+	delete /api/v1/admin/article-categories/:id
+
+	@handler V1AdminArticleComments
+	get /api/v1/admin/article-comments
+
+	@handler AdminArticleCommentsId
+	patch /api/v1/admin/article-comments/:id
+
+	@handler AdminArticleCommentsId
+	delete /api/v1/admin/article-comments/:id
+
+	@handler V1AdminArticleUploads
+	post /api/v1/admin/article-uploads
+
+	@handler V1AdminBanners
+	get /api/v1/admin/banners
+
+	@handler V1AdminBanners
+	post /api/v1/admin/banners
+
+	@handler AdminBannersUpload
+	post /api/v1/admin/banners/upload
+
+	@handler AdminBannersId
+	get /api/v1/admin/banners/:id
+
+	@handler AdminBannersId
+	put /api/v1/admin/banners/:id
+
+	@handler AdminBannersId
+	delete /api/v1/admin/banners/:id
+
+	@handler V1AdminShopUploads
+	post /api/v1/admin/shop-uploads
+
+	@handler V1MerchantArticles
+	get /api/v1/merchant/articles
+
+	@handler V1MerchantArticles
+	post /api/v1/merchant/articles
+
+	@handler MerchantArticlesId
+	get /api/v1/merchant/articles/:id
+
+	@handler MerchantArticlesId
+	put /api/v1/merchant/articles/:id
+
+	@handler MerchantArticlesId
+	delete /api/v1/merchant/articles/:id
+
+	@handler V1MerchantArticleCategories
+	get /api/v1/merchant/article-categories
+
+	@handler V1MerchantArticleComments
+	get /api/v1/merchant/article-comments
+
+	@handler MerchantArticleCommentsId
+	patch /api/v1/merchant/article-comments/:id
+
+	@handler MerchantArticleCommentsId
+	delete /api/v1/merchant/article-comments/:id
+
+	@handler V1MerchantArticleUploads
+	post /api/v1/merchant/article-uploads
+
+	@handler MerchantNotificationsUnreadCount
+	get /api/v1/merchant/notifications/unread-count
+
+	@handler MerchantNotificationsReadAll
+	post /api/v1/merchant/notifications/read-all
+
+	@handler V1MerchantNotifications
+	get /api/v1/merchant/notifications
+
+	@handler NotificationsIdRead
+	post /api/v1/merchant/notifications/:id/read
+
+	@handler ProductsShopFile
+	get /uploads/products/:shop/:file
+
+	@handler ExportsShopFile
+	get /uploads/exports/:shop/:file
+
+	@handler ArticlesShopFile
+	get /uploads/articles/:shop/:file
+
+	@handler ShopsOwnerFile
+	get /uploads/shops/:owner/:file
+
+	@handler ReviewsUserFile
+	get /uploads/reviews/:user/:file
+
+}

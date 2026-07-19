@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"time"
 
 	"mymall/pkg/pagination"
 	"mymall/services/catalog-service/internal/product/model"
@@ -28,19 +29,47 @@ func (r *ProductRepository) GetList(page *pagination.PageReq) (map[string]interf
 }
 
 func (r *ProductRepository) GetListByShop(page *pagination.PageReq, shopID uint64, status string) (map[string]interface{}, error) {
+	return r.GetListFiltered(page, shopID, status, 0, "")
+}
+
+func (r *ProductRepository) categoryIDsIncludingChildren(categoryID uint64) []uint64 {
+	if categoryID == 0 {
+		return nil
+	}
+	ids := []uint64{categoryID}
+	var children []uint64
+	_ = r.db.Model(&model.ProductCategory{}).Where("parent_id = ?", categoryID).Pluck("id", &children).Error
+	ids = append(ids, children...)
+	// 再下一层（最多三级）
+	if len(children) > 0 {
+		var grand []uint64
+		_ = r.db.Model(&model.ProductCategory{}).Where("parent_id IN ?", children).Pluck("id", &grand).Error
+		ids = append(ids, grand...)
+	}
+	return ids
+}
+
+func (r *ProductRepository) GetListFiltered(page *pagination.PageReq, shopID uint64, status string, categoryID uint64, orderBy string) (map[string]interface{}, error) {
 	empty := map[string]interface{}{
 		"total": int64(0),
 		"list":  []model.ProductListResp{},
 	}
 
-	q := r.db.Model(&model.Product{})
-	if shopID > 0 {
-		q = q.Where("shop_id = ?", shopID)
-	}
-	if status != "" {
-		q = q.Where("status = ?", status)
+	apply := func(q *gorm.DB) *gorm.DB {
+		if shopID > 0 {
+			q = q.Where("shop_id = ?", shopID)
+		}
+		if status != "" {
+			q = q.Where("status = ?", status)
+		}
+		if categoryID > 0 {
+			ids := r.categoryIDsIncludingChildren(categoryID)
+			q = q.Where("category_id IN ?", ids)
+		}
+		return q
 	}
 
+	q := apply(r.db.Model(&model.Product{}))
 	var total int64
 	if err := q.Count(&total).Error; err != nil {
 		return empty, err
@@ -49,18 +78,17 @@ func (r *ProductRepository) GetListByShop(page *pagination.PageReq, shopID uint6
 		return empty, nil
 	}
 
-	query := r.db.Model(&model.Product{})
-	if shopID > 0 {
-		query = query.Where("shop_id = ?", shopID)
-	}
-	if status != "" {
-		query = query.Where("status = ?", status)
+	query := apply(r.db.Model(&model.Product{}))
+	switch orderBy {
+	case "sold_count_desc":
+		query = query.Order("sold_count DESC, id DESC")
+	default:
+		query = query.Order("id DESC")
 	}
 	result, err := pagination.Paginate[model.ProductListResp](query, page)
 	if err != nil {
 		return empty, err
 	}
-	// 统一 { total, list }，避免再包一层 data 导致前端 el-table 拿到对象
 	return map[string]interface{}{
 		"total":      result.Total,
 		"page":       result.Page,
@@ -106,6 +134,50 @@ func (r *ProductRepository) BatchGetByIDs(ids []uint64) ([]model.Product, error)
 	return products, err
 }
 
+// ListSalesRank 今日销量优先，其次总销量；仅在售商品
+func (r *ProductRepository) ListSalesRank(page, pageSize int) ([]model.ProductSalesRankItem, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 20
+	}
+	now := time.Now()
+	dayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	dayEnd := dayStart.Add(24 * time.Hour)
+
+	var total int64
+	if err := r.db.Model(&model.Product{}).Where("status = ?", "on_sale").Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	if total == 0 {
+		return []model.ProductSalesRankItem{}, 0, nil
+	}
+
+	var list []model.ProductSalesRankItem
+	err := r.db.Raw(`
+SELECT p.id, p.shop_id, p.name, COALESCE(s.name,'') AS shop_name,
+       COALESCE(p.main_image,'') AS main_image, p.sale_price,
+       p.sold_count, COALESCE(t.today_sold, 0) AS today_sold
+FROM products p
+LEFT JOIN shops s ON s.id = p.shop_id
+LEFT JOIN (
+  SELECT oi.product_id, SUM(oi.quantity) AS today_sold
+  FROM order_items oi
+  INNER JOIN orders o ON o.id = oi.order_id
+  WHERE o.status IN ('confirmed','shipped','completed','reviewed')
+    AND o.created_at >= ? AND o.created_at < ?
+  GROUP BY oi.product_id
+) t ON t.product_id = p.id
+WHERE p.status = 'on_sale'
+ORDER BY COALESCE(t.today_sold, 0) DESC, p.sold_count DESC, p.id DESC
+LIMIT ? OFFSET ?`, dayStart, dayEnd, pageSize, (page-1)*pageSize).Scan(&list).Error
+	if err != nil {
+		return nil, 0, err
+	}
+	return list, total, nil
+}
+
 func (r *ProductRepository) ReserveStock(items []StockItem) error {
 	admin := NewProductAdminRepository(r.db)
 	skuItems := make([]SkuStockItem, 0, len(items))
@@ -143,7 +215,7 @@ func (r *CategoryRepository) GetList(page *pagination.PageReq) (*pagination.Page
 		return res, nil
 	}
 
-	query := r.db.Model(&model.ProductCategory{}).Where("is_show = ?", true)
+	query := r.db.Model(&model.ProductCategory{}).Where("is_show = ?", true).Order("sort_order ASC, id ASC")
 	return pagination.Paginate[model.ProductCategory](query, page)
 }
 

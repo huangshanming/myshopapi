@@ -229,8 +229,8 @@ async function load() {
       name: name.value || undefined,
       status: status.value || undefined,
     })
-    list.value = res.data?.list || []
-    total.value = res.data?.total || 0
+    list.value = res?.list || []
+    total.value = res?.total || 0
   } catch (e) {
     ElMessage.error(e.message)
   } finally {
@@ -337,8 +337,8 @@ async function refreshWallet() {
       getShopWallet(walletShopId.value),
       fetchShopWalletLogs(walletShopId.value, { page: 1, page_size: 20 }),
     ])
-    wallet.value = w.data || {}
-    walletLogs.value = logs.data?.list || []
+    wallet.value = w || {}
+    walletLogs.value = logs?.list || []
   } catch (e) {
     ElMessage.error(e.message)
   } finally {

@@ -11,9 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"mymall/pkg/response"
 	"mymall/services/catalog-service/internal/uploadpath"
-)
+
+	"github.com/zeromicro/go-zero/rest/httpx"
+	"mymall/pkg/xerr")
 
 // ShopUploadHandler 平台后台店铺图片上传（存本地 /uploads/shops）
 type ShopUploadHandler struct{}
@@ -26,21 +27,21 @@ func (h *ShopUploadHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	shopID, _ := strconv.ParseUint(r.URL.Query().Get("shop_id"), 10, 64)
 	file, hdr, err := r.FormFile("file")
 	if err != nil {
-		response.Error(w, "缺少文件", http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "缺少文件"))
 		return
 	}
 	defer file.Close()
 	data, err := io.ReadAll(file)
 	if err != nil {
-		response.Error(w, "读取失败", http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "读取失败"))
 		return
 	}
 	url, err := saveShopUpload(shopID, hdr.Filename, data)
 	if err != nil {
-		response.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
 		return
 	}
-	response.Success(w, map[string]string{"url": url}, "上传成功")
+	httpx.OkJsonCtx(r.Context(), w, map[string]string{"url": url})
 }
 
 func saveShopUpload(shopID uint64, filename string, data []byte) (string, error) {

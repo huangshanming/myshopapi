@@ -41,7 +41,7 @@ async function load() {
   loading.value = true
   try {
     const res = await articleStats()
-    data.value = res.data || {}
+    data.value = res || {}
   } finally {
     loading.value = false
   }

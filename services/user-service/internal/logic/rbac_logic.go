@@ -1,6 +1,7 @@
 package logic
 
 import (
+	"context"
 	"errors"
 	"strings"
 
@@ -11,11 +12,15 @@ import (
 )
 
 type RBACLogic struct {
+	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewRBACLogic(svcCtx *svc.ServiceContext) *RBACLogic {
-	return &RBACLogic{svcCtx: svcCtx}
+func NewRBACLogic(ctx context.Context, svcCtx *svc.ServiceContext) *RBACLogic {
+	return &RBACLogic{
+		ctx:    ctx,
+		svcCtx: svcCtx,
+	}
 }
 
 func (l *RBACLogic) IsSuperAdmin(userID uint64) bool {

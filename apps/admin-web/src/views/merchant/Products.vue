@@ -52,6 +52,10 @@
       <el-table-column prop="product_type" label="类型" width="80" />
       <el-table-column prop="sale_price" label="售价" width="90" />
       <el-table-column prop="stock" label="库存" width="80" />
+      <el-table-column prop="collect_count" label="收藏" width="70" />
+      <el-table-column prop="avg_rating" label="均分" width="70" />
+      <el-table-column prop="review_count" label="评价" width="70" />
+      <el-table-column prop="good_rate" label="好评率" width="80" />
       <el-table-column prop="status" label="状态" width="90" />
       <el-table-column label="操作" width="280" fixed="right">
         <template #default="{ row }">
@@ -144,8 +148,8 @@ async function load() {
   loading.value = true
   try {
     const res = await listProducts({ ...query })
-    list.value = pickList(res.data)
-    total.value = Number(res.data?.total || list.value.length)
+    list.value = pickList(res)
+    total.value = Number(res?.total || list.value.length)
   } catch (e) {
     ElMessage.error(e.message)
     list.value = []
@@ -173,13 +177,13 @@ async function copy(row) {
 async function batch(action) {
   const product_ids = selected.value.map((r) => r.id)
   const res = await batchProducts({ action, product_ids })
-  const jobId = res.data?.id || res.data?.job_id
+  const jobId = res?.id || res?.job_id
   ElMessage.success(jobId ? `任务已提交 #${jobId}` : '已提交')
   if (jobId) {
     const poll = setInterval(async () => {
       try {
         const j = await getBatchJob(jobId)
-        const st = j.data?.status
+        const st = j?.status
         if (st === 'success' || st === 'failed' || st === 'partial') {
           clearInterval(poll)
           ElMessage.info(`批量任务 ${st}`)
@@ -226,7 +230,7 @@ async function onImport(e) {
 
 async function doExport() {
   const res = await http.get('/api/v1/merchant/products/export')
-  const url = res.data?.url
+  const url = res?.url
   if (!url) {
     ElMessage.warning('未返回导出文件')
     return

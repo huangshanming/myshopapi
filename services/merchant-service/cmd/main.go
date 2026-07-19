@@ -17,6 +17,7 @@ import (
 	"mymall/pkg/jwt"
 	applog "mymall/pkg/log"
 	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
 	"mymall/services/merchant-service/internal/handler"
 	"mymall/services/merchant-service/internal/logic"
 	"mymall/services/merchant-service/internal/model"
@@ -26,6 +27,8 @@ import (
 )
 
 func main() {
+	xerr.RegisterErrorHandler()
+
 	configPath := os.Getenv("CONFIG_PATH")
 	if configPath == "" {
 		configPath = "./etc/merchant-service.yaml"
@@ -54,13 +57,19 @@ func main() {
 		&model.SeckillRule{},
 		&model.SeckillSession{},
 		&model.SeckillEntry{},
+		&model.HomepageSlotPackage{},
+		&model.HomepageSlotSetting{},
+		&model.HomepageSlotOrder{},
+		&model.HomepageThemeSlot{},
+		&model.HomepageThemePackage{},
+		&model.HomepageThemeOrder{},
 	); err != nil {
 		log.Fatalf("AutoMigrate 失败：%v", err)
 	}
 
 	svcCtx := svc.NewServiceContext(cfg, db)
 	h := handler.NewMerchantHandler(svcCtx)
-	seckillLogic := logic.NewMerchantLogic(svcCtx)
+	seckillLogic := logic.NewMerchantLogic(context.Background(), svcCtx)
 	_, _, _ = seckillLogic.EnsureActiveSession()
 
 	go func() {
@@ -93,6 +102,8 @@ func main() {
 		{Method: http.MethodGet, Path: "/readyz", Handler: rid(healthReg.ReadyHandler())},
 
 		{Method: http.MethodGet, Path: "/api/v1/shops/list", Handler: rid(h.PublicListShops)},
+		{Method: http.MethodGet, Path: "/api/v1/shops/home-slots", Handler: rid(h.PublicHomeSlots)},
+		{Method: http.MethodGet, Path: "/api/v1/home/theme-tiles", Handler: rid(h.PublicThemeTiles)},
 		{Method: http.MethodGet, Path: "/api/v1/shops/:id", Handler: rid(h.PublicGetShop)},
 		{Method: http.MethodGet, Path: "/api/v1/seckill/current", Handler: rid(h.PublicSeckillCurrent)},
 		{Method: http.MethodGet, Path: "/api/v1/seckill/list", Handler: rid(h.PublicSeckillList)},
@@ -109,6 +120,14 @@ func main() {
 		{Method: http.MethodGet, Path: "/api/v1/merchant/seckill/sessions", Handler: rid(gw(owner(h.MerchantSeckillSessions)))},
 		{Method: http.MethodPost, Path: "/api/v1/merchant/seckill/entries", Handler: rid(gw(owner(h.MerchantApplySeckill)))},
 		{Method: http.MethodGet, Path: "/api/v1/merchant/seckill/entries", Handler: rid(gw(owner(h.MerchantListSeckillEntries)))},
+
+		{Method: http.MethodGet, Path: "/api/v1/merchant/homepage-packages", Handler: rid(gw(owner(h.MerchantListSlotPackages)))},
+		{Method: http.MethodPost, Path: "/api/v1/merchant/homepage-orders", Handler: rid(gw(owner(h.MerchantBuySlot)))},
+		{Method: http.MethodGet, Path: "/api/v1/merchant/homepage-orders", Handler: rid(gw(owner(h.MerchantListSlotOrders)))},
+		{Method: http.MethodGet, Path: "/api/v1/merchant/theme-slots", Handler: rid(gw(owner(h.MerchantListThemeSlots)))},
+		{Method: http.MethodGet, Path: "/api/v1/merchant/theme-packages", Handler: rid(gw(owner(h.MerchantListThemePackages)))},
+		{Method: http.MethodPost, Path: "/api/v1/merchant/theme-orders", Handler: rid(gw(owner(h.MerchantBuyTheme)))},
+		{Method: http.MethodGet, Path: "/api/v1/merchant/theme-orders", Handler: rid(gw(owner(h.MerchantListThemeOrders)))},
 
 		{Method: http.MethodGet, Path: "/api/v1/admin/applications", Handler: rid(middleware.Chain(h.AdminListApplications, gw, plat))},
 		{Method: http.MethodPost, Path: "/api/v1/admin/applications/:id/approve", Handler: rid(middleware.Chain(h.AdminApprove, gw, plat))},
@@ -128,6 +147,22 @@ func main() {
 		{Method: http.MethodPut, Path: "/api/v1/admin/seckill/rule", Handler: rid(middleware.Chain(h.AdminUpdateSeckillRule, gw, plat))},
 		{Method: http.MethodGet, Path: "/api/v1/admin/seckill/sessions", Handler: rid(middleware.Chain(h.AdminListSeckillSessions, gw, plat))},
 		{Method: http.MethodGet, Path: "/api/v1/admin/seckill/entries", Handler: rid(middleware.Chain(h.AdminListSeckillEntries, gw, plat))},
+
+		{Method: http.MethodGet, Path: "/api/v1/admin/homepage-packages", Handler: rid(middleware.Chain(h.AdminListSlotPackages, gw, plat))},
+		{Method: http.MethodPost, Path: "/api/v1/admin/homepage-packages", Handler: rid(middleware.Chain(h.AdminCreateSlotPackage, gw, plat))},
+		{Method: http.MethodPut, Path: "/api/v1/admin/homepage-packages/:id", Handler: rid(middleware.Chain(h.AdminUpdateSlotPackage, gw, plat))},
+		{Method: http.MethodGet, Path: "/api/v1/admin/homepage-settings", Handler: rid(middleware.Chain(h.AdminListSlotSettings, gw, plat))},
+		{Method: http.MethodPut, Path: "/api/v1/admin/homepage-settings", Handler: rid(middleware.Chain(h.AdminUpdateSlotSettings, gw, plat))},
+		{Method: http.MethodGet, Path: "/api/v1/admin/homepage-orders", Handler: rid(middleware.Chain(h.AdminListSlotOrders, gw, plat))},
+		{Method: http.MethodPost, Path: "/api/v1/admin/homepage-orders/grant", Handler: rid(middleware.Chain(h.AdminGrantSlot, gw, plat))},
+
+		{Method: http.MethodGet, Path: "/api/v1/admin/theme-slots", Handler: rid(middleware.Chain(h.AdminListThemeSlots, gw, plat))},
+		{Method: http.MethodPut, Path: "/api/v1/admin/theme-slots/:id", Handler: rid(middleware.Chain(h.AdminUpdateThemeSlot, gw, plat))},
+		{Method: http.MethodGet, Path: "/api/v1/admin/theme-packages", Handler: rid(middleware.Chain(h.AdminListThemePackages, gw, plat))},
+		{Method: http.MethodPost, Path: "/api/v1/admin/theme-packages", Handler: rid(middleware.Chain(h.AdminCreateThemePackage, gw, plat))},
+		{Method: http.MethodPut, Path: "/api/v1/admin/theme-packages/:id", Handler: rid(middleware.Chain(h.AdminUpdateThemePackage, gw, plat))},
+		{Method: http.MethodGet, Path: "/api/v1/admin/theme-orders", Handler: rid(middleware.Chain(h.AdminListThemeOrders, gw, plat))},
+		{Method: http.MethodPost, Path: "/api/v1/admin/theme-orders/grant", Handler: rid(middleware.Chain(h.AdminGrantTheme, gw, plat))},
 	})
 
 	go func() {

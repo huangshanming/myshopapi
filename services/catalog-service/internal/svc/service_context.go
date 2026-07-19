@@ -21,6 +21,7 @@ type ServiceContext struct {
 	Products      *productrepo.ProductRepository
 	Categories    *productrepo.CategoryRepository
 	ProductAdmin  *productrepo.ProductAdminRepository
+	Favorites     *productrepo.FavoriteRepository
 	ShopRBAC      *shopopsrepo.ShopRBACRepository
 	Articles      *contentrepo.ArticleRepository
 	Notifications *notifyrepo.NotificationRepository
@@ -35,6 +36,7 @@ func NewServiceContext(cfg *config.Config, db *gorm.DB, redisClient *redis.Clien
 		Products:      productrepo.NewProductRepository(db),
 		Categories:    productrepo.NewCategoryRepository(db),
 		ProductAdmin:  productrepo.NewProductAdminRepository(db),
+		Favorites:     productrepo.NewFavoriteRepository(db),
 		ShopRBAC:      shopopsrepo.NewShopRBACRepository(db),
 		Articles:      contentrepo.NewArticleRepository(db),
 		Notifications: notifyrepo.NewNotificationRepository(db),

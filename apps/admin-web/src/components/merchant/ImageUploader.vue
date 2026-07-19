@@ -43,7 +43,7 @@ async function doUpload({ file }) {
   try {
     const up = props.uploadFn || defaultUpload
     const res = await up(file)
-    const url = res.data?.url || res.data
+    const url = res?.url || res.data
     const next = [...props.modelValue, { url, typ: props.modelValue.length ? 'gallery' : 'main', sort: props.modelValue.length }]
     if (next.length === 1) next[0].typ = 'main'
     emit('update:modelValue', next)

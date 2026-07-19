@@ -214,8 +214,8 @@ async function load() {
       order_no: q.order_no || undefined,
       status: q.status || undefined,
     })
-    list.value = res.data?.list || []
-    total.value = res.data?.total || 0
+    list.value = res?.list || []
+    total.value = res?.total || 0
   } catch (e) {
     ElMessage.error(e.message)
     list.value = []
@@ -227,8 +227,8 @@ async function load() {
 async function openDetail(row) {
   try {
     const res = await getOrder(SCOPE, row.id)
-    detail.value = res.data?.order || res.data
-    afterSales.value = res.data?.after_sales || []
+    detail.value = res?.order || res.data
+    afterSales.value = res?.after_sales || []
     detailVisible.value = true
   } catch (e) {
     ElMessage.error(e.message)
@@ -247,7 +247,7 @@ async function searchLogistics(keyword) {
   logisticsLoading.value = true
   try {
     const res = await listLogisticsOptions(keyword)
-    logisticsOptions.value = Array.isArray(res.data) ? res.data : (res.data?.list || [])
+    logisticsOptions.value = Array.isArray(res) ? res : (res?.list || [])
   } catch (_) {
     logisticsOptions.value = []
   } finally {

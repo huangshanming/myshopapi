@@ -4,6 +4,10 @@ export function listProducts(params) {
   return http.get('/api/v1/products/list', params)
 }
 
+export function listSalesRank(params = { page: 1, page_size: 20 }) {
+  return http.get('/api/v1/products/sales-rank', params)
+}
+
 export function getProductDetail(id) {
   return http.get('/api/v1/products/detail', { id })
 }
@@ -16,8 +20,52 @@ export function listShops(params = { page: 1, page_size: 20 }) {
   return http.get('/api/v1/shops/list', params)
 }
 
+export function listHomeSlots(slotType) {
+  return http.get('/api/v1/shops/home-slots', { slot_type: slotType })
+}
+
+export function listThemeTiles() {
+  return http.get('/api/v1/home/theme-tiles')
+}
+
 export function getShop(id) {
   return http.get(`/api/v1/shops/${id}`)
+}
+
+export function listArticles(params = { page: 1, page_size: 10 }) {
+  return http.get('/api/v1/articles/list', params)
+}
+
+export function listBanners() {
+  return http.get('/api/v1/banners')
+}
+
+export function getArticle(id) {
+  return http.get(`/api/v1/articles/${id}`)
+}
+
+export function likeArticle(id) {
+  return http.post(`/api/v1/articles/${id}/like`)
+}
+
+export function unlikeArticle(id) {
+  return http.delete(`/api/v1/articles/${id}/like`)
+}
+
+export function favoriteArticle(id) {
+  return http.post(`/api/v1/articles/${id}/favorite`)
+}
+
+export function unfavoriteArticle(id) {
+  return http.delete(`/api/v1/articles/${id}/favorite`)
+}
+
+export function listMyArticleFavorites(params = { page: 1, page_size: 10 }) {
+  return http.get('/api/v1/user/article-favorites', params)
+}
+
+export function listMyArticleLikes(params = { page: 1, page_size: 10 }) {
+  return http.get('/api/v1/user/article-likes', params)
 }
 
 export function listRegions(parentCode = '') {
@@ -96,11 +144,81 @@ export function cancelOrder(id) {
   return http.put(`/api/v1/orders/${id}/cancel`)
 }
 
+export function confirmReceive(id) {
+  return http.put(`/api/v1/orders/${id}/confirm-receive`)
+}
+
+export function getReviewEligible(orderId) {
+  return http.get(`/api/v1/orders/${orderId}/review-eligible`)
+}
+
+export function submitOrderReview(orderId, data) {
+  return http.post(`/api/v1/orders/${orderId}/reviews`, data)
+}
+
+export function getOrderReview(orderId) {
+  return http.get(`/api/v1/orders/${orderId}/review`)
+}
+
+export function listProductReviews(productId, params) {
+  return http.get(`/api/v1/products/${productId}/reviews`, params)
+}
+
+export function uploadReviewImage(filePath) {
+  return new Promise((resolve, reject) => {
+    const token = uni.getStorageSync('token') || ''
+    const user = uni.getStorageSync('user') || {}
+    uni.uploadFile({
+      url: '/api/v1/user/review-uploads',
+      filePath,
+      name: 'file',
+      header: {
+        Authorization: token ? `Bearer ${token}` : '',
+        'X-User-Id': user.id ? String(user.id) : '',
+      },
+      success: (res) => {
+        try {
+          const body = JSON.parse(res.data)
+          if (res.statusCode && res.statusCode >= 400) {
+            reject(new Error(body?.msg || body?.message || `HTTP ${res.statusCode}`))
+            return
+          }
+          resolve(body)
+        } catch (e) {
+          reject(e)
+        }
+      },
+      fail: reject,
+    })
+  })
+}
+
+export function addFavorite(productId) {
+  return http.post('/api/v1/user/favorites', { product_id: productId })
+}
+
+export function removeFavorite(productId) {
+  return http.delete(`/api/v1/user/favorites/${productId}`)
+}
+
+export function batchRemoveFavorites(productIds) {
+  return http.post('/api/v1/user/favorites/batch-remove', { product_ids: productIds })
+}
+
+export function listFavorites(params) {
+  return http.get('/api/v1/user/favorites', params)
+}
+
+export function getFavoriteStatus(productId) {
+  return http.get(`/api/v1/products/${productId}/favorite`)
+}
+
 export const ORDER_STATUS = {
   pending: '待确认',
   confirmed: '待发货',
   shipped: '已发货',
   completed: '已完成',
+  reviewed: '已评价',
   cancelled: '已取消',
   failed: '失败',
 }

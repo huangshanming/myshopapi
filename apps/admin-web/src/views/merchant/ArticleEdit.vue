@@ -74,10 +74,10 @@ const readonlyTip = computed(() => {
 
 async function load() {
   const cats = await listMyArticleCategories()
-  catTree.value = cats.data || []
+  catTree.value = cats || []
   if (!id.value) return
   const res = await getMyArticle(id.value)
-  const a = res.data?.article || {}
+  const a = res?.article || {}
   form.title = a.title
   form.content = a.content || ''
   form.category_id = a.category_id || undefined

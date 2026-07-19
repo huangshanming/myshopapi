@@ -139,7 +139,7 @@ async function load() {
   loading.value = true
   try {
     const res = await listAdminCategories()
-    const list = Array.isArray(res.data) ? res.data : (res.data?.list || [])
+    const list = Array.isArray(res) ? res : (res?.list || [])
     flat.value = list
     tree.value = buildFullTree(list)
   } catch (e) {

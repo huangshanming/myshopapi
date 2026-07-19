@@ -1,25 +1,27 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
 
 	"mymall/pkg/httpserver"
 	"mymall/pkg/middleware"
-	"mymall/pkg/response"
 	"mymall/services/order-service/internal/logic"
 	"mymall/services/order-service/internal/repository"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
-)
+
+	"github.com/zeromicro/go-zero/rest/httpx"
+	"mymall/pkg/xerr")
 
 type LogisticsHandler struct {
 	logic *logic.LogisticsLogic
 }
 
 func NewLogisticsHandler(svcCtx *svc.ServiceContext) *LogisticsHandler {
-	return &LogisticsHandler{logic: logic.NewLogisticsLogic(svcCtx)}
+	return &LogisticsHandler{logic: logic.NewLogisticsLogic(context.Background(), svcCtx)}
 }
 
 func (h *LogisticsHandler) AdminList(w http.ResponseWriter, r *http.Request) {
@@ -37,80 +39,80 @@ func (h *LogisticsHandler) AdminList(w http.ResponseWriter, r *http.Request) {
 	}
 	list, total, err := h.logic.List(f)
 	if err != nil {
-		response.Error(w, err.Error(), http.StatusInternalServerError)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
 		return
 	}
-	response.Success(w, types.PageListResp{Total: total, List: list}, "查询成功")
+	httpx.OkJsonCtx(r.Context(), w, types.PageListResp{Total: total, List: list})
 }
 
 func (h *LogisticsHandler) Options(w http.ResponseWriter, r *http.Request) {
 	list, err := h.logic.Options(r.URL.Query().Get("keyword"))
 	if err != nil {
-		response.Error(w, err.Error(), http.StatusInternalServerError)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
 		return
 	}
-	response.Success(w, list, "查询成功")
+	httpx.OkJsonCtx(r.Context(), w, list)
 }
 
 func (h *LogisticsHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req types.LogisticsSaveReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, "参数错误", http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
 		return
 	}
 	c, err := h.logic.Create(req)
 	if err != nil {
-		response.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
 		return
 	}
-	response.Success(w, c, "创建成功")
+	httpx.OkJsonCtx(r.Context(), w, c)
 }
 
 func (h *LogisticsHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
-		response.Error(w, "ID无效", http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "ID无效"))
 		return
 	}
 	var req types.LogisticsSaveReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, "参数错误", http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
 		return
 	}
 	if err := h.logic.Update(id, req); err != nil {
-		response.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
 		return
 	}
-	response.Success(w, nil, "已更新")
+	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
 func (h *LogisticsHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
-		response.Error(w, "ID无效", http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "ID无效"))
 		return
 	}
 	var req types.LogisticsStatusReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, "参数错误", http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
 		return
 	}
 	if err := h.logic.UpdateStatus(id, req.Status); err != nil {
-		response.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
 		return
 	}
-	response.Success(w, nil, "已更新")
+	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
 func (h *LogisticsHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
-		response.Error(w, "ID无效", http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "ID无效"))
 		return
 	}
 	if err := h.logic.Delete(id); err != nil {
-		response.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
 		return
 	}
-	response.Success(w, nil, "已删除")
+	httpx.OkJsonCtx(r.Context(), w, nil)
 }

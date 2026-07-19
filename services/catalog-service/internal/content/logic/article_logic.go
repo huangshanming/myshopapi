@@ -1,6 +1,7 @@
 package logic
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -18,11 +19,15 @@ import (
 )
 
 type ArticleLogic struct {
+	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewArticleLogic(svcCtx *svc.ServiceContext) *ArticleLogic {
-	return &ArticleLogic{svcCtx: svcCtx}
+func NewArticleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ArticleLogic {
+	return &ArticleLogic{
+		ctx:    ctx,
+		svcCtx: svcCtx,
+	}
 }
 
 func parseScheduleAt(s string) (*common.LocalTime, error) {
@@ -446,4 +451,83 @@ func (l *ArticleLogic) PatchComment(id, shopID uint64, status string) error {
 
 func (l *ArticleLogic) DeleteComment(id, shopID uint64) error {
 	return l.svcCtx.Articles.DeleteComment(id, shopID)
+}
+
+func (l *ArticleLogic) PublicList(page, pageSize int, home bool) (map[string]interface{}, error) {
+	homeLimit := 0
+	if home {
+		homeLimit = l.svcCtx.Articles.GetHomeArticleLimit()
+	}
+	list, total, err := l.svcCtx.Articles.ListPublic(page, pageSize, homeLimit)
+	if err != nil {
+		return nil, err
+	}
+	items := make([]map[string]interface{}, 0, len(list))
+	for _, a := range list {
+		items = append(items, map[string]interface{}{
+			"id": a.ID, "shop_id": a.ShopID, "title": a.Title, "cover_url": a.CoverURL,
+			"like_count": a.LikeCount, "audience_count": a.AudienceCount, "read_count": a.ReadCount,
+			"collect_count": a.CollectCount, "published_at": a.PublishedAt,
+			"paid": l.svcCtx.Articles.IsArticleBoosted(a.ID),
+		})
+	}
+	return map[string]interface{}{"list": items, "total": total}, nil
+}
+
+func (l *ArticleLogic) PublicDetail(id, userID uint64) (map[string]interface{}, error) {
+	a, err := l.svcCtx.Articles.GetPublished(id)
+	if err != nil {
+		return nil, errors.New("文章不存在")
+	}
+	_ = l.svcCtx.Articles.RecordRead(id, userID)
+	a, _ = l.svcCtx.Articles.GetPublished(id)
+	liked, favorited := false, false
+	if userID > 0 {
+		liked, favorited = l.svcCtx.Articles.EngagementStatus(userID, id)
+	}
+	imgs, _ := l.svcCtx.Articles.ListImages(id)
+	return map[string]interface{}{
+		"article": a, "images": imgs,
+		"liked": liked, "favorited": favorited,
+		"paid": l.svcCtx.Articles.IsArticleBoosted(id),
+	}, nil
+}
+
+func (l *ArticleLogic) LikeArticle(userID, articleID uint64, like bool) error {
+	// 取消点赞允许文章已下架；新增点赞需文章仍在线
+	if like {
+		if _, err := l.svcCtx.Articles.GetPublished(articleID); err != nil {
+			return errors.New("文章不存在")
+		}
+	}
+	return l.svcCtx.Articles.ToggleLike(userID, articleID, like)
+}
+
+func (l *ArticleLogic) FavoriteArticle(userID, articleID uint64, fav bool) error {
+	if fav {
+		if _, err := l.svcCtx.Articles.GetPublished(articleID); err != nil {
+			return errors.New("文章不存在")
+		}
+	}
+	return l.svcCtx.Articles.ToggleFavorite(userID, articleID, fav)
+}
+
+func (l *ArticleLogic) EngagementStatus(userID, articleID uint64) (liked, favorited bool) {
+	return l.svcCtx.Articles.EngagementStatus(userID, articleID)
+}
+
+func (l *ArticleLogic) ListMyFavorites(userID uint64, page, pageSize int) (map[string]interface{}, error) {
+	list, total, err := l.svcCtx.Articles.ListUserFavorites(userID, page, pageSize)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]interface{}{"list": list, "total": total}, nil
+}
+
+func (l *ArticleLogic) ListMyLikes(userID uint64, page, pageSize int) (map[string]interface{}, error) {
+	list, total, err := l.svcCtx.Articles.ListUserLikes(userID, page, pageSize)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]interface{}{"list": list, "total": total}, nil
 }

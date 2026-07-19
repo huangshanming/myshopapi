@@ -16,12 +16,27 @@ function pickErrMsg(err) {
   return '请求失败'
 }
 
+/** 兼容旧信封 {code,msg,data} 与新契约（body 即 DTO） */
+export function unwrapBody(body) {
+  if (
+    body &&
+    typeof body === 'object' &&
+    typeof body.code === 'number' &&
+    Object.prototype.hasOwnProperty.call(body, 'data')
+  ) {
+    if (body.code !== 200) {
+      throw new Error(body.msg || '请求失败')
+    }
+    return body.data
+  }
+  return body
+}
+
 http.interceptors.request.use((config) => {
   const auth = useAuthStore()
   if (auth.token) {
     config.headers.Authorization = `Bearer ${auth.token}`
   }
-  // 直连微服务时网关不会注入头，本地代理用 JWT 字段手动补
   if (auth.userId) {
     config.headers['X-User-Id'] = String(auth.userId)
   }
@@ -36,11 +51,11 @@ http.interceptors.request.use((config) => {
 
 http.interceptors.response.use(
   (res) => {
-    const body = res.data
-    if (body && typeof body.code === 'number' && body.code !== 200) {
-      return Promise.reject(new Error(body.msg || '请求失败'))
+    try {
+      return unwrapBody(res.data)
+    } catch (e) {
+      return Promise.reject(e)
     }
-    return body
   },
   (err) => Promise.reject(new Error(pickErrMsg(err)))
 )

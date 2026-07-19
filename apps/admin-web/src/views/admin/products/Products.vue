@@ -55,6 +55,11 @@
         end-placeholder="上架止"
         style="width: 240px"
       />
+      <el-select v-model="q.order_by" clearable placeholder="排序" style="width: 140px" @change="load">
+        <el-option label="收藏人数↓" value="collect_desc" />
+        <el-option label="销量↓" value="sold_desc" />
+        <el-option label="售价↓" value="sale_price_desc" />
+      </el-select>
       <el-button type="primary" @click="load">查询</el-button>
     </div>
 
@@ -70,6 +75,10 @@
       <el-table-column prop="product_no" label="货号" width="110" />
       <el-table-column prop="sale_price" label="售价" width="90" />
       <el-table-column prop="stock" label="库存" width="80" />
+      <el-table-column prop="collect_count" label="收藏人数" width="100" />
+      <el-table-column prop="avg_rating" label="均分" width="70" />
+      <el-table-column prop="review_count" label="评价数" width="80" />
+      <el-table-column prop="good_rate" label="好评率%" width="90" />
       <el-table-column prop="status" label="状态" width="90" />
       <el-table-column prop="product_type" label="类型" width="90" />
       <el-table-column prop="created_at" label="创建时间" width="160" />
@@ -145,6 +154,7 @@ const q = reactive({
   status: '',
   product_type: '',
   category_id: undefined,
+  order_by: '',
 })
 
 const remarkVisible = ref(false)
@@ -157,7 +167,7 @@ async function searchShops(keyword) {
   shopLoading.value = true
   try {
     const res = await fetchShops({ name: keyword || undefined, page: 1, page_size: 50 })
-    shops.value = res.data?.list || res.data?.items || []
+    shops.value = res?.list || res?.items || []
   } finally {
     shopLoading.value = false
   }
@@ -166,7 +176,7 @@ async function searchShops(keyword) {
 async function loadCats() {
   try {
     const res = await listProductCategories()
-    catTree.value = buildCategoryTree(pickList(res.data))
+    catTree.value = buildCategoryTree(pickList(res))
   } catch (_) {
     catTree.value = []
   }
@@ -188,9 +198,10 @@ async function load() {
       created_to: createdRange.value?.[1],
       publish_from: publishRange.value?.[0],
       publish_to: publishRange.value?.[1],
+      order_by: q.order_by || undefined,
     })
-    list.value = res.data?.list || []
-    total.value = res.data?.total || 0
+    list.value = res?.list || []
+    total.value = res?.total || 0
   } catch (e) {
     ElMessage.error(e.message)
   } finally {

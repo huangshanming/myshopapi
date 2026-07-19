@@ -62,9 +62,9 @@ async function load(reset = false) {
       list.value = []
     }
     const res = await listUserWalletLogs({ page: page.value, page_size: 15 })
-    const rows = res.data?.list || []
+    const rows = res?.list || []
     list.value = reset ? rows : list.value.concat(rows)
-    const total = res.data?.total || 0
+    const total = res?.total || 0
     if (list.value.length >= total || rows.length < 15) finished.value = true
     else page.value += 1
   } catch {

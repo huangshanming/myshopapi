@@ -1,6 +1,7 @@
 package logic
 
 import (
+	"context"
 	"errors"
 	"strings"
 
@@ -13,11 +14,15 @@ import (
 )
 
 type LogisticsLogic struct {
+	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewLogisticsLogic(svcCtx *svc.ServiceContext) *LogisticsLogic {
-	return &LogisticsLogic{svcCtx: svcCtx}
+func NewLogisticsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *LogisticsLogic {
+	return &LogisticsLogic{
+		ctx:    ctx,
+		svcCtx: svcCtx,
+	}
 }
 
 func (l *LogisticsLogic) List(f repository.LogisticsListFilter) ([]model.LogisticsCompany, int64, error) {

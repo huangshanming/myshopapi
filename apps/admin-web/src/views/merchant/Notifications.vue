@@ -59,8 +59,8 @@ async function load() {
       page_size: 20,
       is_read: isRead.value === undefined || isRead.value === null || isRead.value === '' ? undefined : isRead.value,
     })
-    list.value = res.data?.list || []
-    total.value = res.data?.total || 0
+    list.value = res?.list || []
+    total.value = res?.total || 0
   } catch (e) {
     ElMessage.error(e.message)
   } finally {

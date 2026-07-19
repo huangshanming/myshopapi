@@ -47,7 +47,7 @@ async function loadWallet() {
   loading.value = true
   try {
     const res = await getMerchantWallet()
-    wallet.value = res.data || {}
+    wallet.value = res || {}
   } catch (e) {
     ElMessage.error(e.message)
   } finally {
@@ -58,8 +58,8 @@ async function loadWallet() {
 async function loadLogs() {
   try {
     const res = await fetchMerchantWalletLogs({ page: page.value, page_size: pageSize })
-    logs.value = res.data?.list || []
-    total.value = res.data?.total || 0
+    logs.value = res?.list || []
+    total.value = res?.total || 0
   } catch (e) {
     ElMessage.error(e.message)
   }

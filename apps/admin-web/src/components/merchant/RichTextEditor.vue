@@ -49,7 +49,7 @@ const editorConfig = {
         try {
           const up = props.uploadFn || defaultUpload
           const res = await up(file)
-          const url = res.data?.url || res.data
+          const url = res?.url || res.data
           if (!url) throw new Error('上传未返回地址')
           insertFn(url, file.name || '图片', url)
         } catch (e) {

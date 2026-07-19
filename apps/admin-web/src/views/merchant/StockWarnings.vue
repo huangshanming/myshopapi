@@ -51,7 +51,7 @@ async function load() {
   loading.value = true
   try {
     const res = await stockWarnings({ page: 1, page_size: 100 })
-    list.value = pickList(res.data).map((r) => ({ ...r, _stock: r.stock }))
+    list.value = pickList(res).map((r) => ({ ...r, _stock: r.stock }))
   } catch (e) {
     ElMessage.error(e.message)
   } finally {

@@ -70,7 +70,7 @@ async function load() {
   loading.value = true
   try {
     const res = await fetchRoles()
-    list.value = res.data || []
+    list.value = res || []
   } catch (e) {
     ElMessage.error(e.message)
   } finally {
@@ -115,10 +115,10 @@ async function onDelete(row) {
 async function openMenus(row) {
   currentRoleId.value = row.id
   const [menusRes, idsRes] = await Promise.all([fetchMenus(), fetchRoleMenus(row.id)])
-  menuTree.value = menusRes.data || []
+  menuTree.value = menusRes || []
   menuVisible.value = true
   await nextTick()
-  treeRef.value?.setCheckedKeys(idsRes.data || [], false)
+  treeRef.value?.setCheckedKeys(idsRes || [], false)
 }
 
 async function saveMenus() {

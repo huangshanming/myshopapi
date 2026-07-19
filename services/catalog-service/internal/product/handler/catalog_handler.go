@@ -1,18 +1,20 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
 	"mymall/pkg/apidoc/dto"
 	"mymall/pkg/middleware"
 	"mymall/pkg/pagination"
-	"mymall/pkg/response"
 	"mymall/services/catalog-service/internal/product/logic"
 	"mymall/services/catalog-service/internal/svc"
 
 	"gorm.io/gorm"
-)
+
+	"github.com/zeromicro/go-zero/rest/httpx"
+	"mymall/pkg/xerr")
 
 type CatalogHandler struct {
 	svcCtx *svc.ServiceContext
@@ -30,7 +32,7 @@ var (
 func NewCatalogHandler(svcCtx *svc.ServiceContext) *CatalogHandler {
 	return &CatalogHandler{
 		svcCtx: svcCtx,
-		logic:  logic.NewCatalogLogic(svcCtx),
+		logic:  logic.NewCatalogLogic(context.Background(), svcCtx),
 	}
 }
 
@@ -46,12 +48,26 @@ func NewCatalogHandler(svcCtx *svc.ServiceContext) *CatalogHandler {
 func (h *CatalogHandler) GetProductList(w http.ResponseWriter, r *http.Request) {
 	page, pageSize := middleware.ParsePage(r)
 	pageReq := &pagination.PageReq{Page: page, PageSize: pageSize}
-	data, err := h.logic.GetProductList(pageReq)
+	shopID, _ := strconv.ParseUint(r.URL.Query().Get("shop_id"), 10, 64)
+	categoryID, _ := strconv.ParseUint(r.URL.Query().Get("category_id"), 10, 64)
+	orderBy := r.URL.Query().Get("order_by")
+	data, err := h.logic.GetProductListFiltered(pageReq, shopID, "on_sale", categoryID, orderBy)
 	if err != nil {
-		response.Error(w, "查询失败", http.StatusInternalServerError)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, "查询失败"))
 		return
 	}
-	response.Success(w, data, "查询成功")
+	httpx.OkJsonCtx(r.Context(), w, data)
+}
+
+// GetSalesRank 今日必买销量榜
+func (h *CatalogHandler) GetSalesRank(w http.ResponseWriter, r *http.Request) {
+	page, pageSize := middleware.ParsePage(r)
+	data, err := h.logic.GetSalesRank(page, pageSize)
+	if err != nil {
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, "查询失败"))
+		return
+	}
+	httpx.OkJsonCtx(r.Context(), w, data)
 }
 
 // GetProductDetail 商品详情
@@ -65,19 +81,19 @@ func (h *CatalogHandler) GetProductList(w http.ResponseWriter, r *http.Request) 
 func (h *CatalogHandler) GetProductDetail(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseUint(r.URL.Query().Get("id"), 10, 64)
 	if id == 0 {
-		response.Error(w, "参数错误", http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
 		return
 	}
 	data, err := h.logic.GetProductDetail(id)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			response.Error(w, "商品不存在", http.StatusNotFound)
+			httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusNotFound, "商品不存在"))
 			return
 		}
-		response.Error(w, "查询失败", http.StatusInternalServerError)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, "查询失败"))
 		return
 	}
-	response.Success(w, data, "查询成功")
+	httpx.OkJsonCtx(r.Context(), w, data)
 }
 
 // GetCategoryList 分类列表
@@ -94,10 +110,10 @@ func (h *CatalogHandler) GetCategoryList(w http.ResponseWriter, r *http.Request)
 	pageReq := &pagination.PageReq{Page: page, PageSize: pageSize}
 	data, err := h.logic.GetCategoryList(pageReq)
 	if err != nil {
-		response.Error(w, "查询失败", http.StatusInternalServerError)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, "查询失败"))
 		return
 	}
-	response.Success(w, data, "查询成功")
+	httpx.OkJsonCtx(r.Context(), w, data)
 }
 
 // GetCategoryDetail 分类详情
@@ -111,17 +127,17 @@ func (h *CatalogHandler) GetCategoryList(w http.ResponseWriter, r *http.Request)
 func (h *CatalogHandler) GetCategoryDetail(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseUint(r.URL.Query().Get("id"), 10, 64)
 	if id == 0 {
-		response.Error(w, "参数错误", http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
 		return
 	}
 	data, err := h.logic.GetCategoryDetail(id)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			response.Error(w, "分类不存在", http.StatusNotFound)
+			httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusNotFound, "分类不存在"))
 			return
 		}
-		response.Error(w, "查询失败", http.StatusInternalServerError)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, "查询失败"))
 		return
 	}
-	response.Success(w, data, "查询成功")
+	httpx.OkJsonCtx(r.Context(), w, data)
 }

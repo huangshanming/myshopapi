@@ -59,7 +59,7 @@ function flatten(nodes, out = []) {
 
 async function load() {
   const res = await listArticleCategories()
-  tree.value = res.data || []
+  tree.value = res || []
   flat.value = flatten(tree.value)
 }
 

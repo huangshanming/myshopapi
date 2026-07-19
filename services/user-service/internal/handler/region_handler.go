@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 
-	"mymall/pkg/response"
 	"mymall/services/user-service/internal/logic"
 	"mymall/services/user-service/internal/svc"
-)
+
+	"github.com/zeromicro/go-zero/rest/httpx"
+	"mymall/pkg/xerr")
 
 type RegionHandler struct {
 	svcCtx *svc.ServiceContext
@@ -16,7 +18,7 @@ type RegionHandler struct {
 func NewRegionHandler(svcCtx *svc.ServiceContext) *RegionHandler {
 	return &RegionHandler{
 		svcCtx: svcCtx,
-		logic:  logic.NewRegionLogic(svcCtx),
+		logic:  logic.NewRegionLogic(context.Background(), svcCtx),
 	}
 }
 
@@ -24,17 +26,17 @@ func (h *RegionHandler) List(w http.ResponseWriter, r *http.Request) {
 	parent := r.URL.Query().Get("parent_code")
 	list, err := h.logic.ListChildren(parent)
 	if err != nil {
-		response.Error(w, err.Error(), http.StatusInternalServerError)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
 		return
 	}
-	response.Success(w, list, "ok")
+	httpx.OkJsonCtx(r.Context(), w, list)
 }
 
 func (h *RegionHandler) Tree(w http.ResponseWriter, r *http.Request) {
 	tree, err := h.logic.Tree()
 	if err != nil {
-		response.Error(w, err.Error(), http.StatusInternalServerError)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
 		return
 	}
-	response.Success(w, tree, "ok")
+	httpx.OkJsonCtx(r.Context(), w, tree)
 }

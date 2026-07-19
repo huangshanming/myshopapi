@@ -103,8 +103,8 @@ const form = reactive({
 async function loadSessions() {
   try {
     const res = await fetchMerchantSeckillSessions()
-    rule.value = res.data?.rule || null
-    sessions.value = res.data?.sessions || []
+    rule.value = res?.rule || null
+    sessions.value = res?.sessions || []
   } catch (e) {
     ElMessage.error(e.message)
   }
@@ -114,7 +114,7 @@ async function loadEntries() {
   entryLoading.value = true
   try {
     const res = await fetchMerchantSeckillEntries({ page: 1, page_size: 50 })
-    entries.value = res.data?.list || []
+    entries.value = res?.list || []
   } catch (e) {
     ElMessage.error(e.message)
   } finally {
@@ -126,7 +126,7 @@ async function searchProducts(q) {
   prodLoading.value = true
   try {
     const res = await listProducts({ page: 1, page_size: 30, keyword: q || undefined, status: 'on_sale' })
-    products.value = res.data?.list || []
+    products.value = res?.list || []
   } catch {
     products.value = []
   } finally {

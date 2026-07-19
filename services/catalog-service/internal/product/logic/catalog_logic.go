@@ -16,24 +16,29 @@ import (
 const productListCacheTTL = 5 * time.Minute
 
 type CatalogLogic struct {
+	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewCatalogLogic(svcCtx *svc.ServiceContext) *CatalogLogic {
-	return &CatalogLogic{svcCtx: svcCtx}
+func NewCatalogLogic(ctx context.Context, svcCtx *svc.ServiceContext) *CatalogLogic {
+	return &CatalogLogic{
+		ctx:    ctx,
+		svcCtx: svcCtx,
+	}
 }
 
-func (l *CatalogLogic) productListCacheKey(page *pagination.PageReq) string {
-	return fmt.Sprintf("catalog:products:list:%d:%d", page.Page, page.PageSize)
+func (l *CatalogLogic) productListCacheKey(page *pagination.PageReq, shopID, categoryID uint64, orderBy string) string {
+	return fmt.Sprintf("catalog:products:list:%d:%d:%d:%d:%s", page.Page, page.PageSize, shopID, categoryID, orderBy)
 }
 
 func (l *CatalogLogic) GetProductList(page *pagination.PageReq) (map[string]interface{}, error) {
-	return l.GetProductListFiltered(page, 0, "on_sale")
+	return l.GetProductListFiltered(page, 0, "on_sale", 0, "")
 }
 
-func (l *CatalogLogic) GetProductListFiltered(page *pagination.PageReq, shopID uint64, status string) (map[string]interface{}, error) {
-	if l.svcCtx.Redis != nil && shopID == 0 && status == "on_sale" {
-		key := l.productListCacheKey(page)
+func (l *CatalogLogic) GetProductListFiltered(page *pagination.PageReq, shopID uint64, status string, categoryID uint64, orderBy string) (map[string]interface{}, error) {
+	useCache := l.svcCtx.Redis != nil && shopID == 0 && status == "on_sale" && categoryID == 0 && orderBy == ""
+	if useCache {
+		key := l.productListCacheKey(page, shopID, categoryID, orderBy)
 		cached, err := l.svcCtx.Redis.Get(context.Background(), key).Bytes()
 		if err == nil {
 			var res map[string]interface{}
@@ -43,14 +48,14 @@ func (l *CatalogLogic) GetProductListFiltered(page *pagination.PageReq, shopID u
 		}
 	}
 
-	res, err := l.svcCtx.Products.GetListByShop(page, shopID, status)
+	res, err := l.svcCtx.Products.GetListFiltered(page, shopID, status, categoryID, orderBy)
 	if err != nil {
 		return res, err
 	}
 
-	if l.svcCtx.Redis != nil && shopID == 0 && status == "on_sale" {
+	if useCache {
 		if data, err := json.Marshal(res); err == nil {
-			_ = l.svcCtx.Redis.Set(context.Background(), l.productListCacheKey(page), data, productListCacheTTL).Err()
+			_ = l.svcCtx.Redis.Set(context.Background(), l.productListCacheKey(page, shopID, categoryID, orderBy), data, productListCacheTTL).Err()
 		}
 	}
 	return res, nil
@@ -160,6 +165,14 @@ func (l *CatalogLogic) DeleteCategory(id uint64) error {
 
 func (l *CatalogLogic) GetProductDetail(id uint64) (*model.Product, error) {
 	return l.svcCtx.Products.GetDetail(id)
+}
+
+func (l *CatalogLogic) GetSalesRank(page, pageSize int) (map[string]interface{}, error) {
+	list, total, err := l.svcCtx.Products.ListSalesRank(page, pageSize)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]interface{}{"list": list, "total": total}, nil
 }
 
 func (l *CatalogLogic) GetCategoryList(page *pagination.PageReq) (*pagination.PageRes[model.ProductCategory], error) {

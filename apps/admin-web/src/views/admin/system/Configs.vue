@@ -24,7 +24,7 @@ async function load() {
   loading.value = true
   try {
     const res = await fetchConfigs()
-    list.value = res.data || []
+    list.value = res || []
   } catch (e) {
     ElMessage.error(e.message)
   } finally {

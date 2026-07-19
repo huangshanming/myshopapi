@@ -48,7 +48,7 @@ async function load() {
   loading.value = true
   try {
     const res = await listAddresses()
-    list.value = res.data || []
+    list.value = res || []
   } catch {
     list.value = []
   } finally {

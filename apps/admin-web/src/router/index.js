@@ -38,6 +38,13 @@ import AdminSeckillRule from '../views/admin/SeckillRule.vue'
 import AdminSeckillSessions from '../views/admin/SeckillSessions.vue'
 import MerchantWallet from '../views/merchant/Wallet.vue'
 import MerchantSeckillApply from '../views/merchant/SeckillApply.vue'
+import MerchantReviews from '../views/merchant/Reviews.vue'
+import AdminReviews from '../views/admin/Reviews.vue'
+import AdminHomepageSlots from '../views/admin/HomepageSlots.vue'
+import MerchantHomepagePromote from '../views/merchant/HomepagePromote.vue'
+import AdminBanners from '../views/admin/Banners.vue'
+import AdminThemeSlots from '../views/admin/ThemeSlots.vue'
+import MerchantThemePromote from '../views/merchant/ThemePromote.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -54,8 +61,12 @@ const router = createRouter({
         { path: 'shops', component: AdminShops, meta: { perms: 'business:shop:list' } },
         { path: 'seckill/rule', component: AdminSeckillRule, meta: { perms: 'marketing:seckill:rule' } },
         { path: 'seckill/sessions', component: AdminSeckillSessions, meta: { perms: 'marketing:seckill:session' } },
+        { path: 'banners', component: AdminBanners, meta: { perms: 'marketing:banner:list' } },
+        { path: 'themes', component: AdminThemeSlots, meta: { perms: 'marketing:theme:list' } },
         { path: 'orders', component: AdminOrders, meta: { perms: 'business:order:list' } },
         { path: 'after-sales', component: AdminAfterSales, meta: { perms: 'business:aftersale:list' } },
+        { path: 'reviews', component: AdminReviews, meta: { perms: 'business:review:list' } },
+        { path: 'homepage', component: AdminHomepageSlots, meta: { perms: 'business:homepage:list' } },
         { path: 'logistics', component: AdminLogistics, meta: { perms: 'business:logistics:list' } },
         { path: 'products/categories', component: AdminProductCategories, meta: { perms: 'business:category:list' } },
         { path: 'products/detail/:id', component: AdminProductDetail, meta: { perms: 'business:product:list' } },
@@ -87,6 +98,9 @@ const router = createRouter({
         { path: 'staff', component: MerchantStaff, meta: { shopPerm: 'shop:staff' } },
         { path: 'orders', component: MerchantOrders, meta: { shopPerm: 'order:list' } },
         { path: 'after-sales', component: MerchantAfterSales, meta: { shopPerm: 'aftersale:list' } },
+        { path: 'reviews', component: MerchantReviews, meta: { shopPerm: 'product:review:list' } },
+        { path: 'homepage', component: MerchantHomepagePromote, meta: { shopPerm: 'homepage:list' } },
+        { path: 'themes', component: MerchantThemePromote, meta: { shopPerm: 'theme:list' } },
         { path: 'articles', component: MerchantArticles, meta: { shopPerm: 'article:list' } },
         { path: 'articles/edit/:id?', component: MerchantArticleEdit, meta: { shopPerm: 'article:edit' } },
         { path: 'notifications', component: MerchantNotifications, meta: { shopPerm: 'notif:list' } },

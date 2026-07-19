@@ -20,6 +20,8 @@ Client → APISIX (JWT) → user-service     (go-zero rest :8888, zrpc :9090)
 - **缓存**：本机 Redis（catalog 商品列表 + SKU 库存）
 - **K8s Pod 访问本机**：`host.docker.internal`
 - **接口文档**：`bash scripts/serve-docs.sh`（Scalar）；服务内不再挂 gin-swagger
+- **HTTP 契约**：成功为业务 DTO（`httpx.OkJson`）；失败为非 2xx + `{code,msg}`。见 [`docs/gozero-http-contract.md`](docs/gozero-http-contract.md)
+- **goctl**：`go install github.com/zeromicro/go-zero/tools/goctl@v1.8.5`；生成示例见 [`docs/gozero-migration-runbook.md`](docs/gozero-migration-runbook.md)
 
 ## 目录结构
 

@@ -77,8 +77,8 @@ async function load() {
   loading.value = true
   try {
     const [adminsRes, rolesRes] = await Promise.all([fetchAdmins({ page: 1, page_size: 50 }), fetchRoles()])
-    list.value = adminsRes.data?.list || []
-    roles.value = rolesRes.data || []
+    list.value = adminsRes?.list || []
+    roles.value = rolesRes || []
   } catch (e) {
     ElMessage.error(e.message)
   } finally {
@@ -105,7 +105,7 @@ async function saveCreate() {
 async function openRoles(row) {
   currentId.value = row.id
   const res = await fetchAdminRoles(row.id)
-  selectedRoles.value = res.data || []
+  selectedRoles.value = res || []
   roleVisible.value = true
 }
 

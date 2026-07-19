@@ -11,11 +11,12 @@
       <el-table-column prop="nickname" label="昵称" />
       <el-table-column prop="role" label="角色" width="140" />
       <el-table-column prop="status" label="状态" width="80" />
-      <el-table-column label="操作" width="460">
+      <el-table-column label="操作" width="520">
         <template #default="{ row }">
           <el-button v-permission="'system:user:edit'" link type="primary" @click="openEdit(row)">编辑</el-button>
           <el-button v-permission="'system:user:wallet'" link type="warning" @click="openWallet(row)">钱包</el-button>
           <el-button v-permission="'system:user:list'" link @click="openAddresses(row)">地址</el-button>
+          <el-button v-permission="'system:user:list'" link @click="openFavorites(row)">收藏</el-button>
           <el-button v-permission="'system:user:reset'" link @click="openReset(row)">重置密码</el-button>
           <el-button v-permission="'system:user:list'" link type="success" @click="openToken(row)">生成Token</el-button>
           <el-button
@@ -118,6 +119,27 @@
       <el-empty v-if="!addrLoading && !addrList.length" description="暂无收货地址" />
     </el-dialog>
 
+    <el-dialog v-model="favVisible" :title="`用户收藏 #${favUserId}`" width="720px" destroy-on-close>
+      <el-table v-loading="favLoading" :data="favList" size="small" max-height="420">
+        <el-table-column prop="product_id" label="商品ID" width="90" />
+        <el-table-column label="封面" width="72">
+          <template #default="{ row }">
+            <el-image v-if="row.main_image" :src="row.main_image" style="width: 40px; height: 40px" fit="cover" />
+          </template>
+        </el-table-column>
+        <el-table-column prop="name" label="名称" min-width="160" />
+        <el-table-column prop="sale_price" label="售价" width="90" />
+        <el-table-column label="状态" width="90">
+          <template #default="{ row }">
+            <el-tag v-if="row.invalid" type="info" size="small">失效</el-tag>
+            <span v-else>{{ row.status }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="created_at" label="收藏时间" width="160" />
+      </el-table>
+      <el-empty v-if="!favLoading && !favList.length" description="暂无收藏" />
+    </el-dialog>
+
     <el-dialog v-model="tokenVisible" title="用户 Token（并发压测可复制）" width="640px">
       <el-descriptions :column="1" border size="small" class="token-meta">
         <el-descriptions-item label="用户">{{ tokenInfo.nickname }}（{{ tokenInfo.mobile }}）</el-descriptions-item>
@@ -145,7 +167,7 @@
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
-  adjustUserWallet, fetchUserAddresses, fetchUserWalletLogs, fetchUsers, generateUserToken, getUserWallet,
+  adjustUserWallet, fetchUserAddresses, fetchUserFavorites, fetchUserWalletLogs, fetchUsers, generateUserToken, getUserWallet,
   resetUserPassword, setUserStatus, updateUser,
 } from '../../../api/system'
 
@@ -183,13 +205,17 @@ const addrVisible = ref(false)
 const addrLoading = ref(false)
 const addrUserId = ref(0)
 const addrList = ref([])
+const favVisible = ref(false)
+const favLoading = ref(false)
+const favUserId = ref(0)
+const favList = ref([])
 
 async function load() {
   loading.value = true
   try {
     const res = await fetchUsers({ page: page.value, page_size: pageSize, mobile: mobile.value || undefined })
-    list.value = res.data?.list || []
-    total.value = res.data?.total || 0
+    list.value = res?.list || []
+    total.value = res?.total || 0
   } catch (e) {
     ElMessage.error(e.message)
   } finally {
@@ -241,7 +267,7 @@ async function openToken(row) {
   tokenInfo.token = ''
   try {
     const res = await generateUserToken(row.id)
-    const d = res.data || {}
+    const d = res || {}
     tokenInfo.token = d.token || ''
     tokenInfo.user_id = d.user_id
     tokenInfo.mobile = d.mobile || ''
@@ -304,8 +330,8 @@ async function loadWallet() {
       getUserWallet(walletUserId.value),
       fetchUserWalletLogs(walletUserId.value, { page: 1, page_size: 20 }),
     ])
-    wallet.value = w.data || {}
-    walletLogs.value = logs.data?.list || []
+    wallet.value = w || {}
+    walletLogs.value = logs?.list || []
   } catch (e) {
     ElMessage.error(e.message)
   } finally {
@@ -337,12 +363,31 @@ async function loadAddresses() {
   addrLoading.value = true
   try {
     const res = await fetchUserAddresses(addrUserId.value)
-    addrList.value = res.data || []
+    addrList.value = res || []
   } catch (e) {
     ElMessage.error(e.message)
     addrList.value = []
   } finally {
     addrLoading.value = false
+  }
+}
+
+function openFavorites(row) {
+  favUserId.value = row.id
+  favVisible.value = true
+  loadFavorites()
+}
+
+async function loadFavorites() {
+  favLoading.value = true
+  try {
+    const res = await fetchUserFavorites(favUserId.value, { page: 1, page_size: 100 })
+    favList.value = res?.list || []
+  } catch (e) {
+    ElMessage.error(e.message)
+    favList.value = []
+  } finally {
+    favLoading.value = false
   }
 }
 

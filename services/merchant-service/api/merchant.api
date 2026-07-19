@@ -1,0 +1,142 @@
+syntax = "v1"
+
+// Auto-extracted route table for goctl; handlers wired manually to existing logic.
+// Regenerate stubs: goctl api go -api api/merchant.api -dir ./_goctl_out -style go_zero
+
+service merchantapi {
+	@handler Healthz
+	get /healthz
+
+	@handler Readyz
+	get /readyz
+
+	@handler V1ShopsList
+	get /api/v1/shops/list
+
+	@handler V1ShopsHomeSlots
+	get /api/v1/shops/home-slots
+
+	@handler V1ShopsId
+	get /api/v1/shops/:id
+
+	@handler V1SeckillCurrent
+	get /api/v1/seckill/current
+
+	@handler V1SeckillList
+	get /api/v1/seckill/list
+
+	@handler SeckillEntriesId
+	get /api/v1/seckill/entries/:id
+
+	@handler V1SeckillConsume
+	post /api/v1/seckill/consume
+
+	@handler V1SeckillRestore
+	post /api/v1/seckill/restore
+
+	@handler V1MerchantApply
+	post /api/v1/merchant/apply
+
+	@handler V1MerchantShops
+	get /api/v1/merchant/shops
+
+	@handler MerchantShopsId
+	put /api/v1/merchant/shops/:id
+
+	@handler V1MerchantWallet
+	get /api/v1/merchant/wallet
+
+	@handler MerchantWalletLogs
+	get /api/v1/merchant/wallet/logs
+
+	@handler MerchantSeckillSessions
+	get /api/v1/merchant/seckill/sessions
+
+	@handler MerchantSeckillEntries
+	post /api/v1/merchant/seckill/entries
+
+	@handler MerchantSeckillEntries
+	get /api/v1/merchant/seckill/entries
+
+	@handler V1MerchantHomepagePackages
+	get /api/v1/merchant/homepage-packages
+
+	@handler V1MerchantHomepageOrders
+	post /api/v1/merchant/homepage-orders
+
+	@handler V1MerchantHomepageOrders
+	get /api/v1/merchant/homepage-orders
+
+	@handler V1AdminApplications
+	get /api/v1/admin/applications
+
+	@handler ApplicationsIdApprove
+	post /api/v1/admin/applications/:id/approve
+
+	@handler ApplicationsIdReject
+	post /api/v1/admin/applications/:id/reject
+
+	@handler V1AdminShops
+	get /api/v1/admin/shops
+
+	@handler V1AdminShops
+	post /api/v1/admin/shops
+
+	@handler AdminShopsId
+	get /api/v1/admin/shops/:id
+
+	@handler AdminShopsId
+	put /api/v1/admin/shops/:id
+
+	@handler ShopsIdOwnerPassword
+	put /api/v1/admin/shops/:id/owner-password
+
+	@handler ShopsIdDisable
+	put /api/v1/admin/shops/:id/disable
+
+	@handler ShopsIdEnable
+	put /api/v1/admin/shops/:id/enable
+
+	@handler ShopsIdWallet
+	get /api/v1/admin/shops/:id/wallet
+
+	@handler IdWalletAdjust
+	post /api/v1/admin/shops/:id/wallet/adjust
+
+	@handler IdWalletLogs
+	get /api/v1/admin/shops/:id/wallet/logs
+
+	@handler AdminSeckillRule
+	get /api/v1/admin/seckill/rule
+
+	@handler AdminSeckillRule
+	put /api/v1/admin/seckill/rule
+
+	@handler AdminSeckillSessions
+	get /api/v1/admin/seckill/sessions
+
+	@handler AdminSeckillEntries
+	get /api/v1/admin/seckill/entries
+
+	@handler V1AdminHomepagePackages
+	get /api/v1/admin/homepage-packages
+
+	@handler V1AdminHomepagePackages
+	post /api/v1/admin/homepage-packages
+
+	@handler AdminHomepagePackagesId
+	put /api/v1/admin/homepage-packages/:id
+
+	@handler V1AdminHomepageSettings
+	get /api/v1/admin/homepage-settings
+
+	@handler V1AdminHomepageSettings
+	put /api/v1/admin/homepage-settings
+
+	@handler V1AdminHomepageOrders
+	get /api/v1/admin/homepage-orders
+
+	@handler AdminHomepageOrdersGrant
+	post /api/v1/admin/homepage-orders/grant
+
+}

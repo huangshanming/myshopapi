@@ -48,6 +48,9 @@ type CommunityArticle struct {
 	IsTop             int8              `gorm:"column:is_top;default:0" json:"is_top"`
 	ViewCount         uint64            `gorm:"column:view_count;default:0" json:"view_count"`
 	LikeCount         uint64            `gorm:"column:like_count;default:0" json:"like_count"`
+	AudienceCount     uint64            `gorm:"column:audience_count;default:0" json:"audience_count"`
+	ReadCount         uint64            `gorm:"column:read_count;default:0" json:"read_count"`
+	CollectCount      uint64            `gorm:"column:collect_count;default:0" json:"collect_count"`
 	PublishedAt       *common.LocalTime `gorm:"column:published_at" json:"published_at,omitempty"`
 	DeletedAt         *common.LocalTime `gorm:"column:deleted_at" json:"deleted_at,omitempty"`
 	CreatedBy         uint64            `gorm:"column:created_by;not null;default:0" json:"created_by"`
@@ -80,3 +83,30 @@ type CommunityArticleComment struct {
 }
 
 func (CommunityArticleComment) TableName() string { return "community_article_comment" }
+
+type ArticleLike struct {
+	ID        uint64           `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
+	UserID    uint64           `gorm:"column:user_id;not null;uniqueIndex:uk_user_article" json:"user_id"`
+	ArticleID uint64           `gorm:"column:article_id;not null;uniqueIndex:uk_user_article;index" json:"article_id"`
+	CreatedAt common.LocalTime `gorm:"column:created_at" json:"created_at"`
+}
+
+func (ArticleLike) TableName() string { return "article_likes" }
+
+type ArticleFavorite struct {
+	ID        uint64           `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
+	UserID    uint64           `gorm:"column:user_id;not null;uniqueIndex:uk_user_article" json:"user_id"`
+	ArticleID uint64           `gorm:"column:article_id;not null;uniqueIndex:uk_user_article;index" json:"article_id"`
+	CreatedAt common.LocalTime `gorm:"column:created_at" json:"created_at"`
+}
+
+func (ArticleFavorite) TableName() string { return "article_favorites" }
+
+type ArticleAudience struct {
+	ID        uint64           `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
+	UserID    uint64           `gorm:"column:user_id;not null;uniqueIndex:uk_user_article" json:"user_id"`
+	ArticleID uint64           `gorm:"column:article_id;not null;uniqueIndex:uk_user_article;index" json:"article_id"`
+	CreatedAt common.LocalTime `gorm:"column:created_at" json:"created_at"`
+}
+
+func (ArticleAudience) TableName() string { return "article_audiences" }

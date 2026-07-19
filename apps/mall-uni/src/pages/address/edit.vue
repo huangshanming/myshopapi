@@ -63,7 +63,7 @@ const regionText = computed(() => {
 
 async function loadChildren(parentCode) {
   const res = await listRegions(parentCode)
-  return res.data || []
+  return res || []
 }
 
 async function initPicker(pCode = '', cCode = '', dCode = '') {
@@ -131,7 +131,7 @@ onLoad(async (q) => {
   if (!addressId) return
   try {
     const res = await listAddresses()
-    const a = (res.data || []).find((x) => Number(x.id) === addressId)
+    const a = (res || []).find((x) => Number(x.id) === addressId)
     if (!a) return
     form.receiver_name = a.receiver_name || ''
     form.receiver_phone = a.receiver_phone || ''

@@ -10,6 +10,22 @@ function pickErr(data, fallback) {
   return fallback || '请求失败'
 }
 
+/** 兼容旧信封 {code,msg,data} 与新契约（body 即 DTO） */
+export function unwrapBody(body) {
+  if (
+    body &&
+    typeof body === 'object' &&
+    typeof body.code === 'number' &&
+    Object.prototype.hasOwnProperty.call(body, 'data')
+  ) {
+    if (body.code !== 200) {
+      throw new Error(body.msg || '请求失败')
+    }
+    return body.data
+  }
+  return body
+}
+
 export function request(options = {}) {
   const { url, method = 'GET', data, header = {}, silent } = options
   const token = getToken()
@@ -44,13 +60,12 @@ export function request(options = {}) {
           reject(new Error(msg))
           return
         }
-        if (body && typeof body.code === 'number' && body.code !== 200) {
-          const msg = pickErr(body)
-          if (!silent) uni.showToast({ title: msg, icon: 'none' })
-          reject(new Error(msg))
-          return
+        try {
+          resolve(unwrapBody(body))
+        } catch (e) {
+          if (!silent) uni.showToast({ title: e.message || '请求失败', icon: 'none' })
+          reject(e)
         }
-        resolve(body)
       },
       fail(err) {
         const msg = err?.errMsg || '网络错误'

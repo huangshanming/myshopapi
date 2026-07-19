@@ -1,6 +1,7 @@
 package logic
 
 import (
+	"context"
 	"errors"
 
 	"mymall/pkg/jwt"
@@ -9,11 +10,15 @@ import (
 )
 
 type UserLogic struct {
+	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewUserLogic(svcCtx *svc.ServiceContext) *UserLogic {
-	return &UserLogic{svcCtx: svcCtx}
+func NewUserLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserLogic {
+	return &UserLogic{
+		ctx:    ctx,
+		svcCtx: svcCtx,
+	}
 }
 
 func (l *UserLogic) Login(mobile, password string) (string, *model.User, error) {

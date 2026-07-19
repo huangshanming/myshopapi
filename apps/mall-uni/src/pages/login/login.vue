@@ -39,7 +39,7 @@ async function onLogin() {
   loading.value = true
   try {
     const res = await login({ mobile: mobile.value, password: password.value })
-    setAuth(res.data?.token, res.data?.user)
+    setAuth(res?.token, res?.user)
     uni.showToast({ title: '登录成功', icon: 'success' })
     setTimeout(() => {
       if (redirect) uni.redirectTo({ url: redirect })
@@ -61,7 +61,7 @@ async function onRegister() {
   try {
     await register({ mobile: mobile.value, password: password.value })
     const res = await login({ mobile: mobile.value, password: password.value })
-    setAuth(res.data?.token, res.data?.user)
+    setAuth(res?.token, res?.user)
     uni.showToast({ title: '注册成功', icon: 'success' })
     setTimeout(() => {
       if (redirect) uni.redirectTo({ url: redirect })

@@ -67,7 +67,7 @@ async function load() {
   loading.value = true
   try {
     const res = await fetchMenus()
-    tree.value = res.data || []
+    tree.value = res || []
   } catch (e) {
     ElMessage.error(e.message)
   } finally {

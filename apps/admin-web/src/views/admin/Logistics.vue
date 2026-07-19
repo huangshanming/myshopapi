@@ -101,8 +101,8 @@ async function load() {
       code: q.code || undefined,
       status: q.status === undefined || q.status === null || q.status === '' ? undefined : q.status,
     })
-    list.value = res.data?.list || []
-    total.value = res.data?.total || 0
+    list.value = res?.list || []
+    total.value = res?.total || 0
   } catch (e) {
     ElMessage.error(e.message)
     list.value = []

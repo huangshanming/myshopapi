@@ -157,8 +157,8 @@ async function load() {
   loading.value = true
   try {
     const res = await listOpLogs({ page: page.value, page_size: 20 })
-    list.value = pickList(res.data)
-    total.value = Number(res.data?.total || list.value.length)
+    list.value = pickList(res)
+    total.value = Number(res?.total || list.value.length)
   } catch (e) {
     ElMessage.error(e.message)
   } finally {

@@ -66,6 +66,9 @@ func (r *ShopRBACRepository) EnsureShopMenus() error {
 		{ID: 4, ParentID: 101, Name: "库存预警", Type: "menu", Path: "/merchant/stocks/warnings", Component: "merchant/StockWarnings", Icon: "Warning", Perms: "stock:warn", Sort: 10, Visible: 1, Status: 1},
 		{ID: 5, ParentID: 102, Name: "店铺订单", Type: "menu", Path: "/merchant/orders", Component: "merchant/Orders", Icon: "List", Perms: "order:list", Sort: 10, Visible: 1, Status: 1},
 		{ID: 19, ParentID: 102, Name: "售后管理", Type: "menu", Path: "/merchant/after-sales", Component: "merchant/after-sales/AfterSales", Icon: "RefreshLeft", Perms: "aftersale:list", Sort: 11, Visible: 1, Status: 1},
+		{ID: 27, ParentID: 102, Name: "评价管理", Type: "menu", Path: "/merchant/reviews", Component: "merchant/Reviews", Icon: "ChatDotRound", Perms: "product:review:list", Sort: 12, Visible: 1, Status: 1},
+		{ID: 30, ParentID: 105, Name: "首页推广", Type: "menu", Path: "/merchant/homepage", Component: "merchant/HomepagePromote", Icon: "Promotion", Perms: "homepage:list", Sort: 20, Visible: 1, Status: 1},
+		{ID: 32, ParentID: 105, Name: "主题坑位", Type: "menu", Path: "/merchant/themes", Component: "merchant/ThemePromote", Icon: "Grid", Perms: "theme:list", Sort: 25, Visible: 1, Status: 1},
 		{ID: 8, ParentID: 104, Name: "我的文章", Type: "menu", Path: "/merchant/articles", Component: "merchant/Articles", Icon: "Document", Perms: "article:list", Sort: 10, Visible: 1, Status: 1},
 		{ID: 9, ParentID: 104, Name: "发布文章", Type: "menu", Path: "/merchant/articles/edit", Component: "merchant/ArticleEdit", Icon: "Edit", Perms: "article:edit", Sort: 11, Visible: 1, Status: 1},
 		{ID: 24, ParentID: 105, Name: "秒杀报名", Type: "menu", Path: "/merchant/seckill", Component: "merchant/SeckillApply", Icon: "Timer", Perms: "seckill:apply", Sort: 10, Visible: 1, Status: 1},
@@ -86,6 +89,10 @@ func (r *ShopRBACRepository) EnsureShopMenus() error {
 		{ID: 22, ParentID: 5, Name: "订单备注", Type: "button", Perms: "order:remark", Sort: 3, Visible: 1, Status: 1},
 		{ID: 23, ParentID: 19, Name: "售后处理", Type: "button", Perms: "aftersale:handle", Sort: 1, Visible: 1, Status: 1},
 		{ID: 26, ParentID: 24, Name: "提交报名", Type: "button", Perms: "seckill:apply", Sort: 1, Visible: 1, Status: 1},
+		{ID: 28, ParentID: 27, Name: "评价回复", Type: "button", Perms: "product:review:reply", Sort: 1, Visible: 1, Status: 1},
+		{ID: 29, ParentID: 27, Name: "评价删除", Type: "button", Perms: "product:review:delete", Sort: 2, Visible: 1, Status: 1},
+		{ID: 31, ParentID: 30, Name: "购买展位", Type: "button", Perms: "homepage:buy", Sort: 1, Visible: 1, Status: 1},
+		{ID: 33, ParentID: 32, Name: "购买坑位", Type: "button", Perms: "theme:buy", Sort: 1, Visible: 1, Status: 1},
 	}
 	for _, m := range seed {
 		var exists model.ShopMenu

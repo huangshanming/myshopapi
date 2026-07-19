@@ -27,9 +27,12 @@ type Product struct {
 
 	Stock        int `gorm:"column:stock;type:int;default:0" json:"stock"`
 	StockWarn    int `gorm:"column:stock_warn;type:int;default:10" json:"stock_warn"`
-	SoldCount    int `gorm:"column:sold_count;type:int;default:0" json:"sold_count"`
-	ViewCount    int `gorm:"column:view_count;type:int;default:0" json:"view_count"`
-	CollectCount int `gorm:"column:collect_count;type:int;default:0" json:"collect_count"`
+	SoldCount    int     `gorm:"column:sold_count;type:int;default:0" json:"sold_count"`
+	ViewCount    int     `gorm:"column:view_count;type:int;default:0" json:"view_count"`
+	CollectCount int     `gorm:"column:collect_count;type:int;default:0" json:"collect_count"`
+	AvgRating    float64 `gorm:"column:avg_rating;type:decimal(3,2);default:0" json:"avg_rating"`
+	ReviewCount  int     `gorm:"column:review_count;type:int;default:0" json:"review_count"`
+	GoodRate     float64 `gorm:"column:good_rate;type:decimal(5,2);default:0" json:"good_rate"`
 
 	PetType string  `gorm:"column:pet_type;type:enum('dog','cat','both','other');default:both;index" json:"pet_type"`
 	PetAge  []uint8 `gorm:"column:pet_age;type:json;default:null" json:"pet_age,omitempty"`
@@ -76,6 +79,10 @@ type ProductListResp struct {
 	Discount       float64          `gorm:"column:discount" json:"discount"`
 	Stock          int              `gorm:"column:stock" json:"stock"`
 	SoldCount      int              `gorm:"column:sold_count" json:"sold_count"`
+	CollectCount   int              `gorm:"column:collect_count" json:"collect_count"`
+	AvgRating      float64          `gorm:"column:avg_rating" json:"avg_rating"`
+	ReviewCount    int              `gorm:"column:review_count" json:"review_count"`
+	GoodRate       float64          `gorm:"column:good_rate" json:"good_rate"`
 	CategoryID     uint64           `gorm:"column:category_id" json:"category_id"`
 	BrandID        int64            `gorm:"column:brand_id" json:"brand_id,omitempty"`
 	PetType        string           `gorm:"column:pet_type" json:"pet_type"`
@@ -91,6 +98,18 @@ type ProductListResp struct {
 
 func (Product) TableName() string {
 	return "products"
+}
+
+// ProductSalesRankItem 销量榜：优先今日销量，再总销量
+type ProductSalesRankItem struct {
+	ID        uint64  `json:"id"`
+	ShopID    uint64  `json:"shop_id"`
+	Name      string  `json:"name"`
+	ShopName  string  `json:"shop_name"`
+	MainImage string  `json:"main_image"`
+	SalePrice float64 `json:"sale_price"`
+	SoldCount int     `json:"sold_count"`
+	TodaySold int     `json:"today_sold"`
 }
 
 type ProductCategory struct {

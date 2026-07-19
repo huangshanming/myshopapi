@@ -17,6 +17,7 @@ import (
 	applog "mymall/pkg/log"
 	"mymall/pkg/metrics"
 	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
 	"mymall/pkg/telemetry"
 	"mymall/services/user-service/internal/data"
 	"mymall/services/user-service/internal/handler"
@@ -29,6 +30,8 @@ import (
 )
 
 func main() {
+	xerr.RegisterErrorHandler()
+
 	configPath := os.Getenv("CONFIG_PATH")
 	if configPath == "" {
 		configPath = "./etc/user-service.yaml"
@@ -79,7 +82,7 @@ func main() {
 			logger.Info("regions seeded from pca-code.json")
 		}
 	}
-	userLogic := logic.NewUserLogic(svcCtx)
+	userLogic := logic.NewUserLogic(context.Background(), svcCtx)
 	userHandler := handler.NewUserHandler(svcCtx)
 	adminHandler := handler.NewAdminHandler(svcCtx)
 	walletHandler := handler.NewWalletHandler(svcCtx)

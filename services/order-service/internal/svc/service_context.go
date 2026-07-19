@@ -21,6 +21,7 @@ type ServiceContext struct {
 	DB            *gorm.DB
 	Redis         *redis.Client
 	Repo          *repository.OrderRepository
+	Reviews       *repository.ReviewRepository
 	LogisticsRepo *repository.LogisticsRepository
 	UserRPC       *userrpc.Client
 	CatalogRPC    *catalogrpc.Client
@@ -61,6 +62,7 @@ func NewServiceContext(cfg *config.Config, db *gorm.DB) (*ServiceContext, error)
 		DB:            db,
 		Redis:         rdb,
 		Repo:          repository.NewOrderRepository(db),
+		Reviews:       repository.NewReviewRepository(db),
 		LogisticsRepo: logisticsRepo,
 		UserRPC:       userRPC,
 		CatalogRPC:    catalogRPC,

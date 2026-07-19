@@ -32,7 +32,7 @@ async function load() {
   loading.value = true
   try {
     const res = await listProducts({ page: 1, page_size: 100, recycle: 1 })
-    list.value = pickList(res.data)
+    list.value = pickList(res)
   } catch (e) {
     ElMessage.error(e.message)
   } finally {

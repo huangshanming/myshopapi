@@ -1,6 +1,7 @@
 package logic
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,11 +14,15 @@ import (
 )
 
 type PlatformProductLogic struct {
+	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewPlatformProductLogic(svcCtx *svc.ServiceContext) *PlatformProductLogic {
-	return &PlatformProductLogic{svcCtx: svcCtx}
+func NewPlatformProductLogic(ctx context.Context, svcCtx *svc.ServiceContext) *PlatformProductLogic {
+	return &PlatformProductLogic{
+		ctx:    ctx,
+		svcCtx: svcCtx,
+	}
 }
 
 func (l *PlatformProductLogic) List(f repository.ProductListFilter) (map[string]interface{}, error) {

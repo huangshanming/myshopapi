@@ -6,6 +6,10 @@
         <text v-if="seckillActive" class="badge">秒杀</text>
         <text class="price">¥{{ displayPrice }}</text>
         <text v-if="strikePrice" class="price-old">¥{{ strikePrice }}</text>
+        <view class="fav" @tap="toggleFav">
+          <text :class="{ on: favorited }">{{ favorited ? '♥' : '♡' }}</text>
+          <text class="fav-n">{{ collectCount }}</text>
+        </view>
       </view>
       <text v-if="seckillTip" class="seckill-tip">{{ seckillTip }}</text>
       <text class="title">{{ product.name }}</text>
@@ -14,8 +18,29 @@
         <text v-if="seckillActive">秒杀库存 {{ seckill.seckill_stock }}</text>
         <text v-else>库存 {{ product.stock ?? '-' }}</text>
         <text>销量 {{ product.sold_count || 0 }}</text>
+        <text v-if="product.review_count">评分 {{ Number(product.avg_rating || 0).toFixed(1) }}</text>
       </view>
     </view>
+
+    <view class="card reviews">
+      <view class="rev-head">
+        <text class="desc-title">用户评价</text>
+        <text v-if="reviewTotal" class="rev-more">共 {{ reviewTotal }} 条</text>
+      </view>
+      <view v-if="!reviews.length" class="desc-empty">暂无评价</view>
+      <view v-for="r in reviews" :key="r.id" class="rev-item">
+        <view class="rev-top">
+          <text class="rev-user">{{ r.is_anonymous ? '匿名用户' : (r.user_name || '用户') }}</text>
+          <text class="rev-stars">{{ '★'.repeat(r.rating) }}{{ '☆'.repeat(5 - r.rating) }}</text>
+        </view>
+        <text class="rev-content">{{ r.content || '（无文字）' }}</text>
+        <view v-if="r.images?.length" class="rev-imgs">
+          <image v-for="img in r.images" :key="img.id || img.url" :src="img.url" mode="aspectFill" class="rev-img" />
+        </view>
+        <text v-if="r.merchant_reply" class="rev-reply">商家回复：{{ r.merchant_reply }}</text>
+      </view>
+    </view>
+
     <view class="card desc">
       <text class="desc-title">商品详情</text>
       <rich-text v-if="descHtml" class="desc-body" :nodes="descHtml" />
@@ -41,7 +66,10 @@
 <script setup>
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { computed, ref } from 'vue'
-import { getProductDetail, getSeckillEntry } from '../../api/index'
+import {
+  addFavorite, getFavoriteStatus, getProductDetail, getSeckillEntry,
+  listProductReviews, removeFavorite,
+} from '../../api/index'
 import { addToCart, getCartCount, setCheckoutPayload } from '../../stores/cart'
 import { isLoggedIn } from '../../stores/user'
 
@@ -50,6 +78,10 @@ const product = ref(null)
 const seckill = ref(null)
 const loading = ref(false)
 const cartCount = ref(0)
+const favorited = ref(false)
+const collectCount = ref(0)
+const reviews = ref([])
+const reviewTotal = ref(0)
 let productId = 0
 let seckillEntryId = 0
 
@@ -107,16 +139,41 @@ onLoad((q) => {
 
 onShow(refreshCartCount)
 
+async function loadFav() {
+  collectCount.value = Number(product.value?.collect_count || 0)
+  if (!isLoggedIn()) {
+    favorited.value = false
+    return
+  }
+  try {
+    const res = await getFavoriteStatus(productId)
+    favorited.value = !!res?.favorited
+  } catch {
+    favorited.value = false
+  }
+}
+
+async function loadReviews() {
+  try {
+    const res = await listProductReviews(productId, { page: 1, page_size: 5 })
+    reviews.value = res?.list || []
+    reviewTotal.value = res?.total || 0
+  } catch {
+    reviews.value = []
+    reviewTotal.value = 0
+  }
+}
+
 async function load() {
   if (!productId) return
   loading.value = true
   try {
     const res = await getProductDetail(productId)
-    product.value = res.data || null
+    product.value = res || null
     if (seckillEntryId) {
       try {
         const sres = await getSeckillEntry(seckillEntryId)
-        seckill.value = sres.data || null
+        seckill.value = sres || null
         if (seckill.value && Number(seckill.value.product_id) !== productId) {
           seckill.value = null
         }
@@ -127,11 +184,32 @@ async function load() {
         seckill.value = null
       }
     }
+    await Promise.all([loadFav(), loadReviews()])
   } catch {
     product.value = null
   } finally {
     loading.value = false
   }
+}
+
+async function toggleFav() {
+  if (!isLoggedIn()) {
+    uni.navigateTo({
+      url: `/pages/login/login?redirect=${encodeURIComponent(`/pages/product/detail?id=${productId}`)}`,
+    })
+    return
+  }
+  try {
+    if (favorited.value) {
+      await removeFavorite(productId)
+      favorited.value = false
+      collectCount.value = Math.max(0, collectCount.value - 1)
+    } else {
+      await addFavorite(productId)
+      favorited.value = true
+      collectCount.value += 1
+    }
+  } catch { /* handled */ }
 }
 
 function goCart() {
@@ -174,6 +252,9 @@ function buyNow() {
 .price { color: #d83636; font-size: 44rpx; font-weight: 700; }
 .price-old { color: #71717a; font-size: 24rpx; text-decoration: line-through; margin-left: 12rpx; }
 .price-row { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8rpx; }
+.fav { margin-left: auto; display: flex; flex-direction: column; align-items: center; color: #a1a1aa; font-size: 40rpx; line-height: 1; }
+.fav .on { color: #d83636; }
+.fav-n { font-size: 20rpx; color: #71717a; margin-top: 4rpx; }
 .badge {
   background: #d83636; color: #fff; font-size: 20rpx; padding: 2rpx 10rpx;
   border-radius: 6rpx; margin-right: 8rpx; font-weight: 600;
@@ -181,10 +262,20 @@ function buyNow() {
 .seckill-tip { display: block; margin-top: 10rpx; font-size: 22rpx; color: #d97706; }
 .title { display: block; font-size: 32rpx; font-weight: 600; margin-top: 16rpx; }
 .sub { display: block; color: #71717a; font-size: 24rpx; margin-top: 8rpx; }
-.meta { display: flex; gap: 32rpx; margin-top: 20rpx; color: #71717a; font-size: 24rpx; }
+.meta { display: flex; gap: 32rpx; margin-top: 20rpx; color: #71717a; font-size: 24rpx; flex-wrap: wrap; }
 .desc-title { font-weight: 600; font-size: 28rpx; }
 .desc-body { display: block; margin-top: 16rpx; color: #555; font-size: 28rpx; line-height: 1.7; word-break: break-word; }
 .desc-empty { display: block; margin-top: 16rpx; color: #a1a1aa; font-size: 26rpx; }
+.rev-head { display: flex; justify-content: space-between; align-items: center; }
+.rev-more { font-size: 22rpx; color: #a1a1aa; }
+.rev-item { padding: 20rpx 0; border-top: 1rpx solid #f5f5f5; margin-top: 12rpx; }
+.rev-top { display: flex; justify-content: space-between; margin-bottom: 8rpx; }
+.rev-user { font-size: 24rpx; color: #71717a; }
+.rev-stars { color: #f5a623; font-size: 22rpx; }
+.rev-content { font-size: 26rpx; color: #3f3f46; line-height: 1.5; }
+.rev-imgs { display: flex; gap: 8rpx; margin-top: 12rpx; flex-wrap: wrap; }
+.rev-img { width: 120rpx; height: 120rpx; border-radius: 8rpx; }
+.rev-reply { display: block; margin-top: 12rpx; font-size: 24rpx; color: #71717a; background: #faf8f4; padding: 12rpx; border-radius: 8rpx; }
 .bar {
   position: fixed; left: 0; right: 0; bottom: 0; display: flex; gap: 16rpx; align-items: center;
   padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom)); background: #fff;

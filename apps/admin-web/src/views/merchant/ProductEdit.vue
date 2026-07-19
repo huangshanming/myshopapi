@@ -185,7 +185,7 @@ async function load() {
   loading.value = true
   try {
     const res = await getProduct(id)
-    const d = res.data || {}
+    const d = res || {}
     const p = d.product || d
     Object.assign(form, {
       name: p.name || '',
@@ -280,7 +280,7 @@ async function save(status) {
 async function loadCategories() {
   try {
     const res = await listProductCategories()
-    catTree.value = buildCategoryTree(pickList(res.data))
+    catTree.value = buildCategoryTree(pickList(res))
   } catch (_) {
     catTree.value = []
   }

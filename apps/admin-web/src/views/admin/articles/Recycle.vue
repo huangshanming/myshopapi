@@ -34,8 +34,8 @@ async function load() {
   loading.value = true
   try {
     const res = await listArticleRecycle({ page: page.value, page_size: 20 })
-    list.value = res.data?.list || []
-    total.value = res.data?.total || 0
+    list.value = res?.list || []
+    total.value = res?.total || 0
   } finally {
     loading.value = false
   }

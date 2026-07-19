@@ -95,7 +95,7 @@ async function searchShops(keyword) {
   shopLoading.value = true
   try {
     const res = await fetchShops({ name: keyword || undefined, page: 1, page_size: 50 })
-    shops.value = res.data?.list || res.data?.items || []
+    shops.value = res?.list || res?.items || []
   } finally {
     shopLoading.value = false
   }
@@ -103,13 +103,13 @@ async function searchShops(keyword) {
 
 async function loadCats() {
   const res = await listArticleCategories()
-  catTree.value = res.data || []
+  catTree.value = res || []
 }
 
 async function loadDetail() {
   if (!id.value) return
   const res = await getArticle(id.value)
-  const a = res.data?.article || {}
+  const a = res?.article || {}
   form.shop_id = a.shop_id || 0
   form.category_id = a.category_id || undefined
   form.title = a.title

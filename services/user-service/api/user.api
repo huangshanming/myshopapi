@@ -1,0 +1,148 @@
+syntax = "v1"
+
+// Auto-extracted route table for goctl; handlers wired manually to existing logic.
+// Regenerate stubs: goctl api go -api api/user.api -dir ./_goctl_out -style go_zero
+
+service userapi {
+	@handler Healthz
+	get /healthz
+
+	@handler Readyz
+	get /readyz
+
+	@handler Metrics
+	get /metrics
+
+	@handler V1UserLogin
+	post /api/v1/user/login
+
+	@handler V1UserRegister
+	post /api/v1/user/register
+
+	@handler V1UserProfile
+	get /api/v1/user/profile
+
+	@handler V1UserWallet
+	get /api/v1/user/wallet
+
+	@handler UserWalletLogs
+	get /api/v1/user/wallet/logs
+
+	@handler UserWalletFreeze
+	post /api/v1/user/wallet/freeze
+
+	@handler UserWalletUnfreeze
+	post /api/v1/user/wallet/unfreeze
+
+	@handler UserWalletSettle
+	post /api/v1/user/wallet/settle
+
+	@handler V1UserAddresses
+	get /api/v1/user/addresses
+
+	@handler V1UserAddresses
+	post /api/v1/user/addresses
+
+	@handler UserAddressesId
+	put /api/v1/user/addresses/:id
+
+	@handler UserAddressesId
+	delete /api/v1/user/addresses/:id
+
+	@handler AddressesIdDefault
+	put /api/v1/user/addresses/:id/default
+
+	@handler UserAddressesInternal
+	get /api/v1/user/addresses/internal
+
+	@handler ApiV1Regions
+	get /api/v1/regions
+
+	@handler V1RegionsTree
+	get /api/v1/regions/tree
+
+	@handler AdminAuthMe
+	get /api/v1/admin/auth/me
+
+	@handler V1AdminMenus
+	get /api/v1/admin/menus
+
+	@handler V1AdminMenus
+	post /api/v1/admin/menus
+
+	@handler AdminMenusId
+	put /api/v1/admin/menus/:id
+
+	@handler AdminMenusId
+	delete /api/v1/admin/menus/:id
+
+	@handler V1AdminRoles
+	get /api/v1/admin/roles
+
+	@handler V1AdminRoles
+	post /api/v1/admin/roles
+
+	@handler AdminRolesId
+	put /api/v1/admin/roles/:id
+
+	@handler AdminRolesId
+	delete /api/v1/admin/roles/:id
+
+	@handler RolesIdMenus
+	get /api/v1/admin/roles/:id/menus
+
+	@handler RolesIdMenus
+	put /api/v1/admin/roles/:id/menus
+
+	@handler V1AdminUsers
+	get /api/v1/admin/users
+
+	@handler AdminUsersId
+	get /api/v1/admin/users/:id
+
+	@handler AdminUsersId
+	put /api/v1/admin/users/:id
+
+	@handler UsersIdStatus
+	put /api/v1/admin/users/:id/status
+
+	@handler UsersIdPassword
+	put /api/v1/admin/users/:id/password
+
+	@handler UsersIdToken
+	post /api/v1/admin/users/:id/token
+
+	@handler UsersIdWallet
+	get /api/v1/admin/users/:id/wallet
+
+	@handler IdWalletAdjust
+	post /api/v1/admin/users/:id/wallet/adjust
+
+	@handler IdWalletLogs
+	get /api/v1/admin/users/:id/wallet/logs
+
+	@handler UsersIdAddresses
+	get /api/v1/admin/users/:id/addresses
+
+	@handler V1AdminAdmins
+	get /api/v1/admin/admins
+
+	@handler V1AdminAdmins
+	post /api/v1/admin/admins
+
+	@handler AdminsIdRoles
+	get /api/v1/admin/admins/:id/roles
+
+	@handler AdminsIdRoles
+	put /api/v1/admin/admins/:id/roles
+
+	@handler AdminsIdPassword
+	put /api/v1/admin/admins/:id/password
+
+	@handler V1AdminConfigs
+	get /api/v1/admin/configs
+
+	@handler V1AdminConfigs
+	put /api/v1/admin/configs
+
+}

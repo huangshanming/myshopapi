@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -15,17 +14,20 @@ import (
 	"mymall/pkg/health"
 	"mymall/pkg/httpserver"
 	applog "mymall/pkg/log"
-	"mymall/pkg/metrics"
 	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
 	canalclient "mymall/services/inventory-sync-service/internal/canal"
+	"mymall/services/inventory-sync-service/internal/handler"
 	"mymall/services/inventory-sync-service/internal/preheat"
+	"mymall/services/inventory-sync-service/internal/svc"
 	"mymall/services/inventory-sync-service/internal/sync"
 
-	"github.com/zeromicro/go-zero/rest"
 	"go.uber.org/zap"
 )
 
 func main() {
+	xerr.RegisterErrorHandler()
+
 	configPath := os.Getenv("CONFIG_PATH")
 	if configPath == "" {
 		configPath = "./etc/inventory-sync-service.yaml"
@@ -67,8 +69,8 @@ func main() {
 		zap.Int("kept", st.Kept),
 	)
 
-	handler := sync.NewHandler(rdb, logger)
-	consumer := canalclient.NewConsumer(cfg.Canal, handler, logger)
+	syncHandler := sync.NewHandler(rdb, logger)
+	consumer := canalclient.NewConsumer(cfg.Canal, syncHandler, logger)
 	go func() {
 		if err := consumer.Run(ctx); err != nil && err != context.Canceled {
 			logger.Warn("canal consumer stopped", zap.Error(err))
@@ -87,17 +89,15 @@ func main() {
 		return cache.Ping(c, rdb)
 	})
 
+	svcCtx := svc.NewServiceContext(db, rdb, healthReg)
+
 	server := httpserver.NewRest(cfg.Server.HTTPPort, cfg.Server.Mode)
 	defer server.Stop()
 	rid := middleware.RequestID()
-	server.AddRoutes([]rest.Route{
-		{Method: http.MethodGet, Path: "/healthz", Handler: rid(httpserver.Healthz("inventory-sync-service"))},
-		{Method: http.MethodGet, Path: "/readyz", Handler: rid(healthReg.ReadyHandler())},
-		{Method: http.MethodGet, Path: "/metrics", Handler: rid(metrics.Handler())},
-	})
+	handler.RegisterHandlers(server, svcCtx, rid)
 
 	go func() {
-		logger.Info(fmt.Sprintf("inventory-sync-service HTTP 启动 :%d", cfg.Server.HTTPPort))
+		logger.Info(fmt.Sprintf("inventory-sync-service HTTP(goctl) 启动 :%d", cfg.Server.HTTPPort))
 		server.Start()
 	}()
 

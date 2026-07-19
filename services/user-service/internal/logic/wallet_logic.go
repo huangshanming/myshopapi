@@ -1,6 +1,7 @@
 package logic
 
 import (
+	"context"
 	"errors"
 
 	"mymall/services/user-service/internal/model"
@@ -8,11 +9,15 @@ import (
 )
 
 type WalletLogic struct {
+	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewWalletLogic(svcCtx *svc.ServiceContext) *WalletLogic {
-	return &WalletLogic{svcCtx: svcCtx}
+func NewWalletLogic(ctx context.Context, svcCtx *svc.ServiceContext) *WalletLogic {
+	return &WalletLogic{
+		ctx:    ctx,
+		svcCtx: svcCtx,
+	}
 }
 
 func (l *WalletLogic) GetWallet(userID uint64) (*model.UserWallet, error) {

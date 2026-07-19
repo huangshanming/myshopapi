@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -10,12 +11,13 @@ import (
 
 	"mymall/pkg/httpserver"
 	"mymall/pkg/middleware"
-	"mymall/pkg/response"
 	"mymall/services/catalog-service/internal/content/logic"
 	"mymall/services/catalog-service/internal/content/repository"
 	"mymall/services/catalog-service/internal/content/types"
 	"mymall/services/catalog-service/internal/svc"
-)
+
+	"github.com/zeromicro/go-zero/rest/httpx"
+	"mymall/pkg/xerr")
 
 type ArticleAdminHandler struct {
 	svcCtx *svc.ServiceContext
@@ -23,7 +25,7 @@ type ArticleAdminHandler struct {
 }
 
 func NewArticleAdminHandler(svcCtx *svc.ServiceContext) *ArticleAdminHandler {
-	return &ArticleAdminHandler{svcCtx: svcCtx, logic: logic.NewArticleLogic(svcCtx)}
+	return &ArticleAdminHandler{svcCtx: svcCtx, logic: logic.NewArticleLogic(context.Background(), svcCtx)}
 }
 
 func (h *ArticleAdminHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -60,35 +62,35 @@ func (h *ArticleAdminHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 	data, err := h.logic.List(f)
 	if err != nil {
-		response.Error(w, err.Error(), http.StatusInternalServerError)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
 		return
 	}
-	response.Success(w, data, "ok")
+	httpx.OkJsonCtx(r.Context(), w, data)
 }
 
 func (h *ArticleAdminHandler) Detail(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	data, err := h.logic.Detail(id, 0)
 	if err != nil {
-		response.Error(w, err.Error(), http.StatusNotFound)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusNotFound, err.Error()))
 		return
 	}
-	response.Success(w, data, "ok")
+	httpx.OkJsonCtx(r.Context(), w, data)
 }
 
 func (h *ArticleAdminHandler) Create(w http.ResponseWriter, r *http.Request) {
 	uid, _ := middleware.GetUserID(r.Context())
 	var req types.ArticleSaveReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, "参数错误", http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
 		return
 	}
 	a, err := h.logic.AdminCreate(uid, req)
 	if err != nil {
-		response.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
 		return
 	}
-	response.Success(w, a, "ok")
+	httpx.OkJsonCtx(r.Context(), w, a)
 }
 
 func (h *ArticleAdminHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -96,55 +98,55 @@ func (h *ArticleAdminHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	var req types.ArticleSaveReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, "参数错误", http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
 		return
 	}
 	if err := h.logic.AdminUpdate(id, uid, req); err != nil {
-		response.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
 		return
 	}
-	response.Success(w, nil, "ok")
+	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
 func (h *ArticleAdminHandler) Audit(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	var req types.ArticleAuditReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, "参数错误", http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
 		return
 	}
 	if err := h.logic.Audit(id, req); err != nil {
-		response.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
 		return
 	}
-	response.Success(w, nil, "ok")
+	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
 func (h *ArticleAdminHandler) BatchAudit(w http.ResponseWriter, r *http.Request) {
 	var req types.ArticleBatchAuditReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, "参数错误", http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
 		return
 	}
 	if err := h.logic.BatchAudit(req); err != nil {
-		response.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
 		return
 	}
-	response.Success(w, nil, "ok")
+	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
 func (h *ArticleAdminHandler) Top(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	var req types.ArticleTopReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, "参数错误", http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
 		return
 	}
 	if err := h.logic.SetTop(id, req.IsTop); err != nil {
-		response.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
 		return
 	}
-	response.Success(w, nil, "ok")
+	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
 func (h *ArticleAdminHandler) Offline(w http.ResponseWriter, r *http.Request) {
@@ -152,10 +154,10 @@ func (h *ArticleAdminHandler) Offline(w http.ResponseWriter, r *http.Request) {
 	var req types.ArticleRemarkReq
 	_ = json.NewDecoder(r.Body).Decode(&req)
 	if err := h.logic.Offline(id, req.Remark); err != nil {
-		response.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
 		return
 	}
-	response.Success(w, nil, "ok")
+	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
 func (h *ArticleAdminHandler) SoftDelete(w http.ResponseWriter, r *http.Request) {
@@ -163,10 +165,10 @@ func (h *ArticleAdminHandler) SoftDelete(w http.ResponseWriter, r *http.Request)
 	var req types.ArticleRemarkReq
 	_ = json.NewDecoder(r.Body).Decode(&req)
 	if err := h.logic.SoftDelete(id, req.Remark); err != nil {
-		response.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
 		return
 	}
-	response.Success(w, nil, "ok")
+	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
 func (h *ArticleAdminHandler) RecycleRestore(w http.ResponseWriter, r *http.Request) {
@@ -175,14 +177,14 @@ func (h *ArticleAdminHandler) RecycleRestore(w http.ResponseWriter, r *http.Requ
 	}
 	_ = json.NewDecoder(r.Body).Decode(&body)
 	if body.ID == 0 {
-		response.Error(w, "缺少 id", http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "缺少 id"))
 		return
 	}
 	if err := h.logic.Restore(body.ID); err != nil {
-		response.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
 		return
 	}
-	response.Success(w, nil, "ok")
+	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
 func (h *ArticleAdminHandler) RecycleDelete(w http.ResponseWriter, r *http.Request) {
@@ -191,68 +193,68 @@ func (h *ArticleAdminHandler) RecycleDelete(w http.ResponseWriter, r *http.Reque
 	}
 	_ = json.NewDecoder(r.Body).Decode(&body)
 	if body.ID == 0 {
-		response.Error(w, "缺少 id", http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "缺少 id"))
 		return
 	}
 	if err := h.logic.PermanentDelete(body.ID); err != nil {
-		response.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
 		return
 	}
-	response.Success(w, nil, "ok")
+	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
 func (h *ArticleAdminHandler) Stats(w http.ResponseWriter, r *http.Request) {
 	data, err := h.logic.Stats()
 	if err != nil {
-		response.Error(w, err.Error(), http.StatusInternalServerError)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
 		return
 	}
-	response.Success(w, data, "ok")
+	httpx.OkJsonCtx(r.Context(), w, data)
 }
 
 func (h *ArticleAdminHandler) CategoryList(w http.ResponseWriter, r *http.Request) {
 	tree, err := h.logic.CategoryTree()
 	if err != nil {
-		response.Error(w, err.Error(), http.StatusInternalServerError)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
 		return
 	}
-	response.Success(w, tree, "ok")
+	httpx.OkJsonCtx(r.Context(), w, tree)
 }
 
 func (h *ArticleAdminHandler) CategoryCreate(w http.ResponseWriter, r *http.Request) {
 	var req types.ArticleCategorySaveReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, "参数错误", http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
 		return
 	}
 	if err := h.logic.SaveCategory(0, req); err != nil {
-		response.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
 		return
 	}
-	response.Success(w, nil, "ok")
+	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
 func (h *ArticleAdminHandler) CategoryUpdate(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	var req types.ArticleCategorySaveReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, "参数错误", http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
 		return
 	}
 	if err := h.logic.SaveCategory(id, req); err != nil {
-		response.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
 		return
 	}
-	response.Success(w, nil, "ok")
+	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
 func (h *ArticleAdminHandler) CategoryDelete(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err := h.logic.DeleteCategory(id); err != nil {
-		response.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
 		return
 	}
-	response.Success(w, nil, "ok")
+	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
 func (h *ArticleAdminHandler) CommentList(w http.ResponseWriter, r *http.Request) {
@@ -264,52 +266,52 @@ func (h *ArticleAdminHandler) CommentList(w http.ResponseWriter, r *http.Request
 		Page: page, PageSize: pageSize,
 	})
 	if err != nil {
-		response.Error(w, err.Error(), http.StatusInternalServerError)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
 		return
 	}
-	response.Success(w, data, "ok")
+	httpx.OkJsonCtx(r.Context(), w, data)
 }
 
 func (h *ArticleAdminHandler) CommentPatch(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	var req types.ArticleCommentPatchReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, "参数错误", http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
 		return
 	}
 	if err := h.logic.PatchComment(id, 0, req.Status); err != nil {
-		response.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
 		return
 	}
-	response.Success(w, nil, "ok")
+	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
 func (h *ArticleAdminHandler) CommentDelete(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err := h.logic.DeleteComment(id, 0); err != nil {
-		response.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
 		return
 	}
-	response.Success(w, nil, "ok")
+	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
 func (h *ArticleAdminHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	shopID, _ := strconv.ParseUint(r.URL.Query().Get("shop_id"), 10, 64)
 	file, hdr, err := r.FormFile("file")
 	if err != nil {
-		response.Error(w, "缺少文件", http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "缺少文件"))
 		return
 	}
 	defer file.Close()
 	data, err := io.ReadAll(file)
 	if err != nil {
-		response.Error(w, "读取失败", http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "读取失败"))
 		return
 	}
 	url, err := h.logic.SaveUpload(shopID, hdr.Filename, data)
 	if err != nil {
-		response.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
 		return
 	}
-	response.Success(w, map[string]string{"url": url}, "ok")
+	httpx.OkJsonCtx(r.Context(), w, map[string]string{"url": url})
 }

@@ -1,16 +1,21 @@
 package logic
 
 import (
+	"context"
 	"mymall/services/catalog-service/internal/notify/repository"
 	"mymall/services/catalog-service/internal/svc"
 )
 
 type NotificationLogic struct {
+	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewNotificationLogic(svcCtx *svc.ServiceContext) *NotificationLogic {
-	return &NotificationLogic{svcCtx: svcCtx}
+func NewNotificationLogic(ctx context.Context, svcCtx *svc.ServiceContext) *NotificationLogic {
+	return &NotificationLogic{
+		ctx:    ctx,
+		svcCtx: svcCtx,
+	}
 }
 
 func (l *NotificationLogic) List(f repository.NotificationListFilter) (map[string]interface{}, error) {

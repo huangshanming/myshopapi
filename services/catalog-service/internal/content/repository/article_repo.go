@@ -8,6 +8,7 @@ import (
 	"mymall/services/catalog-service/internal/content/model"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type ArticleRepository struct {
@@ -334,4 +335,242 @@ func (r *ArticleRepository) PatchComment(id uint64, shopID uint64, status string
 
 func (r *ArticleRepository) DeleteComment(id uint64, shopID uint64) error {
 	return r.PatchComment(id, shopID, model.CommentDeleted)
+}
+
+func (r *ArticleRepository) ListPublic(page, pageSize, homeLimit int) ([]model.CommunityArticle, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 20
+	}
+	now := time.Now()
+	_ = r.db.Exec(`UPDATE homepage_slot_orders SET status='expired' WHERE slot_type='article' AND status='active' AND end_at < ?`, now)
+
+	type row struct {
+		model.CommunityArticle
+		Boost int `gorm:"column:boost"`
+	}
+	base := `
+FROM community_article a
+LEFT JOIN (
+  SELECT DISTINCT target_id FROM homepage_slot_orders
+  WHERE slot_type='article' AND status='active' AND start_at<=? AND end_at>?
+) o ON o.target_id = a.id
+WHERE a.status=? AND a.audit_status=? AND a.deleted_at IS NULL`
+
+	var total int64
+	if err := r.db.Raw("SELECT COUNT(*) "+base, now, now, model.ArticlePublished, model.ArticleAuditApproved).Scan(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	limit, offset := pageSize, (page-1)*pageSize
+	if homeLimit > 0 {
+		limit, offset = homeLimit, 0
+		if int64(homeLimit) < total {
+			total = int64(homeLimit)
+		}
+	}
+	var rows []row
+	sql := `SELECT a.*, CASE WHEN o.target_id IS NULL THEN 0 ELSE 1 END AS boost ` + base + `
+ORDER BY boost DESC, a.is_top DESC, a.id DESC LIMIT ? OFFSET ?`
+	if err := r.db.Raw(sql, now, now, model.ArticlePublished, model.ArticleAuditApproved, limit, offset).Scan(&rows).Error; err != nil {
+		return nil, 0, err
+	}
+	out := make([]model.CommunityArticle, 0, len(rows))
+	for _, x := range rows {
+		out = append(out, x.CommunityArticle)
+	}
+	return out, total, nil
+}
+
+func (r *ArticleRepository) GetPublished(id uint64) (*model.CommunityArticle, error) {
+	var a model.CommunityArticle
+	err := r.db.Where("id = ? AND status = ? AND audit_status = ?", id, model.ArticlePublished, model.ArticleAuditApproved).First(&a).Error
+	if err != nil {
+		return nil, err
+	}
+	return &a, nil
+}
+
+func (r *ArticleRepository) RecordRead(articleID, userID uint64) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&model.CommunityArticle{}).Where("id = ?", articleID).
+			Updates(map[string]interface{}{
+				"read_count": gorm.Expr("read_count + 1"),
+				"view_count": gorm.Expr("view_count + 1"),
+			}).Error; err != nil {
+			return err
+		}
+		if userID == 0 {
+			return nil
+		}
+		res := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&model.ArticleAudience{
+			UserID: userID, ArticleID: articleID,
+		})
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected > 0 {
+			return tx.Model(&model.CommunityArticle{}).Where("id = ?", articleID).
+				UpdateColumn("audience_count", gorm.Expr("audience_count + 1")).Error
+		}
+		return nil
+	})
+}
+
+func (r *ArticleRepository) ToggleLike(userID, articleID uint64, like bool) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if like {
+			res := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&model.ArticleLike{UserID: userID, ArticleID: articleID})
+			if res.Error != nil {
+				return res.Error
+			}
+			if res.RowsAffected > 0 {
+				return tx.Model(&model.CommunityArticle{}).Where("id = ?", articleID).
+					UpdateColumn("like_count", gorm.Expr("like_count + 1")).Error
+			}
+			return nil
+		}
+		res := tx.Where("user_id = ? AND article_id = ?", userID, articleID).Delete(&model.ArticleLike{})
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected > 0 {
+			return tx.Model(&model.CommunityArticle{}).Where("id = ?", articleID).
+				UpdateColumn("like_count", gorm.Expr("GREATEST(0, like_count - 1)")).Error
+		}
+		return nil
+	})
+}
+
+func (r *ArticleRepository) ToggleFavorite(userID, articleID uint64, fav bool) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if fav {
+			res := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&model.ArticleFavorite{UserID: userID, ArticleID: articleID})
+			if res.Error != nil {
+				return res.Error
+			}
+			if res.RowsAffected > 0 {
+				return tx.Model(&model.CommunityArticle{}).Where("id = ?", articleID).
+					UpdateColumn("collect_count", gorm.Expr("collect_count + 1")).Error
+			}
+			return nil
+		}
+		res := tx.Where("user_id = ? AND article_id = ?", userID, articleID).Delete(&model.ArticleFavorite{})
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected > 0 {
+			return tx.Model(&model.CommunityArticle{}).Where("id = ?", articleID).
+				UpdateColumn("collect_count", gorm.Expr("GREATEST(0, collect_count - 1)")).Error
+		}
+		return nil
+	})
+}
+
+func (r *ArticleRepository) EngagementStatus(userID, articleID uint64) (liked, favorited bool) {
+	var n int64
+	r.db.Model(&model.ArticleLike{}).Where("user_id = ? AND article_id = ?", userID, articleID).Count(&n)
+	liked = n > 0
+	r.db.Model(&model.ArticleFavorite{}).Where("user_id = ? AND article_id = ?", userID, articleID).Count(&n)
+	favorited = n > 0
+	return
+}
+
+// UserArticleItem 用户收藏/点赞列表项
+type UserArticleItem struct {
+	ID           uint64 `json:"id"`
+	ShopID       uint64 `json:"shop_id"`
+	Title        string `json:"title"`
+	CoverURL     string `json:"cover_url"`
+	LikeCount    uint64 `json:"like_count"`
+	ReadCount    uint64 `json:"read_count"`
+	CollectCount uint64 `json:"collect_count"`
+	Status       string `json:"status"`
+	AuditStatus  string `json:"audit_status"`
+	Invalid      bool   `json:"invalid"`
+	EngagedAt    string `json:"engaged_at,omitempty"`
+}
+
+func (r *ArticleRepository) listUserArticles(userID uint64, table string, page, pageSize int) ([]UserArticleItem, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 20
+	}
+	var total int64
+	if err := r.db.Table(table).Where("user_id = ?", userID).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	type row struct {
+		ArticleID    uint64 `gorm:"column:article_id"`
+		EngagedAt    string `gorm:"column:engaged_at"`
+		ID           uint64 `gorm:"column:id"`
+		ShopID       uint64 `gorm:"column:shop_id"`
+		Title        string `gorm:"column:title"`
+		CoverURL     string `gorm:"column:cover_url"`
+		LikeCount    uint64 `gorm:"column:like_count"`
+		ReadCount    uint64 `gorm:"column:read_count"`
+		CollectCount uint64 `gorm:"column:collect_count"`
+		Status       string `gorm:"column:status"`
+		AuditStatus  string `gorm:"column:audit_status"`
+	}
+	var rows []row
+	err := r.db.Raw(`
+SELECT e.article_id, DATE_FORMAT(e.created_at, '%Y-%m-%d %H:%i:%s') AS engaged_at,
+       a.id, a.shop_id, COALESCE(a.title,'') AS title, COALESCE(a.cover_url,'') AS cover_url,
+       COALESCE(a.like_count,0) AS like_count, COALESCE(a.read_count,0) AS read_count,
+       COALESCE(a.collect_count,0) AS collect_count,
+       COALESCE(a.status,'') AS status, COALESCE(a.audit_status,'') AS audit_status
+FROM `+table+` e
+LEFT JOIN community_article a ON a.id = e.article_id
+WHERE e.user_id = ?
+ORDER BY e.id DESC
+LIMIT ? OFFSET ?`, userID, pageSize, (page-1)*pageSize).Scan(&rows).Error
+	if err != nil {
+		return nil, 0, err
+	}
+	out := make([]UserArticleItem, 0, len(rows))
+	for _, x := range rows {
+		invalid := x.ID == 0 || x.Status != model.ArticlePublished || x.AuditStatus != model.ArticleAuditApproved
+		title := x.Title
+		if x.ID == 0 {
+			title = "文章已失效"
+		} else if invalid && title == "" {
+			title = "文章已失效"
+		}
+		out = append(out, UserArticleItem{
+			ID: x.ArticleID, ShopID: x.ShopID, Title: title, CoverURL: x.CoverURL,
+			LikeCount: x.LikeCount, ReadCount: x.ReadCount, CollectCount: x.CollectCount,
+			Status: x.Status, AuditStatus: x.AuditStatus, Invalid: invalid, EngagedAt: x.EngagedAt,
+		})
+	}
+	return out, total, nil
+}
+
+func (r *ArticleRepository) ListUserFavorites(userID uint64, page, pageSize int) ([]UserArticleItem, int64, error) {
+	return r.listUserArticles(userID, "article_favorites", page, pageSize)
+}
+
+func (r *ArticleRepository) ListUserLikes(userID uint64, page, pageSize int) ([]UserArticleItem, int64, error) {
+	return r.listUserArticles(userID, "article_likes", page, pageSize)
+}
+
+func (r *ArticleRepository) IsArticleBoosted(articleID uint64) bool {
+	now := time.Now()
+	var n int64
+	r.db.Table("homepage_slot_orders").
+		Where("slot_type='article' AND status='active' AND target_id=? AND start_at<=? AND end_at>?", articleID, now, now).
+		Count(&n)
+	return n > 0
+}
+
+func (r *ArticleRepository) GetHomeArticleLimit() int {
+	var lim int
+	_ = r.db.Table("homepage_slot_settings").Select("home_limit").Where("slot_type=?", "article").Scan(&lim).Error
+	if lim < 1 {
+		return 6
+	}
+	return lim
 }

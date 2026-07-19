@@ -24,6 +24,7 @@ export const getUserWallet = (id) => http.get(`/api/v1/admin/users/${id}/wallet`
 export const adjustUserWallet = (id, data) => http.post(`/api/v1/admin/users/${id}/wallet/adjust`, data)
 export const fetchUserWalletLogs = (id, params) => http.get(`/api/v1/admin/users/${id}/wallet/logs`, { params })
 export const fetchUserAddresses = (id) => http.get(`/api/v1/admin/users/${id}/addresses`)
+export const fetchUserFavorites = (id, params) => http.get(`/api/v1/admin/users/${id}/favorites`, { params })
 
 export const fetchAdmins = (params) => http.get('/api/v1/admin/admins', { params })
 export const createAdmin = (data) => http.post('/api/v1/admin/admins', data)

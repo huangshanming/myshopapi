@@ -26,6 +26,7 @@ import (
 	applog "mymall/pkg/log"
 	"mymall/pkg/metrics"
 	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
 	"mymall/pkg/mq"
 	"mymall/pkg/telemetry"
 	contenthandler "mymall/services/catalog-service/internal/content/handler"
@@ -48,6 +49,8 @@ import (
 )
 
 func main() {
+	xerr.RegisterErrorHandler()
+
 	configPath := os.Getenv("CONFIG_PATH")
 	if configPath == "" {
 		configPath = "./etc/catalog-service.yaml"
@@ -87,6 +90,7 @@ func main() {
 		&productmodel.ProductSchedule{},
 		&productmodel.ProductBatchJob{},
 		&productmodel.ProductOpLog{},
+		&productmodel.ProductFavorite{},
 		&shopopsmodel.ShopRole{},
 		&shopopsmodel.ShopMenu{},
 		&shopopsmodel.ShopRoleMenu{},
@@ -95,6 +99,10 @@ func main() {
 		&contentmodel.CommunityArticleCategory{},
 		&contentmodel.CommunityArticleComment{},
 		&contentmodel.CommunityArticleImg{},
+		&contentmodel.ArticleLike{},
+		&contentmodel.ArticleFavorite{},
+		&contentmodel.ArticleAudience{},
+		&contentmodel.HomepageBanner{},
 		&notifymodel.ShopNotification{},
 	); err != nil {
 		log.Fatalf("AutoMigrate 失败：%v", err)
@@ -123,17 +131,19 @@ func main() {
 	} else {
 		logger.Info("shop menus seeded (layered)")
 	}
-	catalogLogic := productlogic.NewCatalogLogic(svcCtx)
+	catalogLogic := productlogic.NewCatalogLogic(context.Background(), svcCtx)
 	catalogHandler := producthandler.NewCatalogHandler(svcCtx)
+	favoriteH := producthandler.NewFavoriteHandler(svcCtx)
 	adminH := producthandler.NewProductAdminHandler(svcCtx)
 	shopOpsH := shopopshandler.NewShopOpsHandler(svcCtx)
 	articleAdminH := contenthandler.NewArticleAdminHandler(svcCtx)
 	articleMerchantH := contenthandler.NewArticleMerchantHandler(svcCtx)
+	articlePublicH := contenthandler.NewArticlePublicHandler(svcCtx)
 	shopUploadH := producthandler.NewShopUploadHandler()
 	platformProductH := producthandler.NewPlatformProductHandler(svcCtx)
 	notifH := notifyhandler.NewNotificationHandler(svcCtx)
-	productAdminLogic := productlogic.NewProductAdminLogic(svcCtx)
-	articleLogic := contentlogic.NewArticleLogic(svcCtx)
+	productAdminLogic := productlogic.NewProductAdminLogic(context.Background(), svcCtx)
+	articleLogic := contentlogic.NewArticleLogic(context.Background(), svcCtx)
 
 	// 商品定时上下架 + 文章定时发布（同进程 Mutex 防叠跑）
 	go func() {
@@ -185,6 +195,7 @@ func main() {
 	rid := middleware.RequestID()
 	gwShop := middleware.GatewayIdentity(true)
 	gwUser := middleware.GatewayIdentity(false)
+	gw := middleware.GatewayIdentity(false)
 	merchantRoles := middleware.RequireRoles(jwt.RoleMerchantOwner, jwt.RoleMerchantStaff)
 	adminRoles := middleware.RequireRoles(jwt.RolePlatformAdmin)
 
@@ -195,8 +206,29 @@ func main() {
 
 		{Method: http.MethodGet, Path: "/api/v1/products/list", Handler: rid(catalogHandler.GetProductList)},
 		{Method: http.MethodGet, Path: "/api/v1/products/detail", Handler: rid(catalogHandler.GetProductDetail)},
+		{Method: http.MethodGet, Path: "/api/v1/products/sales-rank", Handler: rid(catalogHandler.GetSalesRank)},
 		{Method: http.MethodGet, Path: "/api/v1/product_category/list", Handler: rid(catalogHandler.GetCategoryList)},
 		{Method: http.MethodGet, Path: "/api/v1/product_category/detail", Handler: rid(catalogHandler.GetCategoryDetail)},
+
+		{Method: http.MethodGet, Path: "/api/v1/banners", Handler: rid(articlePublicH.ListBanners)},
+
+		{Method: http.MethodGet, Path: "/api/v1/articles/list", Handler: rid(articlePublicH.List)},
+		{Method: http.MethodGet, Path: "/api/v1/articles/:id", Handler: rid(articlePublicH.Detail)},
+		{Method: http.MethodPost, Path: "/api/v1/articles/:id/like", Handler: rid(gw(articlePublicH.Like))},
+		{Method: http.MethodDelete, Path: "/api/v1/articles/:id/like", Handler: rid(gw(articlePublicH.Unlike))},
+		{Method: http.MethodPost, Path: "/api/v1/articles/:id/favorite", Handler: rid(gw(articlePublicH.Favorite))},
+		{Method: http.MethodDelete, Path: "/api/v1/articles/:id/favorite", Handler: rid(gw(articlePublicH.Unfavorite))},
+		{Method: http.MethodGet, Path: "/api/v1/articles/:id/engagement", Handler: rid(gw(articlePublicH.Status))},
+		{Method: http.MethodGet, Path: "/api/v1/user/article-favorites", Handler: rid(gw(articlePublicH.ListMyFavorites))},
+		{Method: http.MethodGet, Path: "/api/v1/user/article-likes", Handler: rid(gw(articlePublicH.ListMyLikes))},
+
+		{Method: http.MethodPost, Path: "/api/v1/user/favorites", Handler: rid(gw(favoriteH.Add))},
+		{Method: http.MethodDelete, Path: "/api/v1/user/favorites/:product_id", Handler: rid(gw(favoriteH.Remove))},
+		{Method: http.MethodPost, Path: "/api/v1/user/favorites/batch-remove", Handler: rid(gw(favoriteH.RemoveBatch))},
+		{Method: http.MethodGet, Path: "/api/v1/user/favorites", Handler: rid(gw(favoriteH.List))},
+		{Method: http.MethodGet, Path: "/api/v1/products/:id/favorite", Handler: rid(gw(favoriteH.Status))},
+		{Method: http.MethodGet, Path: "/api/v1/products/:id/favorite-count", Handler: rid(favoriteH.Count)},
+		{Method: http.MethodGet, Path: "/api/v1/admin/users/:id/favorites", Handler: rid(middleware.Chain(favoriteH.AdminUserList, gwUser, adminRoles))},
 
 		{Method: http.MethodGet, Path: "/api/v1/merchant/products", Handler: rid(middleware.Chain(adminH.List, gwShop, merchantRoles))},
 		{Method: http.MethodPost, Path: "/api/v1/merchant/products", Handler: rid(middleware.Chain(adminH.Create, gwShop, merchantRoles))},
@@ -269,6 +301,13 @@ func main() {
 		{Method: http.MethodPatch, Path: "/api/v1/admin/article-comments/:id", Handler: rid(middleware.Chain(articleAdminH.CommentPatch, gwUser, adminRoles))},
 		{Method: http.MethodDelete, Path: "/api/v1/admin/article-comments/:id", Handler: rid(middleware.Chain(articleAdminH.CommentDelete, gwUser, adminRoles))},
 		{Method: http.MethodPost, Path: "/api/v1/admin/article-uploads", Handler: rid(middleware.Chain(articleAdminH.Upload, gwUser, adminRoles))},
+
+		{Method: http.MethodGet, Path: "/api/v1/admin/banners", Handler: rid(middleware.Chain(articleAdminH.ListBanners, gwUser, adminRoles))},
+		{Method: http.MethodPost, Path: "/api/v1/admin/banners", Handler: rid(middleware.Chain(articleAdminH.CreateBanner, gwUser, adminRoles))},
+		{Method: http.MethodPost, Path: "/api/v1/admin/banners/upload", Handler: rid(middleware.Chain(articleAdminH.UploadBanner, gwUser, adminRoles))},
+		{Method: http.MethodGet, Path: "/api/v1/admin/banners/:id", Handler: rid(middleware.Chain(articleAdminH.GetBanner, gwUser, adminRoles))},
+		{Method: http.MethodPut, Path: "/api/v1/admin/banners/:id", Handler: rid(middleware.Chain(articleAdminH.UpdateBanner, gwUser, adminRoles))},
+		{Method: http.MethodDelete, Path: "/api/v1/admin/banners/:id", Handler: rid(middleware.Chain(articleAdminH.DeleteBanner, gwUser, adminRoles))},
 		{Method: http.MethodPost, Path: "/api/v1/admin/shop-uploads", Handler: rid(middleware.Chain(shopUploadH.Upload, gwUser, adminRoles))},
 
 		// 社区文章 — 商家
@@ -303,6 +342,10 @@ func main() {
 		})},
 		{Method: http.MethodGet, Path: "/uploads/shops/:owner/:file", Handler: rid(func(w http.ResponseWriter, r *http.Request) {
 			p := uploadpath.Abs("shops", httpserver.PathParam(r, "owner"), httpserver.PathParam(r, "file"))
+			http.ServeFile(w, r, p)
+		})},
+		{Method: http.MethodGet, Path: "/uploads/reviews/:user/:file", Handler: rid(func(w http.ResponseWriter, r *http.Request) {
+			p := uploadpath.Abs("reviews", httpserver.PathParam(r, "user"), httpserver.PathParam(r, "file"))
 			http.ServeFile(w, r, p)
 		})},
 	})

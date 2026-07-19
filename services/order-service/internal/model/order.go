@@ -9,6 +9,7 @@ const (
 	OrderStatusCancelled = "cancelled"
 	OrderStatusShipped   = "shipped"
 	OrderStatusCompleted = "completed"
+	OrderStatusReviewed  = "reviewed"
 )
 
 const (
@@ -41,8 +42,9 @@ type Order struct {
 	ShipNo          string           `gorm:"column:ship_no;type:varchar(64);not null;default:''" json:"ship_no"`
 	ShippedAt       *common.LocalTime `gorm:"column:shipped_at" json:"shipped_at,omitempty"`
 	CompletedAt     *common.LocalTime `gorm:"column:completed_at" json:"completed_at,omitempty"`
+	ReviewedAt      *common.LocalTime `gorm:"column:reviewed_at" json:"reviewed_at,omitempty"`
 	Remark          string           `gorm:"column:remark;type:varchar(255);not null;default:''" json:"remark"`
-	Status          string           `gorm:"column:status;type:enum('pending','confirmed','failed','cancelled','shipped','completed');default:pending" json:"status"`
+	Status          string           `gorm:"column:status;type:enum('pending','confirmed','failed','cancelled','shipped','completed','reviewed');default:pending" json:"status"`
 	CreatedAt       common.LocalTime `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt       common.LocalTime `gorm:"column:updated_at" json:"updated_at"`
 	Items           []OrderItem      `gorm:"foreignKey:OrderID" json:"items,omitempty"`

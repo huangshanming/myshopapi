@@ -36,12 +36,12 @@
       </view>
     </view>
 
-    <button
-      v-if="canCancel"
-      class="btn-cancel"
-      :loading="cancelling"
-      @tap="onCancel"
-    >取消订单</button>
+    <view class="actions">
+      <button v-if="canCancel" class="btn outline" :loading="busy" @tap="onCancel">取消订单</button>
+      <button v-if="canConfirm" class="btn primary" :loading="busy" @tap="onConfirm">确认收货</button>
+      <button v-if="canReview" class="btn primary" @tap="goReview">去评价</button>
+      <button v-if="canViewReview" class="btn outline" @tap="goViewReview">查看评价</button>
+    </view>
   </view>
   <view v-else class="empty">{{ loading ? '加载中...' : '订单不存在' }}</view>
 </template>
@@ -49,17 +49,20 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { cancelOrder, getOrder, ORDER_STATUS } from '../../api/index'
+import { cancelOrder, confirmReceive, getOrder, ORDER_STATUS } from '../../api/index'
 
 const order = ref(null)
 const loading = ref(false)
-const cancelling = ref(false)
+const busy = ref(false)
 let orderId = 0
 
 const canCancel = computed(() => {
   const s = order.value?.status
   return s === 'pending' || s === 'confirmed'
 })
+const canConfirm = computed(() => order.value?.status === 'shipped')
+const canReview = computed(() => order.value?.status === 'completed')
+const canViewReview = computed(() => order.value?.status === 'reviewed')
 
 function statusText(s) {
   return ORDER_STATUS[s] || s
@@ -75,7 +78,7 @@ async function load() {
   loading.value = true
   try {
     const res = await getOrder(orderId)
-    order.value = res.data || null
+    order.value = res || null
   } catch {
     order.value = null
   } finally {
@@ -92,7 +95,7 @@ async function onCancel() {
     })
   })
   if (!ok) return
-  cancelling.value = true
+  busy.value = true
   try {
     await cancelOrder(orderId)
     uni.showToast({ title: '已取消', icon: 'success' })
@@ -100,8 +103,37 @@ async function onCancel() {
   } catch {
     /* handled */
   } finally {
-    cancelling.value = false
+    busy.value = false
   }
+}
+
+async function onConfirm() {
+  const ok = await new Promise((resolve) => {
+    uni.showModal({
+      title: '确认收货',
+      content: '确认已收到商品？',
+      success: (r) => resolve(r.confirm),
+    })
+  })
+  if (!ok) return
+  busy.value = true
+  try {
+    await confirmReceive(orderId)
+    uni.showToast({ title: '已确认收货', icon: 'success' })
+    load()
+  } catch {
+    /* handled */
+  } finally {
+    busy.value = false
+  }
+}
+
+function goReview() {
+  uni.navigateTo({ url: `/pages/order/review?id=${orderId}` })
+}
+
+function goViewReview() {
+  uni.navigateTo({ url: `/pages/order/review-view?id=${orderId}` })
 }
 </script>
 
@@ -121,9 +153,11 @@ async function onCancel() {
 .item { padding: 12rpx 0; border-top: 1rpx solid #f5f5f5; }
 .name { display: block; font-size: 28rpx; }
 .sub { color: #71717a; font-size: 22rpx; }
-.btn-cancel {
-  margin-top: 24rpx; background: #fff; color: #d83636; border: 2rpx solid #d83636;
-  border-radius: 999rpx; height: 80rpx; line-height: 80rpx; font-size: 28rpx;
+.actions { display: flex; flex-direction: column; gap: 16rpx; margin-top: 8rpx; }
+.btn {
+  border-radius: 999rpx; height: 80rpx; line-height: 80rpx; font-size: 28rpx; margin: 0;
 }
+.btn.outline { background: #fff; color: #d83636; border: 2rpx solid #d83636; }
+.btn.primary { background: linear-gradient(135deg, #bfa472, #d4b890); color: #fff; border: none; }
 .empty { text-align: center; padding: 120rpx; color: #71717a; }
 </style>

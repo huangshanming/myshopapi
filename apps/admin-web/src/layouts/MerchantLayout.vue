@@ -118,7 +118,7 @@ const opened = computed(() => menuNodes.value.filter((n) => n.children?.length).
 async function refreshUnread() {
   try {
     const res = await unreadNotificationCount()
-    unread.value = Number(res.data?.count || 0)
+    unread.value = Number(res?.count || 0)
   } catch (_) {
     /* ignore */
   }

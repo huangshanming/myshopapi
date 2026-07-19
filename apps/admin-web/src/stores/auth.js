@@ -44,9 +44,9 @@ export const useAuthStore = defineStore('auth', {
     async loadAuthMe() {
       if (!this.isAdmin) return
       const body = await fetchAuthMe()
-      this.roles = body.data?.roles || []
-      this.perms = body.data?.perms || []
-      this.menuTree = body.data?.menu_tree || []
+      this.roles = body?.roles || []
+      this.perms = body?.perms || []
+      this.menuTree = body?.menu_tree || []
       localStorage.setItem('mymall_roles', JSON.stringify(this.roles))
       localStorage.setItem('mymall_perms', JSON.stringify(this.perms))
       localStorage.setItem('mymall_menus', JSON.stringify(this.menuTree))
@@ -54,9 +54,9 @@ export const useAuthStore = defineStore('auth', {
     async loadMerchantMe() {
       if (!this.isMerchant) return
       const body = await fetchMerchantMe()
-      this.perms = body.data?.perms || []
-      this.menuTree = body.data?.menu_tree || body.data?.menus || []
-      this.isShopOwner = !!body.data?.is_owner
+      this.perms = body?.perms || []
+      this.menuTree = body?.menu_tree || body?.menus || []
+      this.isShopOwner = !!body?.is_owner
       localStorage.setItem('mymall_perms', JSON.stringify(this.perms))
       localStorage.setItem('mymall_menus', JSON.stringify(this.menuTree))
       localStorage.setItem('mymall_shop_owner', this.isShopOwner ? '1' : '0')
@@ -67,14 +67,17 @@ export const useAuthStore = defineStore('auth', {
         password,
         shop_id: shopId || undefined,
       })
-      const token = body.data.token
-      const user = body.data.user
+      const token = body?.token
+      const user = body?.user
+      if (!token || !user) {
+        throw new Error('登录响应异常，请重启 user-service 后重试')
+      }
       const claims = parseJwt(token)
       this.token = token
       this.user = user
-      this.role = claims.role || user.role || ''
+      this.role = claims.role || user?.role || ''
       this.shopId = Number(claims.shop_id || shopId || 0)
-      this.userId = Number(claims.user_id || user.id || 0)
+      this.userId = Number(claims.user_id || user?.id || 0)
       localStorage.setItem('mymall_token', token)
       localStorage.setItem('mymall_user', JSON.stringify(user))
       localStorage.setItem('mymall_role', this.role)

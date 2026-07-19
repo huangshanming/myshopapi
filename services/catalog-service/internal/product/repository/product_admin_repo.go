@@ -106,6 +106,10 @@ func (r *ProductAdminRepository) List(f ProductListFilter) ([]model.Product, int
 		order = "stock ASC"
 	case "sold_desc":
 		order = "sold_count DESC"
+	case "collect_desc":
+		order = "collect_count DESC"
+	case "collect_asc":
+		order = "collect_count ASC"
 	case "created_asc":
 		order = "id ASC"
 	}

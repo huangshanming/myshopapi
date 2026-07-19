@@ -44,7 +44,7 @@ async function load() {
   loading.value = true
   try {
     const res = await getProductDetail(id)
-    product.value = res.data || null
+    product.value = res || null
   } catch (e) {
     product.value = null
     ElMessage.error(e.message)

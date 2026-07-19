@@ -71,7 +71,27 @@ function ensureBizMenus(tree) {
       biz.children.push({ ...m })
     }
   }
-  return ensureArticleMenus(cloned)
+  return ensureMarketingMenus(ensureArticleMenus(cloned))
+}
+
+function ensureMarketingMenus(tree) {
+  const cloned = tree.map((n) => ({
+    ...n,
+    children: (n.children || []).map((c) => ({ ...c })),
+  }))
+  let mkt = cloned.find((n) => n.id === 16 || n.name === '营销中心')
+  if (!mkt) {
+    mkt = { id: 16, name: '营销中心', type: 'dir', visible: 1, children: [] }
+    cloned.push(mkt)
+  }
+  mkt.children = mkt.children || []
+  if (!mkt.children.some((c) => c.path === '/admin/banners' || c.id === 115)) {
+    mkt.children.push({ id: 115, name: '首页 Banner', path: '/admin/banners', type: 'menu', visible: 1 })
+  }
+  if (!mkt.children.some((c) => c.path === '/admin/themes' || c.id === 118)) {
+    mkt.children.push({ id: 118, name: '主题集市', path: '/admin/themes', type: 'menu', visible: 1 })
+  }
+  return cloned
 }
 
 function ensureArticleMenus(tree) {

@@ -122,7 +122,7 @@ async function loadShop() {
   }
   try {
     const res = await getShop(shopID)
-    shop.value = res.data || { name: `店铺 #${shopID}` }
+    shop.value = res || { name: `店铺 #${shopID}` }
   } catch {
     shop.value = { name: `店铺 #${shopID}` }
   }
@@ -131,7 +131,7 @@ async function loadShop() {
 async function loadAddresses() {
   try {
     const res = await listAddresses()
-    const list = res.data || []
+    const list = res || []
     const picked = uni.getStorageSync('mymall_picked_address_id')
     if (picked) {
       addressId.value = Number(picked)

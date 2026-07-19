@@ -1,6 +1,7 @@
 package logic
 
 import (
+	"context"
 	"errors"
 	"strings"
 
@@ -10,11 +11,15 @@ import (
 )
 
 type AddressLogic struct {
+	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewAddressLogic(svcCtx *svc.ServiceContext) *AddressLogic {
-	return &AddressLogic{svcCtx: svcCtx}
+func NewAddressLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AddressLogic {
+	return &AddressLogic{
+		ctx:    ctx,
+		svcCtx: svcCtx,
+	}
 }
 
 func (l *AddressLogic) validate(req types.AddressReq) error {

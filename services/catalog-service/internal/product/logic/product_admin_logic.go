@@ -1,6 +1,7 @@
 package logic
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -19,12 +20,13 @@ import (
 )
 
 type ProductAdminLogic struct {
+	ctx    context.Context
 	svcCtx *svc.ServiceContext
 	guard  promotion.Guard
 }
 
-func NewProductAdminLogic(svcCtx *svc.ServiceContext) *ProductAdminLogic {
-	return &ProductAdminLogic{svcCtx: svcCtx, guard: promotion.NewNoop()}
+func NewProductAdminLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ProductAdminLogic {
+	return &ProductAdminLogic{ctx: ctx, svcCtx: svcCtx, guard: promotion.NewNoop()}
 }
 
 func (l *ProductAdminLogic) List(f repository.ProductListFilter) (map[string]interface{}, error) {
