@@ -337,6 +337,123 @@ func (r *ArticleRepository) DeleteComment(id uint64, shopID uint64) error {
 	return r.PatchComment(id, shopID, model.CommentDeleted)
 }
 
+func (r *ArticleRepository) GetComment(id uint64) (*model.CommunityArticleComment, error) {
+	var c model.CommunityArticleComment
+	if err := r.db.Where("id = ? AND status = ?", id, model.CommentVisible).First(&c).Error; err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
+func (r *ArticleRepository) CreateComment(c *model.CommunityArticleComment) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(c).Error; err != nil {
+			return err
+		}
+		if c.RootID == 0 {
+			if err := tx.Model(c).Update("root_id", c.ID).Error; err != nil {
+				return err
+			}
+			c.RootID = c.ID
+		}
+		return tx.Model(&model.CommunityArticle{}).Where("id = ?", c.ArticleID).
+			UpdateColumn("comment_count", gorm.Expr("comment_count + 1")).Error
+	})
+}
+
+type CommentUserBrief struct {
+	ID       uint64 `json:"id"`
+	Nickname string `json:"nickname"`
+	Mobile   string `json:"mobile"`
+}
+
+func (r *ArticleRepository) MapUserBriefs(ids []uint64) map[uint64]CommentUserBrief {
+	out := map[uint64]CommentUserBrief{}
+	if len(ids) == 0 {
+		return out
+	}
+	var rows []CommentUserBrief
+	_ = r.db.Table("users").Select("id, nickname, mobile").Where("id IN ?", ids).Scan(&rows).Error
+	for _, u := range rows {
+		out[u.ID] = u
+	}
+	return out
+}
+
+func (r *ArticleRepository) ListPublicCommentRoots(articleID uint64, page, pageSize int) ([]model.CommunityArticleComment, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 20
+	}
+	q := r.db.Model(&model.CommunityArticleComment{}).
+		Where("article_id = ? AND parent_id = 0 AND status = ?", articleID, model.CommentVisible)
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var list []model.CommunityArticleComment
+	err := q.Order("id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
+	return list, total, err
+}
+
+func (r *ArticleRepository) ListPublicCommentChildren(articleID uint64, rootIDs []uint64) ([]model.CommunityArticleComment, error) {
+	if len(rootIDs) == 0 {
+		return nil, nil
+	}
+	var list []model.CommunityArticleComment
+	err := r.db.Where("article_id = ? AND root_id IN ? AND parent_id > 0 AND status = ?",
+		articleID, rootIDs, model.CommentVisible).
+		Order("id ASC").Find(&list).Error
+	return list, err
+}
+
+// ---- emojis ----
+
+func (r *ArticleRepository) ListEmojisAdmin(page, pageSize int) ([]model.CommunityCommentEmoji, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 50
+	}
+	q := r.db.Model(&model.CommunityCommentEmoji{})
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var list []model.CommunityCommentEmoji
+	err := q.Order("sort ASC, id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
+	return list, total, err
+}
+
+func (r *ArticleRepository) ListEmojisPublic() ([]model.CommunityCommentEmoji, error) {
+	var list []model.CommunityCommentEmoji
+	err := r.db.Where("status = 1").Order("sort ASC, id ASC").Find(&list).Error
+	return list, err
+}
+
+func (r *ArticleRepository) GetEmoji(id uint64) (*model.CommunityCommentEmoji, error) {
+	var e model.CommunityCommentEmoji
+	if err := r.db.First(&e, id).Error; err != nil {
+		return nil, err
+	}
+	return &e, nil
+}
+
+func (r *ArticleRepository) CreateEmoji(e *model.CommunityCommentEmoji) error {
+	return r.db.Create(e).Error
+}
+
+func (r *ArticleRepository) UpdateEmoji(id uint64, updates map[string]interface{}) error {
+	return r.db.Model(&model.CommunityCommentEmoji{}).Where("id = ?", id).Updates(updates).Error
+}
+
+func (r *ArticleRepository) DeleteEmoji(id uint64) error {
+	return r.db.Where("id = ?", id).Delete(&model.CommunityCommentEmoji{}).Error
+}
+
 func (r *ArticleRepository) ListPublic(page, pageSize, homeLimit int) ([]model.CommunityArticle, int64, error) {
 	if page < 1 {
 		page = 1

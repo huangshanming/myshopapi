@@ -51,6 +51,7 @@ type CommunityArticle struct {
 	AudienceCount     uint64            `gorm:"column:audience_count;default:0" json:"audience_count"`
 	ReadCount         uint64            `gorm:"column:read_count;default:0" json:"read_count"`
 	CollectCount      uint64            `gorm:"column:collect_count;default:0" json:"collect_count"`
+	CommentCount      uint64            `gorm:"column:comment_count;default:0" json:"comment_count"`
 	PublishedAt       *common.LocalTime `gorm:"column:published_at" json:"published_at,omitempty"`
 	DeletedAt         *common.LocalTime `gorm:"column:deleted_at" json:"deleted_at,omitempty"`
 	CreatedBy         uint64            `gorm:"column:created_by;not null;default:0" json:"created_by"`
@@ -72,17 +73,37 @@ type CommunityArticleImg struct {
 func (CommunityArticleImg) TableName() string { return "community_article_img" }
 
 type CommunityArticleComment struct {
+	ID            uint64           `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
+	ArticleID     uint64           `gorm:"column:article_id;not null;index" json:"article_id"`
+	ShopID        uint64           `gorm:"column:shop_id;not null;index" json:"shop_id"`
+	UserID        uint64           `gorm:"column:user_id;not null;default:0" json:"user_id"`
+	ParentID      uint64           `gorm:"column:parent_id;not null;default:0" json:"parent_id"`
+	RootID        uint64           `gorm:"column:root_id;not null;default:0;index" json:"root_id"`
+	ReplyToUserID uint64           `gorm:"column:reply_to_user_id;not null;default:0" json:"reply_to_user_id"`
+	Content       string           `gorm:"column:content;type:varchar(1000);not null" json:"content"`
+	Status        string           `gorm:"column:status;type:enum('visible','hidden','deleted');default:visible" json:"status"`
+	CreatedAt     common.LocalTime `gorm:"column:created_at" json:"created_at"`
+	UpdatedAt     common.LocalTime `gorm:"column:updated_at" json:"updated_at"`
+
+	UserNickname     string `gorm:"-" json:"user_nickname,omitempty"`
+	ReplyToNickname  string `gorm:"-" json:"reply_to_nickname,omitempty"`
+	Children         []CommunityArticleComment `gorm:"-" json:"children,omitempty"`
+}
+
+func (CommunityArticleComment) TableName() string { return "community_article_comment" }
+
+// CommunityCommentEmoji 评论表情包（超管配置）
+type CommunityCommentEmoji struct {
 	ID        uint64           `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
-	ArticleID uint64           `gorm:"column:article_id;not null;index" json:"article_id"`
-	ShopID    uint64           `gorm:"column:shop_id;not null;index" json:"shop_id"`
-	UserID    uint64           `gorm:"column:user_id;not null;default:0" json:"user_id"`
-	Content   string           `gorm:"column:content;type:varchar(1000);not null" json:"content"`
-	Status    string           `gorm:"column:status;type:enum('visible','hidden','deleted');default:visible" json:"status"`
+	Name      string           `gorm:"column:name;type:varchar(64)" json:"name"`
+	ImageURL  string           `gorm:"column:image_url;type:varchar(500)" json:"image_url"`
+	Sort      int              `gorm:"column:sort" json:"sort"`
+	Status    int8             `gorm:"column:status;default:1" json:"status"`
 	CreatedAt common.LocalTime `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt common.LocalTime `gorm:"column:updated_at" json:"updated_at"`
 }
 
-func (CommunityArticleComment) TableName() string { return "community_article_comment" }
+func (CommunityCommentEmoji) TableName() string { return "community_comment_emojis" }
 
 type ArticleLike struct {
 	ID        uint64           `gorm:"column:id;primaryKey;autoIncrement" json:"id"`

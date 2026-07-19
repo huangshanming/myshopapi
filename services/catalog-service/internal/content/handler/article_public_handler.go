@@ -2,14 +2,14 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
-
-	"github.com/zeromicro/go-zero/rest/httpx"
-	"mymall/pkg/xerr"
 	"strconv"
 
+	"github.com/zeromicro/go-zero/rest/httpx"
 	"mymall/pkg/httpserver"
 	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
 	"mymall/services/catalog-service/internal/content/logic"
 	"mymall/services/catalog-service/internal/svc"
 )
@@ -171,4 +171,53 @@ func (h *ArticlePublicHandler) ListMyLikes(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	httpx.OkJsonCtx(r.Context(), w, data)
+}
+
+func (h *ArticlePublicHandler) ListComments(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	if err != nil || id == 0 {
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "文章ID无效"))
+		return
+	}
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
+	data, err := h.logic.PublicListComments(id, page, pageSize)
+	if err != nil {
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
+		return
+	}
+	httpx.OkJsonCtx(r.Context(), w, data)
+}
+
+func (h *ArticlePublicHandler) CreateComment(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok || userID == 0 {
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
+		return
+	}
+	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	if err != nil || id == 0 {
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "文章ID无效"))
+		return
+	}
+	var req logic.CreateCommentReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
+		return
+	}
+	c, err := h.logic.CreatePublicComment(userID, id, req)
+	if err != nil {
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
+		return
+	}
+	httpx.OkJsonCtx(r.Context(), w, c)
+}
+
+func (h *ArticlePublicHandler) ListEmojis(w http.ResponseWriter, r *http.Request) {
+	list, err := h.logic.ListEmojisPublic()
+	if err != nil {
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
+		return
+	}
+	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"list": list})
 }

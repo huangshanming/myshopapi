@@ -61,6 +61,7 @@ export default defineConfig({
       '/api/v1/product_category': to(svc.catalog),
       '/api/v1/banners': to(svc.catalog),
       '/api/v1/articles': to(svc.catalog),
+      '/api/v1/comment-emojis': to(svc.catalog),
       '/api/v1/shops': to(svc.merchant),
       '/api/v1/home': to(svc.merchant),
       '/api/v1/seckill': to(svc.merchant),

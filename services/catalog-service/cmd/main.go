@@ -98,6 +98,7 @@ func main() {
 		&contentmodel.CommunityArticle{},
 		&contentmodel.CommunityArticleCategory{},
 		&contentmodel.CommunityArticleComment{},
+		&contentmodel.CommunityCommentEmoji{},
 		&contentmodel.CommunityArticleImg{},
 		&contentmodel.ArticleLike{},
 		&contentmodel.ArticleFavorite{},
@@ -214,6 +215,9 @@ func main() {
 
 		{Method: http.MethodGet, Path: "/api/v1/articles/list", Handler: rid(articlePublicH.List)},
 		{Method: http.MethodGet, Path: "/api/v1/articles/:id", Handler: rid(articlePublicH.Detail)},
+		{Method: http.MethodGet, Path: "/api/v1/articles/:id/comments", Handler: rid(articlePublicH.ListComments)},
+		{Method: http.MethodPost, Path: "/api/v1/articles/:id/comments", Handler: rid(gw(articlePublicH.CreateComment))},
+		{Method: http.MethodGet, Path: "/api/v1/comment-emojis", Handler: rid(articlePublicH.ListEmojis)},
 		{Method: http.MethodPost, Path: "/api/v1/articles/:id/like", Handler: rid(gw(articlePublicH.Like))},
 		{Method: http.MethodDelete, Path: "/api/v1/articles/:id/like", Handler: rid(gw(articlePublicH.Unlike))},
 		{Method: http.MethodPost, Path: "/api/v1/articles/:id/favorite", Handler: rid(gw(articlePublicH.Favorite))},
@@ -300,6 +304,10 @@ func main() {
 		{Method: http.MethodGet, Path: "/api/v1/admin/article-comments", Handler: rid(middleware.Chain(articleAdminH.CommentList, gwUser, adminRoles))},
 		{Method: http.MethodPatch, Path: "/api/v1/admin/article-comments/:id", Handler: rid(middleware.Chain(articleAdminH.CommentPatch, gwUser, adminRoles))},
 		{Method: http.MethodDelete, Path: "/api/v1/admin/article-comments/:id", Handler: rid(middleware.Chain(articleAdminH.CommentDelete, gwUser, adminRoles))},
+		{Method: http.MethodGet, Path: "/api/v1/admin/comment-emojis", Handler: rid(middleware.Chain(articleAdminH.EmojiList, gwUser, adminRoles))},
+		{Method: http.MethodPost, Path: "/api/v1/admin/comment-emojis", Handler: rid(middleware.Chain(articleAdminH.EmojiCreate, gwUser, adminRoles))},
+		{Method: http.MethodPut, Path: "/api/v1/admin/comment-emojis/:id", Handler: rid(middleware.Chain(articleAdminH.EmojiUpdate, gwUser, adminRoles))},
+		{Method: http.MethodDelete, Path: "/api/v1/admin/comment-emojis/:id", Handler: rid(middleware.Chain(articleAdminH.EmojiDelete, gwUser, adminRoles))},
 		{Method: http.MethodPost, Path: "/api/v1/admin/article-uploads", Handler: rid(middleware.Chain(articleAdminH.Upload, gwUser, adminRoles))},
 
 		{Method: http.MethodGet, Path: "/api/v1/admin/banners", Handler: rid(middleware.Chain(articleAdminH.ListBanners, gwUser, adminRoles))},

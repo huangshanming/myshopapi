@@ -287,6 +287,8 @@ spec:
           - /api/v1/admin/article-categories/*
           - /api/v1/admin/article-comments
           - /api/v1/admin/article-comments/*
+          - /api/v1/admin/comment-emojis
+          - /api/v1/admin/comment-emojis/*
           - /api/v1/admin/article-uploads
           - /api/v1/admin/banners
           - /api/v1/admin/banners/*

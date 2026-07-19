@@ -3,6 +3,7 @@ package svc
 import (
 	"mymall/pkg/config"
 	"mymall/pkg/mq"
+	"mymall/services/catalog-service/internal/client/userhttp"
 	contentrepo "mymall/services/catalog-service/internal/content/repository"
 	notifyrepo "mymall/services/catalog-service/internal/notify/repository"
 	productrepo "mymall/services/catalog-service/internal/product/repository"
@@ -25,6 +26,7 @@ type ServiceContext struct {
 	ShopRBAC      *shopopsrepo.ShopRBACRepository
 	Articles      *contentrepo.ArticleRepository
 	Notifications *notifyrepo.NotificationRepository
+	UserHTTP      *userhttp.Client
 }
 
 func NewServiceContext(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, mqClient *mq.Client) *ServiceContext {
@@ -40,5 +42,6 @@ func NewServiceContext(cfg *config.Config, db *gorm.DB, redisClient *redis.Clien
 		ShopRBAC:      shopopsrepo.NewShopRBACRepository(db),
 		Articles:      contentrepo.NewArticleRepository(db),
 		Notifications: notifyrepo.NewNotificationRepository(db),
+		UserHTTP:      userhttp.New(cfg.UserHTTP),
 	}
 }

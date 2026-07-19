@@ -56,6 +56,16 @@ async function openMsg(m) {
   }
   if (m.link_type === 'order' && m.link_id) {
     uni.navigateTo({ url: `/pages/order/detail?id=${m.link_id}` })
+    return
+  }
+  if (m.link_type === 'article' && m.link_id) {
+    let commentId = 0
+    try {
+      const extra = typeof m.extra === 'string' ? JSON.parse(m.extra || '{}') : (m.extra || {})
+      commentId = Number(extra.comment_id) || 0
+    } catch { /* ignore */ }
+    const q = commentId ? `&comment_id=${commentId}` : ''
+    uni.navigateTo({ url: `/pages/community/detail?id=${m.link_id}${q}` })
   }
 }
 

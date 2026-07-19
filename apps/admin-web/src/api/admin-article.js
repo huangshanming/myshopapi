@@ -82,6 +82,22 @@ export function deleteArticleComment(id) {
   return http.delete(`${base}/article-comments/${id}`)
 }
 
+export function listCommentEmojis(params) {
+  return http.get(`${base}/comment-emojis`, { params })
+}
+
+export function createCommentEmoji(data) {
+  return http.post(`${base}/comment-emojis`, data)
+}
+
+export function updateCommentEmoji(id, data) {
+  return http.put(`${base}/comment-emojis/${id}`, data)
+}
+
+export function deleteCommentEmoji(id) {
+  return http.delete(`${base}/comment-emojis/${id}`)
+}
+
 export function uploadArticleImage(file, shopId = 0) {
   const fd = new FormData()
   fd.append('file', file)

@@ -79,6 +79,7 @@ export default defineConfig({
       '/api/v1/admin/articles': to(svc.catalog),
       '/api/v1/admin/article-categories': to(svc.catalog),
       '/api/v1/admin/article-comments': to(svc.catalog),
+      '/api/v1/admin/comment-emojis': to(svc.catalog),
       '/api/v1/admin/article-uploads': to(svc.catalog),
       '/api/v1/admin/banners': to(svc.catalog),
       '/api/v1/admin/shop-uploads': to(svc.catalog),

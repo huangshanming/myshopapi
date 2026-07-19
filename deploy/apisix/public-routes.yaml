@@ -53,6 +53,7 @@ spec:
           - /api/v1/product_category/*
           - /api/v1/articles/list
           - /api/v1/articles/*
+          - /api/v1/comment-emojis
           - /api/v1/banners
           - /uploads/*
         methods:

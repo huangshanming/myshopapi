@@ -295,6 +295,67 @@ func (h *ArticleAdminHandler) CommentDelete(w http.ResponseWriter, r *http.Reque
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
+func (h *ArticleAdminHandler) EmojiList(w http.ResponseWriter, r *http.Request) {
+	page, pageSize := middleware.ParsePage(r)
+	data, err := h.logic.ListEmojisAdmin(page, pageSize)
+	if err != nil {
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
+		return
+	}
+	httpx.OkJsonCtx(r.Context(), w, data)
+}
+
+func (h *ArticleAdminHandler) EmojiCreate(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Name     string `json:"name"`
+		ImageURL string `json:"image_url"`
+		Sort     int    `json:"sort"`
+		Status   *int8  `json:"status"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
+		return
+	}
+	status := int8(1)
+	if req.Status != nil {
+		status = *req.Status
+	}
+	e, err := h.logic.CreateEmoji(req.Name, req.ImageURL, req.Sort, status)
+	if err != nil {
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
+		return
+	}
+	httpx.OkJsonCtx(r.Context(), w, e)
+}
+
+func (h *ArticleAdminHandler) EmojiUpdate(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	var req struct {
+		Name     string `json:"name"`
+		ImageURL string `json:"image_url"`
+		Sort     *int   `json:"sort"`
+		Status   *int8  `json:"status"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
+		return
+	}
+	if err := h.logic.UpdateEmoji(id, req.Name, req.ImageURL, req.Sort, req.Status); err != nil {
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
+		return
+	}
+	httpx.OkJsonCtx(r.Context(), w, nil)
+}
+
+func (h *ArticleAdminHandler) EmojiDelete(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	if err := h.logic.DeleteEmoji(id); err != nil {
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
+		return
+	}
+	httpx.OkJsonCtx(r.Context(), w, nil)
+}
+
 func (h *ArticleAdminHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	shopID, _ := strconv.ParseUint(r.URL.Query().Get("shop_id"), 10, 64)
 	file, hdr, err := r.FormFile("file")

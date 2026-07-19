@@ -44,6 +44,18 @@ export function getArticle(id) {
   return http.get(`/api/v1/articles/${id}`)
 }
 
+export function listArticleComments(articleId, params = { page: 1, page_size: 20 }) {
+  return http.get(`/api/v1/articles/${articleId}/comments`, params)
+}
+
+export function createArticleComment(articleId, data) {
+  return http.post(`/api/v1/articles/${articleId}/comments`, data)
+}
+
+export function listCommentEmojis() {
+  return http.get('/api/v1/comment-emojis')
+}
+
 export function likeArticle(id) {
   return http.post(`/api/v1/articles/${id}/like`)
 }

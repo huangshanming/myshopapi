@@ -7,9 +7,10 @@ const (
 	MsgTypeOrder    = "order"
 	MsgTypeSystem   = "system"
 
-	LinkTypeNone  = "none"
-	LinkTypeOrder = "order"
-	LinkTypeURL   = "url"
+	LinkTypeNone    = "none"
+	LinkTypeOrder   = "order"
+	LinkTypeURL     = "url"
+	LinkTypeArticle = "article"
 
 	SenderAdmin  = "admin"
 	SenderSystem = "system"

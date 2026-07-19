@@ -89,6 +89,7 @@ spec:
           - /api/v1/articles/*/like
           - /api/v1/articles/*/favorite
           - /api/v1/articles/*/engagement
+          - /api/v1/articles/*/comments
         methods:
           - GET
           - POST

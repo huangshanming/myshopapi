@@ -28,6 +28,7 @@ import AdminArticles from '../views/admin/articles/Articles.vue'
 import AdminArticleEdit from '../views/admin/articles/ArticleEdit.vue'
 import AdminArticleCategories from '../views/admin/articles/Categories.vue'
 import AdminArticleComments from '../views/admin/articles/Comments.vue'
+import AdminArticleEmojis from '../views/admin/articles/Emojis.vue'
 import AdminArticleRecycle from '../views/admin/articles/Recycle.vue'
 import AdminArticleStats from '../views/admin/articles/Stats.vue'
 import AdminProducts from '../views/admin/products/Products.vue'
@@ -79,6 +80,7 @@ const router = createRouter({
         { path: 'articles/edit/:id?', component: AdminArticleEdit, meta: { perms: 'community:article:list' } },
         { path: 'articles/categories', component: AdminArticleCategories, meta: { perms: 'community:article:category' } },
         { path: 'articles/comments', component: AdminArticleComments, meta: { perms: 'community:article:comment' } },
+        { path: 'articles/emojis', component: AdminArticleEmojis, meta: { perms: 'community:article:emoji' } },
         { path: 'articles/recycle', component: AdminArticleRecycle, meta: { perms: 'community:article:recycle' } },
         { path: 'articles/stats', component: AdminArticleStats, meta: { perms: 'community:article:stats' } },
         { path: 'articles', component: AdminArticles, meta: { perms: 'community:article:list' } },

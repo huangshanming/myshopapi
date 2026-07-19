@@ -2,6 +2,7 @@ package logic
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"mymall/common"
+	"mymall/services/catalog-service/internal/client/userhttp"
 	"mymall/services/catalog-service/internal/content/model"
 	"mymall/services/catalog-service/internal/content/repository"
 	"mymall/services/catalog-service/internal/content/types"
@@ -530,4 +532,202 @@ func (l *ArticleLogic) ListMyLikes(userID uint64, page, pageSize int) (map[strin
 		return nil, err
 	}
 	return map[string]interface{}{"list": list, "total": total}, nil
+}
+
+type CreateCommentReq struct {
+	Content  string `json:"content"`
+	ParentID uint64 `json:"parent_id"`
+}
+
+func (l *ArticleLogic) fillCommentUsers(list []model.CommunityArticleComment) {
+	ids := make([]uint64, 0, len(list)*2)
+	seen := map[uint64]struct{}{}
+	add := func(id uint64) {
+		if id == 0 {
+			return
+		}
+		if _, ok := seen[id]; ok {
+			return
+		}
+		seen[id] = struct{}{}
+		ids = append(ids, id)
+	}
+	for _, c := range list {
+		add(c.UserID)
+		add(c.ReplyToUserID)
+		for _, ch := range c.Children {
+			add(ch.UserID)
+			add(ch.ReplyToUserID)
+		}
+	}
+	m := l.svcCtx.Articles.MapUserBriefs(ids)
+	nick := func(id uint64) string {
+		u, ok := m[id]
+		if !ok {
+			return "用户"
+		}
+		if u.Nickname != "" {
+			return u.Nickname
+		}
+		if len(u.Mobile) >= 4 {
+			return "用户" + u.Mobile[len(u.Mobile)-4:]
+		}
+		return "用户"
+	}
+	for i := range list {
+		list[i].UserNickname = nick(list[i].UserID)
+		if list[i].ReplyToUserID > 0 {
+			list[i].ReplyToNickname = nick(list[i].ReplyToUserID)
+		}
+		for j := range list[i].Children {
+			list[i].Children[j].UserNickname = nick(list[i].Children[j].UserID)
+			if list[i].Children[j].ReplyToUserID > 0 {
+				list[i].Children[j].ReplyToNickname = nick(list[i].Children[j].ReplyToUserID)
+			}
+		}
+	}
+}
+
+func (l *ArticleLogic) PublicListComments(articleID uint64, page, pageSize int) (map[string]interface{}, error) {
+	if _, err := l.svcCtx.Articles.GetPublished(articleID); err != nil {
+		return nil, errors.New("文章不存在")
+	}
+	roots, total, err := l.svcCtx.Articles.ListPublicCommentRoots(articleID, page, pageSize)
+	if err != nil {
+		return nil, err
+	}
+	rootIDs := make([]uint64, 0, len(roots))
+	for _, c := range roots {
+		rootIDs = append(rootIDs, c.ID)
+	}
+	children, _ := l.svcCtx.Articles.ListPublicCommentChildren(articleID, rootIDs)
+	byRoot := map[uint64][]model.CommunityArticleComment{}
+	for _, ch := range children {
+		rid := ch.RootID
+		if rid == 0 {
+			rid = ch.ParentID
+		}
+		byRoot[rid] = append(byRoot[rid], ch)
+	}
+	for i := range roots {
+		roots[i].Children = byRoot[roots[i].ID]
+	}
+	l.fillCommentUsers(roots)
+	return map[string]interface{}{"list": roots, "total": total}, nil
+}
+
+func (l *ArticleLogic) CreatePublicComment(userID, articleID uint64, req CreateCommentReq) (*model.CommunityArticleComment, error) {
+	content := strings.TrimSpace(req.Content)
+	if content == "" {
+		return nil, errors.New("请输入评论内容")
+	}
+	if len([]rune(content)) > 500 {
+		return nil, errors.New("评论最多 500 字")
+	}
+	a, err := l.svcCtx.Articles.GetPublished(articleID)
+	if err != nil {
+		return nil, errors.New("文章不存在")
+	}
+	c := &model.CommunityArticleComment{
+		ArticleID: articleID,
+		ShopID:    a.ShopID,
+		UserID:    userID,
+		Content:   content,
+		Status:    model.CommentVisible,
+	}
+	var notifyUID uint64
+	if req.ParentID > 0 {
+		parent, err := l.svcCtx.Articles.GetComment(req.ParentID)
+		if err != nil || parent.ArticleID != articleID {
+			return nil, errors.New("回复的评论不存在")
+		}
+		c.ParentID = parent.ID
+		if parent.RootID > 0 {
+			c.RootID = parent.RootID
+		} else {
+			c.RootID = parent.ID
+		}
+		c.ReplyToUserID = parent.UserID
+		notifyUID = parent.UserID
+	}
+	if err := l.svcCtx.Articles.CreateComment(c); err != nil {
+		return nil, err
+	}
+	tmp := []model.CommunityArticleComment{*c}
+	l.fillCommentUsers(tmp)
+	*c = tmp[0]
+	if notifyUID > 0 && notifyUID != userID && l.svcCtx.UserHTTP != nil {
+		extra, _ := json.Marshal(map[string]interface{}{"comment_id": c.ID})
+		preview := content
+		if rs := []rune(preview); len(rs) > 40 {
+			preview = string(rs[:40]) + "…"
+		}
+		_ = l.svcCtx.UserHTTP.Notify(l.ctx, userhttp.NotifyReq{
+			UserID: notifyUID, Title: "收到新回复",
+			Content:  fmt.Sprintf("%s 回复了你：%s", c.UserNickname, preview),
+			MsgType:  "system",
+			LinkType: "article",
+			LinkID:   articleID,
+			Extra:    string(extra),
+		})
+	}
+	return c, nil
+}
+
+func (l *ArticleLogic) ListEmojisAdmin(page, pageSize int) (map[string]interface{}, error) {
+	list, total, err := l.svcCtx.Articles.ListEmojisAdmin(page, pageSize)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]interface{}{"list": list, "total": total}, nil
+}
+
+func (l *ArticleLogic) ListEmojisPublic() ([]model.CommunityCommentEmoji, error) {
+	return l.svcCtx.Articles.ListEmojisPublic()
+}
+
+func (l *ArticleLogic) CreateEmoji(name, imageURL string, sort int, status int8) (*model.CommunityCommentEmoji, error) {
+	name = strings.TrimSpace(name)
+	imageURL = strings.TrimSpace(imageURL)
+	if imageURL == "" {
+		return nil, errors.New("请上传表情图片")
+	}
+	if name == "" {
+		name = "表情"
+	}
+	if status != 0 && status != 1 {
+		status = 1
+	}
+	e := &model.CommunityCommentEmoji{Name: name, ImageURL: imageURL, Sort: sort, Status: status}
+	if err := l.svcCtx.Articles.CreateEmoji(e); err != nil {
+		return nil, err
+	}
+	return e, nil
+}
+
+func (l *ArticleLogic) UpdateEmoji(id uint64, name, imageURL string, sort *int, status *int8) error {
+	if _, err := l.svcCtx.Articles.GetEmoji(id); err != nil {
+		return errors.New("表情不存在")
+	}
+	updates := map[string]interface{}{}
+	if name != "" {
+		updates["name"] = strings.TrimSpace(name)
+	}
+	if imageURL != "" {
+		updates["image_url"] = strings.TrimSpace(imageURL)
+	}
+	if sort != nil {
+		updates["sort"] = *sort
+	}
+	if status != nil {
+		updates["status"] = *status
+	}
+	if len(updates) == 0 {
+		return nil
+	}
+	return l.svcCtx.Articles.UpdateEmoji(id, updates)
+}
+
+func (l *ArticleLogic) DeleteEmoji(id uint64) error {
+	return l.svcCtx.Articles.DeleteEmoji(id)
 }
