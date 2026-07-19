@@ -39,6 +39,7 @@ const EXTRA_MENUS = [
   { id: 6, name: '商品分类', path: '/admin/products/categories', type: 'menu', visible: 1 },
   { id: 7, name: '售后管理', path: '/admin/after-sales', type: 'menu', visible: 1 },
   { id: 8, name: '物流管理', path: '/admin/logistics', type: 'menu', visible: 1 },
+  { id: 124, name: '用户消息', path: '/admin/messages', type: 'menu', visible: 1 },
 ]
 
 const EXTRA_ARTICLE_DIR = {

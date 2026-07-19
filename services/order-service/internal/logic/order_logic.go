@@ -2,12 +2,14 @@ package logic
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
 
 	"mymall/pkg/cache"
 	"mymall/services/order-service/internal/client/merchanthttp"
+	"mymall/services/order-service/internal/client/userhttp"
 	"mymall/services/order-service/internal/model"
 	"mymall/services/order-service/internal/repository"
 	"mymall/services/order-service/internal/svc"
@@ -362,13 +364,47 @@ func (l *OrderLogic) CreateOrder(ctx context.Context, userID uint64, addressID u
 	return order, nil
 }
 
-func (l *OrderLogic) ListOrders(userID uint64, page, pageSize int) ([]model.Order, int64, error) {
-	orders, total, err := l.svcCtx.Repo.List(repository.OrderListFilter{UserID: userID, Page: page, PageSize: pageSize})
+func (l *OrderLogic) ListOrders(userID uint64, page, pageSize int, status string) ([]model.Order, int64, error) {
+	orders, total, err := l.svcCtx.Repo.List(repository.OrderListFilter{
+		UserID: userID, Page: page, PageSize: pageSize, Status: status,
+	})
 	if err != nil {
 		return nil, 0, err
 	}
 	l.svcCtx.Repo.EnrichOrders(orders)
 	return orders, total, nil
+}
+
+func (l *OrderLogic) UserOrderStatusCounts(userID uint64) (map[string]int64, error) {
+	rows, err := l.svcCtx.Repo.CountByUserStatus(userID)
+	if err != nil {
+		return nil, err
+	}
+	out := map[string]int64{
+		model.OrderStatusPending:   0,
+		model.OrderStatusConfirmed: 0,
+		model.OrderStatusShipped:   0,
+		model.OrderStatusCompleted: 0,
+		model.OrderStatusReviewed:  0,
+		model.OrderStatusCancelled: 0,
+		model.OrderStatusFailed:    0,
+		"after_sale":               0,
+	}
+	for _, row := range rows {
+		out[row.Status] = row.Count
+	}
+	n, err := l.svcCtx.Repo.CountOpenAfterSalesByUser(userID)
+	if err != nil {
+		return nil, err
+	}
+	out["after_sale"] = n
+	return out, nil
+}
+
+func (l *OrderLogic) ListUserAfterSales(userID uint64, page, pageSize int) ([]model.OrderAfterSale, int64, error) {
+	return l.svcCtx.Repo.ListAfterSales(repository.AfterSaleListFilter{
+		UserID: userID, Page: page, PageSize: pageSize,
+	})
 }
 
 func (l *OrderLogic) GetOrder(userID, orderID uint64) (*model.Order, error) {
@@ -378,6 +414,17 @@ func (l *OrderLogic) GetOrder(userID, orderID uint64) (*model.Order, error) {
 	}
 	l.svcCtx.Repo.EnrichOrder(order)
 	return order, nil
+}
+
+func (l *OrderLogic) notifyOrder(ctx context.Context, order *model.Order, title, content string) {
+	if order == nil || l.svcCtx.UserHTTP == nil || order.UserID == 0 {
+		return
+	}
+	extra, _ := json.Marshal(map[string]interface{}{"order_no": order.OrderNo})
+	_ = l.svcCtx.UserHTTP.Notify(ctx, userhttp.NotifyReq{
+		UserID: order.UserID, Title: title, Content: content,
+		MsgType: "order", LinkType: "order", LinkID: order.ID, Extra: string(extra),
+	})
 }
 
 func (l *OrderLogic) CancelOrder(ctx context.Context, userID, orderID uint64) error {
@@ -391,7 +438,9 @@ func (l *OrderLogic) CancelOrder(ctx context.Context, userID, orderID uint64) er
 	if err := l.svcCtx.Repo.Cancel(orderID, userID); err != nil {
 		return err
 	}
-	return l.releaseStock(ctx, order)
+	err = l.releaseStock(ctx, order)
+	l.notifyOrder(ctx, order, "订单已取消", fmt.Sprintf("您的订单 %s 已取消", order.OrderNo))
+	return err
 }
 
 func (l *OrderLogic) releaseStock(ctx context.Context, order *model.Order) error {
@@ -461,9 +510,19 @@ func (l *OrderLogic) GetOrderAdmin(orderID uint64) (*model.Order, error) {
 	return order, nil
 }
 
-func (l *OrderLogic) Ship(id, shopID uint64, company, shipNo string) error {
+func (l *OrderLogic) Ship(ctx context.Context, id, shopID uint64, company, shipNo string) error {
 	if company == "" || shipNo == "" {
 		return errors.New("物流公司与单号必填")
+	}
+	var order *model.Order
+	var err error
+	if shopID > 0 {
+		order, err = l.svcCtx.Repo.FindByIDAndShop(id, shopID)
+	} else {
+		order, err = l.svcCtx.Repo.FindByIDAdmin(id)
+	}
+	if err != nil {
+		return errors.New("订单不存在或状态不是待发货(confirmed)")
 	}
 	if err := l.svcCtx.Repo.Ship(id, shopID, company, shipNo); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -471,6 +530,7 @@ func (l *OrderLogic) Ship(id, shopID uint64, company, shipNo string) error {
 		}
 		return err
 	}
+	l.notifyOrder(ctx, order, "商家已发货", fmt.Sprintf("订单 %s 已发货，物流：%s %s", order.OrderNo, company, shipNo))
 	return nil
 }
 
@@ -492,6 +552,7 @@ func (l *OrderLogic) Complete(ctx context.Context, id, shopID uint64) error {
 		return err
 	}
 	l.redeemCoupon(ctx, order)
+	l.notifyOrder(ctx, order, "订单已完成", fmt.Sprintf("订单 %s 已完成，欢迎再次光临", order.OrderNo))
 	return nil
 }
 
@@ -507,6 +568,7 @@ func (l *OrderLogic) ConfirmReceive(ctx context.Context, userID, orderID uint64)
 		return err
 	}
 	l.redeemCoupon(ctx, order)
+	l.notifyOrder(ctx, order, "订单已完成", fmt.Sprintf("您已确认收货，订单 %s 已完成", order.OrderNo))
 	return nil
 }
 
@@ -641,6 +703,7 @@ func (l *OrderLogic) HandleAfterSale(ctx context.Context, id, shopID, handledBy 
 			}
 			_ = l.svcCtx.Repo.UpdateStatus(order.OrderNo, model.OrderStatusCancelled)
 		}
+		l.notifyOrder(ctx, order, "退款已完成", fmt.Sprintf("订单 %s 退款已完成，金额 ¥%.2f", order.OrderNo, as.Amount))
 	}
 	return nil
 }

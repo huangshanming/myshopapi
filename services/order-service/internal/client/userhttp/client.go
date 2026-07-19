@@ -111,21 +111,71 @@ func (c *Client) GetAddress(ctx context.Context, userID, addressID uint64) (*Add
 	}
 	defer res.Body.Close()
 	raw, _ := io.ReadAll(res.Body)
+	// 新契约：直接 DTO；旧信封兼容
 	var wrap apiResp
-	if err := json.Unmarshal(raw, &wrap); err != nil {
-		return nil, simpleErr("用户地址服务响应异常")
-	}
-	if wrap.Code != 200 {
-		if wrap.Msg != "" {
-			return nil, simpleErr(wrap.Msg)
+	if json.Unmarshal(raw, &wrap) == nil && wrap.Code != 0 {
+		if wrap.Code != 200 {
+			if wrap.Msg != "" {
+				return nil, simpleErr(wrap.Msg)
+			}
+			return nil, simpleErr("收货地址无效")
 		}
+		var out Address
+		if err := json.Unmarshal(wrap.Data, &out); err != nil {
+			return nil, simpleErr("用户地址服务响应异常")
+		}
+		return &out, nil
+	}
+	if res.StatusCode >= 400 {
 		return nil, simpleErr("收货地址无效")
 	}
 	var out Address
-	if err := json.Unmarshal(wrap.Data, &out); err != nil {
+	if err := json.Unmarshal(raw, &out); err != nil {
 		return nil, simpleErr("用户地址服务响应异常")
 	}
 	return &out, nil
+}
+
+type NotifyReq struct {
+	UserID   uint64 `json:"user_id"`
+	Title    string `json:"title"`
+	Content  string `json:"content"`
+	MsgType  string `json:"msg_type"`
+	LinkType string `json:"link_type"`
+	LinkID   uint64 `json:"link_id"`
+	Extra    string `json:"extra"`
+}
+
+func (c *Client) Notify(ctx context.Context, req NotifyReq) error {
+	if req.UserID == 0 || req.Title == "" {
+		return nil
+	}
+	if req.MsgType == "" {
+		req.MsgType = "order"
+	}
+	if req.LinkType == "" {
+		req.LinkType = "none"
+	}
+	body, _ := json.Marshal(req)
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.base+"/api/v1/internal/notifications", bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	res, err := c.client.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("通知服务不可用: %w", err)
+	}
+	defer res.Body.Close()
+	raw, _ := io.ReadAll(res.Body)
+	if res.StatusCode >= 400 {
+		var wrap apiResp
+		if json.Unmarshal(raw, &wrap) == nil && wrap.Msg != "" {
+			return simpleErr(wrap.Msg)
+		}
+		return simpleErr(fmt.Sprintf("通知失败(%d)", res.StatusCode))
+	}
+	return nil
 }
 
 type simpleErr string

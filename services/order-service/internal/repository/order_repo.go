@@ -108,6 +108,29 @@ func (r *OrderRepository) List(f OrderListFilter) ([]model.Order, int64, error) 
 	return orders, total, err
 }
 
+type StatusCountRow struct {
+	Status string `json:"status"`
+	Count  int64  `json:"count"`
+}
+
+func (r *OrderRepository) CountByUserStatus(userID uint64) ([]StatusCountRow, error) {
+	var rows []StatusCountRow
+	err := r.db.Model(&model.Order{}).
+		Select("status, COUNT(*) AS count").
+		Where("user_id = ?", userID).
+		Group("status").
+		Scan(&rows).Error
+	return rows, err
+}
+
+func (r *OrderRepository) CountOpenAfterSalesByUser(userID uint64) (int64, error) {
+	var n int64
+	err := r.db.Model(&model.OrderAfterSale{}).
+		Where("user_id = ? AND status IN ?", userID, []string{model.AfterSalePending, model.AfterSaleApproved}).
+		Count(&n).Error
+	return n, err
+}
+
 func (r *OrderRepository) FindByIDAndShop(id, shopID uint64) (*model.Order, error) {
 	var order model.Order
 	err := r.db.Preload("Items").Where("id = ? AND shop_id = ?", id, shopID).First(&order).Error

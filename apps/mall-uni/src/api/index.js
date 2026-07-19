@@ -137,6 +137,22 @@ export function listMyCoupons(params = { page: 1, page_size: 20, status: 'unused
   return http.get('/api/v1/user/coupons', params)
 }
 
+export function listNotifications(params = { page: 1, page_size: 20 }) {
+  return http.get('/api/v1/user/notifications', params)
+}
+
+export function getNotificationUnreadCount() {
+  return http.get('/api/v1/user/notifications/unread-count')
+}
+
+export function markNotificationRead(id) {
+  return http.post(`/api/v1/user/notifications/${id}/read`)
+}
+
+export function markAllNotificationsRead() {
+  return http.post('/api/v1/user/notifications/read-all')
+}
+
 export function listAddresses() {
   return http.get('/api/v1/user/addresses')
 }
@@ -159,6 +175,14 @@ export function setDefaultAddress(id) {
 
 export function listOrders(params) {
   return http.get('/api/v1/orders', params)
+}
+
+export function getOrderStatusCounts() {
+  return http.get('/api/v1/orders/status-counts')
+}
+
+export function listMyAfterSales(params) {
+  return http.get('/api/v1/orders/after-sales', params)
 }
 
 export function getOrder(id) {
@@ -239,11 +263,19 @@ export function getFavoriteStatus(productId) {
 }
 
 export const ORDER_STATUS = {
-  pending: '待确认',
+  pending: '待付款',
   confirmed: '待发货',
-  shipped: '已发货',
-  completed: '已完成',
+  shipped: '待收货',
+  completed: '待评价',
   reviewed: '已评价',
   cancelled: '已取消',
-  failed: '失败',
+  failed: '已关闭',
+}
+
+export const AFTER_SALE_STATUS = {
+  pending: '处理中',
+  approved: '已同意',
+  rejected: '已拒绝',
+  refunded: '已退款',
+  closed: '已关闭',
 }

@@ -3,6 +3,7 @@ package mq
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"mymall/pkg/cache"
 	"mymall/pkg/mq"
@@ -97,6 +98,17 @@ func (c *Consumer) handleReserved(ctx context.Context, _ string, body []byte) er
 	if c.merchantHTTP != nil {
 		_ = c.merchantHTTP.OrderGiftCoupons(ctx, order.UserID, order.ShopID)
 	}
+	if c.userHTTP != nil {
+		extra, _ := json.Marshal(map[string]interface{}{"order_no": order.OrderNo})
+		_ = c.userHTTP.Notify(ctx, userhttp.NotifyReq{
+			UserID: order.UserID, Title: "订单已支付成功",
+			Content:  fmt.Sprintf("订单 %s 已支付成功，商家将尽快发货", order.OrderNo),
+			MsgType:  "order",
+			LinkType: "order",
+			LinkID:   order.ID,
+			Extra:    string(extra),
+		})
+	}
 	return nil
 }
 
@@ -121,6 +133,17 @@ func (c *Consumer) handleFailed(ctx context.Context, _ string, body []byte) erro
 	}
 	if c.merchantHTTP != nil && order.UserCouponID > 0 {
 		_ = c.merchantHTTP.UnlockCoupon(ctx, order.UserCouponID, order.ID)
+	}
+	if c.userHTTP != nil {
+		extra, _ := json.Marshal(map[string]interface{}{"order_no": order.OrderNo})
+		_ = c.userHTTP.Notify(ctx, userhttp.NotifyReq{
+			UserID: order.UserID, Title: "订单已取消",
+			Content:  fmt.Sprintf("订单 %s 因库存等原因未能完成，已取消", order.OrderNo),
+			MsgType:  "order",
+			LinkType: "order",
+			LinkID:   order.ID,
+			Extra:    string(extra),
+		})
 	}
 	if c.rdb == nil {
 		return nil

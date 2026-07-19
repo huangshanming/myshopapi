@@ -16,7 +16,10 @@
         <text class="search-icon">🔍</text>
         <text class="search-ph">搜索店铺 / 好物 / 种草笔记</text>
       </view>
-      <view class="bell" @tap="toast('暂无消息')">🔔</view>
+      <view class="bell-wrap" @tap="goMessages">
+        <text class="bell" :class="{ shake: unreadCount > 0 }">🔔</text>
+        <view v-if="unreadCount > 0" class="badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</view>
+      </view>
     </view>
 
     <!-- Banner -->
@@ -243,8 +246,12 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
-import { onReachBottom } from '@dcloudio/uni-app'
-import { getSeckillCurrent, listArticles, listBanners, listCategories, listCouponCenter, listHomeSlots, listProducts, listSalesRank, listThemeTiles } from '../../api/index'
+import { onReachBottom, onShow } from '@dcloudio/uni-app'
+import {
+  getNotificationUnreadCount, getSeckillCurrent, listArticles, listBanners, listCategories,
+  listCouponCenter, listHomeSlots, listProducts, listSalesRank, listThemeTiles,
+} from '../../api/index'
+import { isLoggedIn } from '../../stores/user'
 
 const placeholder = 'https://picsum.photos/id/96/400/400'
 const fallbackBanners = [
@@ -282,6 +289,8 @@ const notes = ref([])
 
 const themes = ref([])
 const couponBarText = ref('领券中心有好券，点击立即领取')
+const unreadCount = ref(0)
+let unreadTimer
 
 const rankList = ref([])
 
@@ -450,6 +459,27 @@ function goCouponCenter() {
   uni.navigateTo({ url: '/pages/coupon/center' })
 }
 
+function goMessages() {
+  if (!isLoggedIn()) {
+    uni.navigateTo({ url: '/pages/login/login?redirect=' + encodeURIComponent('/pages/message/list') })
+    return
+  }
+  uni.navigateTo({ url: '/pages/message/list' })
+}
+
+async function loadUnread() {
+  if (!isLoggedIn()) {
+    unreadCount.value = 0
+    return
+  }
+  try {
+    const res = await getNotificationUnreadCount()
+    unreadCount.value = Number(res?.count) || 0
+  } catch {
+    unreadCount.value = 0
+  }
+}
+
 function rankDisplayName(r) {
   if (r.shop_name) return `${r.name} | ${r.shop_name}`
   return r.name
@@ -566,6 +596,10 @@ function loadMore() {
 
 onReachBottom(() => loadMore())
 
+onShow(() => {
+  loadUnread()
+})
+
 onMounted(() => {
   tick()
   timer = setInterval(tick, 1000)
@@ -578,10 +612,13 @@ onMounted(() => {
   loadCouponBar()
   loadSalesRank()
   loadProducts(true)
+  loadUnread()
+  unreadTimer = setInterval(loadUnread, 30000)
 })
 
 onUnmounted(() => {
   if (timer) clearInterval(timer)
+  if (unreadTimer) clearInterval(unreadTimer)
 })
 </script>
 
@@ -606,7 +643,26 @@ onUnmounted(() => {
   background: rgba(230,213,188,.2); border-radius: 999rpx; padding: 14rpx 24rpx;
 }
 .search-ph { font-size: 22rpx; color: rgba(113,113,122,.6); }
-.bell { font-size: 36rpx; }
+.bell-wrap { position: relative; width: 48rpx; height: 48rpx; display: flex; align-items: center; justify-content: center; }
+.bell { font-size: 36rpx; display: inline-block; transform-origin: top center; }
+.bell.shake {
+  animation: bell-shake 1.2s ease-in-out infinite;
+}
+@keyframes bell-shake {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  10% { transform: rotate(14deg) scale(1.05); }
+  20% { transform: rotate(-12deg) scale(1.05); }
+  30% { transform: rotate(10deg); }
+  40% { transform: rotate(-8deg); }
+  50% { transform: rotate(6deg); }
+  60% { transform: rotate(-4deg); }
+  70% { transform: rotate(2deg); }
+  80% { transform: rotate(0deg) scale(1); }
+}
+.badge {
+  position: absolute; top: -6rpx; right: -10rpx; min-width: 28rpx; height: 28rpx; padding: 0 6rpx;
+  border-radius: 14rpx; background: #ef4444; color: #fff; font-size: 18rpx; line-height: 28rpx; text-align: center;
+}
 .banner-wrap { margin: 24rpx 32rpx 0; border-radius: 32rpx; overflow: hidden; position: relative; box-shadow: 0 4rpx 24rpx rgba(200,168,118,.08); }
 .banner { height: 344rpx; }
 .banner-img { width: 100%; height: 344rpx; }

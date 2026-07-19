@@ -138,6 +138,8 @@ func main() {
 
 		{Method: http.MethodPost, Path: "/api/v1/orders", Handler: rid(gw(orderHandler.Create))},
 		{Method: http.MethodPost, Path: "/api/v1/orders/coupon-preview", Handler: rid(gw(orderHandler.CouponPreview))},
+		{Method: http.MethodGet, Path: "/api/v1/orders/status-counts", Handler: rid(gw(orderHandler.StatusCounts))},
+		{Method: http.MethodGet, Path: "/api/v1/orders/after-sales", Handler: rid(gw(orderHandler.UserAfterSales))},
 		{Method: http.MethodGet, Path: "/api/v1/orders", Handler: rid(gw(orderHandler.List))},
 		{Method: http.MethodGet, Path: "/api/v1/orders/:id", Handler: rid(gw(orderHandler.Detail))},
 		{Method: http.MethodPut, Path: "/api/v1/orders/:id/cancel", Handler: rid(gw(orderHandler.Cancel))},

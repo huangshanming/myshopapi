@@ -73,12 +73,42 @@ func (h *OrderHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p, ps := middleware.ParsePage(r)
-	orders, total, err := h.logic.ListOrders(userID, p, ps)
+	status := r.URL.Query().Get("status")
+	orders, total, err := h.logic.ListOrders(userID, p, ps, status)
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
 		return
 	}
 	httpx.OkJsonCtx(r.Context(), w, types.PageListResp{Total: total, List: orders})
+}
+
+func (h *OrderHandler) StatusCounts(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
+		return
+	}
+	counts, err := h.logic.UserOrderStatusCounts(userID)
+	if err != nil {
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
+		return
+	}
+	httpx.OkJsonCtx(r.Context(), w, counts)
+}
+
+func (h *OrderHandler) UserAfterSales(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
+		return
+	}
+	p, ps := middleware.ParsePage(r)
+	list, total, err := h.logic.ListUserAfterSales(userID, p, ps)
+	if err != nil {
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
+		return
+	}
+	httpx.OkJsonCtx(r.Context(), w, types.PageListResp{Total: total, List: list})
 }
 
 func (h *OrderHandler) Detail(w http.ResponseWriter, r *http.Request) {
@@ -302,7 +332,7 @@ func (h *OrderHandler) ship(w http.ResponseWriter, r *http.Request, shopID uint6
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
 		return
 	}
-	if err := h.logic.Ship(orderID, shopID, req.ShipCompany, req.ShipNo); err != nil {
+	if err := h.logic.Ship(r.Context(), orderID, shopID, req.ShipCompany, req.ShipNo); err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
 		return
 	}

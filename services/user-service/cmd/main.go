@@ -70,6 +70,8 @@ func main() {
 		&model.UserWalletLog{},
 		&model.UserAddress{},
 		&model.Region{},
+		&model.UserNotification{},
+		&model.UserNotificationBatch{},
 	); err != nil {
 		log.Fatalf("AutoMigrate 失败：%v", err)
 	}
@@ -157,6 +159,12 @@ func main() {
 		{Method: http.MethodPut, Path: "/api/v1/user/addresses/:id/default", Handler: userAuth(addressHandler.SetDefault)},
 		{Method: http.MethodGet, Path: "/api/v1/user/addresses/internal", Handler: rid(addressHandler.InternalGet)},
 
+		{Method: http.MethodGet, Path: "/api/v1/user/notifications", Handler: userAuth(userHandler.ListNotifications)},
+		{Method: http.MethodGet, Path: "/api/v1/user/notifications/unread-count", Handler: userAuth(userHandler.UnreadNotificationCount)},
+		{Method: http.MethodPost, Path: "/api/v1/user/notifications/:id/read", Handler: userAuth(userHandler.MarkNotificationRead)},
+		{Method: http.MethodPost, Path: "/api/v1/user/notifications/read-all", Handler: userAuth(userHandler.MarkAllNotificationsRead)},
+		{Method: http.MethodPost, Path: "/api/v1/internal/notifications", Handler: rid(userHandler.InternalCreateNotification)},
+
 		{Method: http.MethodGet, Path: "/api/v1/regions", Handler: rid(regionHandler.List)},
 		{Method: http.MethodGet, Path: "/api/v1/regions/tree", Handler: rid(regionHandler.Tree)},
 
@@ -193,6 +201,10 @@ func main() {
 
 		{Method: http.MethodGet, Path: "/api/v1/admin/configs", Handler: adminAuth("system:config:list", adminHandler.ListConfigs)},
 		{Method: http.MethodPut, Path: "/api/v1/admin/configs", Handler: adminAuth("system:config:edit", adminHandler.SaveConfigs)},
+
+		{Method: http.MethodPost, Path: "/api/v1/admin/notifications/send", Handler: adminAuth("business:message:send", adminHandler.AdminSendNotification)},
+		{Method: http.MethodGet, Path: "/api/v1/admin/notifications/sends", Handler: adminAuth("business:message:send", adminHandler.AdminListNotificationSends)},
+		{Method: http.MethodGet, Path: "/api/v1/admin/notifications/sends/:id/recipients", Handler: adminAuth("business:message:send", adminHandler.AdminListNotificationRecipients)},
 	})
 
 	go func() {

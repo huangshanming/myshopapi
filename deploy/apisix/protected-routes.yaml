@@ -11,6 +11,8 @@ spec:
       match:
         paths:
           - /api/v1/user/profile
+          - /api/v1/user/notifications
+          - /api/v1/user/notifications/*
         methods:
           - GET
           - PUT

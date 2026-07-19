@@ -47,6 +47,7 @@ import AdminThemeSlots from '../views/admin/ThemeSlots.vue'
 import MerchantThemePromote from '../views/merchant/ThemePromote.vue'
 import AdminCoupons from '../views/admin/Coupons.vue'
 import MerchantCoupons from '../views/merchant/Coupons.vue'
+import AdminMessages from '../views/admin/Messages.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -66,6 +67,7 @@ const router = createRouter({
         { path: 'banners', component: AdminBanners, meta: { perms: 'marketing:banner:list' } },
         { path: 'themes', component: AdminThemeSlots, meta: { perms: 'marketing:theme:list' } },
         { path: 'coupons', component: AdminCoupons, meta: { perms: 'marketing:coupon:list' } },
+        { path: 'messages', component: AdminMessages, meta: { perms: 'business:message:send' } },
         { path: 'orders', component: AdminOrders, meta: { perms: 'business:order:list' } },
         { path: 'after-sales', component: AdminAfterSales, meta: { perms: 'business:aftersale:list' } },
         { path: 'reviews', component: AdminReviews, meta: { perms: 'business:review:list' } },

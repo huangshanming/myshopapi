@@ -107,6 +107,7 @@ export default defineConfig({
       '/api/v1/admin/theme-packages': to(svc.merchant),
       '/api/v1/admin/theme-orders': to(svc.merchant),
       '/api/v1/admin/coupons': to(svc.merchant),
+      '/api/v1/admin/notifications': to(svc.user),
       '/api/v1/shops': to(svc.merchant),
       '/api/v1/home': to(svc.merchant),
       '/api/v1/seckill': to(svc.merchant),
