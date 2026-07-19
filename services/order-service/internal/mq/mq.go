@@ -69,21 +69,19 @@ func (c *Consumer) handleReserved(ctx context.Context, _ string, body []byte) er
 	if err := json.Unmarshal(body, &evt); err != nil {
 		return err
 	}
-	if err := c.repo.UpdateStatus(evt.OrderNo, model.OrderStatusConfirmed); err != nil {
-		return err
-	}
-	if c.userHTTP == nil {
-		return nil
-	}
 	order, err := c.repo.FindByOrderNo(evt.OrderNo)
 	if err != nil {
 		c.logger.Warn("load order for wallet settle failed", zap.String("order_no", evt.OrderNo), zap.Error(err))
-		return nil
+		return err
 	}
-	if err := c.userHTTP.Settle(ctx, order.UserID, order.TotalAmount, order.ID, order.OrderNo); err != nil {
-		c.logger.Warn("wallet settle failed", zap.String("order_no", evt.OrderNo), zap.Error(err))
+	// 先实扣再改状态：Settle 幂等；失败则返回 err 让 MQ 重试，避免「已确认却无实扣」
+	if c.userHTTP != nil && order.TotalAmount > 0 {
+		if err := c.userHTTP.Settle(ctx, order.UserID, order.TotalAmount, order.ID, order.OrderNo); err != nil {
+			c.logger.Warn("wallet settle failed", zap.String("order_no", evt.OrderNo), zap.Error(err))
+			return err
+		}
 	}
-	return nil
+	return c.repo.UpdateStatus(evt.OrderNo, model.OrderStatusConfirmed)
 }
 
 func (c *Consumer) handleFailed(ctx context.Context, _ string, body []byte) error {
