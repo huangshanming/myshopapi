@@ -133,6 +133,19 @@ func (r *MerchantRepository) ListShops(status, name string, page, pageSize int) 
 	return list, total, err
 }
 
+// ListPublicShops C 端公开列表：仅已审核通过，按 id 升序
+func (r *MerchantRepository) ListPublicShops(page, pageSize int) ([]model.Shop, int64, error) {
+	q := r.db.Model(&model.Shop{}).Where("status = ?", model.ShopApproved)
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var list []model.Shop
+	offset := (page - 1) * pageSize
+	err := q.Order("id ASC").Offset(offset).Limit(pageSize).Find(&list).Error
+	return list, total, err
+}
+
 func (r *MerchantRepository) FindShop(id uint64) (*model.Shop, error) {
 	var shop model.Shop
 	if err := r.db.First(&shop, id).Error; err != nil {

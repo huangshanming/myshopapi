@@ -55,6 +55,7 @@ func (r *ShopRBACRepository) EnsureShopMenus() error {
 		{ID: 101, ParentID: 0, Name: "库存管理", Type: "dir", Path: "", Icon: "Box", Perms: "", Sort: 20, Visible: 1, Status: 1},
 		{ID: 102, ParentID: 0, Name: "订单中心", Type: "dir", Path: "", Icon: "List", Perms: "", Sort: 30, Visible: 1, Status: 1},
 		{ID: 104, ParentID: 0, Name: "内容中心", Type: "dir", Path: "", Icon: "Document", Perms: "", Sort: 40, Visible: 1, Status: 1},
+		{ID: 105, ParentID: 0, Name: "营销中心", Type: "dir", Path: "", Icon: "Present", Perms: "", Sort: 50, Visible: 1, Status: 1},
 		{ID: 103, ParentID: 0, Name: "店铺设置", Type: "dir", Path: "", Icon: "Setting", Perms: "", Sort: 90, Visible: 1, Status: 1},
 
 		{ID: 1, ParentID: 100, Name: "商品列表", Type: "menu", Path: "/merchant/products", Component: "merchant/Products", Icon: "Goods", Perms: "product:list", Sort: 10, Visible: 1, Status: 1},
@@ -67,6 +68,8 @@ func (r *ShopRBACRepository) EnsureShopMenus() error {
 		{ID: 19, ParentID: 102, Name: "售后管理", Type: "menu", Path: "/merchant/after-sales", Component: "merchant/after-sales/AfterSales", Icon: "RefreshLeft", Perms: "aftersale:list", Sort: 11, Visible: 1, Status: 1},
 		{ID: 8, ParentID: 104, Name: "我的文章", Type: "menu", Path: "/merchant/articles", Component: "merchant/Articles", Icon: "Document", Perms: "article:list", Sort: 10, Visible: 1, Status: 1},
 		{ID: 9, ParentID: 104, Name: "发布文章", Type: "menu", Path: "/merchant/articles/edit", Component: "merchant/ArticleEdit", Icon: "Edit", Perms: "article:edit", Sort: 11, Visible: 1, Status: 1},
+		{ID: 24, ParentID: 105, Name: "秒杀报名", Type: "menu", Path: "/merchant/seckill", Component: "merchant/SeckillApply", Icon: "Timer", Perms: "seckill:apply", Sort: 10, Visible: 1, Status: 1},
+		{ID: 25, ParentID: 103, Name: "店铺钱包", Type: "menu", Path: "/merchant/wallet", Component: "merchant/Wallet", Icon: "Wallet", Perms: "wallet:view", Sort: 5, Visible: 1, Status: 1},
 		{ID: 6, ParentID: 103, Name: "员工权限", Type: "menu", Path: "/merchant/staff", Component: "merchant/Staff", Icon: "User", Perms: "shop:staff", Sort: 10, Visible: 1, Status: 1},
 		{ID: 10, ParentID: 103, Name: "消息通知", Type: "menu", Path: "/merchant/notifications", Component: "merchant/Notifications", Icon: "Bell", Perms: "notif:list", Sort: 20, Visible: 1, Status: 1},
 
@@ -82,6 +85,7 @@ func (r *ShopRBACRepository) EnsureShopMenus() error {
 		{ID: 21, ParentID: 5, Name: "订单完成", Type: "button", Perms: "order:complete", Sort: 2, Visible: 1, Status: 1},
 		{ID: 22, ParentID: 5, Name: "订单备注", Type: "button", Perms: "order:remark", Sort: 3, Visible: 1, Status: 1},
 		{ID: 23, ParentID: 19, Name: "售后处理", Type: "button", Perms: "aftersale:handle", Sort: 1, Visible: 1, Status: 1},
+		{ID: 26, ParentID: 24, Name: "提交报名", Type: "button", Perms: "seckill:apply", Sort: 1, Visible: 1, Status: 1},
 	}
 	for _, m := range seed {
 		var exists model.ShopMenu

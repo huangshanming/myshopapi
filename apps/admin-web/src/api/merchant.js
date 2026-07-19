@@ -8,3 +8,12 @@ export const disableShop = (id, reason) => http.put(`/api/v1/admin/shops/${id}/d
 export const enableShop = (id) => http.put(`/api/v1/admin/shops/${id}/enable`)
 export const resetShopOwnerPassword = (id, password) =>
   http.put(`/api/v1/admin/shops/${id}/owner-password`, { password })
+
+export function uploadShopImage(file, shopId = 0) {
+  const fd = new FormData()
+  fd.append('file', file)
+  const q = shopId ? `?shop_id=${shopId}` : ''
+  return http.post(`/api/v1/admin/shop-uploads${q}`, fd, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}

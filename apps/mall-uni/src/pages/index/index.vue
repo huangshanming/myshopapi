@@ -51,18 +51,26 @@
             <text class="count-num">{{ cd.s }}</text>
           </view>
         </view>
-        <text class="sec-more" @tap="toast('更多秒杀即将开放')">更多 ›</text>
+        <text class="sec-more" @tap="goSeckillList">更多 ›</text>
       </view>
       <scroll-view scroll-x :show-scrollbar="false" class="scroll-hide">
         <view class="seckill-row">
-          <view v-for="(p, i) in seckillMock" :key="i" class="seckill-item">
-            <image class="seckill-img" :src="p.img" mode="aspectFill" />
+          <view
+            v-for="(p, i) in seckillItems"
+            :key="p.id || i"
+            class="seckill-item"
+            @tap="p.product_id && goSeckillDetail(p)"
+          >
+            <image class="seckill-img" :src="p.img || placeholder" mode="aspectFill" />
             <text class="line-2 seckill-name">{{ p.name }}</text>
             <view class="price-row">
               <text class="price">¥{{ p.price }}</text>
               <text class="price-old">¥{{ p.old }}</text>
             </view>
             <text class="stock-left">仅剩{{ p.left }}件</text>
+          </view>
+          <view v-if="!seckillItems.length" class="seckill-empty">
+            <text class="sub">本场暂无秒杀商品</text>
           </view>
         </view>
       </scroll-view>
@@ -76,7 +84,7 @@
       </view>
       <scroll-view scroll-x :show-scrollbar="false" class="scroll-hide">
         <view class="brand-row">
-          <view v-for="(s, i) in brandShops" :key="i" class="brand-card">
+          <view v-for="s in brandShops" :key="s.id || s.name" class="brand-card">
             <image class="brand-cover" :src="s.img" mode="aspectFill" />
             <view class="brand-body">
               <text class="line-1 brand-name">{{ s.name }}</text>
@@ -149,7 +157,7 @@
       </view>
       <scroll-view scroll-x :show-scrollbar="false" class="scroll-hide">
         <view class="shop-row">
-          <view v-for="(s, i) in shops" :key="i" class="shop-card">
+          <view v-for="s in shops" :key="s.id || s.name" class="shop-card">
             <image class="shop-cover" :src="s.img" mode="aspectFill" />
             <view class="shop-body">
               <text class="line-1 brand-name">{{ s.name }}</text>
@@ -212,7 +220,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { onReachBottom } from '@dcloudio/uni-app'
-import { listCategories, listProducts } from '../../api/index'
+import { getSeckillCurrent, listCategories, listProducts, listShops } from '../../api/index'
 
 const placeholder = 'https://picsum.photos/id/96/400/400'
 const banners = [
@@ -242,18 +250,9 @@ const categoryEntries = computed(() => {
   return [fixedCats[0], ...fromApi, fixedCats[1], fixedCats[2]]
 })
 
-const seckillMock = [
-  { name: '阳光玫瑰葡萄5斤', price: 69, old: 159, left: 128, img: 'https://picsum.photos/id/102/240/240' },
-  { name: '无线降噪蓝牙耳机', price: 99, old: 249, left: 86, img: 'https://picsum.photos/id/1/240/240' },
-  { name: '冰丝宽松短袖T恤', price: 29, old: 129, left: 320, img: 'https://picsum.photos/id/64/240/240' },
-  { name: '混合坚果礼盒', price: 36, old: 99, left: 54, img: 'https://picsum.photos/id/96/240/240' },
-]
-
-const brandShops = [
-  { name: '小米数码官方旗舰店', tag: '品牌直营', score: '4.9高分店铺', img: 'https://picsum.photos/id/1054/320/180' },
-  { name: '本地生鲜连锁自营店', tag: '连锁品牌', score: '30分钟达全城', img: 'https://picsum.photos/id/1080/320/180' },
-  { name: '潮流服饰全国连锁店', tag: '线下门店同步', score: '全场两件8折', img: 'https://picsum.photos/id/1066/320/180' },
-]
+const seckillItems = ref([])
+const brandShops = ref([])
+const shops = ref([])
 
 const noteTags = ['全部', '生鲜测评', '数码实测', '穿搭分享', '零食清单']
 const noteTag = ref('全部')
@@ -282,12 +281,6 @@ const themes = [
   { name: '零食酒水集合', desc: '全网低价追剧零食', img: 'https://picsum.photos/id/96/400/200' },
 ]
 
-const shops = [
-  { name: '鲜优生鲜自营店', score: '4.8', reviews: '1.2w+评价', promo: '满59减10', ship: '30分钟达', img: 'https://picsum.photos/id/1080/320/180' },
-  { name: '小米数码官方旗舰店', score: '4.9', reviews: '3w+评价', promo: '满199减30', ship: '次日送达', img: 'https://picsum.photos/id/1054/320/180' },
-  { name: '潮搭男女服饰店', score: '4.7', reviews: '8k+评价', promo: '两件8折', ship: '全场包邮', img: 'https://picsum.photos/id/1066/320/180' },
-]
-
 const rankList = [
   { name: '阳光玫瑰晴王葡萄5斤装 | 鲜优生鲜自营店', price: 89, sold: '3200+件', img: 'https://picsum.photos/id/102/100/100' },
   { name: '无线降噪蓝牙耳机 | 小米数码官方旗舰店', price: 149, sold: '1.2w+件', img: 'https://picsum.photos/id/1/100/100' },
@@ -300,15 +293,15 @@ const pageSize = 10
 const loading = ref(false)
 const finished = ref(false)
 
-const endAt = Date.now() + 2 * 3600e3 + 18 * 60e3 + 46e3
-const cd = reactive({ h: '02', m: '18', s: '46' })
+const endAt = ref(Date.now() + 3600e3)
+const cd = reactive({ h: '00', m: '00', s: '00' })
 let timer
 
 function pad(n) {
   return String(n).padStart(2, '0')
 }
 function tick() {
-  let left = Math.max(0, endAt - Date.now())
+  let left = Math.max(0, endAt.value - Date.now())
   const h = Math.floor(left / 3600e3)
   left -= h * 3600e3
   const m = Math.floor(left / 60e3)
@@ -317,6 +310,25 @@ function tick() {
   cd.h = pad(h)
   cd.m = pad(m)
   cd.s = pad(s)
+}
+
+function parseEndAt(v) {
+  if (!v) return Date.now() + 3600e3
+  if (typeof v === 'number') return v
+  const t = new Date(String(v).replace(/-/g, '/')).getTime()
+  return Number.isFinite(t) ? t : Date.now() + 3600e3
+}
+
+async function loadSeckill() {
+  try {
+    const res = await getSeckillCurrent()
+    const data = res.data || {}
+    endAt.value = parseEndAt(data.end_at)
+    seckillItems.value = data.items || []
+    tick()
+  } catch {
+    seckillItems.value = []
+  }
 }
 
 function toast(title) {
@@ -335,12 +347,61 @@ function goDetail(id) {
   uni.navigateTo({ url: `/pages/product/detail?id=${id}` })
 }
 
+function goSeckillDetail(p) {
+  uni.navigateTo({
+    url: `/pages/product/detail?id=${p.product_id}&seckill_entry_id=${p.id}`,
+  })
+}
+
+function goSeckillList() {
+  uni.navigateTo({ url: '/pages/seckill/list' })
+}
+
 async function loadCats() {
   try {
     const res = await listCategories({ page: 1, page_size: 20 })
     apiCats.value = res.data?.list || []
   } catch {
     apiCats.value = []
+  }
+}
+
+function mapBrandShop(s, i) {
+  const scores = ['4.9高分店铺', '30分钟达全城', '全场两件8折']
+  return {
+    id: s.id,
+    name: s.name,
+    tag: s.category || '优选商户',
+    score: scores[i % scores.length],
+    img: s.storefront_image || s.logo || placeholder,
+  }
+}
+
+function mapQualityShop(s, i) {
+  const scores = ['4.8', '4.9', '4.7']
+  const reviews = ['1.2w+评价', '3w+评价', '8k+评价']
+  const promos = ['满59减10', '满199减30', '两件8折']
+  const ships = ['30分钟达', '次日送达', '全场包邮']
+  return {
+    id: s.id,
+    name: s.name,
+    score: scores[i % scores.length],
+    reviews: reviews[i % reviews.length],
+    promo: promos[i % promos.length],
+    ship: ships[i % ships.length],
+    img: s.storefront_image || s.logo || placeholder,
+  }
+}
+
+async function loadShops() {
+  try {
+    const res = await listShops({ page: 1, page_size: 20 })
+    const list = res.data?.list || []
+    brandShops.value = list.map(mapBrandShop)
+    shops.value = list.map(mapQualityShop)
+  } catch {
+    brandShops.value = []
+    shops.value = []
   }
 }
 
@@ -379,6 +440,8 @@ onMounted(() => {
   tick()
   timer = setInterval(tick, 1000)
   loadCats()
+  loadShops()
+  loadSeckill()
   loadProducts(true)
 })
 
@@ -417,6 +480,7 @@ onUnmounted(() => {
   position: absolute; top: 24rpx; right: -44rpx; width: 180rpx; text-align: center;
   font-size: 20rpx; color: #fff; padding: 4rpx 0; transform: rotate(45deg);
 }
+.scroll-hide { width: 100%; white-space: nowrap; }
 .cat-scroll { padding: 28rpx 0; white-space: nowrap; }
 .cat-row { display: inline-flex; gap: 40rpx; padding: 0 24rpx; }
 .cat-item { width: 112rpx; display: inline-flex; flex-direction: column; align-items: center; }
@@ -433,6 +497,7 @@ onUnmounted(() => {
 .count-num { background: #1d1d1f; color: #fff; padding: 2rpx 10rpx; border-radius: 8rpx; font-weight: 700; }
 .seckill-row { display: inline-flex; gap: 20rpx; padding-bottom: 8rpx; }
 .seckill-item { width: 220rpx; display: inline-block; }
+.seckill-empty { padding: 24rpx 32rpx; display: inline-block; }
 .seckill-img { width: 220rpx; height: 200rpx; border-radius: 16rpx; }
 .seckill-name { font-size: 22rpx; margin-top: 12rpx; height: 64rpx; }
 .price-row { display: flex; align-items: baseline; margin-top: 8rpx; }

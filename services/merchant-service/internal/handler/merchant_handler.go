@@ -140,6 +140,17 @@ func (h *MerchantHandler) AdminListShops(w http.ResponseWriter, r *http.Request)
 	response.Success(w, types.PageListResp{Total: total, List: list}, "查询成功")
 }
 
+// PublicListShops C 端公开商户列表（无需登录）
+func (h *MerchantHandler) PublicListShops(w http.ResponseWriter, r *http.Request) {
+	p, ps := middleware.ParsePage(r)
+	list, total, err := h.logic.ListPublicShops(p, ps)
+	if err != nil {
+		response.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	response.Success(w, types.PageListResp{Total: total, List: list}, "查询成功")
+}
+
 func (h *MerchantHandler) AdminCreateShop(w http.ResponseWriter, r *http.Request) {
 	var req types.AdminCreateShopReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

@@ -6,6 +6,7 @@ import (
 
 	"mymall/pkg/cache"
 	"mymall/pkg/mq"
+	"mymall/services/order-service/internal/client/userhttp"
 	"mymall/services/order-service/internal/model"
 	"mymall/services/order-service/internal/repository"
 
@@ -45,14 +46,15 @@ type InventoryResultEvent struct {
 }
 
 type Consumer struct {
-	client *mq.Client
-	repo   *repository.OrderRepository
-	rdb    *redis.Client
-	logger *zap.Logger
+	client   *mq.Client
+	repo     *repository.OrderRepository
+	rdb      *redis.Client
+	userHTTP *userhttp.Client
+	logger   *zap.Logger
 }
 
-func NewConsumer(client *mq.Client, repo *repository.OrderRepository, rdb *redis.Client, logger *zap.Logger) *Consumer {
-	return &Consumer{client: client, repo: repo, rdb: rdb, logger: logger}
+func NewConsumer(client *mq.Client, repo *repository.OrderRepository, rdb *redis.Client, userHTTP *userhttp.Client, logger *zap.Logger) *Consumer {
+	return &Consumer{client: client, repo: repo, rdb: rdb, userHTTP: userHTTP, logger: logger}
 }
 
 func (c *Consumer) Start() error {
@@ -67,7 +69,21 @@ func (c *Consumer) handleReserved(ctx context.Context, _ string, body []byte) er
 	if err := json.Unmarshal(body, &evt); err != nil {
 		return err
 	}
-	return c.repo.UpdateStatus(evt.OrderNo, model.OrderStatusConfirmed)
+	if err := c.repo.UpdateStatus(evt.OrderNo, model.OrderStatusConfirmed); err != nil {
+		return err
+	}
+	if c.userHTTP == nil {
+		return nil
+	}
+	order, err := c.repo.FindByOrderNo(evt.OrderNo)
+	if err != nil {
+		c.logger.Warn("load order for wallet settle failed", zap.String("order_no", evt.OrderNo), zap.Error(err))
+		return nil
+	}
+	if err := c.userHTTP.Settle(ctx, order.UserID, order.TotalAmount, order.ID, order.OrderNo); err != nil {
+		c.logger.Warn("wallet settle failed", zap.String("order_no", evt.OrderNo), zap.Error(err))
+	}
+	return nil
 }
 
 func (c *Consumer) handleFailed(ctx context.Context, _ string, body []byte) error {
@@ -79,12 +95,17 @@ func (c *Consumer) handleFailed(ctx context.Context, _ string, body []byte) erro
 	if err := c.repo.UpdateStatus(evt.OrderNo, model.OrderStatusFailed); err != nil {
 		return err
 	}
-	if c.rdb == nil {
-		return nil
-	}
 	order, err := c.repo.FindByOrderNo(evt.OrderNo)
 	if err != nil {
-		c.logger.Warn("load order for redis restore failed", zap.String("order_no", evt.OrderNo), zap.Error(err))
+		c.logger.Warn("load order for restore failed", zap.String("order_no", evt.OrderNo), zap.Error(err))
+		return nil
+	}
+	if c.userHTTP != nil {
+		if err := c.userHTTP.Unfreeze(ctx, order.UserID, order.TotalAmount, order.ID, order.OrderNo); err != nil {
+			c.logger.Warn("wallet unfreeze failed", zap.String("order_no", evt.OrderNo), zap.Error(err))
+		}
+	}
+	if c.rdb == nil {
 		return nil
 	}
 	items := make([]cache.StockItem, 0, len(order.Items))

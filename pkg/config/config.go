@@ -9,14 +9,16 @@ import (
 )
 
 type Config struct {
-	Server    ServerConfig    `mapstructure:"server"`
-	MySQL     MySQLConfig     `mapstructure:"mysql"`
-	JWT       JWTConfig       `mapstructure:"jwt"`
-	Redis     RedisConfig     `mapstructure:"redis"`
-	RabbitMQ  RabbitMQConfig  `mapstructure:"rabbitmq"`
-	GRPC      GRPCConfig      `mapstructure:"grpc"`
-	Telemetry TelemetryConfig `mapstructure:"telemetry"`
-	Canal     CanalConfig     `mapstructure:"canal"`
+	Server       ServerConfig    `mapstructure:"server"`
+	MySQL        MySQLConfig     `mapstructure:"mysql"`
+	JWT          JWTConfig       `mapstructure:"jwt"`
+	Redis        RedisConfig     `mapstructure:"redis"`
+	RabbitMQ     RabbitMQConfig  `mapstructure:"rabbitmq"`
+	GRPC         GRPCConfig      `mapstructure:"grpc"`
+	MerchantHTTP string          `mapstructure:"merchant_http"`
+	UserHTTP     string          `mapstructure:"user_http"`
+	Telemetry    TelemetryConfig `mapstructure:"telemetry"`
+	Canal        CanalConfig     `mapstructure:"canal"`
 }
 
 // CanalConfig is used by inventory-sync-service (canal-go client).
@@ -119,6 +121,7 @@ func Load(path string) (*Config, error) {
 		"redis.host", "redis.port", "redis.password", "redis.db",
 		"rabbitmq.host", "rabbitmq.port", "rabbitmq.username", "rabbitmq.password", "rabbitmq.vhost", "rabbitmq.exchange",
 		"grpc.user_service", "grpc.catalog_service",
+		"merchant_http", "user_http",
 		"telemetry.enabled", "telemetry.endpoint", "telemetry.service",
 		"canal.host", "canal.port", "canal.destination", "canal.username", "canal.password", "canal.filter",
 		"canal.so_timeout", "canal.idle_timeout",
@@ -240,6 +243,12 @@ func overlayFromViper(cfg *Config, v *viper.Viper) {
 	if s := envOr("MYMALL_GRPC_CATALOG_SERVICE", "grpc.catalog_service"); s != "" {
 		cfg.GRPC.CatalogService = s
 	}
+	if s := envOr("MYMALL_MERCHANT_HTTP", "merchant_http"); s != "" {
+		cfg.MerchantHTTP = s
+	}
+	if s := envOr("MYMALL_USER_HTTP", "user_http"); s != "" {
+		cfg.UserHTTP = s
+	}
 
 	if s := strings.TrimSpace(os.Getenv("MYMALL_TELEMETRY_ENABLED")); s != "" {
 		cfg.Telemetry.Enabled = s == "1" || strings.EqualFold(s, "true")
@@ -309,6 +318,12 @@ func (c *Config) applyDefaults() {
 	}
 	if c.Redis.Port == 0 {
 		c.Redis.Port = 6379
+	}
+	if c.MerchantHTTP == "" {
+		c.MerchantHTTP = "http://127.0.0.1:8884"
+	}
+	if c.UserHTTP == "" {
+		c.UserHTTP = "http://127.0.0.1:8881"
 	}
 	if c.RabbitMQ.Port == 0 {
 		c.RabbitMQ.Port = 5672

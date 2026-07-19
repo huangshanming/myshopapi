@@ -71,9 +71,16 @@ mysql -u homestead -p mymall < scripts/init-order-tables.sql
 mysql -u homestead -p mymall < scripts/init-merchant-tables.sql
 # 种子账号（超管 13900000001 / 商家 13900000002，密码均为 123456）
 mysql -u homestead -p mymall < scripts/seed-admin-merchant.sql
+# 首页商户（小米/生鲜/服饰 + 门头图；先落盘图片）
+bash scripts/seed-home-shop-images.sh
+mysql -u homestead -p mymall < scripts/seed-home-shops.sql
+# 秒杀场次 + 商家钱包
+mysql -u homestead -p --default-character-set=utf8mb4 mymall < scripts/alter-seckill-wallet.sql
+# 订单项秒杀关联
+mysql -u homestead -p --default-character-set=utf8mb4 mymall < scripts/alter-order-seckill.sql
 # 后台 RBAC（菜单/角色/权限）
 mysql -u homestead -p mymall < scripts/init-rbac-tables.sql
-mysql -u homestead -p mymall < scripts/seed-rbac.sql
+mysql -u homestead -p --default-character-set=utf8mb4 mymall < scripts/seed-rbac.sql
 
 # 可选：商品中台表结构 + 演示商品（images/ 素材）
 # mysql -u homestead -p mymall < scripts/alter-product-center.sql

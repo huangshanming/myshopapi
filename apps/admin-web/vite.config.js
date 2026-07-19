@@ -40,6 +40,7 @@ export default defineConfig({
       '/api/v1/admin/article-categories': to(svc.catalog),
       '/api/v1/admin/article-comments': to(svc.catalog),
       '/api/v1/admin/article-uploads': to(svc.catalog),
+      '/api/v1/admin/shop-uploads': to(svc.catalog),
       '/api/v1/products': to(svc.catalog),
       '/api/v1/product_category': to(svc.catalog),
       // order
@@ -53,6 +54,11 @@ export default defineConfig({
       // merchant（店铺 / 入驻；勿盖住上面的 catalog merchant 路径）
       '/api/v1/admin/shops': to(svc.merchant),
       '/api/v1/admin/applications': to(svc.merchant),
+      '/api/v1/admin/seckill': to(svc.merchant),
+      '/api/v1/shops': to(svc.merchant),
+      '/api/v1/seckill': to(svc.merchant),
+      '/api/v1/merchant/wallet': to(svc.merchant),
+      '/api/v1/merchant/seckill': to(svc.merchant),
       '/api/v1/merchant': to(svc.merchant),
       // user + 其余 /api
       '/api': to(svc.user),

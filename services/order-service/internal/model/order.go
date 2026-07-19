@@ -57,15 +57,16 @@ func (Order) TableName() string {
 }
 
 type OrderItem struct {
-	ID          uint64           `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
-	OrderID     uint64           `gorm:"column:order_id;not null;index" json:"order_id"`
-	ProductID   uint64           `gorm:"column:product_id;not null" json:"product_id"`
-	SkuID       uint64           `gorm:"column:sku_id;not null;default:0" json:"sku_id"`
-	ProductName string           `gorm:"column:product_name;type:varchar(200);not null" json:"product_name"`
-	SkuSnapshot string           `gorm:"column:sku_snapshot;type:json" json:"sku_snapshot,omitempty"`
-	Price       float64          `gorm:"column:price;type:decimal(10,2);not null" json:"price"`
-	Quantity    int              `gorm:"column:quantity;not null" json:"quantity"`
-	CreatedAt   common.LocalTime `gorm:"column:created_at" json:"created_at"`
+	ID             uint64           `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
+	OrderID        uint64           `gorm:"column:order_id;not null;index" json:"order_id"`
+	ProductID      uint64           `gorm:"column:product_id;not null" json:"product_id"`
+	SkuID          uint64           `gorm:"column:sku_id;not null;default:0" json:"sku_id"`
+	ProductName    string           `gorm:"column:product_name;type:varchar(200);not null" json:"product_name"`
+	SkuSnapshot    string           `gorm:"column:sku_snapshot;type:json" json:"sku_snapshot,omitempty"`
+	Price          float64          `gorm:"column:price;type:decimal(10,2);not null" json:"price"`
+	Quantity       int              `gorm:"column:quantity;not null" json:"quantity"`
+	SeckillEntryID uint64           `gorm:"column:seckill_entry_id;not null;default:0" json:"seckill_entry_id"`
+	CreatedAt      common.LocalTime `gorm:"column:created_at" json:"created_at"`
 }
 
 func (OrderItem) TableName() string {

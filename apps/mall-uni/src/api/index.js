@@ -12,6 +12,22 @@ export function listCategories(params = { page: 1, page_size: 20 }) {
   return http.get('/api/v1/product_category/list', params)
 }
 
+export function listShops(params = { page: 1, page_size: 20 }) {
+  return http.get('/api/v1/shops/list', params)
+}
+
+export function getSeckillCurrent() {
+  return http.get('/api/v1/seckill/current')
+}
+
+export function listSeckill(params = { page: 1, page_size: 10 }) {
+  return http.get('/api/v1/seckill/list', params)
+}
+
+export function getSeckillEntry(id) {
+  return http.get(`/api/v1/seckill/entries/${id}`)
+}
+
 export function login(data) {
   return http.post('/api/v1/user/login', data)
 }
@@ -24,8 +40,36 @@ export function getProfile() {
   return http.get('/api/v1/user/profile')
 }
 
-export function createOrder(items) {
-  return http.post('/api/v1/orders', { items })
+export function getUserWallet() {
+  return http.get('/api/v1/user/wallet')
+}
+
+export function listUserWalletLogs(params) {
+  return http.get('/api/v1/user/wallet/logs', params)
+}
+
+export function createOrder(items, addressId) {
+  return http.post('/api/v1/orders', { items, address_id: addressId })
+}
+
+export function listAddresses() {
+  return http.get('/api/v1/user/addresses')
+}
+
+export function createAddress(data) {
+  return http.post('/api/v1/user/addresses', data)
+}
+
+export function updateAddress(id, data) {
+  return http.put(`/api/v1/user/addresses/${id}`, data)
+}
+
+export function deleteAddress(id) {
+  return http.delete(`/api/v1/user/addresses/${id}`)
+}
+
+export function setDefaultAddress(id) {
+  return http.put(`/api/v1/user/addresses/${id}/default`)
 }
 
 export function listOrders(params) {

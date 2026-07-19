@@ -89,7 +89,7 @@ func main() {
 	if svcCtx.MQClient == nil {
 		logger.Warn("rabbitmq unavailable")
 	} else {
-		consumer := ordermq.NewConsumer(svcCtx.MQClient, svcCtx.Repo, svcCtx.Redis, logger)
+		consumer := ordermq.NewConsumer(svcCtx.MQClient, svcCtx.Repo, svcCtx.Redis, svcCtx.UserHTTP, logger)
 		if err := consumer.Start(); err != nil {
 			logger.Warn("mq consumer start failed")
 		}

@@ -129,6 +129,7 @@ func main() {
 	shopOpsH := shopopshandler.NewShopOpsHandler(svcCtx)
 	articleAdminH := contenthandler.NewArticleAdminHandler(svcCtx)
 	articleMerchantH := contenthandler.NewArticleMerchantHandler(svcCtx)
+	shopUploadH := producthandler.NewShopUploadHandler()
 	platformProductH := producthandler.NewPlatformProductHandler(svcCtx)
 	notifH := notifyhandler.NewNotificationHandler(svcCtx)
 	productAdminLogic := productlogic.NewProductAdminLogic(svcCtx)
@@ -268,6 +269,7 @@ func main() {
 		{Method: http.MethodPatch, Path: "/api/v1/admin/article-comments/:id", Handler: rid(middleware.Chain(articleAdminH.CommentPatch, gwUser, adminRoles))},
 		{Method: http.MethodDelete, Path: "/api/v1/admin/article-comments/:id", Handler: rid(middleware.Chain(articleAdminH.CommentDelete, gwUser, adminRoles))},
 		{Method: http.MethodPost, Path: "/api/v1/admin/article-uploads", Handler: rid(middleware.Chain(articleAdminH.Upload, gwUser, adminRoles))},
+		{Method: http.MethodPost, Path: "/api/v1/admin/shop-uploads", Handler: rid(middleware.Chain(shopUploadH.Upload, gwUser, adminRoles))},
 
 		// 社区文章 — 商家
 		{Method: http.MethodGet, Path: "/api/v1/merchant/articles", Handler: rid(middleware.Chain(articleMerchantH.List, gwShop, merchantRoles))},
@@ -297,6 +299,10 @@ func main() {
 		})},
 		{Method: http.MethodGet, Path: "/uploads/articles/:shop/:file", Handler: rid(func(w http.ResponseWriter, r *http.Request) {
 			p := uploadpath.Abs("articles", httpserver.PathParam(r, "shop"), httpserver.PathParam(r, "file"))
+			http.ServeFile(w, r, p)
+		})},
+		{Method: http.MethodGet, Path: "/uploads/shops/:owner/:file", Handler: rid(func(w http.ResponseWriter, r *http.Request) {
+			p := uploadpath.Abs("shops", httpserver.PathParam(r, "owner"), httpserver.PathParam(r, "file"))
 			http.ServeFile(w, r, p)
 		})},
 	})

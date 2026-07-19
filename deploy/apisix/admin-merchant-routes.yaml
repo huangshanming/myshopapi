@@ -94,6 +94,12 @@ spec:
           - /api/v1/admin/applications/*
           - /api/v1/admin/shops
           - /api/v1/admin/shops/*
+          - /api/v1/admin/seckill
+          - /api/v1/admin/seckill/*
+          - /api/v1/merchant/wallet
+          - /api/v1/merchant/wallet/*
+          - /api/v1/merchant/seckill
+          - /api/v1/merchant/seckill/*
         methods:
           - GET
           - POST
@@ -189,6 +195,7 @@ spec:
           - /api/v1/admin/article-comments
           - /api/v1/admin/article-comments/*
           - /api/v1/admin/article-uploads
+          - /api/v1/admin/shop-uploads
           - /api/v1/merchant/articles
           - /api/v1/merchant/articles/*
           - /api/v1/merchant/article-categories

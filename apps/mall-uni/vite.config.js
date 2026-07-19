@@ -5,6 +5,7 @@ const svc = {
   user: 'http://127.0.0.1:8881',
   catalog: 'http://127.0.0.1:8882',
   order: 'http://127.0.0.1:8883',
+  merchant: 'http://127.0.0.1:8884',
 }
 
 function to(target) {
@@ -18,6 +19,8 @@ export default defineConfig({
     proxy: {
       '/api/v1/products': to(svc.catalog),
       '/api/v1/product_category': to(svc.catalog),
+      '/api/v1/shops': to(svc.merchant),
+      '/api/v1/seckill': to(svc.merchant),
       '/api/v1/orders': to(svc.order),
       '/api/v1/user': to(svc.user),
       '/uploads': to(svc.catalog),

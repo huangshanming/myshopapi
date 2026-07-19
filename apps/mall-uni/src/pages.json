@@ -38,6 +38,12 @@
       }
     },
     {
+      "path": "pages/seckill/list",
+      "style": {
+        "navigationBarTitleText": "限时秒杀"
+      }
+    },
+    {
       "path": "pages/order/list",
       "style": {
         "navigationBarTitleText": "我的订单"
@@ -47,6 +53,36 @@
       "path": "pages/order/detail",
       "style": {
         "navigationBarTitleText": "订单详情"
+      }
+    },
+    {
+      "path": "pages/wallet/logs",
+      "style": {
+        "navigationBarTitleText": "余额明细"
+      }
+    },
+    {
+      "path": "pages/order/confirm",
+      "style": {
+        "navigationBarTitleText": "确认订单"
+      }
+    },
+    {
+      "path": "pages/order/pay",
+      "style": {
+        "navigationBarTitleText": "确认支付"
+      }
+    },
+    {
+      "path": "pages/address/list",
+      "style": {
+        "navigationBarTitleText": "收货地址"
+      }
+    },
+    {
+      "path": "pages/address/edit",
+      "style": {
+        "navigationBarTitleText": "编辑地址"
       }
     }
   ],

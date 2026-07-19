@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"mymall/pkg/config"
 	"mymall/pkg/database"
@@ -17,6 +18,7 @@ import (
 	applog "mymall/pkg/log"
 	"mymall/pkg/middleware"
 	"mymall/services/merchant-service/internal/handler"
+	"mymall/services/merchant-service/internal/logic"
 	"mymall/services/merchant-service/internal/model"
 	"mymall/services/merchant-service/internal/svc"
 
@@ -47,12 +49,27 @@ func main() {
 		&model.Shop{},
 		&model.ShopApplication{},
 		&model.ShopMember{},
+		&model.ShopWallet{},
+		&model.ShopWalletLog{},
+		&model.SeckillRule{},
+		&model.SeckillSession{},
+		&model.SeckillEntry{},
 	); err != nil {
 		log.Fatalf("AutoMigrate 失败：%v", err)
 	}
 
 	svcCtx := svc.NewServiceContext(cfg, db)
 	h := handler.NewMerchantHandler(svcCtx)
+	seckillLogic := logic.NewMerchantLogic(svcCtx)
+	_, _, _ = seckillLogic.EnsureActiveSession()
+
+	go func() {
+		t := time.NewTicker(30 * time.Second)
+		defer t.Stop()
+		for range t.C {
+			seckillLogic.RotateSeckillSessions()
+		}
+	}()
 
 	healthReg := health.NewRegistry()
 	healthReg.Register("mysql", func(ctx context.Context) error {
@@ -75,9 +92,22 @@ func main() {
 		{Method: http.MethodGet, Path: "/healthz", Handler: rid(httpserver.Healthz("merchant-service"))},
 		{Method: http.MethodGet, Path: "/readyz", Handler: rid(healthReg.ReadyHandler())},
 
+		{Method: http.MethodGet, Path: "/api/v1/shops/list", Handler: rid(h.PublicListShops)},
+		{Method: http.MethodGet, Path: "/api/v1/seckill/current", Handler: rid(h.PublicSeckillCurrent)},
+		{Method: http.MethodGet, Path: "/api/v1/seckill/list", Handler: rid(h.PublicSeckillList)},
+		{Method: http.MethodGet, Path: "/api/v1/seckill/entries/:id", Handler: rid(h.PublicSeckillEntry)},
+		{Method: http.MethodPost, Path: "/api/v1/seckill/consume", Handler: rid(h.SeckillConsume)},
+		{Method: http.MethodPost, Path: "/api/v1/seckill/restore", Handler: rid(h.SeckillRestore)},
+
 		{Method: http.MethodPost, Path: "/api/v1/merchant/apply", Handler: rid(gw(h.Apply))},
 		{Method: http.MethodGet, Path: "/api/v1/merchant/shops", Handler: rid(gw(h.MyShops))},
 		{Method: http.MethodPut, Path: "/api/v1/merchant/shops/:id", Handler: rid(gw(owner(h.UpdateMyShop)))},
+
+		{Method: http.MethodGet, Path: "/api/v1/merchant/wallet", Handler: rid(gw(owner(h.MerchantGetWallet)))},
+		{Method: http.MethodGet, Path: "/api/v1/merchant/wallet/logs", Handler: rid(gw(owner(h.MerchantWalletLogs)))},
+		{Method: http.MethodGet, Path: "/api/v1/merchant/seckill/sessions", Handler: rid(gw(owner(h.MerchantSeckillSessions)))},
+		{Method: http.MethodPost, Path: "/api/v1/merchant/seckill/entries", Handler: rid(gw(owner(h.MerchantApplySeckill)))},
+		{Method: http.MethodGet, Path: "/api/v1/merchant/seckill/entries", Handler: rid(gw(owner(h.MerchantListSeckillEntries)))},
 
 		{Method: http.MethodGet, Path: "/api/v1/admin/applications", Handler: rid(middleware.Chain(h.AdminListApplications, gw, plat))},
 		{Method: http.MethodPost, Path: "/api/v1/admin/applications/:id/approve", Handler: rid(middleware.Chain(h.AdminApprove, gw, plat))},
@@ -89,6 +119,14 @@ func main() {
 		{Method: http.MethodPut, Path: "/api/v1/admin/shops/:id/owner-password", Handler: rid(middleware.Chain(h.AdminResetOwnerPassword, gw, plat))},
 		{Method: http.MethodPut, Path: "/api/v1/admin/shops/:id/disable", Handler: rid(middleware.Chain(h.AdminDisableShop, gw, plat))},
 		{Method: http.MethodPut, Path: "/api/v1/admin/shops/:id/enable", Handler: rid(middleware.Chain(h.AdminEnableShop, gw, plat))},
+		{Method: http.MethodGet, Path: "/api/v1/admin/shops/:id/wallet", Handler: rid(middleware.Chain(h.AdminGetWallet, gw, plat))},
+		{Method: http.MethodPost, Path: "/api/v1/admin/shops/:id/wallet/adjust", Handler: rid(middleware.Chain(h.AdminAdjustWallet, gw, plat))},
+		{Method: http.MethodGet, Path: "/api/v1/admin/shops/:id/wallet/logs", Handler: rid(middleware.Chain(h.AdminWalletLogs, gw, plat))},
+
+		{Method: http.MethodGet, Path: "/api/v1/admin/seckill/rule", Handler: rid(middleware.Chain(h.AdminGetSeckillRule, gw, plat))},
+		{Method: http.MethodPut, Path: "/api/v1/admin/seckill/rule", Handler: rid(middleware.Chain(h.AdminUpdateSeckillRule, gw, plat))},
+		{Method: http.MethodGet, Path: "/api/v1/admin/seckill/sessions", Handler: rid(middleware.Chain(h.AdminListSeckillSessions, gw, plat))},
+		{Method: http.MethodGet, Path: "/api/v1/admin/seckill/entries", Handler: rid(middleware.Chain(h.AdminListSeckillEntries, gw, plat))},
 	})
 
 	go func() {

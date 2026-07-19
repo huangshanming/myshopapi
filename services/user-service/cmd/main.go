@@ -62,6 +62,9 @@ func main() {
 		&model.SysRoleMenu{},
 		&model.SysUserRole{},
 		&model.SysConfig{},
+		&model.UserWallet{},
+		&model.UserWalletLog{},
+		&model.UserAddress{},
 	); err != nil {
 		log.Fatalf("AutoMigrate 失败：%v", err)
 	}
@@ -70,6 +73,8 @@ func main() {
 	userLogic := logic.NewUserLogic(svcCtx)
 	userHandler := handler.NewUserHandler(svcCtx)
 	adminHandler := handler.NewAdminHandler(svcCtx)
+	walletHandler := handler.NewWalletHandler(svcCtx)
+	addressHandler := handler.NewAddressHandler(svcCtx)
 
 	healthReg := health.NewRegistry()
 	healthReg.Register("mysql", func(ctx context.Context) error {
@@ -108,6 +113,15 @@ func main() {
 		}
 		authJWT(userHandler.Profile)(w, r)
 	}
+	userAuth := func(h http.HandlerFunc) http.HandlerFunc {
+		return rid(func(w http.ResponseWriter, r *http.Request) {
+			if r.Header.Get(middleware.GatewayUserIDHeader) != "" {
+				authGW(h)(w, r)
+				return
+			}
+			authJWT(h)(w, r)
+		})
+	}
 
 	serverHTTP.AddRoutes([]rest.Route{
 		{Method: http.MethodGet, Path: "/healthz", Handler: rid(httpserver.Healthz("user-service"))},
@@ -117,6 +131,18 @@ func main() {
 		{Method: http.MethodPost, Path: "/api/v1/user/login", Handler: rid(userHandler.Login)},
 		{Method: http.MethodPost, Path: "/api/v1/user/register", Handler: rid(userHandler.Register)},
 		{Method: http.MethodGet, Path: "/api/v1/user/profile", Handler: rid(profile)},
+		{Method: http.MethodGet, Path: "/api/v1/user/wallet", Handler: userAuth(walletHandler.UserGetWallet)},
+		{Method: http.MethodGet, Path: "/api/v1/user/wallet/logs", Handler: userAuth(walletHandler.UserWalletLogs)},
+		{Method: http.MethodPost, Path: "/api/v1/user/wallet/freeze", Handler: rid(walletHandler.Freeze)},
+		{Method: http.MethodPost, Path: "/api/v1/user/wallet/unfreeze", Handler: rid(walletHandler.Unfreeze)},
+		{Method: http.MethodPost, Path: "/api/v1/user/wallet/settle", Handler: rid(walletHandler.Settle)},
+
+		{Method: http.MethodGet, Path: "/api/v1/user/addresses", Handler: userAuth(addressHandler.List)},
+		{Method: http.MethodPost, Path: "/api/v1/user/addresses", Handler: userAuth(addressHandler.Create)},
+		{Method: http.MethodPut, Path: "/api/v1/user/addresses/:id", Handler: userAuth(addressHandler.Update)},
+		{Method: http.MethodDelete, Path: "/api/v1/user/addresses/:id", Handler: userAuth(addressHandler.Delete)},
+		{Method: http.MethodPut, Path: "/api/v1/user/addresses/:id/default", Handler: userAuth(addressHandler.SetDefault)},
+		{Method: http.MethodGet, Path: "/api/v1/user/addresses/internal", Handler: rid(addressHandler.InternalGet)},
 
 		{Method: http.MethodGet, Path: "/api/v1/admin/auth/me", Handler: adminAuth("", adminHandler.AuthMe)},
 
@@ -138,6 +164,10 @@ func main() {
 		{Method: http.MethodPut, Path: "/api/v1/admin/users/:id/status", Handler: adminAuth("system:user:status", adminHandler.SetUserStatus)},
 		{Method: http.MethodPut, Path: "/api/v1/admin/users/:id/password", Handler: adminAuth("system:user:reset", adminHandler.ResetUserPassword)},
 		{Method: http.MethodPost, Path: "/api/v1/admin/users/:id/token", Handler: adminAuth("system:user:list", adminHandler.GenerateUserToken)},
+		{Method: http.MethodGet, Path: "/api/v1/admin/users/:id/wallet", Handler: adminAuth("system:user:wallet", walletHandler.AdminGetWallet)},
+		{Method: http.MethodPost, Path: "/api/v1/admin/users/:id/wallet/adjust", Handler: adminAuth("system:user:wallet", walletHandler.AdminAdjustWallet)},
+		{Method: http.MethodGet, Path: "/api/v1/admin/users/:id/wallet/logs", Handler: adminAuth("system:user:wallet", walletHandler.AdminWalletLogs)},
+		{Method: http.MethodGet, Path: "/api/v1/admin/users/:id/addresses", Handler: adminAuth("system:user:list", addressHandler.AdminList)},
 
 		{Method: http.MethodGet, Path: "/api/v1/admin/admins", Handler: adminAuth("system:admin:list", adminHandler.ListAdmins)},
 		{Method: http.MethodPost, Path: "/api/v1/admin/admins", Handler: adminAuth("system:admin:add", adminHandler.CreateAdmin)},

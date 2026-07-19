@@ -11,9 +11,11 @@
       <el-table-column prop="nickname" label="昵称" />
       <el-table-column prop="role" label="角色" width="140" />
       <el-table-column prop="status" label="状态" width="80" />
-      <el-table-column label="操作" width="340">
+      <el-table-column label="操作" width="460">
         <template #default="{ row }">
           <el-button v-permission="'system:user:edit'" link type="primary" @click="openEdit(row)">编辑</el-button>
+          <el-button v-permission="'system:user:wallet'" link type="warning" @click="openWallet(row)">钱包</el-button>
+          <el-button v-permission="'system:user:list'" link @click="openAddresses(row)">地址</el-button>
           <el-button v-permission="'system:user:reset'" link @click="openReset(row)">重置密码</el-button>
           <el-button v-permission="'system:user:list'" link type="success" @click="openToken(row)">生成Token</el-button>
           <el-button
@@ -61,6 +63,61 @@
       </template>
     </el-dialog>
 
+    <el-dialog v-model="walletVisible" :title="`用户钱包 #${walletUserId}`" width="560px" destroy-on-close>
+      <div v-loading="walletLoading" class="wallet-box">
+        <div class="wallet-nums">
+          <div><span>可用余额</span><b>¥{{ wallet.balance ?? 0 }}</b></div>
+          <div><span>冻结余额</span><b>¥{{ wallet.frozen_balance ?? 0 }}</b></div>
+        </div>
+        <el-form label-width="90px" class="adjust-form">
+          <el-form-item label="调整项目">
+            <el-radio-group v-model="adjustField">
+              <el-radio-button value="balance">可用余额</el-radio-button>
+              <el-radio-button value="frozen_balance">冻结余额</el-radio-button>
+            </el-radio-group>
+          </el-form-item>
+          <el-form-item label="调账金额">
+            <el-input-number v-model="adjustAmount" :precision="2" :step="10" />
+            <span class="tip">正数增加，负数减少</span>
+          </el-form-item>
+          <el-form-item label="备注">
+            <el-input v-model="adjustRemark" placeholder="调账说明" />
+          </el-form-item>
+          <el-button type="primary" @click="doAdjust">确认调账</el-button>
+        </el-form>
+        <h4>近期流水</h4>
+        <el-table :data="walletLogs" size="small" max-height="240">
+          <el-table-column prop="created_at" label="时间" width="150" />
+          <el-table-column prop="change_type" label="类型" width="110" />
+          <el-table-column prop="amount" label="金额" width="90" />
+          <el-table-column prop="balance_after" label="余额后" width="80" />
+          <el-table-column prop="frozen_after" label="冻结后" width="80" />
+          <el-table-column prop="remark" label="备注" min-width="100" />
+        </el-table>
+      </div>
+    </el-dialog>
+
+    <el-dialog v-model="addrVisible" :title="`用户地址 #${addrUserId}`" width="720px" destroy-on-close>
+      <el-table v-loading="addrLoading" :data="addrList" size="small" max-height="420">
+        <el-table-column prop="id" label="ID" width="70" />
+        <el-table-column label="默认" width="70">
+          <template #default="{ row }">
+            <el-tag v-if="row.is_default" type="warning" size="small">默认</el-tag>
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="receiver_name" label="收货人" width="100" />
+        <el-table-column prop="receiver_phone" label="手机" width="120" />
+        <el-table-column label="地址" min-width="220">
+          <template #default="{ row }">
+            {{ row.province }}{{ row.city }}{{ row.district }}{{ row.detail }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="created_at" label="创建时间" width="160" />
+      </el-table>
+      <el-empty v-if="!addrLoading && !addrList.length" description="暂无收货地址" />
+    </el-dialog>
+
     <el-dialog v-model="tokenVisible" title="用户 Token（并发压测可复制）" width="640px">
       <el-descriptions :column="1" border size="small" class="token-meta">
         <el-descriptions-item label="用户">{{ tokenInfo.nickname }}（{{ tokenInfo.mobile }}）</el-descriptions-item>
@@ -87,7 +144,10 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { fetchUsers, generateUserToken, resetUserPassword, setUserStatus, updateUser } from '../../../api/system'
+import {
+  adjustUserWallet, fetchUserAddresses, fetchUserWalletLogs, fetchUsers, generateUserToken, getUserWallet,
+  resetUserPassword, setUserStatus, updateUser,
+} from '../../../api/system'
 
 const list = ref([])
 const loading = ref(false)
@@ -111,6 +171,18 @@ const tokenInfo = reactive({
   shop_id: 0,
   expire_hours: 24,
 })
+const walletVisible = ref(false)
+const walletLoading = ref(false)
+const walletUserId = ref(0)
+const wallet = ref({})
+const walletLogs = ref([])
+const adjustAmount = ref(100)
+const adjustRemark = ref('')
+const adjustField = ref('balance')
+const addrVisible = ref(false)
+const addrLoading = ref(false)
+const addrUserId = ref(0)
+const addrList = ref([])
 
 async function load() {
   loading.value = true
@@ -216,6 +288,64 @@ async function toggle(row) {
   }
 }
 
+function openWallet(row) {
+  walletUserId.value = row.id
+  walletVisible.value = true
+  adjustAmount.value = 100
+  adjustRemark.value = ''
+  adjustField.value = 'balance'
+  loadWallet()
+}
+
+async function loadWallet() {
+  walletLoading.value = true
+  try {
+    const [w, logs] = await Promise.all([
+      getUserWallet(walletUserId.value),
+      fetchUserWalletLogs(walletUserId.value, { page: 1, page_size: 20 }),
+    ])
+    wallet.value = w.data || {}
+    walletLogs.value = logs.data?.list || []
+  } catch (e) {
+    ElMessage.error(e.message)
+  } finally {
+    walletLoading.value = false
+  }
+}
+
+async function doAdjust() {
+  try {
+    await adjustUserWallet(walletUserId.value, {
+      field: adjustField.value,
+      amount: adjustAmount.value,
+      remark: adjustRemark.value,
+    })
+    ElMessage.success('调账成功')
+    loadWallet()
+  } catch (e) {
+    ElMessage.error(e.message)
+  }
+}
+
+function openAddresses(row) {
+  addrUserId.value = row.id
+  addrVisible.value = true
+  loadAddresses()
+}
+
+async function loadAddresses() {
+  addrLoading.value = true
+  try {
+    const res = await fetchUserAddresses(addrUserId.value)
+    addrList.value = res.data || []
+  } catch (e) {
+    ElMessage.error(e.message)
+    addrList.value = []
+  } finally {
+    addrLoading.value = false
+  }
+}
+
 onMounted(load)
 </script>
 
@@ -225,4 +355,10 @@ onMounted(load)
 .pager { margin-top: 12px; }
 .token-meta { margin-bottom: 12px; }
 .token-box { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+.wallet-nums { display: flex; gap: 24px; margin-bottom: 16px; }
+.wallet-nums div { display: flex; flex-direction: column; gap: 4px; }
+.wallet-nums span { color: #64748b; font-size: 12px; }
+.wallet-nums b { font-size: 18px; }
+.adjust-form { margin-bottom: 16px; }
+.tip { margin-left: 8px; color: #94a3b8; font-size: 12px; }
 </style>

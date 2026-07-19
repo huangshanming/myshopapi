@@ -37,7 +37,7 @@ func (h *OrderHandler) Create(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, "参数错误", http.StatusBadRequest)
 		return
 	}
-	order, err := h.logic.CreateOrder(r.Context(), userID, req.Items)
+	order, err := h.logic.CreateOrder(r.Context(), userID, req.AddressID, req.Items)
 	if err != nil {
 		response.Error(w, err.Error(), http.StatusBadRequest)
 		return

@@ -24,12 +24,25 @@ func NewOrderLogic(svcCtx *svc.ServiceContext) *OrderLogic {
 	return &OrderLogic{svcCtx: svcCtx}
 }
 
-func (l *OrderLogic) CreateOrder(ctx context.Context, userID uint64, items []types.CreateOrderItem) (*model.Order, error) {
+func (l *OrderLogic) CreateOrder(ctx context.Context, userID uint64, addressID uint64, items []types.CreateOrderItem) (*model.Order, error) {
 	if len(items) == 0 {
 		return nil, errors.New("订单商品不能为空")
 	}
+	if addressID == 0 {
+		return nil, errors.New("请选择收货地址")
+	}
 	if l.svcCtx.Redis == nil {
 		return nil, errors.New("库存服务不可用，请稍后重试")
+	}
+	if l.svcCtx.UserHTTP == nil {
+		return nil, errors.New("用户服务不可用")
+	}
+	addr, err := l.svcCtx.UserHTTP.GetAddress(ctx, userID, addressID)
+	if err != nil {
+		return nil, err
+	}
+	if addr.ReceiverName == "" || addr.ReceiverPhone == "" || addr.FullAddress() == "" {
+		return nil, errors.New("收货地址不完整")
 	}
 
 	if l.svcCtx.UserRPC != nil {
@@ -68,6 +81,11 @@ func (l *OrderLogic) CreateOrder(ctx context.Context, userID uint64, items []typ
 	orderItems := make([]model.OrderItem, 0, len(items))
 	stockItems := make([]model.StockItem, 0, len(items))
 	redisItems := make([]cache.StockItem, 0, len(items))
+	type seckillHold struct {
+		entryID uint64
+		qty     int
+	}
+	var seckillHolds []seckillHold
 	for _, it := range items {
 		p, ok := productByID[it.ProductID]
 		if !ok {
@@ -93,21 +111,82 @@ func (l *OrderLogic) CreateOrder(ctx context.Context, userID uint64, items []typ
 		if snap == "" {
 			snap = fmt.Sprintf(`{"sku_id":%d}`, skuID)
 		}
-		lineAmount := p.price * float64(qty)
+		price := p.price
+		var seckillEntryID uint64
+		if it.SeckillEntryID > 0 {
+			if l.svcCtx.MerchantHTTP == nil {
+				return nil, errors.New("秒杀服务不可用")
+			}
+			cr, err := l.svcCtx.MerchantHTTP.Consume(ctx, it.SeckillEntryID, it.ProductID, qty)
+			if err != nil {
+				for _, h := range seckillHolds {
+					_ = l.svcCtx.MerchantHTTP.Restore(context.Background(), h.entryID, h.qty)
+				}
+				return nil, err
+			}
+			price = cr.SeckillPrice
+			seckillEntryID = it.SeckillEntryID
+			seckillHolds = append(seckillHolds, seckillHold{entryID: it.SeckillEntryID, qty: qty})
+		}
+		lineAmount := price * float64(qty)
 		total += lineAmount
 		orderItems = append(orderItems, model.OrderItem{
-			ProductID:   p.id,
-			SkuID:       skuID,
-			ProductName: p.name,
-			SkuSnapshot: snap,
-			Price:       p.price,
-			Quantity:    qty,
+			ProductID:      p.id,
+			SkuID:          skuID,
+			ProductName:    p.name,
+			SkuSnapshot:    snap,
+			Price:          price,
+			Quantity:       qty,
+			SeckillEntryID: seckillEntryID,
 		})
 		stockItems = append(stockItems, model.StockItem{ProductID: p.id, SkuID: skuID, Quantity: qty})
 		redisItems = append(redisItems, cache.StockItem{SkuID: skuID, Quantity: qty})
 	}
 
+	orderNo := fmt.Sprintf("ORD%s", uuid.NewString()[:8]+time.Now().Format("150405"))
+	order := &model.Order{
+		OrderNo:         orderNo,
+		UserID:          userID,
+		ShopID:          shopID,
+		TotalAmount:     total,
+		ReceiverName:    addr.ReceiverName,
+		ReceiverPhone:   addr.ReceiverPhone,
+		ReceiverAddress: addr.FullAddress(),
+		Status:          model.OrderStatusPending,
+	}
+	if err := l.svcCtx.Repo.Create(order, orderItems); err != nil {
+		for _, h := range seckillHolds {
+			_ = l.svcCtx.MerchantHTTP.Restore(context.Background(), h.entryID, h.qty)
+		}
+		return nil, err
+	}
+
+	if l.svcCtx.UserHTTP == nil {
+		_ = l.svcCtx.Repo.UpdateStatus(orderNo, model.OrderStatusFailed)
+		for _, h := range seckillHolds {
+			_ = l.svcCtx.MerchantHTTP.Restore(context.Background(), h.entryID, h.qty)
+		}
+		return nil, errors.New("钱包服务不可用")
+	}
+	if err := l.svcCtx.UserHTTP.Freeze(ctx, userID, total, order.ID, orderNo); err != nil {
+		_ = l.svcCtx.Repo.UpdateStatus(orderNo, model.OrderStatusFailed)
+		for _, h := range seckillHolds {
+			_ = l.svcCtx.MerchantHTTP.Restore(context.Background(), h.entryID, h.qty)
+		}
+		return nil, err
+	}
+	frozen := true
+	defer func() {
+		if frozen {
+			_ = l.svcCtx.UserHTTP.Unfreeze(context.Background(), userID, total, order.ID, orderNo)
+		}
+	}()
+
 	if err := cache.StockDeduct(ctx, l.svcCtx.Redis, redisItems); err != nil {
+		_ = l.svcCtx.Repo.UpdateStatus(orderNo, model.OrderStatusFailed)
+		for _, h := range seckillHolds {
+			_ = l.svcCtx.MerchantHTTP.Restore(context.Background(), h.entryID, h.qty)
+		}
 		if errors.Is(err, cache.ErrStockInsufficient) || errors.Is(err, cache.ErrRedisUnavailable) {
 			return nil, errors.New("库存不足")
 		}
@@ -117,20 +196,11 @@ func (l *OrderLogic) CreateOrder(ctx context.Context, userID uint64, items []typ
 	defer func() {
 		if deducted {
 			_ = cache.StockRestore(context.Background(), l.svcCtx.Redis, redisItems)
+			for _, h := range seckillHolds {
+				_ = l.svcCtx.MerchantHTTP.Restore(context.Background(), h.entryID, h.qty)
+			}
 		}
 	}()
-
-	orderNo := fmt.Sprintf("ORD%s", uuid.NewString()[:8]+time.Now().Format("150405"))
-	order := &model.Order{
-		OrderNo:     orderNo,
-		UserID:      userID,
-		ShopID:      shopID,
-		TotalAmount: total,
-		Status:      model.OrderStatusPending,
-	}
-	if err := l.svcCtx.Repo.Create(order, orderItems); err != nil {
-		return nil, err
-	}
 
 	if l.svcCtx.MQ == nil {
 		_ = l.svcCtx.Repo.UpdateStatus(orderNo, model.OrderStatusFailed)
@@ -141,6 +211,7 @@ func (l *OrderLogic) CreateOrder(ctx context.Context, userID uint64, items []typ
 		return nil, fmt.Errorf("发布订单事件失败: %w", err)
 	}
 
+	frozen = false
 	deducted = false
 	order.Items = orderItems
 	return order, nil
@@ -186,9 +257,15 @@ func (l *OrderLogic) releaseStock(ctx context.Context, order *model.Order) error
 		if it.SkuID > 0 {
 			redisItems = append(redisItems, cache.StockItem{SkuID: it.SkuID, Quantity: it.Quantity})
 		}
+		if it.SeckillEntryID > 0 && l.svcCtx.MerchantHTTP != nil {
+			_ = l.svcCtx.MerchantHTTP.Restore(ctx, it.SeckillEntryID, it.Quantity)
+		}
 	}
 	if l.svcCtx.Redis != nil && len(redisItems) > 0 {
 		_ = cache.StockRestore(ctx, l.svcCtx.Redis, redisItems)
+	}
+	if l.svcCtx.UserHTTP != nil && order.TotalAmount > 0 {
+		_ = l.svcCtx.UserHTTP.Unfreeze(ctx, order.UserID, order.TotalAmount, order.ID, order.OrderNo)
 	}
 	if l.svcCtx.MQ != nil {
 		_ = l.svcCtx.MQ.PublishOrderCancelled(ctx, order.OrderNo, items)

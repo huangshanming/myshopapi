@@ -17,6 +17,8 @@ mysql:
 grpc:
   user_service: localhost:9090
   catalog_service: localhost:9091
+merchant_http: http://127.0.0.1:8884
+user_http: http://127.0.0.1:8881
 redis:
   host: 127.0.0.1
   port: 6379

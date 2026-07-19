@@ -2,15 +2,17 @@ package types
 
 // CreateOrderItem 下单商品项
 type CreateOrderItem struct {
-	ProductID   uint64 `json:"product_id"`
-	SkuID       uint64 `json:"sku_id"`
-	SkuSnapshot string `json:"sku_snapshot"`
-	Quantity    int    `json:"quantity"`
+	ProductID      uint64 `json:"product_id"`
+	SkuID          uint64 `json:"sku_id"`
+	SkuSnapshot    string `json:"sku_snapshot"`
+	Quantity       int    `json:"quantity"`
+	SeckillEntryID uint64 `json:"seckill_entry_id"`
 }
 
 // CreateOrderReq 创建订单请求
 type CreateOrderReq struct {
-	Items []CreateOrderItem `json:"items"`
+	AddressID uint64            `json:"address_id"`
+	Items     []CreateOrderItem `json:"items"`
 }
 
 // PageListResp 分页列表

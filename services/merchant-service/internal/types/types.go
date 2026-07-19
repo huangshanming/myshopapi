@@ -86,3 +86,43 @@ type PageListResp struct {
 	Total int64       `json:"total"`
 	List  interface{} `json:"list"`
 }
+
+// WalletAdjustReq 平台调账
+// Field: balance（可用余额，默认）/ deposit（保证金）/ frozen_balance（冻结余额）
+type WalletAdjustReq struct {
+	Field  string  `json:"field"`
+	Amount float64 `json:"amount"`
+	Remark string  `json:"remark"`
+}
+
+// SeckillRuleReq 更新秒杀规则
+type SeckillRuleReq struct {
+	DurationHours     int     `json:"duration_hours"`
+	ApplyFee          float64 `json:"apply_fee"`
+	MaxEntriesPerShop int     `json:"max_entries_per_shop"`
+	Status            int8    `json:"status"`
+}
+
+// SeckillApplyReq 商家报名秒杀
+type SeckillApplyReq struct {
+	SessionID    uint64  `json:"session_id"`
+	ProductID    uint64  `json:"product_id"`
+	ProductName  string  `json:"product_name"`
+	ProductImage string  `json:"product_image"`
+	OriginPrice  float64 `json:"origin_price"`
+	SeckillPrice float64 `json:"seckill_price"`
+	SeckillStock int     `json:"seckill_stock"`
+}
+
+// SeckillConsumeReq order-service 扣秒杀库存
+type SeckillConsumeReq struct {
+	EntryID   uint64 `json:"entry_id"`
+	ProductID uint64 `json:"product_id"`
+	Quantity  int    `json:"quantity"`
+}
+
+// SeckillRestoreReq 回补秒杀库存
+type SeckillRestoreReq struct {
+	EntryID  uint64 `json:"entry_id"`
+	Quantity int    `json:"quantity"`
+}

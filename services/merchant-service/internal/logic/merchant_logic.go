@@ -82,6 +82,19 @@ func (l *MerchantLogic) ListShops(status, name string, page, pageSize int) ([]mo
 	return l.svcCtx.Repo.ListShops(status, name, page, pageSize)
 }
 
+func (l *MerchantLogic) ListPublicShops(page, pageSize int) ([]model.Shop, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 20
+	}
+	if pageSize > 50 {
+		pageSize = 50
+	}
+	return l.svcCtx.Repo.ListPublicShops(page, pageSize)
+}
+
 func (l *MerchantLogic) GetShop(id uint64) (*model.Shop, error) {
 	return l.svcCtx.Repo.FindShop(id)
 }

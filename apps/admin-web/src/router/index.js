@@ -34,6 +34,10 @@ import AdminProducts from '../views/admin/products/Products.vue'
 import AdminProductCategories from '../views/admin/products/Categories.vue'
 import AdminProductDetail from '../views/admin/products/ProductDetail.vue'
 import MerchantNotifications from '../views/merchant/Notifications.vue'
+import AdminSeckillRule from '../views/admin/SeckillRule.vue'
+import AdminSeckillSessions from '../views/admin/SeckillSessions.vue'
+import MerchantWallet from '../views/merchant/Wallet.vue'
+import MerchantSeckillApply from '../views/merchant/SeckillApply.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -48,6 +52,8 @@ const router = createRouter({
         { path: '', redirect: '/admin/applications' },
         { path: 'applications', component: AdminApplications, meta: { perms: 'business:application:list' } },
         { path: 'shops', component: AdminShops, meta: { perms: 'business:shop:list' } },
+        { path: 'seckill/rule', component: AdminSeckillRule, meta: { perms: 'marketing:seckill:rule' } },
+        { path: 'seckill/sessions', component: AdminSeckillSessions, meta: { perms: 'marketing:seckill:session' } },
         { path: 'orders', component: AdminOrders, meta: { perms: 'business:order:list' } },
         { path: 'after-sales', component: AdminAfterSales, meta: { perms: 'business:aftersale:list' } },
         { path: 'logistics', component: AdminLogistics, meta: { perms: 'business:logistics:list' } },
@@ -84,6 +90,8 @@ const router = createRouter({
         { path: 'articles', component: MerchantArticles, meta: { shopPerm: 'article:list' } },
         { path: 'articles/edit/:id?', component: MerchantArticleEdit, meta: { shopPerm: 'article:edit' } },
         { path: 'notifications', component: MerchantNotifications, meta: { shopPerm: 'notif:list' } },
+        { path: 'wallet', component: MerchantWallet, meta: { shopPerm: 'wallet:view' } },
+        { path: 'seckill', component: MerchantSeckillApply, meta: { shopPerm: 'seckill:apply' } },
       ],
     },
     { path: '/', redirect: '/login' },

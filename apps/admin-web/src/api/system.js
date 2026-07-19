@@ -20,6 +20,10 @@ export const updateUser = (id, data) => http.put(`/api/v1/admin/users/${id}`, da
 export const setUserStatus = (id, status) => http.put(`/api/v1/admin/users/${id}/status`, { status })
 export const resetUserPassword = (id, password) => http.put(`/api/v1/admin/users/${id}/password`, { password })
 export const generateUserToken = (id) => http.post(`/api/v1/admin/users/${id}/token`)
+export const getUserWallet = (id) => http.get(`/api/v1/admin/users/${id}/wallet`)
+export const adjustUserWallet = (id, data) => http.post(`/api/v1/admin/users/${id}/wallet/adjust`, data)
+export const fetchUserWalletLogs = (id, params) => http.get(`/api/v1/admin/users/${id}/wallet/logs`, { params })
+export const fetchUserAddresses = (id) => http.get(`/api/v1/admin/users/${id}/addresses`)
 
 export const fetchAdmins = (params) => http.get('/api/v1/admin/admins', { params })
 export const createAdmin = (data) => http.post('/api/v1/admin/admins', data)

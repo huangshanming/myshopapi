@@ -17,6 +17,11 @@
         <text class="label">下单时间</text>
         <text>{{ order.created_at }}</text>
       </view>
+      <view v-if="order.receiver_name || order.receiver_address" class="row col">
+        <text class="label">收货信息</text>
+        <text class="addr">{{ order.receiver_name }} {{ order.receiver_phone }}</text>
+        <text class="addr">{{ order.receiver_address }}</text>
+      </view>
       <view v-if="order.ship_company" class="row">
         <text class="label">物流</text>
         <text>{{ order.ship_company }} {{ order.ship_no }}</text>
@@ -107,6 +112,8 @@ async function onCancel() {
   box-shadow: 0 4rpx 24rpx rgba(200,168,118,.08);
 }
 .row { display: flex; justify-content: space-between; padding: 12rpx 0; font-size: 26rpx; }
+.row.col { flex-direction: column; align-items: flex-start; gap: 8rpx; }
+.addr { color: #3f3f46; line-height: 1.4; }
 .label { color: #71717a; }
 .gold { color: #c8a876; }
 .price { color: #d83636; font-weight: 700; }

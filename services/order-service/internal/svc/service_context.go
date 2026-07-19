@@ -5,6 +5,8 @@ import (
 	"mymall/pkg/config"
 	"mymall/pkg/mq"
 	"mymall/services/order-service/internal/client/catalogrpc"
+	"mymall/services/order-service/internal/client/merchanthttp"
+	"mymall/services/order-service/internal/client/userhttp"
 	"mymall/services/order-service/internal/client/userrpc"
 	ordermq "mymall/services/order-service/internal/mq"
 	"mymall/services/order-service/internal/repository"
@@ -22,6 +24,8 @@ type ServiceContext struct {
 	LogisticsRepo *repository.LogisticsRepository
 	UserRPC       *userrpc.Client
 	CatalogRPC    *catalogrpc.Client
+	MerchantHTTP  *merchanthttp.Client
+	UserHTTP      *userhttp.Client
 	MQ            *ordermq.Publisher
 	MQClient      *mq.Client
 }
@@ -60,6 +64,8 @@ func NewServiceContext(cfg *config.Config, db *gorm.DB) (*ServiceContext, error)
 		LogisticsRepo: logisticsRepo,
 		UserRPC:       userRPC,
 		CatalogRPC:    catalogRPC,
+		MerchantHTTP:  merchanthttp.New(cfg.MerchantHTTP),
+		UserHTTP:      userhttp.New(cfg.UserHTTP),
 		MQ:            publisher,
 		MQClient:      mqClient,
 	}, nil
