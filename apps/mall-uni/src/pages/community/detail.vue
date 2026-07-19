@@ -92,13 +92,15 @@
           @confirm="submitComment"
           @focus="composerOpen = true"
         />
-        <text class="em-btn" @tap="toggleEmoji">表情</text>
+        <view class="em-btn" :class="{ on: emojiOpen }" @tap="toggleEmoji">
+          <image class="em-logo" src="/static/logo.png" mode="aspectFit" />
+        </view>
         <text class="send" @tap="submitComment">发送</text>
       </view>
       <scroll-view v-if="emojiOpen" class="emoji-panel" scroll-y>
         <view class="emoji-grid">
           <view v-for="e in emojis" :key="e.id" class="emoji-item" @tap="insertEmoji(e)">
-            <image class="emoji-img" :src="e.image_url" mode="aspectFit" />
+            <image class="emoji-img bounce" :src="e.image_url" mode="aspectFit" />
             <text class="emoji-name">{{ e.name }}</text>
           </view>
           <view v-if="!emojis.length" class="cmt-empty">暂无表情包</view>
@@ -406,13 +408,30 @@ onLoad((q) => {
   flex: 1; height: 68rpx; background: #f4f4f5; border-radius: 34rpx;
   padding: 0 24rpx; font-size: 26rpx;
 }
-.em-btn, .send { font-size: 26rpx; color: #c4894a; padding: 0 8rpx; white-space: nowrap; }
+.send { font-size: 26rpx; color: #c4894a; padding: 0 8rpx; white-space: nowrap; }
+.em-btn {
+  width: 56rpx; height: 56rpx; border-radius: 14rpx; overflow: hidden;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  transition: transform 0.18s ease;
+}
+.em-btn.on { transform: scale(1.08); }
+.em-logo { width: 56rpx; height: 56rpx; }
 .emoji-panel { max-height: 280rpx; margin-top: 12rpx; }
 .emoji-grid { display: flex; flex-wrap: wrap; gap: 16rpx; }
 .emoji-item {
   width: 112rpx; display: flex; flex-direction: column; align-items: center; gap: 6rpx;
 }
 .emoji-img { width: 72rpx; height: 72rpx; }
+.emoji-img.bounce {
+  animation: emoji-bounce 1.6s ease-in-out infinite;
+}
+.emoji-item:nth-child(2n) .emoji-img.bounce { animation-delay: 0.2s; }
+.emoji-item:nth-child(3n) .emoji-img.bounce { animation-delay: 0.4s; }
+.emoji-item:nth-child(4n) .emoji-img.bounce { animation-delay: 0.6s; }
+@keyframes emoji-bounce {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-6rpx) scale(1.06); }
+}
 .emoji-name { font-size: 20rpx; color: #71717a; }
 .bar {
   position: fixed; left: 0; right: 0; bottom: 0;
