@@ -287,6 +287,8 @@ function startReply(c, root) {
   replyRoot.value = root || (c.parent_id ? null : c)
   composerOpen.value = true
   emojiOpen.value = false
+  inputFocus.value = false
+  nextTick(() => { inputFocus.value = true })
 }
 
 function cancelReply() {
@@ -295,13 +297,18 @@ function cancelReply() {
 }
 
 function focusComposer() {
+  if (!ensureLogin()) return
   composerOpen.value = true
+  emojiOpen.value = false
+  inputFocus.value = false
+  nextTick(() => { inputFocus.value = true })
 }
 
 function toggleEmoji() {
   if (!ensureLogin()) return
   emojiOpen.value = !emojiOpen.value
   composerOpen.value = true
+  if (emojiOpen.value) inputFocus.value = false
 }
 
 function insertEmoji(e) {
@@ -319,8 +326,7 @@ async function submitComment() {
     const parentId = replyTarget.value?.id || 0
     await createArticleComment(id.value, { content, parent_id: parentId })
     draft.value = ''
-    cancelReply()
-    emojiOpen.value = false
+    closeComposer()
     article.comment_count = (article.comment_count || 0) + 1
     await loadComments(true)
     uni.showToast({ title: '已发布', icon: 'none' })
@@ -371,7 +377,7 @@ onLoad((q) => {
 </script>
 
 <style scoped>
-.page { padding-bottom: 280rpx; background: #fafafa; min-height: 100vh; }
+.page { padding-bottom: 140rpx; background: #fafafa; min-height: 100vh; }
 .cover { width: 100%; height: 420rpx; background: #e4e4e7; }
 .panel {
   margin: 0 24rpx 24rpx; background: #fff; border-radius: 16rpx;
@@ -409,11 +415,15 @@ onLoad((q) => {
 .cmt.child { border-bottom: 1rpx solid #f0f0f0; }
 .cmt.child:last-child { border-bottom: none; }
 .cmt-empty, .more { text-align: center; color: #a1a1aa; padding: 24rpx 0; font-size: 24rpx; }
+.composer-mask {
+  position: fixed; inset: 0; z-index: 19; background: rgba(0,0,0,.18);
+}
 .composer {
   position: fixed; left: 0; right: 0; bottom: 100rpx;
   background: #fff; border-top: 1rpx solid #f0f0f0;
   padding: 12rpx 20rpx; padding-bottom: calc(12rpx + env(safe-area-inset-bottom));
   z-index: 20;
+  box-shadow: 0 -8rpx 24rpx rgba(0,0,0,.06);
 }
 .reply-tip {
   display: flex; justify-content: space-between; font-size: 22rpx; color: #71717a;
@@ -427,12 +437,12 @@ onLoad((q) => {
 }
 .send { font-size: 26rpx; color: #c4894a; padding: 0 8rpx; white-space: nowrap; }
 .em-btn {
-  width: 56rpx; height: 56rpx; border-radius: 14rpx; overflow: hidden;
+  width: 56rpx; height: 56rpx; border-radius: 50%; overflow: hidden;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   transition: transform 0.18s ease;
 }
 .em-btn.on { transform: scale(1.08); }
-.em-logo { width: 56rpx; height: 56rpx; }
+.em-logo { width: 56rpx; height: 56rpx; border-radius: 50%; }
 .emoji-panel { max-height: 280rpx; margin-top: 12rpx; }
 .emoji-grid { display: flex; flex-wrap: wrap; gap: 16rpx; }
 .emoji-item {
