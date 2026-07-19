@@ -37,8 +37,22 @@ page {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.scroll-hide::-webkit-scrollbar {
-  display: none;
+/* H5 横向滚动条隐藏 */
+.scroll-hide,
+.scroll-hide ::-webkit-scrollbar,
+uni-scroll-view::-webkit-scrollbar,
+.uni-scroll-view::-webkit-scrollbar,
+.uni-scroll-view-content::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+.scroll-hide,
+uni-scroll-view,
+.uni-scroll-view {
+  scrollbar-width: none; /* firefox */
+  -ms-overflow-style: none;
 }
 .gold-gradient {
   background: linear-gradient(135deg, #bfa472 0%, #d4b890 100%);

@@ -30,7 +30,7 @@
     </view>
 
     <!-- 分类入口 -->
-    <scroll-view scroll-x class="cat-scroll scroll-hide section-card">
+    <scroll-view scroll-x :show-scrollbar="false" class="cat-scroll scroll-hide section-card">
       <view class="cat-row">
         <view v-for="c in categoryEntries" :key="c.name" class="cat-item" @tap="onCategory(c)">
           <view class="cat-icon" :style="{ background: c.bg, color: c.color }">{{ c.emoji }}</view>
@@ -53,7 +53,7 @@
         </view>
         <text class="sec-more" @tap="toast('更多秒杀即将开放')">更多 ›</text>
       </view>
-      <scroll-view scroll-x class="scroll-hide">
+      <scroll-view scroll-x :show-scrollbar="false" class="scroll-hide">
         <view class="seckill-row">
           <view v-for="(p, i) in seckillMock" :key="i" class="seckill-item">
             <image class="seckill-img" :src="p.img" mode="aspectFill" />
@@ -74,7 +74,7 @@
         <text class="sec-title">👑 头部品牌商户</text>
         <text class="sec-more">全部品牌店 ›</text>
       </view>
-      <scroll-view scroll-x class="scroll-hide">
+      <scroll-view scroll-x :show-scrollbar="false" class="scroll-hide">
         <view class="brand-row">
           <view v-for="(s, i) in brandShops" :key="i" class="brand-card">
             <image class="brand-cover" :src="s.img" mode="aspectFill" />
@@ -96,7 +96,7 @@
         <text class="sec-title">✍️ 好物种草社区</text>
         <text class="sec-more">更多精选 ›</text>
       </view>
-      <scroll-view scroll-x class="scroll-hide tag-scroll">
+      <scroll-view scroll-x :show-scrollbar="false" class="scroll-hide tag-scroll">
         <view class="tag-row">
           <text
             v-for="t in noteTags"
@@ -107,7 +107,7 @@
           >{{ t }}</text>
         </view>
       </scroll-view>
-      <scroll-view scroll-x class="scroll-hide">
+      <scroll-view scroll-x :show-scrollbar="false" class="scroll-hide">
         <view class="note-row">
           <view v-for="(n, i) in notes" :key="i" class="note-card" :class="'w-' + n.w">
             <image v-if="n.imgs.length === 1" class="note-cover" :src="n.imgs[0]" mode="aspectFill" />
@@ -147,7 +147,7 @@
         <text class="sec-title">🏪 优质入驻商户</text>
         <text class="sec-more">全部店铺 ›</text>
       </view>
-      <scroll-view scroll-x class="scroll-hide">
+      <scroll-view scroll-x :show-scrollbar="false" class="scroll-hide">
         <view class="shop-row">
           <view v-for="(s, i) in shops" :key="i" class="shop-card">
             <image class="shop-cover" :src="s.img" mode="aspectFill" />
