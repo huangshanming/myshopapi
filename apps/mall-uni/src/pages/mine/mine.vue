@@ -29,6 +29,14 @@
         <text>我的订单</text>
         <text class="arrow">›</text>
       </view>
+      <view v-if="user" class="menu-item" @tap="goCoupons">
+        <text>我的优惠券</text>
+        <text class="arrow">›</text>
+      </view>
+      <view class="menu-item" @tap="goCouponCenter">
+        <text>领券中心</text>
+        <text class="arrow">›</text>
+      </view>
       <view v-if="user" class="menu-item" @tap="goFavorites">
         <text>我的收藏</text>
         <text class="arrow">›</text>
@@ -118,6 +126,18 @@ function goFavorites() {
     return
   }
   uni.navigateTo({ url: '/pages/favorite/list' })
+}
+
+function goCoupons() {
+  if (!isLoggedIn()) {
+    goLogin()
+    return
+  }
+  uni.navigateTo({ url: '/pages/coupon/mine' })
+}
+
+function goCouponCenter() {
+  uni.navigateTo({ url: '/pages/coupon/center' })
 }
 
 function goLikes() {

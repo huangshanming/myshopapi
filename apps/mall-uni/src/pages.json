@@ -98,6 +98,18 @@
       }
     },
     {
+      "path": "pages/coupon/center",
+      "style": {
+        "navigationBarTitleText": "领券中心"
+      }
+    },
+    {
+      "path": "pages/coupon/mine",
+      "style": {
+        "navigationBarTitleText": "我的优惠券"
+      }
+    },
+    {
       "path": "pages/order/review",
       "style": {
         "navigationBarTitleText": "评价订单"

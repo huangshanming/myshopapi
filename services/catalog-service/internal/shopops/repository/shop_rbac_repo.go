@@ -69,6 +69,7 @@ func (r *ShopRBACRepository) EnsureShopMenus() error {
 		{ID: 27, ParentID: 102, Name: "评价管理", Type: "menu", Path: "/merchant/reviews", Component: "merchant/Reviews", Icon: "ChatDotRound", Perms: "product:review:list", Sort: 12, Visible: 1, Status: 1},
 		{ID: 30, ParentID: 105, Name: "首页推广", Type: "menu", Path: "/merchant/homepage", Component: "merchant/HomepagePromote", Icon: "Promotion", Perms: "homepage:list", Sort: 20, Visible: 1, Status: 1},
 		{ID: 32, ParentID: 105, Name: "主题坑位", Type: "menu", Path: "/merchant/themes", Component: "merchant/ThemePromote", Icon: "Grid", Perms: "theme:list", Sort: 25, Visible: 1, Status: 1},
+		{ID: 34, ParentID: 105, Name: "优惠券", Type: "menu", Path: "/merchant/coupons", Component: "merchant/Coupons", Icon: "Ticket", Perms: "coupon:list", Sort: 30, Visible: 1, Status: 1},
 		{ID: 8, ParentID: 104, Name: "我的文章", Type: "menu", Path: "/merchant/articles", Component: "merchant/Articles", Icon: "Document", Perms: "article:list", Sort: 10, Visible: 1, Status: 1},
 		{ID: 9, ParentID: 104, Name: "发布文章", Type: "menu", Path: "/merchant/articles/edit", Component: "merchant/ArticleEdit", Icon: "Edit", Perms: "article:edit", Sort: 11, Visible: 1, Status: 1},
 		{ID: 24, ParentID: 105, Name: "秒杀报名", Type: "menu", Path: "/merchant/seckill", Component: "merchant/SeckillApply", Icon: "Timer", Perms: "seckill:apply", Sort: 10, Visible: 1, Status: 1},
@@ -93,6 +94,8 @@ func (r *ShopRBACRepository) EnsureShopMenus() error {
 		{ID: 29, ParentID: 27, Name: "评价删除", Type: "button", Perms: "product:review:delete", Sort: 2, Visible: 1, Status: 1},
 		{ID: 31, ParentID: 30, Name: "购买展位", Type: "button", Perms: "homepage:buy", Sort: 1, Visible: 1, Status: 1},
 		{ID: 33, ParentID: 32, Name: "购买坑位", Type: "button", Perms: "theme:buy", Sort: 1, Visible: 1, Status: 1},
+		{ID: 35, ParentID: 34, Name: "编辑优惠券", Type: "button", Perms: "coupon:edit", Sort: 1, Visible: 1, Status: 1},
+		{ID: 36, ParentID: 34, Name: "发放优惠券", Type: "button", Perms: "coupon:grant", Sort: 2, Visible: 1, Status: 1},
 	}
 	for _, m := range seed {
 		var exists model.ShopMenu

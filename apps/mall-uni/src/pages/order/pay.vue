@@ -29,13 +29,16 @@ import { isLoggedIn } from '../../stores/user'
 
 const items = ref([])
 const addressId = ref(0)
+const userCouponId = ref(0)
 const fromCart = ref(false)
 const balance = ref(0)
 const paying = ref(false)
+const payAmount = ref(0)
 
-const total = computed(() =>
-  items.value.reduce((s, x) => s + Number(x.price) * Number(x.quantity), 0),
-)
+const total = computed(() => {
+  if (payAmount.value > 0) return payAmount.value
+  return items.value.reduce((s, x) => s + Number(x.price) * Number(x.quantity), 0)
+})
 
 async function loadWallet() {
   try {
@@ -66,7 +69,7 @@ async function pay() {
       if (x.seckill_entry_id) it.seckill_entry_id = x.seckill_entry_id
       return it
     })
-    const res = await createOrder(orderItems, addressId.value)
+    const res = await createOrder(orderItems, addressId.value, userCouponId.value)
     const id = res?.id
     if (fromCart.value) {
       clearCartItems(items.value)
@@ -97,6 +100,8 @@ onLoad(() => {
   }
   items.value = payload.items
   addressId.value = Number(payload.address_id)
+  userCouponId.value = Number(payload.user_coupon_id) || 0
+  payAmount.value = Number(payload.pay_amount) || 0
   fromCart.value = payload.from === 'cart'
   loadWallet()
 })

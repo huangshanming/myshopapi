@@ -91,6 +91,9 @@ function ensureMarketingMenus(tree) {
   if (!mkt.children.some((c) => c.path === '/admin/themes' || c.id === 118)) {
     mkt.children.push({ id: 118, name: '主题集市', path: '/admin/themes', type: 'menu', visible: 1 })
   }
+  if (!mkt.children.some((c) => c.path === '/admin/coupons' || c.id === 121)) {
+    mkt.children.push({ id: 121, name: '优惠券', path: '/admin/coupons', type: 'menu', visible: 1 })
+  }
   return cloned
 }
 

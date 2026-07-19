@@ -76,6 +76,8 @@ spec:
           - /api/v1/shops
           - /api/v1/shops/*
           - /api/v1/home/theme-tiles
+          - /api/v1/coupons/center
+          - /api/v1/coupons/popup
           - /api/v1/seckill/current
           - /api/v1/seckill/list
           - /api/v1/seckill/entries

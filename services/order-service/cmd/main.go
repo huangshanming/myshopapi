@@ -94,7 +94,7 @@ func main() {
 	if svcCtx.MQClient == nil {
 		logger.Warn("rabbitmq unavailable")
 	} else {
-		consumer := ordermq.NewConsumer(svcCtx.MQClient, svcCtx.Repo, svcCtx.Redis, svcCtx.UserHTTP, logger)
+		consumer := ordermq.NewConsumer(svcCtx.MQClient, svcCtx.Repo, svcCtx.Redis, svcCtx.UserHTTP, svcCtx.MerchantHTTP, logger)
 		if err := consumer.Start(); err != nil {
 			logger.Warn("mq consumer start failed")
 		}
@@ -137,6 +137,7 @@ func main() {
 		{Method: http.MethodGet, Path: "/metrics", Handler: rid(metrics.Handler())},
 
 		{Method: http.MethodPost, Path: "/api/v1/orders", Handler: rid(gw(orderHandler.Create))},
+		{Method: http.MethodPost, Path: "/api/v1/orders/coupon-preview", Handler: rid(gw(orderHandler.CouponPreview))},
 		{Method: http.MethodGet, Path: "/api/v1/orders", Handler: rid(gw(orderHandler.List))},
 		{Method: http.MethodGet, Path: "/api/v1/orders/:id", Handler: rid(gw(orderHandler.Detail))},
 		{Method: http.MethodPut, Path: "/api/v1/orders/:id/cancel", Handler: rid(gw(orderHandler.Cancel))},

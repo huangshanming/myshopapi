@@ -1,9 +1,9 @@
 <template>
   <view class="page">
     <!-- 优惠券通栏 -->
-    <view class="coupon-bar gold-gradient">
-      <text class="coupon-text">平台通用券满100减30，立即领取</text>
-      <text class="coupon-btn" @tap="toast('领取功能即将开放')">去领取</text>
+    <view class="coupon-bar gold-gradient" @tap="goCouponCenter">
+      <text class="coupon-text">{{ couponBarText }}</text>
+      <text class="coupon-btn">去领取</text>
     </view>
 
     <!-- 顶栏 -->
@@ -244,7 +244,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { onReachBottom } from '@dcloudio/uni-app'
-import { getSeckillCurrent, listArticles, listBanners, listCategories, listHomeSlots, listProducts, listSalesRank, listThemeTiles } from '../../api/index'
+import { getSeckillCurrent, listArticles, listBanners, listCategories, listCouponCenter, listHomeSlots, listProducts, listSalesRank, listThemeTiles } from '../../api/index'
 
 const placeholder = 'https://picsum.photos/id/96/400/400'
 const fallbackBanners = [
@@ -281,6 +281,7 @@ const shops = ref([])
 const notes = ref([])
 
 const themes = ref([])
+const couponBarText = ref('领券中心有好券，点击立即领取')
 
 const rankList = ref([])
 
@@ -432,6 +433,23 @@ async function loadThemes() {
   }
 }
 
+async function loadCouponBar() {
+  try {
+    const res = await listCouponCenter()
+    const first = (res?.list || [])[0]
+    if (first) {
+      const face = first.coupon_type === 'discount'
+        ? `${(Number(first.discount_rate) * 10).toFixed(1)}折券`
+        : `满${first.threshold_amount || 0}减${first.discount_amount}`
+      couponBarText.value = `${first.name} · ${face}，立即领取`
+    }
+  } catch { /* keep default */ }
+}
+
+function goCouponCenter() {
+  uni.navigateTo({ url: '/pages/coupon/center' })
+}
+
 function rankDisplayName(r) {
   if (r.shop_name) return `${r.name} | ${r.shop_name}`
   return r.name
@@ -557,6 +575,7 @@ onMounted(() => {
   loadNotes()
   loadSeckill()
   loadThemes()
+  loadCouponBar()
   loadSalesRank()
   loadProducts(true)
 })

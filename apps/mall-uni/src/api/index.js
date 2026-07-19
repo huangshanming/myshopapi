@@ -108,8 +108,33 @@ export function listUserWalletLogs(params) {
   return http.get('/api/v1/user/wallet/logs', params)
 }
 
-export function createOrder(items, addressId) {
-  return http.post('/api/v1/orders', { items, address_id: addressId })
+export function createOrder(items, addressId, userCouponId = 0) {
+  const body = { items, address_id: addressId }
+  if (userCouponId) body.user_coupon_id = userCouponId
+  return http.post('/api/v1/orders', body)
+}
+
+export function couponPreview(items, userCouponId = 0) {
+  return http.post('/api/v1/orders/coupon-preview', {
+    items,
+    user_coupon_id: userCouponId || 0,
+  })
+}
+
+export function listCouponCenter(params = {}) {
+  return http.get('/api/v1/coupons/center', params)
+}
+
+export function listCouponPopup() {
+  return http.get('/api/v1/coupons/popup')
+}
+
+export function claimCoupon(id, source = 'direct') {
+  return http.post(`/api/v1/coupons/${id}/claim`, { source })
+}
+
+export function listMyCoupons(params = { page: 1, page_size: 20, status: 'unused' }) {
+  return http.get('/api/v1/user/coupons', params)
 }
 
 export function listAddresses() {

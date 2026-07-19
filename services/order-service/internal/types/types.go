@@ -11,8 +11,15 @@ type CreateOrderItem struct {
 
 // CreateOrderReq 创建订单请求
 type CreateOrderReq struct {
-	AddressID uint64            `json:"address_id"`
-	Items     []CreateOrderItem `json:"items"`
+	AddressID    uint64            `json:"address_id"`
+	Items        []CreateOrderItem `json:"items"`
+	UserCouponID uint64            `json:"user_coupon_id"`
+}
+
+// CouponPreviewReq 结算优惠券预览
+type CouponPreviewReq struct {
+	Items        []CreateOrderItem `json:"items"`
+	UserCouponID uint64            `json:"user_coupon_id"`
 }
 
 // PageListResp 分页列表

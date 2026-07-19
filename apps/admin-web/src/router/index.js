@@ -45,6 +45,8 @@ import MerchantHomepagePromote from '../views/merchant/HomepagePromote.vue'
 import AdminBanners from '../views/admin/Banners.vue'
 import AdminThemeSlots from '../views/admin/ThemeSlots.vue'
 import MerchantThemePromote from '../views/merchant/ThemePromote.vue'
+import AdminCoupons from '../views/admin/Coupons.vue'
+import MerchantCoupons from '../views/merchant/Coupons.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -63,6 +65,7 @@ const router = createRouter({
         { path: 'seckill/sessions', component: AdminSeckillSessions, meta: { perms: 'marketing:seckill:session' } },
         { path: 'banners', component: AdminBanners, meta: { perms: 'marketing:banner:list' } },
         { path: 'themes', component: AdminThemeSlots, meta: { perms: 'marketing:theme:list' } },
+        { path: 'coupons', component: AdminCoupons, meta: { perms: 'marketing:coupon:list' } },
         { path: 'orders', component: AdminOrders, meta: { perms: 'business:order:list' } },
         { path: 'after-sales', component: AdminAfterSales, meta: { perms: 'business:aftersale:list' } },
         { path: 'reviews', component: AdminReviews, meta: { perms: 'business:review:list' } },
@@ -101,6 +104,7 @@ const router = createRouter({
         { path: 'reviews', component: MerchantReviews, meta: { shopPerm: 'product:review:list' } },
         { path: 'homepage', component: MerchantHomepagePromote, meta: { shopPerm: 'homepage:list' } },
         { path: 'themes', component: MerchantThemePromote, meta: { shopPerm: 'theme:list' } },
+        { path: 'coupons', component: MerchantCoupons, meta: { shopPerm: 'coupon:list' } },
         { path: 'articles', component: MerchantArticles, meta: { shopPerm: 'article:list' } },
         { path: 'articles/edit/:id?', component: MerchantArticleEdit, meta: { shopPerm: 'article:edit' } },
         { path: 'notifications', component: MerchantNotifications, meta: { shopPerm: 'notif:list' } },

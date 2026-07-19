@@ -63,6 +63,11 @@ func main() {
 		&model.HomepageThemeSlot{},
 		&model.HomepageThemePackage{},
 		&model.HomepageThemeOrder{},
+		&model.Coupon{},
+		&model.CouponScope{},
+		&model.UserCoupon{},
+		&model.CouponGrant{},
+		&model.CouponRedeemLog{},
 	); err != nil {
 		log.Fatalf("AutoMigrate 失败：%v", err)
 	}
@@ -111,6 +116,18 @@ func main() {
 		{Method: http.MethodPost, Path: "/api/v1/seckill/consume", Handler: rid(h.SeckillConsume)},
 		{Method: http.MethodPost, Path: "/api/v1/seckill/restore", Handler: rid(h.SeckillRestore)},
 
+		{Method: http.MethodGet, Path: "/api/v1/coupons/center", Handler: rid(h.PublicCouponCenter)},
+		{Method: http.MethodGet, Path: "/api/v1/coupons/popup", Handler: rid(h.PublicCouponPopup)},
+		{Method: http.MethodPost, Path: "/api/v1/coupons/:id/claim", Handler: rid(gw(h.ClaimCoupon))},
+		{Method: http.MethodGet, Path: "/api/v1/user/coupons", Handler: rid(gw(h.ListMyCoupons))},
+
+		{Method: http.MethodPost, Path: "/api/v1/internal/coupons/match", Handler: rid(h.InternalMatchCoupons)},
+		{Method: http.MethodPost, Path: "/api/v1/internal/coupons/lock", Handler: rid(h.InternalLockCoupon)},
+		{Method: http.MethodPost, Path: "/api/v1/internal/coupons/unlock", Handler: rid(h.InternalUnlockCoupon)},
+		{Method: http.MethodPost, Path: "/api/v1/internal/coupons/redeem", Handler: rid(h.InternalRedeemCoupon)},
+		{Method: http.MethodPost, Path: "/api/v1/internal/coupons/return", Handler: rid(h.InternalReturnCoupon)},
+		{Method: http.MethodPost, Path: "/api/v1/internal/coupons/order-gift", Handler: rid(h.InternalOrderGift)},
+
 		{Method: http.MethodPost, Path: "/api/v1/merchant/apply", Handler: rid(gw(h.Apply))},
 		{Method: http.MethodGet, Path: "/api/v1/merchant/shops", Handler: rid(gw(h.MyShops))},
 		{Method: http.MethodPut, Path: "/api/v1/merchant/shops/:id", Handler: rid(gw(owner(h.UpdateMyShop)))},
@@ -128,6 +145,16 @@ func main() {
 		{Method: http.MethodGet, Path: "/api/v1/merchant/theme-packages", Handler: rid(gw(owner(h.MerchantListThemePackages)))},
 		{Method: http.MethodPost, Path: "/api/v1/merchant/theme-orders", Handler: rid(gw(owner(h.MerchantBuyTheme)))},
 		{Method: http.MethodGet, Path: "/api/v1/merchant/theme-orders", Handler: rid(gw(owner(h.MerchantListThemeOrders)))},
+
+		{Method: http.MethodGet, Path: "/api/v1/merchant/coupons", Handler: rid(gw(owner(h.MerchantListCoupons)))},
+		{Method: http.MethodPost, Path: "/api/v1/merchant/coupons", Handler: rid(gw(owner(h.MerchantCreateCoupon)))},
+		{Method: http.MethodPut, Path: "/api/v1/merchant/coupons/:id", Handler: rid(gw(owner(h.MerchantUpdateCoupon)))},
+		{Method: http.MethodPut, Path: "/api/v1/merchant/coupons/:id/off", Handler: rid(gw(owner(h.MerchantOffCoupon)))},
+		{Method: http.MethodPost, Path: "/api/v1/merchant/coupons/:id/copy", Handler: rid(gw(owner(h.MerchantCopyCoupon)))},
+		{Method: http.MethodPost, Path: "/api/v1/merchant/coupons/grant", Handler: rid(gw(owner(h.MerchantGrantCoupon)))},
+		{Method: http.MethodGet, Path: "/api/v1/merchant/coupons/:id/claims", Handler: rid(gw(owner(h.MerchantCouponClaims)))},
+		{Method: http.MethodGet, Path: "/api/v1/merchant/coupons/:id/redeems", Handler: rid(gw(owner(h.MerchantCouponRedeems)))},
+		{Method: http.MethodGet, Path: "/api/v1/merchant/coupons/:id/stats", Handler: rid(gw(owner(h.MerchantCouponStats)))},
 
 		{Method: http.MethodGet, Path: "/api/v1/admin/applications", Handler: rid(middleware.Chain(h.AdminListApplications, gw, plat))},
 		{Method: http.MethodPost, Path: "/api/v1/admin/applications/:id/approve", Handler: rid(middleware.Chain(h.AdminApprove, gw, plat))},
@@ -163,6 +190,16 @@ func main() {
 		{Method: http.MethodPut, Path: "/api/v1/admin/theme-packages/:id", Handler: rid(middleware.Chain(h.AdminUpdateThemePackage, gw, plat))},
 		{Method: http.MethodGet, Path: "/api/v1/admin/theme-orders", Handler: rid(middleware.Chain(h.AdminListThemeOrders, gw, plat))},
 		{Method: http.MethodPost, Path: "/api/v1/admin/theme-orders/grant", Handler: rid(middleware.Chain(h.AdminGrantTheme, gw, plat))},
+
+		{Method: http.MethodGet, Path: "/api/v1/admin/coupons", Handler: rid(middleware.Chain(h.AdminListCoupons, gw, plat))},
+		{Method: http.MethodPost, Path: "/api/v1/admin/coupons", Handler: rid(middleware.Chain(h.AdminCreateCoupon, gw, plat))},
+		{Method: http.MethodPut, Path: "/api/v1/admin/coupons/:id", Handler: rid(middleware.Chain(h.AdminUpdateCoupon, gw, plat))},
+		{Method: http.MethodPut, Path: "/api/v1/admin/coupons/:id/off", Handler: rid(middleware.Chain(h.AdminOffCoupon, gw, plat))},
+		{Method: http.MethodPost, Path: "/api/v1/admin/coupons/:id/copy", Handler: rid(middleware.Chain(h.AdminCopyCoupon, gw, plat))},
+		{Method: http.MethodPost, Path: "/api/v1/admin/coupons/grant", Handler: rid(middleware.Chain(h.AdminGrantCoupon, gw, plat))},
+		{Method: http.MethodGet, Path: "/api/v1/admin/coupons/:id/claims", Handler: rid(middleware.Chain(h.AdminCouponClaims, gw, plat))},
+		{Method: http.MethodGet, Path: "/api/v1/admin/coupons/:id/redeems", Handler: rid(middleware.Chain(h.AdminCouponRedeems, gw, plat))},
+		{Method: http.MethodGet, Path: "/api/v1/admin/coupons/:id/stats", Handler: rid(middleware.Chain(h.AdminCouponStats, gw, plat))},
 	})
 
 	go func() {

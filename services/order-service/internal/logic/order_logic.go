@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"mymall/pkg/cache"
+	"mymall/services/order-service/internal/client/merchanthttp"
 	"mymall/services/order-service/internal/model"
 	"mymall/services/order-service/internal/repository"
 	"mymall/services/order-service/internal/svc"
@@ -28,7 +29,79 @@ func NewOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *OrderLogic 
 	}
 }
 
-func (l *OrderLogic) CreateOrder(ctx context.Context, userID uint64, addressID uint64, items []types.CreateOrderItem) (*model.Order, error) {
+func orderPayAmount(o *model.Order) float64 {
+	if o.PayAmount > 0 {
+		return o.PayAmount
+	}
+	return o.TotalAmount
+}
+
+func (l *OrderLogic) CouponPreview(ctx context.Context, userID uint64, items []types.CreateOrderItem, userCouponID uint64) (*merchanthttp.MatchResp, error) {
+	matchItems, shopID, _, err := l.buildMatchItems(ctx, items)
+	if err != nil {
+		return nil, err
+	}
+	if l.svcCtx.MerchantHTTP == nil {
+		return nil, errors.New("优惠券服务不可用")
+	}
+	return l.svcCtx.MerchantHTTP.MatchCoupons(ctx, userID, shopID, userCouponID, matchItems)
+}
+
+func (l *OrderLogic) buildMatchItems(ctx context.Context, items []types.CreateOrderItem) ([]merchanthttp.MatchItem, uint64, float64, error) {
+	if len(items) == 0 {
+		return nil, 0, 0, errors.New("订单商品不能为空")
+	}
+	ids := make([]uint64, 0, len(items))
+	for _, it := range items {
+		ids = append(ids, it.ProductID)
+	}
+	resp, err := l.svcCtx.CatalogRPC.BatchGetProducts(ctx, ids)
+	if err != nil {
+		return nil, 0, 0, fmt.Errorf("查询商品失败: %w", err)
+	}
+	productByID := map[uint64]struct {
+		shopID uint64
+		price  float64
+		name   string
+	}{}
+	for _, p := range resp.GetProducts() {
+		productByID[p.GetId()] = struct {
+			shopID uint64
+			price  float64
+			name   string
+		}{p.GetShopId(), p.GetSalePrice(), p.GetName()}
+	}
+	var shopID uint64
+	var goods float64
+	out := make([]merchanthttp.MatchItem, 0, len(items))
+	for _, it := range items {
+		p, ok := productByID[it.ProductID]
+		if !ok {
+			return nil, 0, 0, errors.New("部分商品不存在或已下架")
+		}
+		if shopID == 0 {
+			shopID = p.shopID
+		} else if p.shopID != shopID {
+			return nil, 0, 0, errors.New("不支持跨店下单，请分开结算")
+		}
+		qty := it.Quantity
+		if qty <= 0 {
+			return nil, 0, 0, errors.New("购买数量无效")
+		}
+		price := p.price
+		if it.SeckillEntryID > 0 && l.svcCtx.MerchantHTTP != nil {
+			// 预览用商品价即可；实际下单再校验秒杀
+		}
+		amt := price * float64(qty)
+		goods += amt
+		out = append(out, merchanthttp.MatchItem{
+			ProductID: it.ProductID, Amount: amt, SeckillEntryID: it.SeckillEntryID,
+		})
+	}
+	return out, shopID, goods, nil
+}
+
+func (l *OrderLogic) CreateOrder(ctx context.Context, userID uint64, addressID uint64, items []types.CreateOrderItem, userCouponID uint64) (*model.Order, error) {
 	if len(items) == 0 {
 		return nil, errors.New("订单商品不能为空")
 	}
@@ -147,12 +220,62 @@ func (l *OrderLogic) CreateOrder(ctx context.Context, userID uint64, addressID u
 		redisItems = append(redisItems, cache.StockItem{SkuID: skuID, Quantity: qty})
 	}
 
+	goodsAmount := total
+	discountAmount := 0.0
+	payAmount := total
+	if userCouponID > 0 {
+		if l.svcCtx.MerchantHTTP == nil {
+			for _, h := range seckillHolds {
+				if l.svcCtx.MerchantHTTP != nil {
+					_ = l.svcCtx.MerchantHTTP.Restore(context.Background(), h.entryID, h.qty)
+				}
+			}
+			return nil, errors.New("优惠券服务不可用")
+		}
+		matchItems := make([]merchanthttp.MatchItem, 0, len(orderItems))
+		for _, oi := range orderItems {
+			matchItems = append(matchItems, merchanthttp.MatchItem{
+				ProductID: oi.ProductID, Amount: oi.Price * float64(oi.Quantity), SeckillEntryID: oi.SeckillEntryID,
+			})
+		}
+		mr, err := l.svcCtx.MerchantHTTP.MatchCoupons(ctx, userID, shopID, userCouponID, matchItems)
+		if err != nil {
+			for _, h := range seckillHolds {
+				_ = l.svcCtx.MerchantHTTP.Restore(context.Background(), h.entryID, h.qty)
+			}
+			return nil, err
+		}
+		ok := false
+		for _, a := range mr.Available {
+			if a.UserCouponID == userCouponID && a.Usable {
+				discountAmount = a.DiscountAmount
+				ok = true
+				break
+			}
+		}
+		if !ok {
+			for _, h := range seckillHolds {
+				_ = l.svcCtx.MerchantHTTP.Restore(context.Background(), h.entryID, h.qty)
+			}
+			return nil, errors.New("优惠券不可用")
+		}
+		payAmount = goodsAmount - discountAmount
+		if payAmount < 0.01 {
+			payAmount = 0.01
+			discountAmount = goodsAmount - payAmount
+		}
+	}
+
 	orderNo := fmt.Sprintf("ORD%s", uuid.NewString()[:8]+time.Now().Format("150405"))
 	order := &model.Order{
 		OrderNo:         orderNo,
 		UserID:          userID,
 		ShopID:          shopID,
-		TotalAmount:     total,
+		TotalAmount:     payAmount,
+		GoodsAmount:     goodsAmount,
+		DiscountAmount:  discountAmount,
+		PayAmount:       payAmount,
+		UserCouponID:    userCouponID,
 		ReceiverName:    addr.ReceiverName,
 		ReceiverPhone:   addr.ReceiverPhone,
 		ReceiverAddress: addr.FullAddress(),
@@ -165,6 +288,23 @@ func (l *OrderLogic) CreateOrder(ctx context.Context, userID uint64, addressID u
 		return nil, err
 	}
 
+	couponLocked := false
+	if userCouponID > 0 {
+		if err := l.svcCtx.MerchantHTTP.LockCoupon(ctx, userCouponID, userID, order.ID, discountAmount); err != nil {
+			_ = l.svcCtx.Repo.UpdateStatus(orderNo, model.OrderStatusFailed)
+			for _, h := range seckillHolds {
+				_ = l.svcCtx.MerchantHTTP.Restore(context.Background(), h.entryID, h.qty)
+			}
+			return nil, err
+		}
+		couponLocked = true
+	}
+	defer func() {
+		if couponLocked {
+			_ = l.svcCtx.MerchantHTTP.UnlockCoupon(context.Background(), userCouponID, order.ID)
+		}
+	}()
+
 	if l.svcCtx.UserHTTP == nil {
 		_ = l.svcCtx.Repo.UpdateStatus(orderNo, model.OrderStatusFailed)
 		for _, h := range seckillHolds {
@@ -172,7 +312,7 @@ func (l *OrderLogic) CreateOrder(ctx context.Context, userID uint64, addressID u
 		}
 		return nil, errors.New("钱包服务不可用")
 	}
-	if err := l.svcCtx.UserHTTP.Freeze(ctx, userID, total, order.ID, orderNo); err != nil {
+	if err := l.svcCtx.UserHTTP.Freeze(ctx, userID, payAmount, order.ID, orderNo); err != nil {
 		_ = l.svcCtx.Repo.UpdateStatus(orderNo, model.OrderStatusFailed)
 		for _, h := range seckillHolds {
 			_ = l.svcCtx.MerchantHTTP.Restore(context.Background(), h.entryID, h.qty)
@@ -182,7 +322,7 @@ func (l *OrderLogic) CreateOrder(ctx context.Context, userID uint64, addressID u
 	frozen := true
 	defer func() {
 		if frozen {
-			_ = l.svcCtx.UserHTTP.Unfreeze(context.Background(), userID, total, order.ID, orderNo)
+			_ = l.svcCtx.UserHTTP.Unfreeze(context.Background(), userID, payAmount, order.ID, orderNo)
 		}
 	}()
 
@@ -217,6 +357,7 @@ func (l *OrderLogic) CreateOrder(ctx context.Context, userID uint64, addressID u
 
 	frozen = false
 	deducted = false
+	couponLocked = false
 	order.Items = orderItems
 	return order, nil
 }
@@ -268,8 +409,12 @@ func (l *OrderLogic) releaseStock(ctx context.Context, order *model.Order) error
 	if l.svcCtx.Redis != nil && len(redisItems) > 0 {
 		_ = cache.StockRestore(ctx, l.svcCtx.Redis, redisItems)
 	}
-	if l.svcCtx.UserHTTP != nil && order.TotalAmount > 0 {
-		_ = l.svcCtx.UserHTTP.Unfreeze(ctx, order.UserID, order.TotalAmount, order.ID, order.OrderNo)
+	pay := orderPayAmount(order)
+	if l.svcCtx.UserHTTP != nil && pay > 0 {
+		_ = l.svcCtx.UserHTTP.Unfreeze(ctx, order.UserID, pay, order.ID, order.OrderNo)
+	}
+	if order.UserCouponID > 0 && l.svcCtx.MerchantHTTP != nil {
+		_ = l.svcCtx.MerchantHTTP.UnlockCoupon(ctx, order.UserCouponID, order.ID)
 	}
 	if l.svcCtx.MQ != nil {
 		_ = l.svcCtx.MQ.PublishOrderCancelled(ctx, order.OrderNo, items)
@@ -329,24 +474,47 @@ func (l *OrderLogic) Ship(id, shopID uint64, company, shipNo string) error {
 	return nil
 }
 
-func (l *OrderLogic) Complete(id, shopID uint64) error {
+func (l *OrderLogic) Complete(ctx context.Context, id, shopID uint64) error {
+	var order *model.Order
+	var err error
+	if shopID > 0 {
+		order, err = l.svcCtx.Repo.FindByIDAndShop(id, shopID)
+	} else {
+		order, err = l.svcCtx.Repo.FindByIDAdmin(id)
+	}
+	if err != nil {
+		return errors.New("订单不存在或状态不是已发货")
+	}
 	if err := l.svcCtx.Repo.Complete(id, shopID); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("订单不存在或状态不是已发货")
 		}
 		return err
 	}
+	l.redeemCoupon(ctx, order)
 	return nil
 }
 
-func (l *OrderLogic) ConfirmReceive(userID, orderID uint64) error {
+func (l *OrderLogic) ConfirmReceive(ctx context.Context, userID, orderID uint64) error {
+	order, err := l.svcCtx.Repo.FindByID(orderID, userID)
+	if err != nil {
+		return errors.New("订单不存在或状态不是已发货")
+	}
 	if err := l.svcCtx.Repo.ConfirmReceive(orderID, userID); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("订单不存在或状态不是已发货")
 		}
 		return err
 	}
+	l.redeemCoupon(ctx, order)
 	return nil
+}
+
+func (l *OrderLogic) redeemCoupon(ctx context.Context, order *model.Order) {
+	if order == nil || order.UserCouponID == 0 || l.svcCtx.MerchantHTTP == nil {
+		return
+	}
+	_ = l.svcCtx.MerchantHTTP.RedeemCoupon(ctx, order.UserCouponID, order.ID, order.DiscountAmount)
 }
 
 func (l *OrderLogic) UpdateRemark(id, shopID uint64, remark string) error {
@@ -381,10 +549,11 @@ func (l *OrderLogic) CreateAfterSale(userID, orderID uint64, req types.CreateAft
 		return nil, errors.New("售后类型无效")
 	}
 	amount := req.Amount
+	pay := orderPayAmount(order)
 	if amount <= 0 {
-		amount = order.TotalAmount
+		amount = pay
 	}
-	if amount > order.TotalAmount {
+	if amount > pay {
 		return nil, errors.New("退款金额不能超过订单金额")
 	}
 	as := &model.OrderAfterSale{
@@ -452,9 +621,24 @@ func (l *OrderLogic) HandleAfterSale(ctx context.Context, id, shopID, handledBy 
 		if err != nil {
 			return nil
 		}
+		pay := orderPayAmount(order)
+		// 全额退：返还优惠券（确认收货后券已 used，走 return）
+		if as.Amount+0.001 >= pay && order.UserCouponID > 0 && l.svcCtx.MerchantHTTP != nil {
+			_ = l.svcCtx.MerchantHTTP.ReturnCoupon(ctx, order.UserCouponID, order.ID)
+		}
 		// 已扣库存的状态：还库存；并标记订单取消（若尚未取消）
 		if order.Status == model.OrderStatusConfirmed || order.Status == model.OrderStatusShipped || order.Status == model.OrderStatusCompleted {
-			_ = l.releaseStock(ctx, order)
+			// releaseStock 内 unlock 对已 used 券也会走 return 语义前的 unlock；全额已单独 Return
+			if as.Amount+0.001 < pay {
+				// 部分退不 unlock（券保持 used）；临时清 user_coupon 避免 release 解锁
+				uc := order.UserCouponID
+				order.UserCouponID = 0
+				_ = l.releaseStock(ctx, order)
+				order.UserCouponID = uc
+			} else {
+				order.UserCouponID = 0 // 已 Return，避免再 Unlock
+				_ = l.releaseStock(ctx, order)
+			}
 			_ = l.svcCtx.Repo.UpdateStatus(order.OrderNo, model.OrderStatusCancelled)
 		}
 	}

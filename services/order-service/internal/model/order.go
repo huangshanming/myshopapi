@@ -35,6 +35,10 @@ type Order struct {
 	UserID          uint64           `gorm:"column:user_id;not null;index" json:"user_id"`
 	ShopID          uint64           `gorm:"column:shop_id;not null;default:0;index" json:"shop_id"`
 	TotalAmount     float64          `gorm:"column:total_amount;type:decimal(12,2);not null" json:"total_amount"`
+	GoodsAmount     float64          `gorm:"column:goods_amount;type:decimal(12,2);not null;default:0" json:"goods_amount"`
+	DiscountAmount  float64          `gorm:"column:discount_amount;type:decimal(12,2);not null;default:0" json:"discount_amount"`
+	PayAmount       float64          `gorm:"column:pay_amount;type:decimal(12,2);not null;default:0" json:"pay_amount"`
+	UserCouponID    uint64           `gorm:"column:user_coupon_id;not null;default:0" json:"user_coupon_id"`
 	ReceiverName    string           `gorm:"column:receiver_name;type:varchar(64);not null;default:''" json:"receiver_name"`
 	ReceiverPhone   string           `gorm:"column:receiver_phone;type:varchar(20);not null;default:''" json:"receiver_phone"`
 	ReceiverAddress string           `gorm:"column:receiver_address;type:varchar(255);not null;default:''" json:"receiver_address"`

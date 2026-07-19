@@ -39,12 +39,31 @@ func (h *OrderHandler) Create(w http.ResponseWriter, r *http.Request) {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
 		return
 	}
-	order, err := h.logic.CreateOrder(r.Context(), userID, req.AddressID, req.Items)
+	order, err := h.logic.CreateOrder(r.Context(), userID, req.AddressID, req.Items, req.UserCouponID)
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
 		return
 	}
 	httpx.OkJsonCtx(r.Context(), w, order)
+}
+
+func (h *OrderHandler) CouponPreview(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
+		return
+	}
+	var req types.CouponPreviewReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
+		return
+	}
+	resp, err := h.logic.CouponPreview(r.Context(), userID, req.Items, req.UserCouponID)
+	if err != nil {
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
+		return
+	}
+	httpx.OkJsonCtx(r.Context(), w, resp)
 }
 
 func (h *OrderHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -110,7 +129,7 @@ func (h *OrderHandler) ConfirmReceive(w http.ResponseWriter, r *http.Request) {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "订单ID无效"))
 		return
 	}
-	if err := h.logic.ConfirmReceive(userID, orderID); err != nil {
+	if err := h.logic.ConfirmReceive(r.Context(), userID, orderID); err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
 		return
 	}
@@ -296,7 +315,7 @@ func (h *OrderHandler) complete(w http.ResponseWriter, r *http.Request, shopID u
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "订单ID无效"))
 		return
 	}
-	if err := h.logic.Complete(orderID, shopID); err != nil {
+	if err := h.logic.Complete(r.Context(), orderID, shopID); err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
 		return
 	}

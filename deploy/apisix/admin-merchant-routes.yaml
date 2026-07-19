@@ -185,6 +185,12 @@ spec:
           - /api/v1/admin/theme-packages/*
           - /api/v1/admin/theme-orders
           - /api/v1/admin/theme-orders/*
+          - /api/v1/admin/coupons
+          - /api/v1/admin/coupons/*
+          - /api/v1/merchant/coupons
+          - /api/v1/merchant/coupons/*
+          - /api/v1/user/coupons
+          - /api/v1/coupons/*/claim
         methods:
           - GET
           - POST

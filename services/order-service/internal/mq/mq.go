@@ -6,6 +6,7 @@ import (
 
 	"mymall/pkg/cache"
 	"mymall/pkg/mq"
+	"mymall/services/order-service/internal/client/merchanthttp"
 	"mymall/services/order-service/internal/client/userhttp"
 	"mymall/services/order-service/internal/model"
 	"mymall/services/order-service/internal/repository"
@@ -46,15 +47,23 @@ type InventoryResultEvent struct {
 }
 
 type Consumer struct {
-	client   *mq.Client
-	repo     *repository.OrderRepository
-	rdb      *redis.Client
-	userHTTP *userhttp.Client
-	logger   *zap.Logger
+	client       *mq.Client
+	repo         *repository.OrderRepository
+	rdb          *redis.Client
+	userHTTP     *userhttp.Client
+	merchantHTTP *merchanthttp.Client
+	logger       *zap.Logger
 }
 
-func NewConsumer(client *mq.Client, repo *repository.OrderRepository, rdb *redis.Client, userHTTP *userhttp.Client, logger *zap.Logger) *Consumer {
-	return &Consumer{client: client, repo: repo, rdb: rdb, userHTTP: userHTTP, logger: logger}
+func NewConsumer(client *mq.Client, repo *repository.OrderRepository, rdb *redis.Client, userHTTP *userhttp.Client, merchantHTTP *merchanthttp.Client, logger *zap.Logger) *Consumer {
+	return &Consumer{client: client, repo: repo, rdb: rdb, userHTTP: userHTTP, merchantHTTP: merchantHTTP, logger: logger}
+}
+
+func payAmount(o *model.Order) float64 {
+	if o.PayAmount > 0 {
+		return o.PayAmount
+	}
+	return o.TotalAmount
 }
 
 func (c *Consumer) Start() error {
@@ -75,13 +84,20 @@ func (c *Consumer) handleReserved(ctx context.Context, _ string, body []byte) er
 		return err
 	}
 	// 先实扣再改状态：Settle 幂等；失败则返回 err 让 MQ 重试，避免「已确认却无实扣」
-	if c.userHTTP != nil && order.TotalAmount > 0 {
-		if err := c.userHTTP.Settle(ctx, order.UserID, order.TotalAmount, order.ID, order.OrderNo); err != nil {
+	amt := payAmount(order)
+	if c.userHTTP != nil && amt > 0 {
+		if err := c.userHTTP.Settle(ctx, order.UserID, amt, order.ID, order.OrderNo); err != nil {
 			c.logger.Warn("wallet settle failed", zap.String("order_no", evt.OrderNo), zap.Error(err))
 			return err
 		}
 	}
-	return c.repo.UpdateStatus(evt.OrderNo, model.OrderStatusConfirmed)
+	if err := c.repo.UpdateStatus(evt.OrderNo, model.OrderStatusConfirmed); err != nil {
+		return err
+	}
+	if c.merchantHTTP != nil {
+		_ = c.merchantHTTP.OrderGiftCoupons(ctx, order.UserID, order.ShopID)
+	}
+	return nil
 }
 
 func (c *Consumer) handleFailed(ctx context.Context, _ string, body []byte) error {
@@ -99,9 +115,12 @@ func (c *Consumer) handleFailed(ctx context.Context, _ string, body []byte) erro
 		return nil
 	}
 	if c.userHTTP != nil {
-		if err := c.userHTTP.Unfreeze(ctx, order.UserID, order.TotalAmount, order.ID, order.OrderNo); err != nil {
+		if err := c.userHTTP.Unfreeze(ctx, order.UserID, payAmount(order), order.ID, order.OrderNo); err != nil {
 			c.logger.Warn("wallet unfreeze failed", zap.String("order_no", evt.OrderNo), zap.Error(err))
 		}
+	}
+	if c.merchantHTTP != nil && order.UserCouponID > 0 {
+		_ = c.merchantHTTP.UnlockCoupon(ctx, order.UserCouponID, order.ID)
 	}
 	if c.rdb == nil {
 		return nil

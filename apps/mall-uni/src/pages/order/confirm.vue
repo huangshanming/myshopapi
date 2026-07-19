@@ -53,9 +53,39 @@
         <text>运费</text>
         <text class="fee-val">¥0.00</text>
       </view>
+      <view class="fee-row" @tap="openCouponSheet">
+        <text>优惠券</text>
+        <text class="fee-val coupon-val">{{ couponLabel }} ›</text>
+      </view>
+      <view v-if="discountAmount > 0" class="fee-row">
+        <text>优惠</text>
+        <text class="fee-val discount">-¥{{ discountAmount.toFixed(2) }}</text>
+      </view>
       <view class="fee-row total-row">
         <text>小计</text>
         <text class="total">¥{{ total.toFixed(2) }}</text>
+      </view>
+    </view>
+
+    <view v-if="couponSheet" class="mask" @tap="couponSheet = false">
+      <view class="sheet" @tap.stop>
+        <text class="sheet-title">选择优惠券</text>
+        <view class="sheet-item" :class="{ on: !selectedCouponId }" @tap="pickCoupon(0)">不使用优惠券</view>
+        <view
+          v-for="c in available"
+          :key="c.user_coupon_id"
+          class="sheet-item"
+          :class="{ on: selectedCouponId === c.user_coupon_id }"
+          @tap="pickCoupon(c.user_coupon_id)"
+        >
+          <text>{{ c.name }} · 减¥{{ Number(c.discount_amount).toFixed(2) }}</text>
+          <text class="sheet-sub">至 {{ c.valid_end }}</text>
+        </view>
+        <view v-for="c in unavailable" :key="'u'+c.user_coupon_id" class="sheet-item dim">
+          <text>{{ c.name }}</text>
+          <text class="sheet-sub">{{ c.reason || '不可用' }}</text>
+        </view>
+        <button class="sheet-btn" @tap="couponSheet = false">完成</button>
       </view>
     </view>
 
@@ -81,7 +111,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { getShop, listAddresses } from '../../api/index'
+import { couponPreview, getShop, listAddresses } from '../../api/index'
 import { getCheckoutPayload, setCheckoutPayload } from '../../stores/cart'
 import { isLoggedIn } from '../../stores/user'
 
@@ -91,11 +121,21 @@ const items = ref([])
 const address = ref(null)
 const addressId = ref(0)
 const shop = ref({})
+const selectedCouponId = ref(0)
+const discountAmount = ref(0)
+const available = ref([])
+const unavailable = ref([])
+const couponSheet = ref(false)
 
 const goodsAmount = computed(() =>
   items.value.reduce((s, x) => s + Number(x.price) * Number(x.quantity), 0),
 )
-const total = computed(() => goodsAmount.value)
+const total = computed(() => Math.max(goodsAmount.value - discountAmount.value, 0.01))
+const couponLabel = computed(() => {
+  if (!selectedCouponId.value) return discountAmount.value > 0 ? '请选择' : '无可用券'
+  const c = available.value.find((x) => x.user_coupon_id === selectedCouponId.value)
+  return c ? `已选 · 减¥${Number(c.discount_amount).toFixed(2)}` : '已选'
+})
 const itemCount = computed(() =>
   items.value.reduce((n, x) => n + (Number(x.quantity) || 0), 0),
 )
@@ -153,6 +193,49 @@ function goAddress() {
   uni.navigateTo({ url: '/pages/address/list?from=confirm' })
 }
 
+function orderItemsPayload() {
+  return items.value.map((x) => {
+    const it = {
+      product_id: x.product_id,
+      sku_id: x.sku_id || 0,
+      quantity: x.quantity,
+    }
+    if (x.seckill_entry_id) it.seckill_entry_id = x.seckill_entry_id
+    return it
+  })
+}
+
+async function loadCoupons() {
+  try {
+    const res = await couponPreview(orderItemsPayload(), selectedCouponId.value)
+    available.value = res?.available || []
+    unavailable.value = res?.unavailable || []
+    if (!selectedCouponId.value && res?.best_user_coupon_id) {
+      selectedCouponId.value = res.best_user_coupon_id
+    }
+    discountAmount.value = Number(res?.discount_amount) || 0
+    if (selectedCouponId.value) {
+      const again = await couponPreview(orderItemsPayload(), selectedCouponId.value)
+      discountAmount.value = Number(again?.discount_amount) || 0
+      available.value = again?.available || available.value
+      unavailable.value = again?.unavailable || unavailable.value
+    }
+  } catch {
+    available.value = []
+    unavailable.value = []
+    discountAmount.value = 0
+  }
+}
+
+function openCouponSheet() {
+  couponSheet.value = true
+}
+
+async function pickCoupon(id) {
+  selectedCouponId.value = id
+  await loadCoupons()
+}
+
 function goPay() {
   if (!addressId.value || !address.value) {
     uni.showToast({ title: '请选择收货地址', icon: 'none' })
@@ -167,6 +250,9 @@ function goPay() {
     ...payload,
     address_id: addressId.value,
     items: items.value,
+    user_coupon_id: selectedCouponId.value || 0,
+    pay_amount: total.value,
+    discount_amount: discountAmount.value,
   })
   uni.navigateTo({ url: '/pages/order/pay' })
 }
@@ -184,7 +270,8 @@ onShow(async () => {
   }
   items.value = payload.items
   if (payload.address_id) addressId.value = Number(payload.address_id)
-  await Promise.all([loadAddresses(), loadShop()])
+  selectedCouponId.value = Number(payload.user_coupon_id) || 0
+  await Promise.all([loadAddresses(), loadShop(), loadCoupons()])
 })
 </script>
 
@@ -286,5 +373,22 @@ onShow(async () => {
 .bar-btn {
   margin: 0; height: 80rpx; line-height: 80rpx; padding: 0 48rpx; border-radius: 999rpx;
   background: linear-gradient(135deg, #f59e0b, #ef4444); color: #fff; font-size: 30rpx; font-weight: 600;
+}
+.coupon-val { color: #c4894a; }
+.discount { color: #d83636; }
+.mask {
+  position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 50;
+  display: flex; align-items: flex-end;
+}
+.sheet {
+  width: 100%; background: #fff; border-radius: 24rpx 24rpx 0 0; padding: 32rpx 28rpx 48rpx; max-height: 70vh; overflow: auto;
+}
+.sheet-title { font-weight: 600; font-size: 30rpx; display: block; margin-bottom: 20rpx; }
+.sheet-item { padding: 20rpx 0; border-bottom: 1rpx solid #f1f5f9; }
+.sheet-item.on { color: #c4894a; }
+.sheet-item.dim { opacity: .45; }
+.sheet-sub { display: block; font-size: 22rpx; color: #94a3b8; margin-top: 6rpx; }
+.sheet-btn {
+  margin-top: 24rpx; background: #c4894a; color: #fff; border: none; border-radius: 40rpx; height: 80rpx; line-height: 80rpx;
 }
 </style>
