@@ -16,6 +16,18 @@ export function listShops(params = { page: 1, page_size: 20 }) {
   return http.get('/api/v1/shops/list', params)
 }
 
+export function getShop(id) {
+  return http.get(`/api/v1/shops/${id}`)
+}
+
+export function listRegions(parentCode = '') {
+  return http.get('/api/v1/regions', { parent_code: parentCode || '' })
+}
+
+export function getRegionTree() {
+  return http.get('/api/v1/regions/tree')
+}
+
 export function getSeckillCurrent() {
   return http.get('/api/v1/seckill/current')
 }

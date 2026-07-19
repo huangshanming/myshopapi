@@ -151,6 +151,20 @@ func (h *MerchantHandler) PublicListShops(w http.ResponseWriter, r *http.Request
 	response.Success(w, types.PageListResp{Total: total, List: list}, "查询成功")
 }
 
+func (h *MerchantHandler) PublicGetShop(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	if err != nil || id == 0 {
+		response.Error(w, "店铺ID无效", http.StatusBadRequest)
+		return
+	}
+	shop, err := h.logic.GetPublicShop(id)
+	if err != nil {
+		response.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	response.Success(w, shop, "ok")
+}
+
 func (h *MerchantHandler) AdminCreateShop(w http.ResponseWriter, r *http.Request) {
 	var req types.AdminCreateShopReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

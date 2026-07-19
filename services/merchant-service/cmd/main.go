@@ -93,6 +93,7 @@ func main() {
 		{Method: http.MethodGet, Path: "/readyz", Handler: rid(healthReg.ReadyHandler())},
 
 		{Method: http.MethodGet, Path: "/api/v1/shops/list", Handler: rid(h.PublicListShops)},
+		{Method: http.MethodGet, Path: "/api/v1/shops/:id", Handler: rid(h.PublicGetShop)},
 		{Method: http.MethodGet, Path: "/api/v1/seckill/current", Handler: rid(h.PublicSeckillCurrent)},
 		{Method: http.MethodGet, Path: "/api/v1/seckill/list", Handler: rid(h.PublicSeckillList)},
 		{Method: http.MethodGet, Path: "/api/v1/seckill/entries/:id", Handler: rid(h.PublicSeckillEntry)},

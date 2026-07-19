@@ -24,6 +24,12 @@ func (l *AddressLogic) validate(req types.AddressReq) error {
 	if strings.TrimSpace(req.ReceiverPhone) == "" {
 		return errors.New("请填写手机号")
 	}
+	if strings.TrimSpace(req.Province) == "" || strings.TrimSpace(req.City) == "" || strings.TrimSpace(req.District) == "" {
+		return errors.New("请选择省市区")
+	}
+	if strings.TrimSpace(req.ProvinceCode) == "" || strings.TrimSpace(req.CityCode) == "" || strings.TrimSpace(req.DistrictCode) == "" {
+		return errors.New("请选择省市区")
+	}
 	if strings.TrimSpace(req.Detail) == "" {
 		return errors.New("请填写详细地址")
 	}
@@ -59,6 +65,9 @@ func (l *AddressLogic) Create(userID uint64, req types.AddressReq) (*model.UserA
 		City:          strings.TrimSpace(req.City),
 		District:      strings.TrimSpace(req.District),
 		Detail:        strings.TrimSpace(req.Detail),
+		ProvinceCode:  strings.TrimSpace(req.ProvinceCode),
+		CityCode:      strings.TrimSpace(req.CityCode),
+		DistrictCode:  strings.TrimSpace(req.DistrictCode),
 		IsDefault:     req.IsDefault,
 	}
 	if a.IsDefault != 1 {
@@ -81,6 +90,9 @@ func (l *AddressLogic) Update(userID, id uint64, req types.AddressReq) error {
 		City:          strings.TrimSpace(req.City),
 		District:      strings.TrimSpace(req.District),
 		Detail:        strings.TrimSpace(req.Detail),
+		ProvinceCode:  strings.TrimSpace(req.ProvinceCode),
+		CityCode:      strings.TrimSpace(req.CityCode),
+		DistrictCode:  strings.TrimSpace(req.DistrictCode),
 		IsDefault:     req.IsDefault,
 	}
 	if a.IsDefault != 1 {

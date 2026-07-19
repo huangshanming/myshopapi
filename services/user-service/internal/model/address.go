@@ -11,6 +11,9 @@ type UserAddress struct {
 	City          string           `gorm:"column:city;type:varchar(64)" json:"city"`
 	District      string           `gorm:"column:district;type:varchar(64)" json:"district"`
 	Detail        string           `gorm:"column:detail;type:varchar(255)" json:"detail"`
+	ProvinceCode  string           `gorm:"column:province_code;type:varchar(12)" json:"province_code"`
+	CityCode      string           `gorm:"column:city_code;type:varchar(12)" json:"city_code"`
+	DistrictCode  string           `gorm:"column:district_code;type:varchar(12)" json:"district_code"`
 	IsDefault     int              `gorm:"column:is_default" json:"is_default"`
 	CreatedAt     common.LocalTime `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt     common.LocalTime `gorm:"column:updated_at" json:"updated_at"`

@@ -99,6 +99,17 @@ func (l *MerchantLogic) GetShop(id uint64) (*model.Shop, error) {
 	return l.svcCtx.Repo.FindShop(id)
 }
 
+func (l *MerchantLogic) GetPublicShop(id uint64) (*model.Shop, error) {
+	shop, err := l.svcCtx.Repo.FindShop(id)
+	if err != nil {
+		return nil, errors.New("店铺不存在")
+	}
+	if shop.Status != model.ShopApproved {
+		return nil, errors.New("店铺不可用")
+	}
+	return shop, nil
+}
+
 func (l *MerchantLogic) DisableShop(id uint64, reason string) error {
 	return l.svcCtx.Repo.UpdateShopStatus(id, model.ShopDisabled, reason)
 }

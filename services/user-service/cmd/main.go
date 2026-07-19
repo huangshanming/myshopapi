@@ -18,6 +18,7 @@ import (
 	"mymall/pkg/metrics"
 	"mymall/pkg/middleware"
 	"mymall/pkg/telemetry"
+	"mymall/services/user-service/internal/data"
 	"mymall/services/user-service/internal/handler"
 	"mymall/services/user-service/internal/logic"
 	"mymall/services/user-service/internal/model"
@@ -65,16 +66,25 @@ func main() {
 		&model.UserWallet{},
 		&model.UserWalletLog{},
 		&model.UserAddress{},
+		&model.Region{},
 	); err != nil {
 		log.Fatalf("AutoMigrate 失败：%v", err)
 	}
 
 	svcCtx := svc.NewServiceContext(cfg, db)
+	if n, err := svcCtx.Repo.CountRegions(); err == nil && n == 0 {
+		if err := svcCtx.Repo.SeedRegionsFromPCA(data.PCACodeJSON); err != nil {
+			logger.Warn(fmt.Sprintf("seed regions failed: %v", err))
+		} else {
+			logger.Info("regions seeded from pca-code.json")
+		}
+	}
 	userLogic := logic.NewUserLogic(svcCtx)
 	userHandler := handler.NewUserHandler(svcCtx)
 	adminHandler := handler.NewAdminHandler(svcCtx)
 	walletHandler := handler.NewWalletHandler(svcCtx)
 	addressHandler := handler.NewAddressHandler(svcCtx)
+	regionHandler := handler.NewRegionHandler(svcCtx)
 
 	healthReg := health.NewRegistry()
 	healthReg.Register("mysql", func(ctx context.Context) error {
@@ -143,6 +153,9 @@ func main() {
 		{Method: http.MethodDelete, Path: "/api/v1/user/addresses/:id", Handler: userAuth(addressHandler.Delete)},
 		{Method: http.MethodPut, Path: "/api/v1/user/addresses/:id/default", Handler: userAuth(addressHandler.SetDefault)},
 		{Method: http.MethodGet, Path: "/api/v1/user/addresses/internal", Handler: rid(addressHandler.InternalGet)},
+
+		{Method: http.MethodGet, Path: "/api/v1/regions", Handler: rid(regionHandler.List)},
+		{Method: http.MethodGet, Path: "/api/v1/regions/tree", Handler: rid(regionHandler.Tree)},
 
 		{Method: http.MethodGet, Path: "/api/v1/admin/auth/me", Handler: adminAuth("", adminHandler.AuthMe)},
 

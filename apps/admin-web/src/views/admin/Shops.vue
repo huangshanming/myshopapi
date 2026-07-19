@@ -78,11 +78,11 @@
           <el-input v-model="form.description" type="textarea" :rows="2" />
         </el-form-item>
         <el-form-item label="省 / 市 / 区">
-          <div class="addr-row">
-            <el-input v-model="form.province" placeholder="省" />
-            <el-input v-model="form.city" placeholder="市" />
-            <el-input v-model="form.district" placeholder="区" />
-          </div>
+          <RegionCascader
+            v-model:province="form.province"
+            v-model:city="form.city"
+            v-model:district="form.district"
+          />
         </el-form-item>
         <el-form-item label="详细地址">
           <el-input v-model="form.address" />
@@ -157,6 +157,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import RegionCascader from '../../components/admin/RegionCascader.vue'
 import SingleImageField from '../../components/admin/SingleImageField.vue'
 import {
   createShop, disableShop, enableShop, fetchShops, resetShopOwnerPassword, updateShop, uploadShopImage,

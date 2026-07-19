@@ -23,6 +23,7 @@ export default defineConfig({
       '/api/v1/seckill': to(svc.merchant),
       '/api/v1/orders': to(svc.order),
       '/api/v1/user': to(svc.user),
+      '/api/v1/regions': to(svc.user),
       '/uploads': to(svc.catalog),
     },
   },

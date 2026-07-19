@@ -60,6 +60,9 @@ func (r *UserRepository) UpdateAddress(userID, id uint64, a *model.UserAddress) 
 			"city":           a.City,
 			"district":       a.District,
 			"detail":         a.Detail,
+			"province_code":  a.ProvinceCode,
+			"city_code":      a.CityCode,
+			"district_code":  a.DistrictCode,
 			"is_default":     a.IsDefault,
 		}).Error
 	})
