@@ -2,8 +2,10 @@ syntax = "v1"
 
 // Route table SSOT for catalog-service.
 // Keep in sync with internal/handler/routes.go; run: scripts/check-api-routes.sh catalog-service
+// group: <role>/<module> → internal/handler/<role>/<module>/
 @server (
 	middleware: RequestID
+	group:      public/health
 )
 service catalogapi {
 	@handler Healthz
@@ -14,7 +16,13 @@ service catalogapi {
 
 	@handler Metrics
 	get /metrics
+}
 
+@server (
+	middleware: RequestID
+	group:      public/product
+)
+service catalogapi {
 	@handler GetProductList
 	get /api/v1/products/list
 
@@ -24,19 +32,40 @@ service catalogapi {
 	@handler GetSalesRank
 	get /api/v1/products/sales-rank
 
+	@handler Count
+	get /api/v1/products/:id/favorite-count
+}
+
+@server (
+	middleware: RequestID
+	group:      public/category
+)
+service catalogapi {
 	@handler GetCategoryList
 	get /api/v1/product_category/list
 
 	@handler GetCategoryDetail
 	get /api/v1/product_category/detail
+}
 
+@server (
+	middleware: RequestID
+	group:      public/banner
+)
+service catalogapi {
 	@handler ListBanners
 	get /api/v1/banners
+}
 
-	@handler List
+@server (
+	middleware: RequestID
+	group:      public/article
+)
+service catalogapi {
+	@handler PublicListArticles
 	get /api/v1/articles/list
 
-	@handler Detail
+	@handler PublicGetArticle
 	get /api/v1/articles/:id
 
 	@handler ListComments
@@ -44,13 +73,11 @@ service catalogapi {
 
 	@handler ListEmojis
 	get /api/v1/comment-emojis
-
-	@handler Count
-	get /api/v1/products/:id/favorite-count
 }
 
 @server (
 	middleware: RequestID,GatewayIdentity
+	group:      user/article
 )
 service catalogapi {
 	@handler CreateComment
@@ -68,7 +95,7 @@ service catalogapi {
 	@handler Unfavorite
 	delete /api/v1/articles/:id/favorite
 
-	@handler Status
+	@handler UserArticleEngagement
 	get /api/v1/articles/:id/engagement
 
 	@handler ListMyFavorites
@@ -94,67 +121,74 @@ service catalogapi {
 
 	@handler UploadMine
 	post /api/v1/user/article-uploads
+}
 
-	@handler Add
+@server (
+	middleware: RequestID,GatewayIdentity
+	group:      user/favorite
+)
+service catalogapi {
+	@handler UserAddFavorite
 	post /api/v1/user/favorites
 
-	@handler Remove
+	@handler UserRemoveFavorite
 	delete /api/v1/user/favorites/:product_id
 
 	@handler RemoveBatch
 	post /api/v1/user/favorites/batch-remove
 
-	@handler List2
+	@handler UserListFavorites
 	get /api/v1/user/favorites
 
-	@handler Status2
+	@handler UserFavoriteStatus
 	get /api/v1/products/:id/favorite
 }
 
 @server (
 	middleware: RequestID,GatewayIdentityShop,RequireMerchantOwner
+	group:      merchant/product
 )
 service catalogapi {
-	@handler List3
+	@handler MerchantListProducts
 	get /api/v1/merchant/products
 
-	@handler Create
+	@handler MerchantCreateProduct
 	post /api/v1/merchant/products
 
-	@handler Batch
+	@handler MerchantBatchProducts
 	post /api/v1/merchant/products/batch
 
 	@handler JobStatus
 	get /api/v1/merchant/products/jobs/:id
 
-	@handler RecycleRestore
+	@handler MerchantRestoreProducts
 	post /api/v1/merchant/products/recycle/restore
 
-	@handler RecycleDelete
+	@handler MerchantPurgeProducts
 	delete /api/v1/merchant/products/recycle
 
-	@handler Export
+	@handler MerchantExportProducts
 	get /api/v1/merchant/products/export
 
-	@handler Import
+	@handler MerchantImportProducts
 	post /api/v1/merchant/products/import
 
 	@handler OpLogs
 	get /api/v1/merchant/products/op-logs
 
-	@handler Detail2
+	@handler MerchantGetProduct
 	get /api/v1/merchant/products/:id
 
-	@handler Update
+	@handler MerchantUpdateProduct
 	put /api/v1/merchant/products/:id
 
-	@handler SetStatus
+	@handler MerchantSetProductStatus
 	put /api/v1/merchant/products/:id/status
 
-	@handler Copy
+	@handler MerchantCopyProduct
 	post /api/v1/merchant/products/:id/copy
 
-	@handler Schedule
+	@handler MerchantScheduleProduct
 	post /api/v1/merchant/products/:id/schedules
 
 	@handler AdjustStock
@@ -166,7 +200,7 @@ service catalogapi {
 	@handler StockWarnings
 	get /api/v1/merchant/stocks/warnings
 
-	@handler Upload
+	@handler MerchantUploadImage
 	post /api/v1/merchant/uploads/images
 
 	@handler CancelSchedule
@@ -175,10 +209,10 @@ service catalogapi {
 	@handler ListTags
 	get /api/v1/merchant/tags
 
-	@handler SaveTag
+	@handler MerchantCreateTag
 	post /api/v1/merchant/tags
 
-	@handler SaveTag2
+	@handler MerchantUpdateTag
 	put /api/v1/merchant/tags/:id
 
 	@handler DeleteTag
@@ -187,16 +221,22 @@ service catalogapi {
 	@handler ListAttrTemplates
 	get /api/v1/merchant/attr-templates
 
-	@handler SaveAttrTemplate
+	@handler MerchantCreateAttrTemplate
 	post /api/v1/merchant/attr-templates
 
-	@handler SaveAttrTemplate2
+	@handler MerchantUpdateAttrTemplate
 	put /api/v1/merchant/attr-templates/:id
 
 	@handler DeleteAttrTemplate
 	delete /api/v1/merchant/attr-templates/:id
+}
 
-	@handler AuthMe
+@server (
+	middleware: RequestID,GatewayIdentityShop,RequireMerchantOwner
+	group:      merchant/shopops
+)
+service catalogapi {
+	@handler MerchantAuthMe
 	get /api/v1/merchant/auth/me
 
 	@handler ListRoles
@@ -205,10 +245,10 @@ service catalogapi {
 	@handler RoleMenus
 	get /api/v1/merchant/shop/roles/:id/menus
 
-	@handler SaveRole
+	@handler MerchantCreateRole
 	post /api/v1/merchant/shop/roles
 
-	@handler SaveRole2
+	@handler MerchantUpdateRole
 	put /api/v1/merchant/shop/roles/:id
 
 	@handler ListMenus
@@ -219,66 +259,91 @@ service catalogapi {
 
 	@handler BindStaff
 	post /api/v1/merchant/shop/staff
+}
 
-	@handler List4
+@server (
+	middleware: RequestID,GatewayIdentityShop,RequireMerchantOwner
+	group:      merchant/article
+)
+service catalogapi {
+	@handler MerchantListArticles
 	get /api/v1/merchant/articles
 
-	@handler Create2
+	@handler MerchantCreateArticle
 	post /api/v1/merchant/articles
 
-	@handler Detail3
+	@handler MerchantGetArticle
 	get /api/v1/merchant/articles/:id
 
-	@handler Update2
+	@handler MerchantUpdateArticle
 	put /api/v1/merchant/articles/:id
 
-	@handler Delete
+	@handler MerchantDeleteArticle
 	delete /api/v1/merchant/articles/:id
 
-	@handler CategoryList
+	@handler MerchantListArticleCategories
 	get /api/v1/merchant/article-categories
 
-	@handler CommentList
+	@handler MerchantListArticleComments
 	get /api/v1/merchant/article-comments
 
-	@handler CommentPatch
+	@handler MerchantPatchArticleComment
 	patch /api/v1/merchant/article-comments/:id
 
-	@handler CommentDelete
+	@handler MerchantDeleteArticleComment
 	delete /api/v1/merchant/article-comments/:id
 
-	@handler Upload2
+	@handler MerchantUploadArticle
 	post /api/v1/merchant/article-uploads
+}
 
-	@handler UnreadCount
+@server (
+	middleware: RequestID,GatewayIdentityShop,RequireMerchantOwner
+	group:      merchant/notification
+)
+service catalogapi {
+	@handler MerchantUnreadNotificationCount
 	get /api/v1/merchant/notifications/unread-count
 
-	@handler MarkAllRead
+	@handler MerchantMarkAllNotificationsRead
 	post /api/v1/merchant/notifications/read-all
 
-	@handler List5
+	@handler MerchantListNotifications
 	get /api/v1/merchant/notifications
 
-	@handler MarkRead
+	@handler MerchantMarkNotificationRead
 	post /api/v1/merchant/notifications/:id/read
 }
 
 @server (
 	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
+	group:      admin/user_favorite
 )
 service catalogapi {
-	@handler AdminUserList
+	@handler AdminListUserFavorites
 	get /api/v1/admin/users/:id/favorites
+}
 
-	@handler List6
+@server (
+	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
+	group:      admin/product
+)
+service catalogapi {
+	@handler AdminListProducts
 	get /api/v1/admin/products
 
-	@handler OffSale
+	@handler AdminOffSaleProduct
 	put /api/v1/admin/products/:id/off_sale
 
-	@handler Delete2
+	@handler AdminDeleteProduct
 	delete /api/v1/admin/products/:id
+}
 
+@server (
+	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
+	group:      admin/category
+)
+service catalogapi {
 	@handler AdminListCategories
 	get /api/v1/admin/categories
 
@@ -290,65 +355,80 @@ service catalogapi {
 
 	@handler AdminDeleteCategory
 	delete /api/v1/admin/categories/:id
+}
 
-	@handler Stats
+@server (
+	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
+	group:      admin/article
+)
+service catalogapi {
+	@handler AdminArticleStats
 	get /api/v1/admin/articles/stats
 
-	@handler List7
+	@handler AdminListArticleRecycle
 	get /api/v1/admin/articles/recycle
 
-	@handler RecycleRestore2
+	@handler AdminRestoreArticleRecycle
 	post /api/v1/admin/articles/recycle/restore
 
-	@handler RecycleDelete2
+	@handler AdminPurgeArticleRecycle
 	delete /api/v1/admin/articles/recycle
 
-	@handler BatchAudit
+	@handler AdminBatchAuditArticles
 	post /api/v1/admin/articles/batch-audit
 
-	@handler List8
+	@handler AdminListArticles
 	get /api/v1/admin/articles
 
-	@handler Create3
+	@handler AdminCreateArticle
 	post /api/v1/admin/articles
 
-	@handler Detail4
+	@handler AdminGetArticle
 	get /api/v1/admin/articles/:id
 
-	@handler Update3
+	@handler AdminUpdateArticle
 	put /api/v1/admin/articles/:id
 
-	@handler SoftDelete
+	@handler AdminSoftDeleteArticle
 	delete /api/v1/admin/articles/:id
 
-	@handler Audit
+	@handler AdminAuditArticle
 	post /api/v1/admin/articles/:id/audit
 
-	@handler Top
+	@handler AdminTopArticle
 	post /api/v1/admin/articles/:id/top
 
-	@handler Offline
+	@handler AdminOfflineArticle
 	post /api/v1/admin/articles/:id/offline
 
-	@handler CategoryList2
+	@handler AdminListArticleCategories
 	get /api/v1/admin/article-categories
 
-	@handler CategoryCreate
+	@handler AdminCreateArticleCategory
 	post /api/v1/admin/article-categories
 
-	@handler CategoryUpdate
+	@handler AdminUpdateArticleCategory
 	put /api/v1/admin/article-categories/:id
 
-	@handler CategoryDelete
+	@handler AdminDeleteArticleCategory
 	delete /api/v1/admin/article-categories/:id
 
-	@handler CommentList2
+	@handler AdminUploadArticle
+	post /api/v1/admin/article-uploads
+}
+
+@server (
+	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
+	group:      admin/comment
+)
+service catalogapi {
+	@handler AdminListArticleComments
 	get /api/v1/admin/article-comments
 
-	@handler CommentPatch2
+	@handler AdminPatchArticleComment
 	patch /api/v1/admin/article-comments/:id
 
-	@handler CommentDelete2
+	@handler AdminDeleteArticleComment
 	delete /api/v1/admin/article-comments/:id
 
 	@handler EmojiList
@@ -362,11 +442,14 @@ service catalogapi {
 
 	@handler EmojiDelete
 	delete /api/v1/admin/comment-emojis/:id
+}
 
-	@handler Upload3
-	post /api/v1/admin/article-uploads
-
-	@handler ListBanners2
+@server (
+	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
+	group:      admin/banner
+)
+service catalogapi {
+	@handler AdminListBanners
 	get /api/v1/admin/banners
 
 	@handler CreateBanner
@@ -383,8 +466,14 @@ service catalogapi {
 
 	@handler DeleteBanner
 	delete /api/v1/admin/banners/:id
+}
 
-	@handler Upload4
+@server (
+	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
+	group:      admin/shop
+)
+service catalogapi {
+	@handler AdminUploadShop
 	post /api/v1/admin/shop-uploads
 }
 

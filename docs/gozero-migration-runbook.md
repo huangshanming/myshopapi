@@ -11,22 +11,28 @@ export PATH="$(go env GOPATH)/bin:$PATH"
 
 ## 唯一正确流程
 
-1. 编辑服务 `api/*.api`（路由 / `@server` 中间件 / `@handler`）
+1. 编辑服务 `api/*.api`（路由 / `@server` 中间件 / `group` / `@handler`）
+   - `group` 写成 `<端>/<模块>`（可多层），goctl 生成到 `internal/handler/<端>/<模块>/`、`internal/logic/<端>/<模块>/`（叶子目录为 Go package 名）
+   - 同一中间件链下按模块拆多个 `@server`（只改 `group`）
+   - `@handler` 名全服务唯一且语义化（如 `MerchantCreateProduct`、`AdminGetArticle`），**禁止** `Create2` / `Detail3` 这种数字后缀
+   - catalog 范本模块：`public/{health,product,category,banner,article}`、`user/{article,favorite}`、`merchant/{product,shopops,article,notification}`、`admin/{article,category,product,banner,comment,user_favorite,shop}`
 2. 生成：
 
 ```bash
-./scripts/gen-api.sh merchant-service
+./scripts/gen-api.sh catalog-service
 ```
 
+   `gen-api.sh` 会在 goctl 之后把同一模块下「一接口一文件」合并为单个文件（如 `admin/article/` → `admin_article_handler.go`）。**不要**手拆回多文件；下次 gen 会再合并。
+
 3. **只改**业务实现：
-   - `internal/logic/*_logic.go`
+   - `internal/logic/<端>/<模块>/*_logic.go`（可委托 `internal/httpapi/<端>/` 或域内 httpapi）
    - `internal/middleware/*_middleware.go`（接 `pkg/middleware`）
    - `internal/svc/service_context.go`（`gen-api.sh` 会保留该文件不被覆盖）
 4. **禁止手改** `internal/handler/routes.go`（goctl 生成，带 `DO NOT EDIT`）
 5. 校验：
 
 ```bash
-./scripts/check-api-routes.sh merchant-service
+./scripts/check-api-routes.sh catalog-service
 ./scripts/check-api-routes.sh all
 ```
 
@@ -49,5 +55,6 @@ handler.RegisterHandlers(server, svcCtx)
 
 ## 参考
 
-- 样板：[`services/merchant-service`](../services/merchant-service)
+- 嵌套 group 样板：[`services/catalog-service`](../services/catalog-service)（`group: admin/article` 等）
+- 其它服务：[`services/merchant-service`](../services/merchant-service)
 - 小型参考：[`services/inventory-sync-service`](../services/inventory-sync-service)

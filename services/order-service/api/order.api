@@ -4,6 +4,7 @@ syntax = "v1"
 // Keep in sync with internal/handler/routes.go; run: scripts/check-api-routes.sh order-service
 @server (
 	middleware: RequestID
+	group:      public
 )
 service orderapi {
 	@handler Healthz
@@ -15,15 +16,16 @@ service orderapi {
 	@handler Metrics
 	get /metrics
 
-	@handler ProductList
+	@handler PublicListProductReviews
 	get /api/v1/products/:id/reviews
 }
 
 @server (
 	middleware: RequestID,GatewayIdentity
+	group:      user
 )
 service orderapi {
-	@handler Create
+	@handler UserCreateOrder
 	post /api/v1/orders
 
 	@handler CouponPreview
@@ -35,10 +37,10 @@ service orderapi {
 	@handler UserAfterSales
 	get /api/v1/orders/after-sales
 
-	@handler List
+	@handler UserListOrders
 	get /api/v1/orders
 
-	@handler Detail
+	@handler UserGetOrder
 	get /api/v1/orders/:id
 
 	@handler Cancel
@@ -53,21 +55,22 @@ service orderapi {
 	@handler Eligible
 	get /api/v1/orders/:id/review-eligible
 
-	@handler Create2
+	@handler UserCreateReview
 	post /api/v1/orders/:id/reviews
 
 	@handler GetByOrder
 	get /api/v1/orders/:id/review
 
-	@handler Upload
+	@handler UserUploadReview
 	post /api/v1/user/review-uploads
 }
 
 @server (
 	middleware: RequestID,GatewayIdentityShop,RequireMerchantOwner
+	group:      merchant
 )
 service orderapi {
-	@handler MerchantList
+	@handler MerchantListReviews
 	get /api/v1/merchant/reviews
 
 	@handler MerchantReply
@@ -76,7 +79,7 @@ service orderapi {
 	@handler MerchantDelete
 	delete /api/v1/merchant/reviews/:id
 
-	@handler MerchantList2
+	@handler MerchantListOrders
 	get /api/v1/merchant/orders
 
 	@handler MerchantDetail
@@ -100,23 +103,25 @@ service orderapi {
 
 @server (
 	middleware: RequestID,GatewayIdentity,RequirePlatformOrMerchant
+	group:      shared
 )
 service orderapi {
-	@handler Options
+	@handler LogisticsOptions
 	get /api/v1/logistics/options
 }
 
 @server (
 	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
+	group:      admin
 )
 service orderapi {
-	@handler AdminList
+	@handler AdminListReviews
 	get /api/v1/admin/reviews
 
 	@handler AdminDelete
 	delete /api/v1/admin/reviews/:id
 
-	@handler AdminList2
+	@handler AdminListOrders
 	get /api/v1/admin/orders
 
 	@handler AdminDetail
@@ -137,19 +142,19 @@ service orderapi {
 	@handler AdminHandleAfterSale
 	put /api/v1/admin/after-sales/:id/handle
 
-	@handler AdminList3
+	@handler AdminListLogistics
 	get /api/v1/admin/logistics
 
-	@handler Create3
+	@handler AdminCreateLogistics
 	post /api/v1/admin/logistics
 
-	@handler Update
+	@handler AdminUpdateLogistics
 	put /api/v1/admin/logistics/:id
 
 	@handler UpdateStatus
 	put /api/v1/admin/logistics/:id/status
 
-	@handler Delete
+	@handler AdminDeleteLogistics
 	delete /api/v1/admin/logistics/:id
 }
 

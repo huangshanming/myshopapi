@@ -6,6 +6,10 @@ package handler
 import (
 	"net/http"
 
+	admin "mymall/services/user-service/internal/handler/admin"
+	internalapi "mymall/services/user-service/internal/handler/internalapi"
+	public "mymall/services/user-service/internal/handler/public"
+	user "mymall/services/user-service/internal/handler/user"
 	"mymall/services/user-service/internal/svc"
 
 	"github.com/zeromicro/go-zero/rest"
@@ -14,82 +18,263 @@ import (
 func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 	server.AddRoutes(
 		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.RequestID, serverCtx.GatewayIdentity, serverCtx.RequirePlatformAdmin},
+			[]rest.Route{
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/admins",
+					Handler: admin.ListAdminsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/admins",
+					Handler: admin.CreateAdminHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/admin/admins/:id/password",
+					Handler: admin.ResetAdminPasswordHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/admins/:id/roles",
+					Handler: admin.GetAdminRolesHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/admin/admins/:id/roles",
+					Handler: admin.AssignAdminRolesHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/auth/me",
+					Handler: admin.AuthMeHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/configs",
+					Handler: admin.ListConfigsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/admin/configs",
+					Handler: admin.SaveConfigsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/menus",
+					Handler: admin.MenuTreeHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/menus",
+					Handler: admin.CreateMenuHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/admin/menus/:id",
+					Handler: admin.UpdateMenuHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodDelete,
+					Path:    "/api/v1/admin/menus/:id",
+					Handler: admin.DeleteMenuHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/notifications/send",
+					Handler: admin.AdminSendNotificationHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/notifications/sends",
+					Handler: admin.AdminListNotificationSendsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/notifications/sends/:id/recipients",
+					Handler: admin.AdminListNotificationRecipientsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/roles",
+					Handler: admin.ListRolesHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/roles",
+					Handler: admin.CreateRoleHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/admin/roles/:id",
+					Handler: admin.UpdateRoleHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodDelete,
+					Path:    "/api/v1/admin/roles/:id",
+					Handler: admin.DeleteRoleHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/roles/:id/menus",
+					Handler: admin.GetRoleMenusHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/admin/roles/:id/menus",
+					Handler: admin.AssignRoleMenusHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/tasks",
+					Handler: admin.AdminListTasksHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/admin/tasks/:id",
+					Handler: admin.AdminUpdateTaskHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/users",
+					Handler: admin.ListUsersHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/users/:id",
+					Handler: admin.GetUserHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/admin/users/:id",
+					Handler: admin.UpdateUserHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/users/:id/addresses",
+					Handler: admin.AdminListUserAddressesHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/admin/users/:id/password",
+					Handler: admin.ResetUserPasswordHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/admin/users/:id/status",
+					Handler: admin.SetUserStatusHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/users/:id/token",
+					Handler: admin.GenerateUserTokenHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/users/:id/wallet",
+					Handler: admin.AdminGetWalletHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/users/:id/wallet/adjust",
+					Handler: admin.AdminAdjustWalletHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/users/:id/wallet/logs",
+					Handler: admin.AdminWalletLogsHandler(serverCtx),
+				},
+			}...,
+		),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
 			[]rest.Middleware{serverCtx.RequestID},
 			[]rest.Route{
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/internal/notifications",
-					Handler: InternalCreateNotificationHandler(serverCtx),
+					Handler: internalapi.InternalCreateNotificationHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/internal/points/deduct",
-					Handler: InternalDeductPointsHandler(serverCtx),
+					Handler: internalapi.InternalDeductPointsHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/internal/points/refund",
-					Handler: InternalRefundPointsHandler(serverCtx),
+					Handler: internalapi.InternalRefundPointsHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/internal/tasks/events",
-					Handler: InternalEventHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/regions",
-					Handler: ListHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/regions/tree",
-					Handler: TreeHandler(serverCtx),
+					Handler: internalapi.InternalEventHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/user/addresses/internal",
-					Handler: InternalGetHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/user/login",
-					Handler: LoginHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/user/register",
-					Handler: RegisterHandler(serverCtx),
+					Handler: internalapi.InternalGetHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/user/wallet/freeze",
-					Handler: FreezeHandler(serverCtx),
+					Handler: internalapi.InternalFreezeWalletHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/user/wallet/settle",
-					Handler: SettleHandler(serverCtx),
+					Handler: internalapi.InternalSettleWalletHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/user/wallet/unfreeze",
-					Handler: UnfreezeHandler(serverCtx),
+					Handler: internalapi.InternalUnfreezeWalletHandler(serverCtx),
+				},
+			}...,
+		),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.RequestID},
+			[]rest.Route{
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/regions",
+					Handler: public.ListRegionsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/regions/tree",
+					Handler: public.RegionTreeHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/user/login",
+					Handler: public.LoginHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/user/register",
+					Handler: public.RegisterHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/healthz",
-					Handler: HealthzHandler(serverCtx),
+					Handler: public.HealthzHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/metrics",
-					Handler: MetricsHandler(serverCtx),
+					Handler: public.MetricsHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/readyz",
-					Handler: ReadyzHandler(serverCtx),
+					Handler: public.ReadyzHandler(serverCtx),
 				},
 			}...,
 		),
@@ -102,265 +287,92 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/user/addresses",
-					Handler: List2Handler(serverCtx),
+					Handler: user.UserListAddressesHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/user/addresses",
-					Handler: CreateHandler(serverCtx),
+					Handler: user.UserCreateAddressHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPut,
 					Path:    "/api/v1/user/addresses/:id",
-					Handler: UpdateHandler(serverCtx),
+					Handler: user.UserUpdateAddressHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodDelete,
 					Path:    "/api/v1/user/addresses/:id",
-					Handler: DeleteHandler(serverCtx),
+					Handler: user.UserDeleteAddressHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPut,
 					Path:    "/api/v1/user/addresses/:id/default",
-					Handler: SetDefaultHandler(serverCtx),
+					Handler: user.SetDefaultHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/user/notifications",
-					Handler: ListNotificationsHandler(serverCtx),
+					Handler: user.ListNotificationsHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/user/notifications/:id/read",
-					Handler: MarkNotificationReadHandler(serverCtx),
+					Handler: user.MarkNotificationReadHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/user/notifications/read-all",
-					Handler: MarkAllNotificationsReadHandler(serverCtx),
+					Handler: user.MarkAllNotificationsReadHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/user/notifications/unread-count",
-					Handler: UnreadNotificationCountHandler(serverCtx),
+					Handler: user.UnreadNotificationCountHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/user/points",
-					Handler: UserPointsHandler(serverCtx),
+					Handler: user.UserPointsHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/user/points/logs",
-					Handler: UserPointLogsHandler(serverCtx),
+					Handler: user.UserPointLogsHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/user/profile",
-					Handler: V1UserProfileHandler(serverCtx),
+					Handler: user.UserProfileHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/user/tasks",
-					Handler: UserListTasksHandler(serverCtx),
+					Handler: user.UserListTasksHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/user/tasks/:code/claim",
-					Handler: UserClaimHandler(serverCtx),
+					Handler: user.UserClaimHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/user/tasks/checkin",
-					Handler: UserCheckinHandler(serverCtx),
+					Handler: user.UserCheckinHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/user/tasks/events",
-					Handler: UserReportEventHandler(serverCtx),
+					Handler: user.UserReportEventHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/user/wallet",
-					Handler: UserGetWalletHandler(serverCtx),
+					Handler: user.UserGetWalletHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/user/wallet/logs",
-					Handler: UserWalletLogsHandler(serverCtx),
-				},
-			}...,
-		),
-	)
-
-	server.AddRoutes(
-		rest.WithMiddlewares(
-			[]rest.Middleware{serverCtx.RequestID, serverCtx.GatewayIdentity, serverCtx.RequirePlatformAdmin},
-			[]rest.Route{
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/admins",
-					Handler: ListAdminsHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/admins",
-					Handler: CreateAdminHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/admin/admins/:id/password",
-					Handler: ResetAdminPasswordHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/admins/:id/roles",
-					Handler: GetAdminRolesHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/admin/admins/:id/roles",
-					Handler: AssignAdminRolesHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/auth/me",
-					Handler: AuthMeHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/configs",
-					Handler: ListConfigsHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/admin/configs",
-					Handler: SaveConfigsHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/menus",
-					Handler: MenuTreeHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/menus",
-					Handler: CreateMenuHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/admin/menus/:id",
-					Handler: UpdateMenuHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodDelete,
-					Path:    "/api/v1/admin/menus/:id",
-					Handler: DeleteMenuHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/notifications/send",
-					Handler: AdminSendNotificationHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/notifications/sends",
-					Handler: AdminListNotificationSendsHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/notifications/sends/:id/recipients",
-					Handler: AdminListNotificationRecipientsHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/roles",
-					Handler: ListRolesHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/roles",
-					Handler: CreateRoleHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/admin/roles/:id",
-					Handler: UpdateRoleHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodDelete,
-					Path:    "/api/v1/admin/roles/:id",
-					Handler: DeleteRoleHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/roles/:id/menus",
-					Handler: GetRoleMenusHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/admin/roles/:id/menus",
-					Handler: AssignRoleMenusHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/tasks",
-					Handler: AdminList2Handler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/admin/tasks/:id",
-					Handler: AdminUpdateHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/users",
-					Handler: ListUsersHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/users/:id",
-					Handler: GetUserHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/admin/users/:id",
-					Handler: UpdateUserHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/users/:id/addresses",
-					Handler: AdminListHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/admin/users/:id/password",
-					Handler: ResetUserPasswordHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/admin/users/:id/status",
-					Handler: SetUserStatusHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/users/:id/token",
-					Handler: GenerateUserTokenHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/users/:id/wallet",
-					Handler: AdminGetWalletHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/users/:id/wallet/adjust",
-					Handler: AdminAdjustWalletHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/users/:id/wallet/logs",
-					Handler: AdminWalletLogsHandler(serverCtx),
+					Handler: user.UserWalletLogsHandler(serverCtx),
 				},
 			}...,
 		),

@@ -4,6 +4,7 @@ syntax = "v1"
 // Keep in sync with internal/handler/routes.go; run: scripts/check-api-routes.sh user-service
 @server (
 	middleware: RequestID
+	group:      public
 )
 service userapi {
 	@handler Healthz
@@ -21,13 +22,25 @@ service userapi {
 	@handler Register
 	post /api/v1/user/register
 
-	@handler Freeze
+	@handler ListRegions
+	get /api/v1/regions
+
+	@handler RegionTree
+	get /api/v1/regions/tree
+}
+
+@server (
+	middleware: RequestID
+	group:      internalapi
+)
+service userapi {
+	@handler InternalFreezeWallet
 	post /api/v1/user/wallet/freeze
 
-	@handler Unfreeze
+	@handler InternalUnfreezeWallet
 	post /api/v1/user/wallet/unfreeze
 
-	@handler Settle
+	@handler InternalSettleWallet
 	post /api/v1/user/wallet/settle
 
 	@handler InternalGet
@@ -44,19 +57,14 @@ service userapi {
 
 	@handler InternalRefundPoints
 	post /api/v1/internal/points/refund
-
-	@handler List
-	get /api/v1/regions
-
-	@handler Tree
-	get /api/v1/regions/tree
 }
 
 @server (
 	middleware: RequestID,UserFlexibleAuth
+	group:      user
 )
 service userapi {
-	@handler V1UserProfile
+	@handler UserProfile
 	get /api/v1/user/profile
 
 	@handler UserGetWallet
@@ -65,16 +73,16 @@ service userapi {
 	@handler UserWalletLogs
 	get /api/v1/user/wallet/logs
 
-	@handler List2
+	@handler UserListAddresses
 	get /api/v1/user/addresses
 
-	@handler Create
+	@handler UserCreateAddress
 	post /api/v1/user/addresses
 
-	@handler Update
+	@handler UserUpdateAddress
 	put /api/v1/user/addresses/:id
 
-	@handler Delete
+	@handler UserDeleteAddress
 	delete /api/v1/user/addresses/:id
 
 	@handler SetDefault
@@ -113,6 +121,7 @@ service userapi {
 
 @server (
 	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
+	group:      admin
 )
 service userapi {
 	@handler AuthMe
@@ -175,7 +184,7 @@ service userapi {
 	@handler AdminWalletLogs
 	get /api/v1/admin/users/:id/wallet/logs
 
-	@handler AdminList
+	@handler AdminListUserAddresses
 	get /api/v1/admin/users/:id/addresses
 
 	@handler ListAdmins
@@ -208,10 +217,10 @@ service userapi {
 	@handler AdminListNotificationRecipients
 	get /api/v1/admin/notifications/sends/:id/recipients
 
-	@handler AdminList2
+	@handler AdminListTasks
 	get /api/v1/admin/tasks
 
-	@handler AdminUpdate
+	@handler AdminUpdateTask
 	put /api/v1/admin/tasks/:id
 }
 

@@ -4,6 +4,7 @@ syntax = "v1"
 // Keep in sync with internal/handler/routes.go; run: scripts/check-api-routes.sh merchant-service
 @server (
 	middleware: RequestID
+	group:      public
 )
 service merchantapi {
 	@handler Healthz
@@ -33,17 +34,26 @@ service merchantapi {
 	@handler PublicSeckillEntry
 	get /api/v1/seckill/entries/:id
 
-	@handler SeckillConsume
-	post /api/v1/seckill/consume
-
-	@handler SeckillRestore
-	post /api/v1/seckill/restore
-
 	@handler PublicCouponCenter
 	get /api/v1/coupons/center
 
 	@handler PublicCouponPopup
 	get /api/v1/coupons/popup
+
+	@handler ServePointsMallUpload
+	get /uploads/points-mall/:file
+}
+
+@server (
+	middleware: RequestID
+	group:      internalapi
+)
+service merchantapi {
+	@handler SeckillConsume
+	post /api/v1/seckill/consume
+
+	@handler SeckillRestore
+	post /api/v1/seckill/restore
 
 	@handler InternalMatchCoupons
 	post /api/v1/internal/coupons/match
@@ -62,13 +72,11 @@ service merchantapi {
 
 	@handler InternalOrderGift
 	post /api/v1/internal/coupons/order-gift
-
-	@handler ServePointsMallUpload
-	get /uploads/points-mall/:file
 }
 
 @server (
 	middleware: RequestID,GatewayIdentity
+	group:      user
 )
 service merchantapi {
 	@handler ClaimCoupon
@@ -76,12 +84,6 @@ service merchantapi {
 
 	@handler ListMyCoupons
 	get /api/v1/user/coupons
-
-	@handler Apply
-	post /api/v1/merchant/apply
-
-	@handler MyShops
-	get /api/v1/merchant/shops
 
 	@handler Exchange
 	post /api/v1/user/points-mall/exchange
@@ -94,7 +96,20 @@ service merchantapi {
 }
 
 @server (
+	middleware: RequestID,GatewayIdentity
+	group:      merchant
+)
+service merchantapi {
+	@handler Apply
+	post /api/v1/merchant/apply
+
+	@handler MyShops
+	get /api/v1/merchant/shops
+}
+
+@server (
 	middleware: RequestID,GatewayIdentity,RequireMerchantOwner
+	group:      merchant
 )
 service merchantapi {
 	@handler UpdateMyShop
@@ -169,6 +184,7 @@ service merchantapi {
 
 @server (
 	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
+	group:      admin
 )
 service merchantapi {
 	@handler AdminListApplications

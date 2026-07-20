@@ -6,6 +6,11 @@ package handler
 import (
 	"net/http"
 
+	admin "mymall/services/merchant-service/internal/handler/admin"
+	internalapi "mymall/services/merchant-service/internal/handler/internalapi"
+	merchant "mymall/services/merchant-service/internal/handler/merchant"
+	public "mymall/services/merchant-service/internal/handler/public"
+	user "mymall/services/merchant-service/internal/handler/user"
 	"mymall/services/merchant-service/internal/svc"
 
 	"github.com/zeromicro/go-zero/rest"
@@ -14,107 +19,320 @@ import (
 func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 	server.AddRoutes(
 		rest.WithMiddlewares(
-			[]rest.Middleware{serverCtx.RequestID},
+			[]rest.Middleware{serverCtx.RequestID, serverCtx.GatewayIdentity, serverCtx.RequirePlatformAdmin},
 			[]rest.Route{
 				{
 					Method:  http.MethodGet,
-					Path:    "/api/v1/coupons/center",
-					Handler: PublicCouponCenterHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/coupons/popup",
-					Handler: PublicCouponPopupHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/home/theme-tiles",
-					Handler: PublicThemeTilesHandler(serverCtx),
+					Path:    "/api/v1/admin/applications",
+					Handler: admin.AdminListApplicationsHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/applications/:id/approve",
+					Handler: admin.AdminApproveHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/applications/:id/reject",
+					Handler: admin.AdminRejectHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/coupons",
+					Handler: admin.AdminListCouponsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/coupons",
+					Handler: admin.AdminCreateCouponHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/admin/coupons/:id",
+					Handler: admin.AdminUpdateCouponHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/coupons/:id/claims",
+					Handler: admin.AdminCouponClaimsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/coupons/:id/copy",
+					Handler: admin.AdminCopyCouponHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/admin/coupons/:id/off",
+					Handler: admin.AdminOffCouponHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/coupons/:id/redeems",
+					Handler: admin.AdminCouponRedeemsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/coupons/:id/stats",
+					Handler: admin.AdminCouponStatsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/coupons/grant",
+					Handler: admin.AdminGrantCouponHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/homepage-orders",
+					Handler: admin.AdminListSlotOrdersHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/homepage-orders/grant",
+					Handler: admin.AdminGrantSlotHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/homepage-packages",
+					Handler: admin.AdminListSlotPackagesHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/homepage-packages",
+					Handler: admin.AdminCreateSlotPackageHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/admin/homepage-packages/:id",
+					Handler: admin.AdminUpdateSlotPackageHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/homepage-settings",
+					Handler: admin.AdminListSlotSettingsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/admin/homepage-settings",
+					Handler: admin.AdminUpdateSlotSettingsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/points-orders",
+					Handler: admin.ListPointsOrdersHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/points-orders/:id",
+					Handler: admin.DetailPointsOrderHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/points-orders/:id/cancel",
+					Handler: admin.CancelPointsOrderHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/points-orders/:id/complete",
+					Handler: admin.CompletePointsOrderHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/admin/points-orders/:id/remark",
+					Handler: admin.RemarkPointsOrderHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/points-orders/:id/ship",
+					Handler: admin.ShipPointsOrderHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/points-products",
+					Handler: admin.ListPointsProductsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/points-products",
+					Handler: admin.CreatePointsProductHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/points-products/:id",
+					Handler: admin.DetailPointsProductHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/admin/points-products/:id",
+					Handler: admin.UpdatePointsProductHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodDelete,
+					Path:    "/api/v1/admin/points-products/:id",
+					Handler: admin.DeletePointsProductHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/admin/points-products/:id/status",
+					Handler: admin.SetPointsProductStatusHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/points-products/upload",
+					Handler: admin.UploadPointsProductHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/seckill/entries",
+					Handler: admin.AdminListSeckillEntriesHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/seckill/rule",
+					Handler: admin.AdminGetSeckillRuleHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/admin/seckill/rule",
+					Handler: admin.AdminUpdateSeckillRuleHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/seckill/sessions",
+					Handler: admin.AdminListSeckillSessionsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/shops",
+					Handler: admin.AdminListShopsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/shops",
+					Handler: admin.AdminCreateShopHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/shops/:id",
+					Handler: admin.AdminGetShopHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/admin/shops/:id",
+					Handler: admin.AdminUpdateShopHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/admin/shops/:id/disable",
+					Handler: admin.AdminDisableShopHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/admin/shops/:id/enable",
+					Handler: admin.AdminEnableShopHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/admin/shops/:id/owner-password",
+					Handler: admin.AdminResetOwnerPasswordHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/shops/:id/wallet",
+					Handler: admin.AdminGetWalletHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/shops/:id/wallet/adjust",
+					Handler: admin.AdminAdjustWalletHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/shops/:id/wallet/logs",
+					Handler: admin.AdminWalletLogsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/theme-orders",
+					Handler: admin.AdminListThemeOrdersHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/theme-orders/grant",
+					Handler: admin.AdminGrantThemeHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/theme-packages",
+					Handler: admin.AdminListThemePackagesHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/theme-packages",
+					Handler: admin.AdminCreateThemePackageHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/admin/theme-packages/:id",
+					Handler: admin.AdminUpdateThemePackageHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/theme-slots",
+					Handler: admin.AdminListThemeSlotsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/admin/theme-slots/:id",
+					Handler: admin.AdminUpdateThemeSlotHandler(serverCtx),
+				},
+			}...,
+		),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.RequestID},
+			[]rest.Route{
+				{
+					Method:  http.MethodPost,
 					Path:    "/api/v1/internal/coupons/lock",
-					Handler: InternalLockCouponHandler(serverCtx),
+					Handler: internalapi.InternalLockCouponHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/internal/coupons/match",
-					Handler: InternalMatchCouponsHandler(serverCtx),
+					Handler: internalapi.InternalMatchCouponsHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/internal/coupons/order-gift",
-					Handler: InternalOrderGiftHandler(serverCtx),
+					Handler: internalapi.InternalOrderGiftHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/internal/coupons/redeem",
-					Handler: InternalRedeemCouponHandler(serverCtx),
+					Handler: internalapi.InternalRedeemCouponHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/internal/coupons/return",
-					Handler: InternalReturnCouponHandler(serverCtx),
+					Handler: internalapi.InternalReturnCouponHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/internal/coupons/unlock",
-					Handler: InternalUnlockCouponHandler(serverCtx),
+					Handler: internalapi.InternalUnlockCouponHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/seckill/consume",
-					Handler: SeckillConsumeHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/seckill/current",
-					Handler: PublicSeckillCurrentHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/seckill/entries/:id",
-					Handler: PublicSeckillEntryHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/seckill/list",
-					Handler: PublicSeckillListHandler(serverCtx),
+					Handler: internalapi.SeckillConsumeHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/seckill/restore",
-					Handler: SeckillRestoreHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/shops/:id",
-					Handler: PublicGetShopHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/shops/home-slots",
-					Handler: PublicHomeSlotsHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/shops/list",
-					Handler: PublicListShopsHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/healthz",
-					Handler: HealthzHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/readyz",
-					Handler: ReadyzHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/uploads/points-mall/:file",
-					Handler: ServePointsMallUploadHandler(serverCtx),
+					Handler: internalapi.SeckillRestoreHandler(serverCtx),
 				},
 			}...,
 		),
@@ -126,38 +344,13 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			[]rest.Route{
 				{
 					Method:  http.MethodPost,
-					Path:    "/api/v1/coupons/:id/claim",
-					Handler: ClaimCouponHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
 					Path:    "/api/v1/merchant/apply",
-					Handler: ApplyHandler(serverCtx),
+					Handler: merchant.ApplyHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/merchant/shops",
-					Handler: MyShopsHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/user/coupons",
-					Handler: ListMyCouponsHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/user/points-mall/exchange",
-					Handler: ExchangeHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/user/points-mall/orders",
-					Handler: ListUserPointsOrdersHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/user/points-mall/orders/:id",
-					Handler: DetailUserPointsOrderHandler(serverCtx),
+					Handler: merchant.MyShopsHandler(serverCtx),
 				},
 			}...,
 		),
@@ -170,117 +363,117 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/merchant/coupons",
-					Handler: MerchantListCouponsHandler(serverCtx),
+					Handler: merchant.MerchantListCouponsHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/merchant/coupons",
-					Handler: MerchantCreateCouponHandler(serverCtx),
+					Handler: merchant.MerchantCreateCouponHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPut,
 					Path:    "/api/v1/merchant/coupons/:id",
-					Handler: MerchantUpdateCouponHandler(serverCtx),
+					Handler: merchant.MerchantUpdateCouponHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/merchant/coupons/:id/claims",
-					Handler: MerchantCouponClaimsHandler(serverCtx),
+					Handler: merchant.MerchantCouponClaimsHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/merchant/coupons/:id/copy",
-					Handler: MerchantCopyCouponHandler(serverCtx),
+					Handler: merchant.MerchantCopyCouponHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPut,
 					Path:    "/api/v1/merchant/coupons/:id/off",
-					Handler: MerchantOffCouponHandler(serverCtx),
+					Handler: merchant.MerchantOffCouponHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/merchant/coupons/:id/redeems",
-					Handler: MerchantCouponRedeemsHandler(serverCtx),
+					Handler: merchant.MerchantCouponRedeemsHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/merchant/coupons/:id/stats",
-					Handler: MerchantCouponStatsHandler(serverCtx),
+					Handler: merchant.MerchantCouponStatsHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/merchant/coupons/grant",
-					Handler: MerchantGrantCouponHandler(serverCtx),
+					Handler: merchant.MerchantGrantCouponHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/merchant/homepage-orders",
-					Handler: MerchantBuySlotHandler(serverCtx),
+					Handler: merchant.MerchantBuySlotHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/merchant/homepage-orders",
-					Handler: MerchantListSlotOrdersHandler(serverCtx),
+					Handler: merchant.MerchantListSlotOrdersHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/merchant/homepage-packages",
-					Handler: MerchantListSlotPackagesHandler(serverCtx),
+					Handler: merchant.MerchantListSlotPackagesHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/merchant/seckill/entries",
-					Handler: MerchantApplySeckillHandler(serverCtx),
+					Handler: merchant.MerchantApplySeckillHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/merchant/seckill/entries",
-					Handler: MerchantListSeckillEntriesHandler(serverCtx),
+					Handler: merchant.MerchantListSeckillEntriesHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPut,
 					Path:    "/api/v1/merchant/seckill/entries/:id/auto-renew",
-					Handler: MerchantSetSeckillAutoRenewHandler(serverCtx),
+					Handler: merchant.MerchantSetSeckillAutoRenewHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/merchant/seckill/sessions",
-					Handler: MerchantSeckillSessionsHandler(serverCtx),
+					Handler: merchant.MerchantSeckillSessionsHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPut,
 					Path:    "/api/v1/merchant/shops/:id",
-					Handler: UpdateMyShopHandler(serverCtx),
+					Handler: merchant.UpdateMyShopHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/merchant/theme-orders",
-					Handler: MerchantBuyThemeHandler(serverCtx),
+					Handler: merchant.MerchantBuyThemeHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/merchant/theme-orders",
-					Handler: MerchantListThemeOrdersHandler(serverCtx),
+					Handler: merchant.MerchantListThemeOrdersHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/merchant/theme-packages",
-					Handler: MerchantListThemePackagesHandler(serverCtx),
+					Handler: merchant.MerchantListThemePackagesHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/merchant/theme-slots",
-					Handler: MerchantListThemeSlotsHandler(serverCtx),
+					Handler: merchant.MerchantListThemeSlotsHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/merchant/wallet",
-					Handler: MerchantGetWalletHandler(serverCtx),
+					Handler: merchant.MerchantGetWalletHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/merchant/wallet/logs",
-					Handler: MerchantWalletLogsHandler(serverCtx),
+					Handler: merchant.MerchantWalletLogsHandler(serverCtx),
 				},
 			}...,
 		),
@@ -288,272 +481,100 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 
 	server.AddRoutes(
 		rest.WithMiddlewares(
-			[]rest.Middleware{serverCtx.RequestID, serverCtx.GatewayIdentity, serverCtx.RequirePlatformAdmin},
+			[]rest.Middleware{serverCtx.RequestID},
 			[]rest.Route{
 				{
 					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/applications",
-					Handler: AdminListApplicationsHandler(serverCtx),
+					Path:    "/api/v1/coupons/center",
+					Handler: public.PublicCouponCenterHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/coupons/popup",
+					Handler: public.PublicCouponPopupHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/home/theme-tiles",
+					Handler: public.PublicThemeTilesHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/seckill/current",
+					Handler: public.PublicSeckillCurrentHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/seckill/entries/:id",
+					Handler: public.PublicSeckillEntryHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/seckill/list",
+					Handler: public.PublicSeckillListHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/shops/:id",
+					Handler: public.PublicGetShopHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/shops/home-slots",
+					Handler: public.PublicHomeSlotsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/shops/list",
+					Handler: public.PublicListShopsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/healthz",
+					Handler: public.HealthzHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/readyz",
+					Handler: public.ReadyzHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/uploads/points-mall/:file",
+					Handler: public.ServePointsMallUploadHandler(serverCtx),
+				},
+			}...,
+		),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.RequestID, serverCtx.GatewayIdentity},
+			[]rest.Route{
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/coupons/:id/claim",
+					Handler: user.ClaimCouponHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/user/coupons",
+					Handler: user.ListMyCouponsHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/applications/:id/approve",
-					Handler: AdminApproveHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/applications/:id/reject",
-					Handler: AdminRejectHandler(serverCtx),
+					Path:    "/api/v1/user/points-mall/exchange",
+					Handler: user.ExchangeHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/coupons",
-					Handler: AdminListCouponsHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/coupons",
-					Handler: AdminCreateCouponHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/admin/coupons/:id",
-					Handler: AdminUpdateCouponHandler(serverCtx),
+					Path:    "/api/v1/user/points-mall/orders",
+					Handler: user.ListUserPointsOrdersHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/coupons/:id/claims",
-					Handler: AdminCouponClaimsHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/coupons/:id/copy",
-					Handler: AdminCopyCouponHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/admin/coupons/:id/off",
-					Handler: AdminOffCouponHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/coupons/:id/redeems",
-					Handler: AdminCouponRedeemsHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/coupons/:id/stats",
-					Handler: AdminCouponStatsHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/coupons/grant",
-					Handler: AdminGrantCouponHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/homepage-orders",
-					Handler: AdminListSlotOrdersHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/homepage-orders/grant",
-					Handler: AdminGrantSlotHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/homepage-packages",
-					Handler: AdminListSlotPackagesHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/homepage-packages",
-					Handler: AdminCreateSlotPackageHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/admin/homepage-packages/:id",
-					Handler: AdminUpdateSlotPackageHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/homepage-settings",
-					Handler: AdminListSlotSettingsHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/admin/homepage-settings",
-					Handler: AdminUpdateSlotSettingsHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/points-orders",
-					Handler: ListPointsOrdersHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/points-orders/:id",
-					Handler: DetailPointsOrderHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/points-orders/:id/cancel",
-					Handler: CancelPointsOrderHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/points-orders/:id/complete",
-					Handler: CompletePointsOrderHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/admin/points-orders/:id/remark",
-					Handler: RemarkPointsOrderHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/points-orders/:id/ship",
-					Handler: ShipPointsOrderHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/points-products",
-					Handler: ListPointsProductsHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/points-products",
-					Handler: CreatePointsProductHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/points-products/:id",
-					Handler: DetailPointsProductHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/admin/points-products/:id",
-					Handler: UpdatePointsProductHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodDelete,
-					Path:    "/api/v1/admin/points-products/:id",
-					Handler: DeletePointsProductHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/admin/points-products/:id/status",
-					Handler: SetPointsProductStatusHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/points-products/upload",
-					Handler: UploadPointsProductHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/seckill/entries",
-					Handler: AdminListSeckillEntriesHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/seckill/rule",
-					Handler: AdminGetSeckillRuleHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/admin/seckill/rule",
-					Handler: AdminUpdateSeckillRuleHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/seckill/sessions",
-					Handler: AdminListSeckillSessionsHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/shops",
-					Handler: AdminListShopsHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/shops",
-					Handler: AdminCreateShopHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/shops/:id",
-					Handler: AdminGetShopHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/admin/shops/:id",
-					Handler: AdminUpdateShopHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/admin/shops/:id/disable",
-					Handler: AdminDisableShopHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/admin/shops/:id/enable",
-					Handler: AdminEnableShopHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/admin/shops/:id/owner-password",
-					Handler: AdminResetOwnerPasswordHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/shops/:id/wallet",
-					Handler: AdminGetWalletHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/shops/:id/wallet/adjust",
-					Handler: AdminAdjustWalletHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/shops/:id/wallet/logs",
-					Handler: AdminWalletLogsHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/theme-orders",
-					Handler: AdminListThemeOrdersHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/theme-orders/grant",
-					Handler: AdminGrantThemeHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/theme-packages",
-					Handler: AdminListThemePackagesHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/theme-packages",
-					Handler: AdminCreateThemePackageHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/admin/theme-packages/:id",
-					Handler: AdminUpdateThemePackageHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/theme-slots",
-					Handler: AdminListThemeSlotsHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/admin/theme-slots/:id",
-					Handler: AdminUpdateThemeSlotHandler(serverCtx),
+					Path:    "/api/v1/user/points-mall/orders/:id",
+					Handler: user.DetailUserPointsOrderHandler(serverCtx),
 				},
 			}...,
 		),

@@ -57,5 +57,10 @@ if [[ -n "$SVC_BAK" && -f "$SVC_BAK" ]]; then
   echo "==> restored internal/svc/service_context.go"
 fi
 
+# goctl emits one file per @handler; merge each leaf package into one *_handler.go
+echo "==> merge handlers (one file per module)"
+python3 "$ROOT/scripts/merge-handlers.py" "$DIR"
+gofmt -w "$DIR/internal/handler"
+
 echo "==> done. Edit logic/middleware as needed; do NOT hand-edit handler/routes.go"
 echo "    verify: ./scripts/check-api-routes.sh $SERVICE"

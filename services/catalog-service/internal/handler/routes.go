@@ -6,6 +6,24 @@ package handler
 import (
 	"net/http"
 
+	adminarticle "mymall/services/catalog-service/internal/handler/admin/article"
+	adminbanner "mymall/services/catalog-service/internal/handler/admin/banner"
+	admincategory "mymall/services/catalog-service/internal/handler/admin/category"
+	admincomment "mymall/services/catalog-service/internal/handler/admin/comment"
+	adminproduct "mymall/services/catalog-service/internal/handler/admin/product"
+	adminshop "mymall/services/catalog-service/internal/handler/admin/shop"
+	adminuser_favorite "mymall/services/catalog-service/internal/handler/admin/user_favorite"
+	merchantarticle "mymall/services/catalog-service/internal/handler/merchant/article"
+	merchantnotification "mymall/services/catalog-service/internal/handler/merchant/notification"
+	merchantproduct "mymall/services/catalog-service/internal/handler/merchant/product"
+	merchantshopops "mymall/services/catalog-service/internal/handler/merchant/shopops"
+	publicarticle "mymall/services/catalog-service/internal/handler/public/article"
+	publicbanner "mymall/services/catalog-service/internal/handler/public/banner"
+	publiccategory "mymall/services/catalog-service/internal/handler/public/category"
+	publichealth "mymall/services/catalog-service/internal/handler/public/health"
+	publicproduct "mymall/services/catalog-service/internal/handler/public/product"
+	userarticle "mymall/services/catalog-service/internal/handler/user/article"
+	userfavorite "mymall/services/catalog-service/internal/handler/user/favorite"
 	"mymall/services/catalog-service/internal/svc"
 
 	"github.com/zeromicro/go-zero/rest"
@@ -14,77 +32,97 @@ import (
 func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 	server.AddRoutes(
 		rest.WithMiddlewares(
-			[]rest.Middleware{serverCtx.RequestID},
+			[]rest.Middleware{serverCtx.RequestID, serverCtx.GatewayIdentity, serverCtx.RequirePlatformAdmin},
 			[]rest.Route{
 				{
 					Method:  http.MethodGet,
-					Path:    "/api/v1/articles/:id",
-					Handler: DetailHandler(serverCtx),
+					Path:    "/api/v1/admin/article-categories",
+					Handler: adminarticle.AdminListArticleCategoriesHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/article-categories",
+					Handler: adminarticle.AdminCreateArticleCategoryHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/admin/article-categories/:id",
+					Handler: adminarticle.AdminUpdateArticleCategoryHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodDelete,
+					Path:    "/api/v1/admin/article-categories/:id",
+					Handler: adminarticle.AdminDeleteArticleCategoryHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/article-uploads",
+					Handler: adminarticle.AdminUploadArticleHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
-					Path:    "/api/v1/articles/:id/comments",
-					Handler: ListCommentsHandler(serverCtx),
+					Path:    "/api/v1/admin/articles",
+					Handler: adminarticle.AdminListArticlesHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/articles",
+					Handler: adminarticle.AdminCreateArticleHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
-					Path:    "/api/v1/articles/list",
-					Handler: ListHandler(serverCtx),
+					Path:    "/api/v1/admin/articles/:id",
+					Handler: adminarticle.AdminGetArticleHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/admin/articles/:id",
+					Handler: adminarticle.AdminUpdateArticleHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodDelete,
+					Path:    "/api/v1/admin/articles/:id",
+					Handler: adminarticle.AdminSoftDeleteArticleHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/articles/:id/audit",
+					Handler: adminarticle.AdminAuditArticleHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/articles/:id/offline",
+					Handler: adminarticle.AdminOfflineArticleHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/articles/:id/top",
+					Handler: adminarticle.AdminTopArticleHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/articles/batch-audit",
+					Handler: adminarticle.AdminBatchAuditArticlesHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
-					Path:    "/api/v1/banners",
-					Handler: ListBannersHandler(serverCtx),
+					Path:    "/api/v1/admin/articles/recycle",
+					Handler: adminarticle.AdminListArticleRecycleHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodDelete,
+					Path:    "/api/v1/admin/articles/recycle",
+					Handler: adminarticle.AdminPurgeArticleRecycleHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/articles/recycle/restore",
+					Handler: adminarticle.AdminRestoreArticleRecycleHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
-					Path:    "/api/v1/comment-emojis",
-					Handler: ListEmojisHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/product_category/detail",
-					Handler: GetCategoryDetailHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/product_category/list",
-					Handler: GetCategoryListHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/products/:id/favorite-count",
-					Handler: CountHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/products/detail",
-					Handler: GetProductDetailHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/products/list",
-					Handler: GetProductListHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/products/sales-rank",
-					Handler: GetSalesRankHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/healthz",
-					Handler: HealthzHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/metrics",
-					Handler: MetricsHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/readyz",
-					Handler: ReadyzHandler(serverCtx),
+					Path:    "/api/v1/admin/articles/stats",
+					Handler: adminarticle.AdminArticleStatsHandler(serverCtx),
 				},
 			}...,
 		),
@@ -92,102 +130,157 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 
 	server.AddRoutes(
 		rest.WithMiddlewares(
-			[]rest.Middleware{serverCtx.RequestID, serverCtx.GatewayIdentity},
+			[]rest.Middleware{serverCtx.RequestID, serverCtx.GatewayIdentity, serverCtx.RequirePlatformAdmin},
 			[]rest.Route{
 				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/articles/:id/comments",
-					Handler: CreateCommentHandler(serverCtx),
-				},
-				{
 					Method:  http.MethodGet,
-					Path:    "/api/v1/articles/:id/engagement",
-					Handler: StatusHandler(serverCtx),
+					Path:    "/api/v1/admin/banners",
+					Handler: adminbanner.AdminListBannersHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
-					Path:    "/api/v1/articles/:id/favorite",
-					Handler: FavoriteHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodDelete,
-					Path:    "/api/v1/articles/:id/favorite",
-					Handler: UnfavoriteHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/articles/:id/like",
-					Handler: LikeHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodDelete,
-					Path:    "/api/v1/articles/:id/like",
-					Handler: UnlikeHandler(serverCtx),
+					Path:    "/api/v1/admin/banners",
+					Handler: adminbanner.CreateBannerHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
-					Path:    "/api/v1/products/:id/favorite",
-					Handler: Status2Handler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/user/article-favorites",
-					Handler: ListMyFavoritesHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/user/article-likes",
-					Handler: ListMyLikesHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/user/article-uploads",
-					Handler: UploadMineHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/user/articles",
-					Handler: ListMineHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/user/articles",
-					Handler: CreateMineHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/user/articles/:id",
-					Handler: DetailMineHandler(serverCtx),
+					Path:    "/api/v1/admin/banners/:id",
+					Handler: adminbanner.GetBannerHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPut,
-					Path:    "/api/v1/user/articles/:id",
-					Handler: UpdateMineHandler(serverCtx),
+					Path:    "/api/v1/admin/banners/:id",
+					Handler: adminbanner.UpdateBannerHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodDelete,
-					Path:    "/api/v1/user/articles/:id",
-					Handler: DeleteMineHandler(serverCtx),
+					Path:    "/api/v1/admin/banners/:id",
+					Handler: adminbanner.DeleteBannerHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
-					Path:    "/api/v1/user/favorites",
-					Handler: AddHandler(serverCtx),
+					Path:    "/api/v1/admin/banners/upload",
+					Handler: adminbanner.UploadBannerHandler(serverCtx),
+				},
+			}...,
+		),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.RequestID, serverCtx.GatewayIdentity, serverCtx.RequirePlatformAdmin},
+			[]rest.Route{
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/categories",
+					Handler: admincategory.AdminListCategoriesHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/categories",
+					Handler: admincategory.AdminCreateCategoryHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/admin/categories/:id",
+					Handler: admincategory.AdminUpdateCategoryHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodDelete,
+					Path:    "/api/v1/admin/categories/:id",
+					Handler: admincategory.AdminDeleteCategoryHandler(serverCtx),
+				},
+			}...,
+		),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.RequestID, serverCtx.GatewayIdentity, serverCtx.RequirePlatformAdmin},
+			[]rest.Route{
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/article-comments",
+					Handler: admincomment.AdminListArticleCommentsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPatch,
+					Path:    "/api/v1/admin/article-comments/:id",
+					Handler: admincomment.AdminPatchArticleCommentHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodDelete,
+					Path:    "/api/v1/admin/article-comments/:id",
+					Handler: admincomment.AdminDeleteArticleCommentHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
-					Path:    "/api/v1/user/favorites",
-					Handler: List2Handler(serverCtx),
-				},
-				{
-					Method:  http.MethodDelete,
-					Path:    "/api/v1/user/favorites/:product_id",
-					Handler: RemoveHandler(serverCtx),
+					Path:    "/api/v1/admin/comment-emojis",
+					Handler: admincomment.EmojiListHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
-					Path:    "/api/v1/user/favorites/batch-remove",
-					Handler: RemoveBatchHandler(serverCtx),
+					Path:    "/api/v1/admin/comment-emojis",
+					Handler: admincomment.EmojiCreateHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/admin/comment-emojis/:id",
+					Handler: admincomment.EmojiUpdateHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodDelete,
+					Path:    "/api/v1/admin/comment-emojis/:id",
+					Handler: admincomment.EmojiDeleteHandler(serverCtx),
+				},
+			}...,
+		),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.RequestID, serverCtx.GatewayIdentity, serverCtx.RequirePlatformAdmin},
+			[]rest.Route{
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/products",
+					Handler: adminproduct.AdminListProductsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodDelete,
+					Path:    "/api/v1/admin/products/:id",
+					Handler: adminproduct.AdminDeleteProductHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/admin/products/:id/off_sale",
+					Handler: adminproduct.AdminOffSaleProductHandler(serverCtx),
+				},
+			}...,
+		),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.RequestID, serverCtx.GatewayIdentity, serverCtx.RequirePlatformAdmin},
+			[]rest.Route{
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/admin/shop-uploads",
+					Handler: adminshop.AdminUploadShopHandler(serverCtx),
+				},
+			}...,
+		),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.RequestID, serverCtx.GatewayIdentity, serverCtx.RequirePlatformAdmin},
+			[]rest.Route{
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/users/:id/favorites",
+					Handler: adminuser_favorite.AdminListUserFavoritesHandler(serverCtx),
 				},
 			}...,
 		),
@@ -200,247 +293,52 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/merchant/article-categories",
-					Handler: CategoryListHandler(serverCtx),
+					Handler: merchantarticle.MerchantListArticleCategoriesHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/merchant/article-comments",
-					Handler: CommentListHandler(serverCtx),
+					Handler: merchantarticle.MerchantListArticleCommentsHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPatch,
 					Path:    "/api/v1/merchant/article-comments/:id",
-					Handler: CommentPatchHandler(serverCtx),
+					Handler: merchantarticle.MerchantPatchArticleCommentHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodDelete,
 					Path:    "/api/v1/merchant/article-comments/:id",
-					Handler: CommentDeleteHandler(serverCtx),
+					Handler: merchantarticle.MerchantDeleteArticleCommentHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/merchant/article-uploads",
-					Handler: Upload2Handler(serverCtx),
+					Handler: merchantarticle.MerchantUploadArticleHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/merchant/articles",
-					Handler: List4Handler(serverCtx),
+					Handler: merchantarticle.MerchantListArticlesHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/merchant/articles",
-					Handler: Create2Handler(serverCtx),
+					Handler: merchantarticle.MerchantCreateArticleHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/merchant/articles/:id",
-					Handler: Detail3Handler(serverCtx),
+					Handler: merchantarticle.MerchantGetArticleHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPut,
 					Path:    "/api/v1/merchant/articles/:id",
-					Handler: Update2Handler(serverCtx),
+					Handler: merchantarticle.MerchantUpdateArticleHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodDelete,
 					Path:    "/api/v1/merchant/articles/:id",
-					Handler: DeleteHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/merchant/attr-templates",
-					Handler: ListAttrTemplatesHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/merchant/attr-templates",
-					Handler: SaveAttrTemplateHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/merchant/attr-templates/:id",
-					Handler: SaveAttrTemplate2Handler(serverCtx),
-				},
-				{
-					Method:  http.MethodDelete,
-					Path:    "/api/v1/merchant/attr-templates/:id",
-					Handler: DeleteAttrTemplateHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/merchant/auth/me",
-					Handler: AuthMeHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/merchant/notifications",
-					Handler: List5Handler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/merchant/notifications/:id/read",
-					Handler: MarkReadHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/merchant/notifications/read-all",
-					Handler: MarkAllReadHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/merchant/notifications/unread-count",
-					Handler: UnreadCountHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/merchant/products",
-					Handler: List3Handler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/merchant/products",
-					Handler: CreateHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/merchant/products/:id",
-					Handler: Detail2Handler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/merchant/products/:id",
-					Handler: UpdateHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/merchant/products/:id/copy",
-					Handler: CopyHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/merchant/products/:id/schedules",
-					Handler: ScheduleHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/merchant/products/:id/status",
-					Handler: SetStatusHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/merchant/products/batch",
-					Handler: BatchHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/merchant/products/export",
-					Handler: ExportHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/merchant/products/import",
-					Handler: ImportHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/merchant/products/jobs/:id",
-					Handler: JobStatusHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/merchant/products/op-logs",
-					Handler: OpLogsHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodDelete,
-					Path:    "/api/v1/merchant/products/recycle",
-					Handler: RecycleDeleteHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/merchant/products/recycle/restore",
-					Handler: RecycleRestoreHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodDelete,
-					Path:    "/api/v1/merchant/schedules/:id",
-					Handler: CancelScheduleHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/merchant/shop/menus",
-					Handler: ListMenusHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/merchant/shop/roles",
-					Handler: ListRolesHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/merchant/shop/roles",
-					Handler: SaveRoleHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/merchant/shop/roles/:id",
-					Handler: SaveRole2Handler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/merchant/shop/roles/:id/menus",
-					Handler: RoleMenusHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/merchant/shop/staff",
-					Handler: ListStaffHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/merchant/shop/staff",
-					Handler: BindStaffHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/merchant/skus/:id/stock",
-					Handler: AdjustStockHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/merchant/skus/batch-stock",
-					Handler: BatchStockHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/merchant/stocks/warnings",
-					Handler: StockWarningsHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/merchant/tags",
-					Handler: ListTagsHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/merchant/tags",
-					Handler: SaveTagHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/merchant/tags/:id",
-					Handler: SaveTag2Handler(serverCtx),
-				},
-				{
-					Method:  http.MethodDelete,
-					Path:    "/api/v1/merchant/tags/:id",
-					Handler: DeleteTagHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/merchant/uploads/images",
-					Handler: UploadHandler(serverCtx),
+					Handler: merchantarticle.MerchantDeleteArticleHandler(serverCtx),
 				},
 			}...,
 		),
@@ -448,207 +346,439 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 
 	server.AddRoutes(
 		rest.WithMiddlewares(
-			[]rest.Middleware{serverCtx.RequestID, serverCtx.GatewayIdentity, serverCtx.RequirePlatformAdmin},
+			[]rest.Middleware{serverCtx.RequestID, serverCtx.GatewayIdentityShop, serverCtx.RequireMerchantOwner},
 			[]rest.Route{
 				{
 					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/article-categories",
-					Handler: CategoryList2Handler(serverCtx),
+					Path:    "/api/v1/merchant/notifications",
+					Handler: merchantnotification.MerchantListNotificationsHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/article-categories",
-					Handler: CategoryCreateHandler(serverCtx),
+					Path:    "/api/v1/merchant/notifications/:id/read",
+					Handler: merchantnotification.MerchantMarkNotificationReadHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/merchant/notifications/read-all",
+					Handler: merchantnotification.MerchantMarkAllNotificationsReadHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/merchant/notifications/unread-count",
+					Handler: merchantnotification.MerchantUnreadNotificationCountHandler(serverCtx),
+				},
+			}...,
+		),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.RequestID, serverCtx.GatewayIdentityShop, serverCtx.RequireMerchantOwner},
+			[]rest.Route{
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/merchant/attr-templates",
+					Handler: merchantproduct.ListAttrTemplatesHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/merchant/attr-templates",
+					Handler: merchantproduct.MerchantCreateAttrTemplateHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPut,
-					Path:    "/api/v1/admin/article-categories/:id",
-					Handler: CategoryUpdateHandler(serverCtx),
+					Path:    "/api/v1/merchant/attr-templates/:id",
+					Handler: merchantproduct.MerchantUpdateAttrTemplateHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodDelete,
-					Path:    "/api/v1/admin/article-categories/:id",
-					Handler: CategoryDeleteHandler(serverCtx),
+					Path:    "/api/v1/merchant/attr-templates/:id",
+					Handler: merchantproduct.DeleteAttrTemplateHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/article-comments",
-					Handler: CommentList2Handler(serverCtx),
-				},
-				{
-					Method:  http.MethodPatch,
-					Path:    "/api/v1/admin/article-comments/:id",
-					Handler: CommentPatch2Handler(serverCtx),
-				},
-				{
-					Method:  http.MethodDelete,
-					Path:    "/api/v1/admin/article-comments/:id",
-					Handler: CommentDelete2Handler(serverCtx),
+					Path:    "/api/v1/merchant/products",
+					Handler: merchantproduct.MerchantListProductsHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/article-uploads",
-					Handler: Upload3Handler(serverCtx),
+					Path:    "/api/v1/merchant/products",
+					Handler: merchantproduct.MerchantCreateProductHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/articles",
-					Handler: List8Handler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/articles",
-					Handler: Create3Handler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/articles/:id",
-					Handler: Detail4Handler(serverCtx),
+					Path:    "/api/v1/merchant/products/:id",
+					Handler: merchantproduct.MerchantGetProductHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPut,
-					Path:    "/api/v1/admin/articles/:id",
-					Handler: Update3Handler(serverCtx),
-				},
-				{
-					Method:  http.MethodDelete,
-					Path:    "/api/v1/admin/articles/:id",
-					Handler: SoftDeleteHandler(serverCtx),
+					Path:    "/api/v1/merchant/products/:id",
+					Handler: merchantproduct.MerchantUpdateProductHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/articles/:id/audit",
-					Handler: AuditHandler(serverCtx),
+					Path:    "/api/v1/merchant/products/:id/copy",
+					Handler: merchantproduct.MerchantCopyProductHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/articles/:id/offline",
-					Handler: OfflineHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/articles/:id/top",
-					Handler: TopHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/articles/batch-audit",
-					Handler: BatchAuditHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/articles/recycle",
-					Handler: List7Handler(serverCtx),
-				},
-				{
-					Method:  http.MethodDelete,
-					Path:    "/api/v1/admin/articles/recycle",
-					Handler: RecycleDelete2Handler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/articles/recycle/restore",
-					Handler: RecycleRestore2Handler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/articles/stats",
-					Handler: StatsHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/banners",
-					Handler: ListBanners2Handler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/banners",
-					Handler: CreateBannerHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/banners/:id",
-					Handler: GetBannerHandler(serverCtx),
+					Path:    "/api/v1/merchant/products/:id/schedules",
+					Handler: merchantproduct.MerchantScheduleProductHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPut,
-					Path:    "/api/v1/admin/banners/:id",
-					Handler: UpdateBannerHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodDelete,
-					Path:    "/api/v1/admin/banners/:id",
-					Handler: DeleteBannerHandler(serverCtx),
+					Path:    "/api/v1/merchant/products/:id/status",
+					Handler: merchantproduct.MerchantSetProductStatusHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/banners/upload",
-					Handler: UploadBannerHandler(serverCtx),
+					Path:    "/api/v1/merchant/products/batch",
+					Handler: merchantproduct.MerchantBatchProductsHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/categories",
-					Handler: AdminListCategoriesHandler(serverCtx),
+					Path:    "/api/v1/merchant/products/export",
+					Handler: merchantproduct.MerchantExportProductsHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/categories",
-					Handler: AdminCreateCategoryHandler(serverCtx),
+					Path:    "/api/v1/merchant/products/import",
+					Handler: merchantproduct.MerchantImportProductsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/merchant/products/jobs/:id",
+					Handler: merchantproduct.JobStatusHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/merchant/products/op-logs",
+					Handler: merchantproduct.OpLogsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodDelete,
+					Path:    "/api/v1/merchant/products/recycle",
+					Handler: merchantproduct.MerchantPurgeProductsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/merchant/products/recycle/restore",
+					Handler: merchantproduct.MerchantRestoreProductsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodDelete,
+					Path:    "/api/v1/merchant/schedules/:id",
+					Handler: merchantproduct.CancelScheduleHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPut,
-					Path:    "/api/v1/admin/categories/:id",
-					Handler: AdminUpdateCategoryHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodDelete,
-					Path:    "/api/v1/admin/categories/:id",
-					Handler: AdminDeleteCategoryHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/comment-emojis",
-					Handler: EmojiListHandler(serverCtx),
+					Path:    "/api/v1/merchant/skus/:id/stock",
+					Handler: merchantproduct.AdjustStockHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/comment-emojis",
-					Handler: EmojiCreateHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/admin/comment-emojis/:id",
-					Handler: EmojiUpdateHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodDelete,
-					Path:    "/api/v1/admin/comment-emojis/:id",
-					Handler: EmojiDeleteHandler(serverCtx),
+					Path:    "/api/v1/merchant/skus/batch-stock",
+					Handler: merchantproduct.BatchStockHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/products",
-					Handler: List6Handler(serverCtx),
+					Path:    "/api/v1/merchant/stocks/warnings",
+					Handler: merchantproduct.StockWarningsHandler(serverCtx),
 				},
 				{
-					Method:  http.MethodDelete,
-					Path:    "/api/v1/admin/products/:id",
-					Handler: Delete2Handler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/admin/products/:id/off_sale",
-					Handler: OffSaleHandler(serverCtx),
+					Method:  http.MethodGet,
+					Path:    "/api/v1/merchant/tags",
+					Handler: merchantproduct.ListTagsHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
-					Path:    "/api/v1/admin/shop-uploads",
-					Handler: Upload4Handler(serverCtx),
+					Path:    "/api/v1/merchant/tags",
+					Handler: merchantproduct.MerchantCreateTagHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/merchant/tags/:id",
+					Handler: merchantproduct.MerchantUpdateTagHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodDelete,
+					Path:    "/api/v1/merchant/tags/:id",
+					Handler: merchantproduct.DeleteTagHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/merchant/uploads/images",
+					Handler: merchantproduct.MerchantUploadImageHandler(serverCtx),
+				},
+			}...,
+		),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.RequestID, serverCtx.GatewayIdentityShop, serverCtx.RequireMerchantOwner},
+			[]rest.Route{
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/merchant/auth/me",
+					Handler: merchantshopops.MerchantAuthMeHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/users/:id/favorites",
-					Handler: AdminUserListHandler(serverCtx),
+					Path:    "/api/v1/merchant/shop/menus",
+					Handler: merchantshopops.ListMenusHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/merchant/shop/roles",
+					Handler: merchantshopops.ListRolesHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/merchant/shop/roles",
+					Handler: merchantshopops.MerchantCreateRoleHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/merchant/shop/roles/:id",
+					Handler: merchantshopops.MerchantUpdateRoleHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/merchant/shop/roles/:id/menus",
+					Handler: merchantshopops.RoleMenusHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/merchant/shop/staff",
+					Handler: merchantshopops.ListStaffHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/merchant/shop/staff",
+					Handler: merchantshopops.BindStaffHandler(serverCtx),
+				},
+			}...,
+		),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.RequestID},
+			[]rest.Route{
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/articles/:id",
+					Handler: publicarticle.PublicGetArticleHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/articles/:id/comments",
+					Handler: publicarticle.ListCommentsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/articles/list",
+					Handler: publicarticle.PublicListArticlesHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/comment-emojis",
+					Handler: publicarticle.ListEmojisHandler(serverCtx),
+				},
+			}...,
+		),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.RequestID},
+			[]rest.Route{
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/banners",
+					Handler: publicbanner.ListBannersHandler(serverCtx),
+				},
+			}...,
+		),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.RequestID},
+			[]rest.Route{
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/product_category/detail",
+					Handler: publiccategory.GetCategoryDetailHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/product_category/list",
+					Handler: publiccategory.GetCategoryListHandler(serverCtx),
+				},
+			}...,
+		),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.RequestID},
+			[]rest.Route{
+				{
+					Method:  http.MethodGet,
+					Path:    "/healthz",
+					Handler: publichealth.HealthzHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/metrics",
+					Handler: publichealth.MetricsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/readyz",
+					Handler: publichealth.ReadyzHandler(serverCtx),
+				},
+			}...,
+		),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.RequestID},
+			[]rest.Route{
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/products/:id/favorite-count",
+					Handler: publicproduct.CountHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/products/detail",
+					Handler: publicproduct.GetProductDetailHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/products/list",
+					Handler: publicproduct.GetProductListHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/products/sales-rank",
+					Handler: publicproduct.GetSalesRankHandler(serverCtx),
+				},
+			}...,
+		),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.RequestID, serverCtx.GatewayIdentity},
+			[]rest.Route{
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/articles/:id/comments",
+					Handler: userarticle.CreateCommentHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/articles/:id/engagement",
+					Handler: userarticle.UserArticleEngagementHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/articles/:id/favorite",
+					Handler: userarticle.FavoriteHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodDelete,
+					Path:    "/api/v1/articles/:id/favorite",
+					Handler: userarticle.UnfavoriteHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/articles/:id/like",
+					Handler: userarticle.LikeHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodDelete,
+					Path:    "/api/v1/articles/:id/like",
+					Handler: userarticle.UnlikeHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/user/article-favorites",
+					Handler: userarticle.ListMyFavoritesHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/user/article-likes",
+					Handler: userarticle.ListMyLikesHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/user/article-uploads",
+					Handler: userarticle.UploadMineHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/user/articles",
+					Handler: userarticle.ListMineHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/user/articles",
+					Handler: userarticle.CreateMineHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/user/articles/:id",
+					Handler: userarticle.DetailMineHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/user/articles/:id",
+					Handler: userarticle.UpdateMineHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodDelete,
+					Path:    "/api/v1/user/articles/:id",
+					Handler: userarticle.DeleteMineHandler(serverCtx),
+				},
+			}...,
+		),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.RequestID, serverCtx.GatewayIdentity},
+			[]rest.Route{
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/products/:id/favorite",
+					Handler: userfavorite.UserFavoriteStatusHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/user/favorites",
+					Handler: userfavorite.UserAddFavoriteHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/user/favorites",
+					Handler: userfavorite.UserListFavoritesHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodDelete,
+					Path:    "/api/v1/user/favorites/:product_id",
+					Handler: userfavorite.UserRemoveFavoriteHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/user/favorites/batch-remove",
+					Handler: userfavorite.RemoveBatchHandler(serverCtx),
 				},
 			}...,
 		),
