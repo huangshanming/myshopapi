@@ -30,7 +30,9 @@ import (
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	"mymall/pkg/telemetry"
-	"mymall/services/order-service/internal/handler"
+	hadmin "mymall/services/order-service/internal/handler/admin"
+	huser "mymall/services/order-service/internal/handler/user"
+	hmerchant "mymall/services/order-service/internal/handler/merchant"
 	"mymall/services/order-service/internal/model"
 	ordermq "mymall/services/order-service/internal/mq"
 	"mymall/services/order-service/internal/svc"
@@ -100,13 +102,13 @@ func main() {
 		}
 	}
 
-	orderUser := handler.NewOrderUserHandler(svcCtx)
-	orderMerchant := handler.NewOrderMerchantHandler(svcCtx)
-	orderAdmin := handler.NewOrderAdminHandler(svcCtx)
-	reviewUser := handler.NewReviewUserHandler(svcCtx)
-	reviewMerchant := handler.NewReviewMerchantHandler(svcCtx)
-	reviewAdmin := handler.NewReviewAdminHandler(svcCtx)
-	logisticsAdmin := handler.NewLogisticsAdminHandler(svcCtx)
+	orderUser := huser.NewOrderHandler(svcCtx)
+	orderMerchant := hmerchant.NewOrderHandler(svcCtx)
+	orderAdmin := hadmin.NewOrderHandler(svcCtx)
+	reviewUser := huser.NewReviewHandler(svcCtx)
+	reviewMerchant := hmerchant.NewReviewHandler(svcCtx)
+	reviewAdmin := hadmin.NewReviewHandler(svcCtx)
+	logisticsAdmin := hadmin.NewLogisticsHandler(svcCtx)
 
 	healthReg := health.NewRegistry()
 	healthReg.Register("mysql", func(ctx context.Context) error {

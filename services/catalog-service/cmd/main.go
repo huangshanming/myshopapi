@@ -29,13 +29,18 @@ import (
 	"mymall/pkg/xerr"
 	"mymall/pkg/mq"
 	"mymall/pkg/telemetry"
-	contenthandler "mymall/services/catalog-service/internal/content/handler"
+	cadmin "mymall/services/catalog-service/internal/content/handler/admin"
+	cmerchant "mymall/services/catalog-service/internal/content/handler/merchant"
+	cpublic "mymall/services/catalog-service/internal/content/handler/public"
 	contentlogic "mymall/services/catalog-service/internal/content/logic"
 	contentmodel "mymall/services/catalog-service/internal/content/model"
 	catalogmq "mymall/services/catalog-service/internal/mq"
 	notifyhandler "mymall/services/catalog-service/internal/notify/handler"
 	notifymodel "mymall/services/catalog-service/internal/notify/model"
-	producthandler "mymall/services/catalog-service/internal/product/handler"
+	padmin "mymall/services/catalog-service/internal/product/handler/admin"
+	pmerchant "mymall/services/catalog-service/internal/product/handler/merchant"
+	ppublic "mymall/services/catalog-service/internal/product/handler/public"
+	puser "mymall/services/catalog-service/internal/product/handler/user"
 	productlogic "mymall/services/catalog-service/internal/product/logic"
 	productmodel "mymall/services/catalog-service/internal/product/model"
 	"mymall/services/catalog-service/internal/server"
@@ -133,17 +138,17 @@ func main() {
 		logger.Info("shop menus seeded (layered)")
 	}
 	catalogLogic := productlogic.NewCatalogLogic(context.Background(), svcCtx)
-	catalogPublic := producthandler.NewCatalogPublicHandler(svcCtx)
-	catalogAdmin := producthandler.NewCatalogAdminHandler(svcCtx)
-	favoriteUser := producthandler.NewFavoriteUserHandler(svcCtx)
-	favoriteAdmin := producthandler.NewFavoriteAdminHandler(svcCtx)
-	adminH := producthandler.NewProductAdminHandler(svcCtx)
+	catalogPublic := ppublic.NewCatalogHandler(svcCtx)
+	catalogAdmin := padmin.NewCatalogHandler(svcCtx)
+	favoriteUser := puser.NewFavoriteHandler(svcCtx)
+	favoriteAdmin := padmin.NewFavoriteHandler(svcCtx)
+	adminH := pmerchant.NewProductHandler(svcCtx)
 	shopOpsH := shopopshandler.NewShopOpsHandler(svcCtx)
-	articleAdminH := contenthandler.NewArticleAdminHandler(svcCtx)
-	articleMerchantH := contenthandler.NewArticleMerchantHandler(svcCtx)
-	articlePublicH := contenthandler.NewArticlePublicHandler(svcCtx)
-	shopUploadH := producthandler.NewShopUploadHandler()
-	platformProductH := producthandler.NewPlatformProductHandler(svcCtx)
+	articleAdminH := cadmin.NewArticleHandler(svcCtx)
+	articleMerchantH := cmerchant.NewArticleHandler(svcCtx)
+	articlePublicH := cpublic.NewArticleHandler(svcCtx)
+	shopUploadH := padmin.NewShopUploadHandler()
+	platformProductH := padmin.NewPlatformProductHandler(svcCtx)
 	notifH := notifyhandler.NewNotificationHandler(svcCtx)
 	productAdminLogic := productlogic.NewProductAdminLogic(context.Background(), svcCtx)
 	articleLogic := contentlogic.NewArticleLogic(context.Background(), svcCtx)

@@ -20,7 +20,10 @@ import (
 	"mymall/pkg/xerr"
 	"mymall/pkg/telemetry"
 	"mymall/services/user-service/internal/data"
-	"mymall/services/user-service/internal/handler"
+	hadmin "mymall/services/user-service/internal/handler/admin"
+	huser "mymall/services/user-service/internal/handler/user"
+	hpublic "mymall/services/user-service/internal/handler/public"
+	hinternal "mymall/services/user-service/internal/handler/internalapi"
 	"mymall/services/user-service/internal/logic"
 	"mymall/services/user-service/internal/model"
 	"mymall/services/user-service/internal/server"
@@ -94,18 +97,19 @@ func main() {
 		}
 	}
 	userLogic := logic.NewUserLogic(context.Background(), svcCtx)
-	userHandler := handler.NewUserHandler(svcCtx)
-	adminHandler := handler.NewAdminHandler(svcCtx)
-	walletUser := handler.NewWalletUserHandler(svcCtx)
-	walletAdmin := handler.NewWalletAdminHandler(svcCtx)
-	walletInternal := handler.NewWalletInternalHandler(svcCtx)
-	addressUser := handler.NewAddressUserHandler(svcCtx)
-	addressAdmin := handler.NewAddressAdminHandler(svcCtx)
-	addressInternal := handler.NewAddressInternalHandler(svcCtx)
-	regionHandler := handler.NewRegionHandler(svcCtx)
-	taskUser := handler.NewTaskUserHandler(svcCtx)
-	taskAdmin := handler.NewTaskAdminHandler(svcCtx)
-	taskInternal := handler.NewTaskInternalHandler(svcCtx)
+	userHandler := huser.NewUserHandler(svcCtx)
+	adminHandler := hadmin.NewAdminHandler(svcCtx)
+	walletUser := huser.NewWalletHandler(svcCtx)
+	walletAdmin := hadmin.NewWalletHandler(svcCtx)
+	walletInternal := hinternal.NewWalletHandler(svcCtx)
+	addressUser := huser.NewAddressHandler(svcCtx)
+	addressAdmin := hadmin.NewAddressHandler(svcCtx)
+	addressInternal := hinternal.NewAddressHandler(svcCtx)
+	regionHandler := hpublic.NewRegionHandler(svcCtx)
+	taskUser := huser.NewTaskHandler(svcCtx)
+	taskAdmin := hadmin.NewTaskHandler(svcCtx)
+	taskInternal := hinternal.NewTaskHandler(svcCtx)
+	notifInternal := hinternal.NewNotificationHandler(svcCtx)
 
 	healthReg := health.NewRegistry()
 	healthReg.Register("mysql", func(ctx context.Context) error {
@@ -179,7 +183,7 @@ func main() {
 		{Method: http.MethodGet, Path: "/api/v1/user/notifications/unread-count", Handler: userAuth(userHandler.UnreadNotificationCount)},
 		{Method: http.MethodPost, Path: "/api/v1/user/notifications/:id/read", Handler: userAuth(userHandler.MarkNotificationRead)},
 		{Method: http.MethodPost, Path: "/api/v1/user/notifications/read-all", Handler: userAuth(userHandler.MarkAllNotificationsRead)},
-		{Method: http.MethodPost, Path: "/api/v1/internal/notifications", Handler: rid(userHandler.InternalCreateNotification)},
+		{Method: http.MethodPost, Path: "/api/v1/internal/notifications", Handler: rid(notifInternal.InternalCreateNotification)},
 		{Method: http.MethodPost, Path: "/api/v1/internal/tasks/events", Handler: rid(taskInternal.InternalEvent)},
 		{Method: http.MethodPost, Path: "/api/v1/internal/points/deduct", Handler: rid(taskInternal.InternalDeductPoints)},
 		{Method: http.MethodPost, Path: "/api/v1/internal/points/refund", Handler: rid(taskInternal.InternalRefundPoints)},

@@ -18,7 +18,11 @@ import (
 	applog "mymall/pkg/log"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
-	"mymall/services/merchant-service/internal/handler"
+	hadmin "mymall/services/merchant-service/internal/handler/admin"
+	huser "mymall/services/merchant-service/internal/handler/user"
+	hpublic "mymall/services/merchant-service/internal/handler/public"
+	hmerchant "mymall/services/merchant-service/internal/handler/merchant"
+	hinternal "mymall/services/merchant-service/internal/handler/internalapi"
 	"mymall/services/merchant-service/internal/logic"
 	"mymall/services/merchant-service/internal/model"
 	"mymall/services/merchant-service/internal/svc"
@@ -76,29 +80,29 @@ func main() {
 	}
 
 	svcCtx := svc.NewServiceContext(cfg, db)
-	shopAdmin := handler.NewShopAdminHandler(svcCtx)
-	shopMerchant := handler.NewShopMerchantHandler(svcCtx)
-	shopPublic := handler.NewShopPublicHandler(svcCtx)
-	walletAdmin := handler.NewWalletAdminHandler(svcCtx)
-	walletMerchant := handler.NewWalletMerchantHandler(svcCtx)
-	seckillAdmin := handler.NewSeckillAdminHandler(svcCtx)
-	seckillMerchant := handler.NewSeckillMerchantHandler(svcCtx)
-	seckillPublic := handler.NewSeckillPublicHandler(svcCtx)
-	seckillInternal := handler.NewSeckillInternalHandler(svcCtx)
-	couponAdmin := handler.NewCouponAdminHandler(svcCtx)
-	couponMerchant := handler.NewCouponMerchantHandler(svcCtx)
-	couponPublic := handler.NewCouponPublicHandler(svcCtx)
-	couponUser := handler.NewCouponUserHandler(svcCtx)
-	couponInternal := handler.NewCouponInternalHandler(svcCtx)
-	slotAdmin := handler.NewHomepageSlotAdminHandler(svcCtx)
-	slotMerchant := handler.NewHomepageSlotMerchantHandler(svcCtx)
-	slotPublic := handler.NewHomepageSlotPublicHandler(svcCtx)
-	themeAdmin := handler.NewHomepageThemeAdminHandler(svcCtx)
-	themeMerchant := handler.NewHomepageThemeMerchantHandler(svcCtx)
-	themePublic := handler.NewHomepageThemePublicHandler(svcCtx)
-	pointsProductAdmin := handler.NewPointsProductAdminHandler(svcCtx)
-	pointsOrderAdmin := handler.NewPointsOrderAdminHandler(svcCtx)
-	pointsOrderUser := handler.NewPointsOrderUserHandler(svcCtx)
+	shopAdmin := hadmin.NewShopHandler(svcCtx)
+	shopMerchant := hmerchant.NewShopHandler(svcCtx)
+	shopPublic := hpublic.NewShopHandler(svcCtx)
+	walletAdmin := hadmin.NewWalletHandler(svcCtx)
+	walletMerchant := hmerchant.NewWalletHandler(svcCtx)
+	seckillAdmin := hadmin.NewSeckillHandler(svcCtx)
+	seckillMerchant := hmerchant.NewSeckillHandler(svcCtx)
+	seckillPublic := hpublic.NewSeckillHandler(svcCtx)
+	seckillInternal := hinternal.NewSeckillHandler(svcCtx)
+	couponAdmin := hadmin.NewCouponHandler(svcCtx)
+	couponMerchant := hmerchant.NewCouponHandler(svcCtx)
+	couponPublic := hpublic.NewCouponHandler(svcCtx)
+	couponUser := huser.NewCouponHandler(svcCtx)
+	couponInternal := hinternal.NewCouponHandler(svcCtx)
+	slotAdmin := hadmin.NewHomepageSlotHandler(svcCtx)
+	slotMerchant := hmerchant.NewHomepageSlotHandler(svcCtx)
+	slotPublic := hpublic.NewHomepageSlotHandler(svcCtx)
+	themeAdmin := hadmin.NewHomepageThemeHandler(svcCtx)
+	themeMerchant := hmerchant.NewHomepageThemeHandler(svcCtx)
+	themePublic := hpublic.NewHomepageThemeHandler(svcCtx)
+	pointsProductAdmin := hadmin.NewPointsProductHandler(svcCtx)
+	pointsOrderAdmin := hadmin.NewPointsOrderHandler(svcCtx)
+	pointsOrderUser := huser.NewPointsOrderHandler(svcCtx)
 	seckillLogic := logic.NewMerchantLogic(context.Background(), svcCtx)
 	_, _, _ = seckillLogic.EnsureActiveSession()
 
