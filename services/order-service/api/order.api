@@ -1,124 +1,160 @@
 syntax = "v1"
 
-// Auto-extracted route table for goctl; handlers wired manually to existing logic.
-// Regenerate stubs: goctl api go -api api/order.api -dir ./_goctl_out -style go_zero
+// Route table SSOT for order-service.
+// Keep in sync with internal/handler/routes.go; run: scripts/check-api-routes.sh order-service
 
+@server (
+	middleware: RequestID
+)
 service orderapi {
 	@handler Healthz
 	get /healthz
 
-	@handler Readyz
+	@handler ReadyHandler
 	get /readyz
 
-	@handler Metrics
+	@handler Handler
 	get /metrics
 
-	@handler ApiV1Orders
-	post /api/v1/orders
-
-	@handler ApiV1Orders
-	get /api/v1/orders
-
-	@handler V1OrdersId
-	get /api/v1/orders/:id
-
-	@handler OrdersIdCancel
-	put /api/v1/orders/:id/cancel
-
-	@handler OrdersIdConfirmReceive
-	put /api/v1/orders/:id/confirm-receive
-
-	@handler OrdersIdAfterSales
-	post /api/v1/orders/:id/after-sales
-
-	@handler OrdersIdReviewEligible
-	get /api/v1/orders/:id/review-eligible
-
-	@handler OrdersIdReviews
-	post /api/v1/orders/:id/reviews
-
-	@handler OrdersIdReview
-	get /api/v1/orders/:id/review
-
-	@handler V1UserReviewUploads
-	post /api/v1/user/review-uploads
-
-	@handler ProductsIdReviews
+	@handler ProductList
 	get /api/v1/products/:id/reviews
 
-	@handler V1LogisticsOptions
-	get /api/v1/logistics/options
+}
 
-	@handler V1MerchantReviews
+@server (
+	middleware: RequestID,GatewayIdentity
+)
+service orderapi {
+	@handler Create
+	post /api/v1/orders
+
+	@handler CouponPreview
+	post /api/v1/orders/coupon-preview
+
+	@handler StatusCounts
+	get /api/v1/orders/status-counts
+
+	@handler UserAfterSales
+	get /api/v1/orders/after-sales
+
+	@handler List
+	get /api/v1/orders
+
+	@handler Detail
+	get /api/v1/orders/:id
+
+	@handler Cancel
+	put /api/v1/orders/:id/cancel
+
+	@handler ConfirmReceive
+	put /api/v1/orders/:id/confirm-receive
+
+	@handler CreateAfterSale
+	post /api/v1/orders/:id/after-sales
+
+	@handler Eligible
+	get /api/v1/orders/:id/review-eligible
+
+	@handler Create2
+	post /api/v1/orders/:id/reviews
+
+	@handler GetByOrder
+	get /api/v1/orders/:id/review
+
+	@handler Upload
+	post /api/v1/user/review-uploads
+
+}
+
+@server (
+	middleware: RequestID,GatewayIdentityShop,RequireMerchantOwner
+)
+service orderapi {
+	@handler MerchantList
 	get /api/v1/merchant/reviews
 
-	@handler ReviewsIdReply
+	@handler MerchantReply
 	put /api/v1/merchant/reviews/:id/reply
 
-	@handler MerchantReviewsId
+	@handler MerchantDelete
 	delete /api/v1/merchant/reviews/:id
 
-	@handler V1MerchantOrders
+	@handler MerchantList2
 	get /api/v1/merchant/orders
 
-	@handler MerchantOrdersId
+	@handler MerchantDetail
 	get /api/v1/merchant/orders/:id
 
-	@handler OrdersIdShip
+	@handler MerchantShip
 	put /api/v1/merchant/orders/:id/ship
 
-	@handler OrdersIdComplete
+	@handler MerchantComplete
 	put /api/v1/merchant/orders/:id/complete
 
-	@handler OrdersIdRemark
+	@handler MerchantRemark
 	put /api/v1/merchant/orders/:id/remark
 
-	@handler V1MerchantAfterSales
+	@handler MerchantAfterSales
 	get /api/v1/merchant/after-sales
 
-	@handler AfterSalesIdHandle
+	@handler MerchantHandleAfterSale
 	put /api/v1/merchant/after-sales/:id/handle
 
-	@handler V1AdminReviews
+}
+
+@server (
+	middleware: RequestID,GatewayIdentity,RequirePlatformOrMerchant
+)
+service orderapi {
+	@handler Options
+	get /api/v1/logistics/options
+
+}
+
+@server (
+	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
+)
+service orderapi {
+	@handler AdminList
 	get /api/v1/admin/reviews
 
-	@handler AdminReviewsId
+	@handler AdminDelete
 	delete /api/v1/admin/reviews/:id
 
-	@handler V1AdminOrders
+	@handler AdminList2
 	get /api/v1/admin/orders
 
-	@handler AdminOrdersId
+	@handler AdminDetail
 	get /api/v1/admin/orders/:id
 
-	@handler OrdersIdShip
+	@handler AdminShip
 	put /api/v1/admin/orders/:id/ship
 
-	@handler OrdersIdComplete
+	@handler AdminComplete
 	put /api/v1/admin/orders/:id/complete
 
-	@handler OrdersIdRemark
+	@handler AdminRemark
 	put /api/v1/admin/orders/:id/remark
 
-	@handler V1AdminAfterSales
+	@handler AdminAfterSales
 	get /api/v1/admin/after-sales
 
-	@handler AfterSalesIdHandle
+	@handler AdminHandleAfterSale
 	put /api/v1/admin/after-sales/:id/handle
 
-	@handler V1AdminLogistics
+	@handler AdminList3
 	get /api/v1/admin/logistics
 
-	@handler V1AdminLogistics
+	@handler Create3
 	post /api/v1/admin/logistics
 
-	@handler AdminLogisticsId
+	@handler Update
 	put /api/v1/admin/logistics/:id
 
-	@handler LogisticsIdStatus
+	@handler UpdateStatus
 	put /api/v1/admin/logistics/:id/status
 
-	@handler AdminLogisticsId
+	@handler Delete
 	delete /api/v1/admin/logistics/:id
 
 }

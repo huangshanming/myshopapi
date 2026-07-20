@@ -1,148 +1,220 @@
 syntax = "v1"
 
-// Auto-extracted route table for goctl; handlers wired manually to existing logic.
-// Regenerate stubs: goctl api go -api api/user.api -dir ./_goctl_out -style go_zero
+// Route table SSOT for user-service.
+// Keep in sync with internal/handler/routes.go; run: scripts/check-api-routes.sh user-service
 
+@server (
+	middleware: RequestID
+)
 service userapi {
 	@handler Healthz
 	get /healthz
 
-	@handler Readyz
+	@handler ReadyHandler
 	get /readyz
 
-	@handler Metrics
+	@handler Handler
 	get /metrics
 
-	@handler V1UserLogin
+	@handler Login
 	post /api/v1/user/login
 
-	@handler V1UserRegister
+	@handler Register
 	post /api/v1/user/register
 
+	@handler Freeze
+	post /api/v1/user/wallet/freeze
+
+	@handler Unfreeze
+	post /api/v1/user/wallet/unfreeze
+
+	@handler Settle
+	post /api/v1/user/wallet/settle
+
+	@handler InternalGet
+	get /api/v1/user/addresses/internal
+
+	@handler InternalCreateNotification
+	post /api/v1/internal/notifications
+
+	@handler InternalEvent
+	post /api/v1/internal/tasks/events
+
+	@handler InternalDeductPoints
+	post /api/v1/internal/points/deduct
+
+	@handler InternalRefundPoints
+	post /api/v1/internal/points/refund
+
+	@handler List
+	get /api/v1/regions
+
+	@handler Tree
+	get /api/v1/regions/tree
+
+}
+
+@server (
+	middleware: RequestID,UserFlexibleAuth
+)
+service userapi {
 	@handler V1UserProfile
 	get /api/v1/user/profile
 
-	@handler V1UserWallet
+	@handler UserGetWallet
 	get /api/v1/user/wallet
 
 	@handler UserWalletLogs
 	get /api/v1/user/wallet/logs
 
-	@handler UserWalletFreeze
-	post /api/v1/user/wallet/freeze
-
-	@handler UserWalletUnfreeze
-	post /api/v1/user/wallet/unfreeze
-
-	@handler UserWalletSettle
-	post /api/v1/user/wallet/settle
-
-	@handler V1UserAddresses
+	@handler List2
 	get /api/v1/user/addresses
 
-	@handler V1UserAddresses
+	@handler Create
 	post /api/v1/user/addresses
 
-	@handler UserAddressesId
+	@handler Update
 	put /api/v1/user/addresses/:id
 
-	@handler UserAddressesId
+	@handler Delete
 	delete /api/v1/user/addresses/:id
 
-	@handler AddressesIdDefault
+	@handler SetDefault
 	put /api/v1/user/addresses/:id/default
 
-	@handler UserAddressesInternal
-	get /api/v1/user/addresses/internal
+	@handler ListNotifications
+	get /api/v1/user/notifications
 
-	@handler ApiV1Regions
-	get /api/v1/regions
+	@handler UnreadNotificationCount
+	get /api/v1/user/notifications/unread-count
 
-	@handler V1RegionsTree
-	get /api/v1/regions/tree
+	@handler MarkNotificationRead
+	post /api/v1/user/notifications/:id/read
 
-	@handler AdminAuthMe
+	@handler MarkAllNotificationsRead
+	post /api/v1/user/notifications/read-all
+
+	@handler UserPoints
+	get /api/v1/user/points
+
+	@handler UserPointLogs
+	get /api/v1/user/points/logs
+
+	@handler UserListTasks
+	get /api/v1/user/tasks
+
+	@handler UserCheckin
+	post /api/v1/user/tasks/checkin
+
+	@handler UserClaim
+	post /api/v1/user/tasks/:code/claim
+
+	@handler UserReportEvent
+	post /api/v1/user/tasks/events
+
+}
+
+@server (
+	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
+)
+service userapi {
+	@handler AuthMe
 	get /api/v1/admin/auth/me
 
-	@handler V1AdminMenus
+	@handler MenuTree
 	get /api/v1/admin/menus
 
-	@handler V1AdminMenus
+	@handler CreateMenu
 	post /api/v1/admin/menus
 
-	@handler AdminMenusId
+	@handler UpdateMenu
 	put /api/v1/admin/menus/:id
 
-	@handler AdminMenusId
+	@handler DeleteMenu
 	delete /api/v1/admin/menus/:id
 
-	@handler V1AdminRoles
+	@handler ListRoles
 	get /api/v1/admin/roles
 
-	@handler V1AdminRoles
+	@handler CreateRole
 	post /api/v1/admin/roles
 
-	@handler AdminRolesId
+	@handler UpdateRole
 	put /api/v1/admin/roles/:id
 
-	@handler AdminRolesId
+	@handler DeleteRole
 	delete /api/v1/admin/roles/:id
 
-	@handler RolesIdMenus
+	@handler GetRoleMenus
 	get /api/v1/admin/roles/:id/menus
 
-	@handler RolesIdMenus
+	@handler AssignRoleMenus
 	put /api/v1/admin/roles/:id/menus
 
-	@handler V1AdminUsers
+	@handler ListUsers
 	get /api/v1/admin/users
 
-	@handler AdminUsersId
+	@handler GetUser
 	get /api/v1/admin/users/:id
 
-	@handler AdminUsersId
+	@handler UpdateUser
 	put /api/v1/admin/users/:id
 
-	@handler UsersIdStatus
+	@handler SetUserStatus
 	put /api/v1/admin/users/:id/status
 
-	@handler UsersIdPassword
+	@handler ResetUserPassword
 	put /api/v1/admin/users/:id/password
 
-	@handler UsersIdToken
+	@handler GenerateUserToken
 	post /api/v1/admin/users/:id/token
 
-	@handler UsersIdWallet
+	@handler AdminGetWallet
 	get /api/v1/admin/users/:id/wallet
 
-	@handler IdWalletAdjust
+	@handler AdminAdjustWallet
 	post /api/v1/admin/users/:id/wallet/adjust
 
-	@handler IdWalletLogs
+	@handler AdminWalletLogs
 	get /api/v1/admin/users/:id/wallet/logs
 
-	@handler UsersIdAddresses
+	@handler AdminList
 	get /api/v1/admin/users/:id/addresses
 
-	@handler V1AdminAdmins
+	@handler ListAdmins
 	get /api/v1/admin/admins
 
-	@handler V1AdminAdmins
+	@handler CreateAdmin
 	post /api/v1/admin/admins
 
-	@handler AdminsIdRoles
+	@handler GetAdminRoles
 	get /api/v1/admin/admins/:id/roles
 
-	@handler AdminsIdRoles
+	@handler AssignAdminRoles
 	put /api/v1/admin/admins/:id/roles
 
-	@handler AdminsIdPassword
+	@handler ResetAdminPassword
 	put /api/v1/admin/admins/:id/password
 
-	@handler V1AdminConfigs
+	@handler ListConfigs
 	get /api/v1/admin/configs
 
-	@handler V1AdminConfigs
+	@handler SaveConfigs
 	put /api/v1/admin/configs
+
+	@handler AdminSendNotification
+	post /api/v1/admin/notifications/send
+
+	@handler AdminListNotificationSends
+	get /api/v1/admin/notifications/sends
+
+	@handler AdminListNotificationRecipients
+	get /api/v1/admin/notifications/sends/:id/recipients
+
+	@handler AdminList2
+	get /api/v1/admin/tasks
+
+	@handler AdminUpdate
+	put /api/v1/admin/tasks/:id
 
 }

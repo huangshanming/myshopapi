@@ -1,8 +1,11 @@
 syntax = "v1"
 
-// Auto-extracted route table for goctl; handlers wired manually to existing logic.
-// Regenerate stubs: goctl api go -api api/merchant.api -dir ./_goctl_out -style go_zero
+// Route table SSOT for merchant-service.
+// Keep in sync with internal/handler/routes.go; run: scripts/check-api-routes.sh merchant-service
 
+@server (
+	middleware: RequestID
+)
 service merchantapi {
 	@handler Healthz
 	get /healthz
@@ -10,40 +13,95 @@ service merchantapi {
 	@handler Readyz
 	get /readyz
 
-	@handler V1ShopsList
+	@handler PublicListShops
 	get /api/v1/shops/list
 
-	@handler V1ShopsHomeSlots
+	@handler PublicHomeSlots
 	get /api/v1/shops/home-slots
 
-	@handler V1ShopsId
+	@handler PublicThemeTiles
+	get /api/v1/home/theme-tiles
+
+	@handler PublicGetShop
 	get /api/v1/shops/:id
 
-	@handler V1SeckillCurrent
+	@handler PublicSeckillCurrent
 	get /api/v1/seckill/current
 
-	@handler V1SeckillList
+	@handler PublicSeckillList
 	get /api/v1/seckill/list
 
-	@handler SeckillEntriesId
+	@handler PublicSeckillEntry
 	get /api/v1/seckill/entries/:id
 
-	@handler V1SeckillConsume
+	@handler SeckillConsume
 	post /api/v1/seckill/consume
 
-	@handler V1SeckillRestore
+	@handler SeckillRestore
 	post /api/v1/seckill/restore
 
-	@handler V1MerchantApply
+	@handler PublicCouponCenter
+	get /api/v1/coupons/center
+
+	@handler PublicCouponPopup
+	get /api/v1/coupons/popup
+
+	@handler InternalMatchCoupons
+	post /api/v1/internal/coupons/match
+
+	@handler InternalLockCoupon
+	post /api/v1/internal/coupons/lock
+
+	@handler InternalUnlockCoupon
+	post /api/v1/internal/coupons/unlock
+
+	@handler InternalRedeemCoupon
+	post /api/v1/internal/coupons/redeem
+
+	@handler InternalReturnCoupon
+	post /api/v1/internal/coupons/return
+
+	@handler InternalOrderGift
+	post /api/v1/internal/coupons/order-gift
+
+	@handler ServePointsMallUpload
+	get /uploads/points-mall/:file
+}
+
+@server (
+	middleware: RequestID,GatewayIdentity
+)
+service merchantapi {
+	@handler ClaimCoupon
+	post /api/v1/coupons/:id/claim
+
+	@handler ListMyCoupons
+	get /api/v1/user/coupons
+
+	@handler Apply
 	post /api/v1/merchant/apply
 
-	@handler V1MerchantShops
+	@handler MyShops
 	get /api/v1/merchant/shops
 
-	@handler MerchantShopsId
+	@handler Exchange
+	post /api/v1/user/points-mall/exchange
+
+	@handler ListUserPointsOrders
+	get /api/v1/user/points-mall/orders
+
+	@handler DetailUserPointsOrder
+	get /api/v1/user/points-mall/orders/:id
+}
+
+@server (
+	middleware: RequestID,GatewayIdentity,RequireMerchantOwner
+)
+service merchantapi {
+	@handler UpdateMyShop
 	put /api/v1/merchant/shops/:id
 
-	@handler V1MerchantWallet
+	@handler MerchantGetWallet
 	get /api/v1/merchant/wallet
 
 	@handler MerchantWalletLogs
@@ -52,91 +110,224 @@ service merchantapi {
 	@handler MerchantSeckillSessions
 	get /api/v1/merchant/seckill/sessions
 
-	@handler MerchantSeckillEntries
+	@handler MerchantApplySeckill
 	post /api/v1/merchant/seckill/entries
 
-	@handler MerchantSeckillEntries
+	@handler MerchantListSeckillEntries
 	get /api/v1/merchant/seckill/entries
 
-	@handler V1MerchantHomepagePackages
+	@handler MerchantSetSeckillAutoRenew
+	put /api/v1/merchant/seckill/entries/:id/auto-renew
+
+	@handler MerchantListSlotPackages
 	get /api/v1/merchant/homepage-packages
 
-	@handler V1MerchantHomepageOrders
+	@handler MerchantBuySlot
 	post /api/v1/merchant/homepage-orders
 
-	@handler V1MerchantHomepageOrders
+	@handler MerchantListSlotOrders
 	get /api/v1/merchant/homepage-orders
 
-	@handler V1AdminApplications
+	@handler MerchantListThemeSlots
+	get /api/v1/merchant/theme-slots
+
+	@handler MerchantListThemePackages
+	get /api/v1/merchant/theme-packages
+
+	@handler MerchantBuyTheme
+	post /api/v1/merchant/theme-orders
+
+	@handler MerchantListThemeOrders
+	get /api/v1/merchant/theme-orders
+
+	@handler MerchantListCoupons
+	get /api/v1/merchant/coupons
+
+	@handler MerchantCreateCoupon
+	post /api/v1/merchant/coupons
+
+	@handler MerchantUpdateCoupon
+	put /api/v1/merchant/coupons/:id
+
+	@handler MerchantOffCoupon
+	put /api/v1/merchant/coupons/:id/off
+
+	@handler MerchantCopyCoupon
+	post /api/v1/merchant/coupons/:id/copy
+
+	@handler MerchantGrantCoupon
+	post /api/v1/merchant/coupons/grant
+
+	@handler MerchantCouponClaims
+	get /api/v1/merchant/coupons/:id/claims
+
+	@handler MerchantCouponRedeems
+	get /api/v1/merchant/coupons/:id/redeems
+
+	@handler MerchantCouponStats
+	get /api/v1/merchant/coupons/:id/stats
+}
+
+@server (
+	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
+)
+service merchantapi {
+	@handler AdminListApplications
 	get /api/v1/admin/applications
 
-	@handler ApplicationsIdApprove
+	@handler AdminApprove
 	post /api/v1/admin/applications/:id/approve
 
-	@handler ApplicationsIdReject
+	@handler AdminReject
 	post /api/v1/admin/applications/:id/reject
 
-	@handler V1AdminShops
+	@handler AdminListShops
 	get /api/v1/admin/shops
 
-	@handler V1AdminShops
+	@handler AdminCreateShop
 	post /api/v1/admin/shops
 
-	@handler AdminShopsId
+	@handler AdminGetShop
 	get /api/v1/admin/shops/:id
 
-	@handler AdminShopsId
+	@handler AdminUpdateShop
 	put /api/v1/admin/shops/:id
 
-	@handler ShopsIdOwnerPassword
+	@handler AdminResetOwnerPassword
 	put /api/v1/admin/shops/:id/owner-password
 
-	@handler ShopsIdDisable
+	@handler AdminDisableShop
 	put /api/v1/admin/shops/:id/disable
 
-	@handler ShopsIdEnable
+	@handler AdminEnableShop
 	put /api/v1/admin/shops/:id/enable
 
-	@handler ShopsIdWallet
+	@handler AdminGetWallet
 	get /api/v1/admin/shops/:id/wallet
 
-	@handler IdWalletAdjust
+	@handler AdminAdjustWallet
 	post /api/v1/admin/shops/:id/wallet/adjust
 
-	@handler IdWalletLogs
+	@handler AdminWalletLogs
 	get /api/v1/admin/shops/:id/wallet/logs
 
-	@handler AdminSeckillRule
+	@handler AdminGetSeckillRule
 	get /api/v1/admin/seckill/rule
 
-	@handler AdminSeckillRule
+	@handler AdminUpdateSeckillRule
 	put /api/v1/admin/seckill/rule
 
-	@handler AdminSeckillSessions
+	@handler AdminListSeckillSessions
 	get /api/v1/admin/seckill/sessions
 
-	@handler AdminSeckillEntries
+	@handler AdminListSeckillEntries
 	get /api/v1/admin/seckill/entries
 
-	@handler V1AdminHomepagePackages
+	@handler AdminListSlotPackages
 	get /api/v1/admin/homepage-packages
 
-	@handler V1AdminHomepagePackages
+	@handler AdminCreateSlotPackage
 	post /api/v1/admin/homepage-packages
 
-	@handler AdminHomepagePackagesId
+	@handler AdminUpdateSlotPackage
 	put /api/v1/admin/homepage-packages/:id
 
-	@handler V1AdminHomepageSettings
+	@handler AdminListSlotSettings
 	get /api/v1/admin/homepage-settings
 
-	@handler V1AdminHomepageSettings
+	@handler AdminUpdateSlotSettings
 	put /api/v1/admin/homepage-settings
 
-	@handler V1AdminHomepageOrders
+	@handler AdminListSlotOrders
 	get /api/v1/admin/homepage-orders
 
-	@handler AdminHomepageOrdersGrant
+	@handler AdminGrantSlot
 	post /api/v1/admin/homepage-orders/grant
 
+	@handler AdminListThemeSlots
+	get /api/v1/admin/theme-slots
+
+	@handler AdminUpdateThemeSlot
+	put /api/v1/admin/theme-slots/:id
+
+	@handler AdminListThemePackages
+	get /api/v1/admin/theme-packages
+
+	@handler AdminCreateThemePackage
+	post /api/v1/admin/theme-packages
+
+	@handler AdminUpdateThemePackage
+	put /api/v1/admin/theme-packages/:id
+
+	@handler AdminListThemeOrders
+	get /api/v1/admin/theme-orders
+
+	@handler AdminGrantTheme
+	post /api/v1/admin/theme-orders/grant
+
+	@handler AdminListCoupons
+	get /api/v1/admin/coupons
+
+	@handler AdminCreateCoupon
+	post /api/v1/admin/coupons
+
+	@handler AdminUpdateCoupon
+	put /api/v1/admin/coupons/:id
+
+	@handler AdminOffCoupon
+	put /api/v1/admin/coupons/:id/off
+
+	@handler AdminCopyCoupon
+	post /api/v1/admin/coupons/:id/copy
+
+	@handler AdminGrantCoupon
+	post /api/v1/admin/coupons/grant
+
+	@handler AdminCouponClaims
+	get /api/v1/admin/coupons/:id/claims
+
+	@handler AdminCouponRedeems
+	get /api/v1/admin/coupons/:id/redeems
+
+	@handler AdminCouponStats
+	get /api/v1/admin/coupons/:id/stats
+
+	@handler ListPointsProducts
+	get /api/v1/admin/points-products
+
+	@handler CreatePointsProduct
+	post /api/v1/admin/points-products
+
+	@handler UploadPointsProduct
+	post /api/v1/admin/points-products/upload
+
+	@handler DetailPointsProduct
+	get /api/v1/admin/points-products/:id
+
+	@handler UpdatePointsProduct
+	put /api/v1/admin/points-products/:id
+
+	@handler SetPointsProductStatus
+	put /api/v1/admin/points-products/:id/status
+
+	@handler DeletePointsProduct
+	delete /api/v1/admin/points-products/:id
+
+	@handler ListPointsOrders
+	get /api/v1/admin/points-orders
+
+	@handler DetailPointsOrder
+	get /api/v1/admin/points-orders/:id
+
+	@handler ShipPointsOrder
+	post /api/v1/admin/points-orders/:id/ship
+
+	@handler CompletePointsOrder
+	post /api/v1/admin/points-orders/:id/complete
+
+	@handler CancelPointsOrder
+	post /api/v1/admin/points-orders/:id/cancel
+
+	@handler RemarkPointsOrder
+	put /api/v1/admin/points-orders/:id/remark
 }
