@@ -3,15 +3,18 @@ package svc
 import (
 	"mymall/pkg/cache"
 	"mymall/pkg/config"
+	"mymall/pkg/health"
 	"mymall/pkg/mq"
 	"mymall/services/order-service/internal/client/catalogrpc"
 	"mymall/services/order-service/internal/client/merchanthttp"
 	"mymall/services/order-service/internal/client/userhttp"
 	"mymall/services/order-service/internal/client/userrpc"
+	"mymall/services/order-service/internal/middleware"
 	ordermq "mymall/services/order-service/internal/mq"
 	"mymall/services/order-service/internal/repository"
 
 	"github.com/redis/go-redis/v9"
+	"github.com/zeromicro/go-zero/rest"
 	"gorm.io/gorm"
 )
 
@@ -29,6 +32,14 @@ type ServiceContext struct {
 	UserHTTP      *userhttp.Client
 	MQ            *ordermq.Publisher
 	MQClient      *mq.Client
+	Health        *health.Registry
+
+	RequestID                 rest.Middleware
+	GatewayIdentity           rest.Middleware
+	GatewayIdentityShop       rest.Middleware
+	RequireMerchantOwner      rest.Middleware
+	RequirePlatformAdmin      rest.Middleware
+	RequirePlatformOrMerchant rest.Middleware
 }
 
 func NewServiceContext(cfg *config.Config, db *gorm.DB) (*ServiceContext, error) {
@@ -58,18 +69,24 @@ func NewServiceContext(cfg *config.Config, db *gorm.DB) (*ServiceContext, error)
 	_ = logisticsRepo.SeedDefaults()
 
 	return &ServiceContext{
-		Config:        cfg,
-		DB:            db,
-		Redis:         rdb,
-		Repo:          repository.NewOrderRepository(db),
-		Reviews:       repository.NewReviewRepository(db),
-		LogisticsRepo: logisticsRepo,
-		UserRPC:       userRPC,
-		CatalogRPC:    catalogRPC,
-		MerchantHTTP:  merchanthttp.New(cfg.MerchantHTTP),
-		UserHTTP:      userhttp.New(cfg.UserHTTP),
-		MQ:            publisher,
-		MQClient:      mqClient,
+		Config:                    cfg,
+		DB:                        db,
+		Redis:                     rdb,
+		Repo:                      repository.NewOrderRepository(db),
+		Reviews:                   repository.NewReviewRepository(db),
+		LogisticsRepo:             logisticsRepo,
+		UserRPC:                   userRPC,
+		CatalogRPC:                catalogRPC,
+		MerchantHTTP:              merchanthttp.New(cfg.MerchantHTTP),
+		UserHTTP:                  userhttp.New(cfg.UserHTTP),
+		MQ:                        publisher,
+		MQClient:                  mqClient,
+		RequestID:                 middleware.NewRequestIDMiddleware().Handle,
+		GatewayIdentity:           middleware.NewGatewayIdentityMiddleware().Handle,
+		GatewayIdentityShop:       middleware.NewGatewayIdentityShopMiddleware().Handle,
+		RequireMerchantOwner:      middleware.NewRequireMerchantOwnerMiddleware().Handle,
+		RequirePlatformAdmin:      middleware.NewRequirePlatformAdminMiddleware().Handle,
+		RequirePlatformOrMerchant: middleware.NewRequirePlatformOrMerchantMiddleware().Handle,
 	}, nil
 }
 

@@ -28,7 +28,6 @@ import (
 	contentlogic "mymall/services/catalog-service/internal/content/logic"
 	contentmodel "mymall/services/catalog-service/internal/content/model"
 	"mymall/services/catalog-service/internal/handler"
-	svcMW "mymall/services/catalog-service/internal/middleware"
 	catalogmq "mymall/services/catalog-service/internal/mq"
 	notifymodel "mymall/services/catalog-service/internal/notify/model"
 	productlogic "mymall/services/catalog-service/internal/product/logic"
@@ -176,7 +175,8 @@ func main() {
 	serverHTTP := httpserver.NewRest(cfg.Server.HTTPPort, cfg.Server.Mode)
 	defer serverHTTP.Stop()
 
-	handler.RegisterHandlers(serverHTTP, svcCtx, healthReg, svcMW.NewBundle())
+	svcCtx.Health = healthReg
+	handler.RegisterHandlers(serverHTTP, svcCtx)
 
 	_ = os.MkdirAll(uploadpath.Root(), 0o755)
 

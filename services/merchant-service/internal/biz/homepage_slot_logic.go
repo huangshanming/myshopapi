@@ -1,0 +1,235 @@
+package biz
+
+import (
+	"errors"
+	"strings"
+
+	"mymall/services/merchant-service/internal/model"
+)
+
+func validSlotType(t string) bool {
+	switch t {
+	case model.SlotBrandShop, model.SlotQualityShop, model.SlotArticle:
+		return true
+	}
+	return false
+}
+
+func (l *MerchantLogic) ListSlotPackages(slotType string, onlyOn bool) ([]model.HomepageSlotPackage, error) {
+	return l.svcCtx.Repo.ListSlotPackages(slotType, onlyOn)
+}
+
+func (l *MerchantLogic) CreateSlotPackage(p *model.HomepageSlotPackage) error {
+	if !validSlotType(p.SlotType) {
+		return errors.New("无效展位类型")
+	}
+	if strings.TrimSpace(p.Name) == "" {
+		return errors.New("套餐名称不能为空")
+	}
+	if p.Price < 0 || p.DurationDays < 1 {
+		return errors.New("价格或时长无效")
+	}
+	if p.Status == "" {
+		p.Status = model.SlotPkgOn
+	}
+	return l.svcCtx.Repo.CreateSlotPackage(p)
+}
+
+func (l *MerchantLogic) UpdateSlotPackage(id uint64, p *model.HomepageSlotPackage) error {
+	old, err := l.svcCtx.Repo.GetSlotPackage(id)
+	if err != nil {
+		return errors.New("套餐不存在")
+	}
+	p.ID = old.ID
+	if !validSlotType(p.SlotType) {
+		return errors.New("无效展位类型")
+	}
+	return l.svcCtx.Repo.UpdateSlotPackage(p)
+}
+
+func (l *MerchantLogic) ListSlotSettings() ([]model.HomepageSlotSetting, error) {
+	list, err := l.svcCtx.Repo.ListSlotSettings()
+	if err != nil {
+		return nil, err
+	}
+	if len(list) == 0 {
+		for _, t := range []string{model.SlotBrandShop, model.SlotQualityShop, model.SlotArticle} {
+			_, _ = l.svcCtx.Repo.GetSlotSetting(t)
+		}
+		return l.svcCtx.Repo.ListSlotSettings()
+	}
+	return list, nil
+}
+
+func (l *MerchantLogic) UpdateSlotSettings(items []model.HomepageSlotSetting) error {
+	for _, it := range items {
+		if !validSlotType(it.SlotType) {
+			continue
+		}
+		if it.HomeLimit < 1 {
+			it.HomeLimit = 1
+		}
+		if err := l.svcCtx.Repo.UpsertSlotSetting(it.SlotType, it.HomeLimit); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (l *MerchantLogic) ListSlotOrders(shopID uint64, slotType, status string, page, pageSize int) ([]model.HomepageSlotOrder, int64, error) {
+	l.svcCtx.Repo.ExpireDueSlotOrders()
+	list, total, err := l.svcCtx.Repo.ListSlotOrders(shopID, slotType, status, page, pageSize)
+	if err != nil {
+		return nil, 0, err
+	}
+	for i := range list {
+		if shop, e := l.svcCtx.Repo.FindShop(list[i].ShopID); e == nil {
+			list[i].ShopName = shop.Name
+		}
+		if pkg, e := l.svcCtx.Repo.GetSlotPackage(list[i].PackageID); e == nil {
+			list[i].PackageName = pkg.Name
+		}
+		if list[i].SlotType == model.SlotArticle && list[i].TargetID > 0 {
+			if title, e := l.svcCtx.Repo.GetArticleTitle(list[i].TargetID); e == nil {
+				list[i].TargetName = title
+			}
+		} else if list[i].ShopName != "" {
+			list[i].TargetName = list[i].ShopName
+		}
+	}
+	return list, total, nil
+}
+
+type BuySlotReq struct {
+	PackageID uint64 `json:"package_id"`
+	TargetID  uint64 `json:"target_id"`
+}
+
+func (l *MerchantLogic) BuySlot(shopID, userID uint64, req BuySlotReq) (*model.HomepageSlotOrder, error) {
+	pkg, err := l.svcCtx.Repo.GetSlotPackage(req.PackageID)
+	if err != nil || pkg.Status != model.SlotPkgOn {
+		return nil, errors.New("套餐不存在或已下架")
+	}
+	targetID := req.TargetID
+	if pkg.SlotType == model.SlotArticle {
+		if targetID == 0 {
+			return nil, errors.New("请选择文章")
+		}
+		var cnt int64
+		l.svcCtx.DB.Table("community_article").
+			Where("id = ? AND shop_id = ? AND status = ? AND audit_status = ?", targetID, shopID, "published", "approved").
+			Count(&cnt)
+		if cnt == 0 {
+			return nil, errors.New("文章不存在或不属于本店/未发布")
+		}
+	} else {
+		targetID = shopID
+	}
+	shop, err := l.svcCtx.Repo.FindShop(shopID)
+	if err != nil || shop.Status != model.ShopApproved {
+		return nil, errors.New("店铺不可用")
+	}
+	order := &model.HomepageSlotOrder{
+		ShopID:       shopID,
+		SlotType:     pkg.SlotType,
+		PackageID:    pkg.ID,
+		TargetID:     targetID,
+		Amount:       pkg.Price,
+		DurationDays: pkg.DurationDays,
+		PaySource:    model.SlotPayWallet,
+		OperatorID:   userID,
+	}
+	op := userID
+	if err := l.svcCtx.Repo.PurchaseSlotOrder(order, true, &op); err != nil {
+		return nil, err
+	}
+	return order, nil
+}
+
+type GrantSlotReq struct {
+	ShopID    uint64 `json:"shop_id"`
+	PackageID uint64 `json:"package_id"`
+	TargetID  uint64 `json:"target_id"`
+}
+
+func (l *MerchantLogic) GrantSlot(adminID uint64, req GrantSlotReq) (*model.HomepageSlotOrder, error) {
+	pkg, err := l.svcCtx.Repo.GetSlotPackage(req.PackageID)
+	if err != nil {
+		return nil, errors.New("套餐不存在")
+	}
+	shop, err := l.svcCtx.Repo.FindShop(req.ShopID)
+	if err != nil {
+		return nil, errors.New("店铺不存在")
+	}
+	_ = shop
+	targetID := req.TargetID
+	if pkg.SlotType == model.SlotArticle {
+		if targetID == 0 {
+			return nil, errors.New("请指定文章")
+		}
+	} else {
+		targetID = req.ShopID
+	}
+	order := &model.HomepageSlotOrder{
+		ShopID:       req.ShopID,
+		SlotType:     pkg.SlotType,
+		PackageID:    pkg.ID,
+		TargetID:     targetID,
+		Amount:       0,
+		DurationDays: pkg.DurationDays,
+		PaySource:    model.SlotPayAdmin,
+		OperatorID:   adminID,
+	}
+	if err := l.svcCtx.Repo.PurchaseSlotOrder(order, false, &adminID); err != nil {
+		return nil, err
+	}
+	return order, nil
+}
+
+func (l *MerchantLogic) HomeSlots(slotType string) ([]map[string]interface{}, error) {
+	if !validSlotType(slotType) || slotType == model.SlotArticle {
+		return nil, errors.New("无效展位类型")
+	}
+	setting, _ := l.svcCtx.Repo.GetSlotSetting(slotType)
+	limit := 8
+	if setting != nil && setting.HomeLimit > 0 {
+		limit = setting.HomeLimit
+	}
+	list, _, err := l.svcCtx.Repo.ListPublicShopsWithSlot(slotType, 1, limit, limit)
+	if err != nil {
+		return nil, err
+	}
+	paid, _ := l.svcCtx.Repo.ActivePaidTargetIDs(slotType)
+	out := make([]map[string]interface{}, 0, len(list))
+	for _, s := range list {
+		out = append(out, map[string]interface{}{
+			"id": s.ID, "name": s.Name, "logo": s.Logo, "category": s.Category,
+			"storefront_image": s.StorefrontImage, "description": s.Description,
+			"paid": paid[s.ID],
+		})
+	}
+	return out, nil
+}
+
+func (l *MerchantLogic) ListPublicShopsSlot(slotType string, page, pageSize int) ([]map[string]interface{}, int64, error) {
+	if slotType == "" {
+		slotType = model.SlotQualityShop
+	}
+	if !validSlotType(slotType) || slotType == model.SlotArticle {
+		return nil, 0, errors.New("无效展位类型")
+	}
+	list, total, err := l.svcCtx.Repo.ListPublicShopsWithSlot(slotType, page, pageSize, 0)
+	if err != nil {
+		return nil, 0, err
+	}
+	paid, _ := l.svcCtx.Repo.ActivePaidTargetIDs(slotType)
+	out := make([]map[string]interface{}, 0, len(list))
+	for _, s := range list {
+		out = append(out, map[string]interface{}{
+			"id": s.ID, "name": s.Name, "logo": s.Logo, "category": s.Category,
+			"storefront_image": s.StorefrontImage, "description": s.Description,
+			"city": s.City, "paid": paid[s.ID],
+		})
+	}
+	return out, total, nil
+}

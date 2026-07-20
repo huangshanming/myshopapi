@@ -6,7 +6,7 @@ import (
 
 	userv1 "mymall/api/gen/user/v1"
 	"mymall/pkg/grpc/interceptor"
-	"mymall/services/user-service/internal/logic"
+	biz "mymall/services/user-service/internal/biz"
 
 	"github.com/zeromicro/go-zero/core/service"
 	"github.com/zeromicro/go-zero/zrpc"
@@ -18,10 +18,10 @@ import (
 
 type UserServer struct {
 	userv1.UnimplementedUserServiceServer
-	logic *logic.UserLogic
+	logic *biz.UserLogic
 }
 
-func NewUserServer(l *logic.UserLogic) *UserServer {
+func NewUserServer(l *biz.UserLogic) *UserServer {
 	return &UserServer{logic: l}
 }
 
@@ -38,7 +38,7 @@ func (s *UserServer) GetUser(ctx context.Context, req *userv1.GetUserRequest) (*
 	}, nil
 }
 
-func StartZRPC(port int, l *logic.UserLogic, logger *zap.Logger) *zrpc.RpcServer {
+func StartZRPC(port int, l *biz.UserLogic, logger *zap.Logger) *zrpc.RpcServer {
 	c := zrpc.RpcServerConf{
 		ListenOn: fmt.Sprintf("0.0.0.0:%d", port),
 	}

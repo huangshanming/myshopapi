@@ -2,7 +2,6 @@ syntax = "v1"
 
 // Route table SSOT for user-service.
 // Keep in sync with internal/handler/routes.go; run: scripts/check-api-routes.sh user-service
-
 @server (
 	middleware: RequestID
 )
@@ -10,10 +9,10 @@ service userapi {
 	@handler Healthz
 	get /healthz
 
-	@handler ReadyHandler
+	@handler Readyz
 	get /readyz
 
-	@handler Handler
+	@handler Metrics
 	get /metrics
 
 	@handler Login
@@ -51,7 +50,6 @@ service userapi {
 
 	@handler Tree
 	get /api/v1/regions/tree
-
 }
 
 @server (
@@ -111,7 +109,6 @@ service userapi {
 
 	@handler UserReportEvent
 	post /api/v1/user/tasks/events
-
 }
 
 @server (
@@ -216,5 +213,5 @@ service userapi {
 
 	@handler AdminUpdate
 	put /api/v1/admin/tasks/:id
-
 }
+

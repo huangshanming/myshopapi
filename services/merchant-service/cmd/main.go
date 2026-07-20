@@ -15,9 +15,8 @@ import (
 	"mymall/pkg/httpserver"
 	applog "mymall/pkg/log"
 	"mymall/pkg/xerr"
+	biz "mymall/services/merchant-service/internal/biz"
 	"mymall/services/merchant-service/internal/handler"
-	"mymall/services/merchant-service/internal/logic"
-	svcMW "mymall/services/merchant-service/internal/middleware"
 	"mymall/services/merchant-service/internal/model"
 	"mymall/services/merchant-service/internal/svc"
 )
@@ -70,8 +69,16 @@ func main() {
 		log.Fatalf("AutoMigrate 失败：%v", err)
 	}
 
-	svcCtx := svc.NewServiceContext(cfg, db)
-	seckillLogic := logic.NewMerchantLogic(context.Background(), svcCtx)
+	healthReg := health.NewRegistry()
+	healthReg.Register("mysql", func(ctx context.Context) error {
+		sqlDB, err := db.DB()
+		if err != nil {
+			return err
+		}
+		return sqlDB.PingContext(ctx)
+	})
+	svcCtx := svc.NewServiceContext(cfg, db, healthReg)
+	seckillLogic := biz.NewMerchantLogic(context.Background(), svcCtx)
 	_, _, _ = seckillLogic.EnsureActiveSession()
 
 	go func() {
@@ -82,19 +89,10 @@ func main() {
 		}
 	}()
 
-	healthReg := health.NewRegistry()
-	healthReg.Register("mysql", func(ctx context.Context) error {
-		sqlDB, err := db.DB()
-		if err != nil {
-			return err
-		}
-		return sqlDB.PingContext(ctx)
-	})
-
 	server := httpserver.NewRest(cfg.Server.HTTPPort, cfg.Server.Mode)
 	defer server.Stop()
 
-	handler.RegisterHandlers(server, svcCtx, healthReg, svcMW.NewBundle())
+	handler.RegisterHandlers(server, svcCtx)
 
 	go func() {
 		logger.Info(fmt.Sprintf("merchant-service HTTP(go-zero) 启动 :%d", cfg.Server.HTTPPort))

@@ -15,10 +15,9 @@ import (
 	applog "mymall/pkg/log"
 	"mymall/pkg/telemetry"
 	"mymall/pkg/xerr"
+	"mymall/services/user-service/internal/biz"
 	"mymall/services/user-service/internal/data"
 	"mymall/services/user-service/internal/handler"
-	"mymall/services/user-service/internal/logic"
-	svcMW "mymall/services/user-service/internal/middleware"
 	"mymall/services/user-service/internal/model"
 	"mymall/services/user-service/internal/server"
 	"mymall/services/user-service/internal/svc"
@@ -88,7 +87,7 @@ func main() {
 			logger.Info("regions seeded from pca-code.json")
 		}
 	}
-	userLogic := logic.NewUserLogic(context.Background(), svcCtx)
+	userLogic := biz.NewUserLogic(context.Background(), svcCtx)
 	healthReg := health.NewRegistry()
 	healthReg.Register("mysql", func(ctx context.Context) error {
 		sqlDB, err := db.DB()
@@ -108,7 +107,8 @@ func main() {
 	serverHTTP := httpserver.NewRest(cfg.Server.HTTPPort, cfg.Server.Mode)
 	defer serverHTTP.Stop()
 
-	handler.RegisterHandlers(serverHTTP, svcCtx, healthReg, svcMW.NewBundle(svcCtx.JWT.Secret))
+	svcCtx.Health = healthReg
+	handler.RegisterHandlers(serverHTTP, svcCtx)
 
 	_ = os.MkdirAll(uploadpath.Root(), 0o755)
 

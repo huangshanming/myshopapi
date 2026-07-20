@@ -27,7 +27,6 @@ import (
 	"mymall/pkg/telemetry"
 	"mymall/pkg/xerr"
 	"mymall/services/order-service/internal/handler"
-	svcMW "mymall/services/order-service/internal/middleware"
 	"mymall/services/order-service/internal/model"
 	ordermq "mymall/services/order-service/internal/mq"
 	"mymall/services/order-service/internal/svc"
@@ -115,7 +114,8 @@ func main() {
 	server := httpserver.NewRest(cfg.Server.HTTPPort, cfg.Server.Mode)
 	defer server.Stop()
 
-	handler.RegisterHandlers(server, svcCtx, healthReg, svcMW.NewBundle())
+	svcCtx.Health = healthReg
+	handler.RegisterHandlers(server, svcCtx)
 
 	go func() {
 		logger.Info(fmt.Sprintf("order-service HTTP(go-zero) 启动 :%d", cfg.Server.HTTPPort))

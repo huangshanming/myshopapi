@@ -2,7 +2,6 @@ syntax = "v1"
 
 // Route table SSOT for catalog-service.
 // Keep in sync with internal/handler/routes.go; run: scripts/check-api-routes.sh catalog-service
-
 @server (
 	middleware: RequestID
 )
@@ -10,10 +9,10 @@ service catalogapi {
 	@handler Healthz
 	get /healthz
 
-	@handler ReadyHandler
+	@handler Readyz
 	get /readyz
 
-	@handler Handler
+	@handler Metrics
 	get /metrics
 
 	@handler GetProductList
@@ -48,7 +47,6 @@ service catalogapi {
 
 	@handler Count
 	get /api/v1/products/:id/favorite-count
-
 }
 
 @server (
@@ -111,7 +109,6 @@ service catalogapi {
 
 	@handler Status2
 	get /api/v1/products/:id/favorite
-
 }
 
 @server (
@@ -264,7 +261,6 @@ service catalogapi {
 
 	@handler MarkRead
 	post /api/v1/merchant/notifications/:id/read
-
 }
 
 @server (
@@ -390,5 +386,5 @@ service catalogapi {
 
 	@handler Upload4
 	post /api/v1/admin/shop-uploads
-
 }
+

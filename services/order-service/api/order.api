@@ -2,7 +2,6 @@ syntax = "v1"
 
 // Route table SSOT for order-service.
 // Keep in sync with internal/handler/routes.go; run: scripts/check-api-routes.sh order-service
-
 @server (
 	middleware: RequestID
 )
@@ -10,15 +9,14 @@ service orderapi {
 	@handler Healthz
 	get /healthz
 
-	@handler ReadyHandler
+	@handler Readyz
 	get /readyz
 
-	@handler Handler
+	@handler Metrics
 	get /metrics
 
 	@handler ProductList
 	get /api/v1/products/:id/reviews
-
 }
 
 @server (
@@ -63,7 +61,6 @@ service orderapi {
 
 	@handler Upload
 	post /api/v1/user/review-uploads
-
 }
 
 @server (
@@ -99,7 +96,6 @@ service orderapi {
 
 	@handler MerchantHandleAfterSale
 	put /api/v1/merchant/after-sales/:id/handle
-
 }
 
 @server (
@@ -108,7 +104,6 @@ service orderapi {
 service orderapi {
 	@handler Options
 	get /api/v1/logistics/options
-
 }
 
 @server (
@@ -156,5 +151,5 @@ service orderapi {
 
 	@handler Delete
 	delete /api/v1/admin/logistics/:id
-
 }
+

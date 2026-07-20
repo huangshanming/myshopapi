@@ -2,7 +2,6 @@ syntax = "v1"
 
 // Route table SSOT for merchant-service.
 // Keep in sync with internal/handler/routes.go; run: scripts/check-api-routes.sh merchant-service
-
 @server (
 	middleware: RequestID
 )
@@ -331,3 +330,4 @@ service merchantapi {
 	@handler RemarkPointsOrder
 	put /api/v1/admin/points-orders/:id/remark
 }
+

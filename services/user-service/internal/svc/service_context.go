@@ -2,13 +2,15 @@ package svc
 
 import (
 	"mymall/pkg/config"
+	"mymall/pkg/health"
 	"mymall/pkg/jwt"
+	"mymall/services/user-service/internal/middleware"
 	"mymall/services/user-service/internal/repository"
 
+	"github.com/zeromicro/go-zero/rest"
 	"gorm.io/gorm"
 )
 
-// ServiceContext 全局依赖（go-zero 惯例）
 type ServiceContext struct {
 	Config *config.Config
 	DB     *gorm.DB
@@ -16,9 +18,16 @@ type ServiceContext struct {
 	RBAC   *repository.RBACRepository
 	Tasks  *repository.TaskRepository
 	JWT    jwt.Config
+	Health *health.Registry
+
+	RequestID            rest.Middleware
+	GatewayIdentity      rest.Middleware
+	RequirePlatformAdmin rest.Middleware
+	UserFlexibleAuth     rest.Middleware
 }
 
 func NewServiceContext(cfg *config.Config, db *gorm.DB) *ServiceContext {
+	flex := middleware.NewUserFlexibleAuthMiddlewareWithSecret(cfg.JWT.Secret)
 	return &ServiceContext{
 		Config: cfg,
 		DB:     db,
@@ -31,5 +40,9 @@ func NewServiceContext(cfg *config.Config, db *gorm.DB) *ServiceContext {
 			ExpireHours: cfg.JWT.ExpireHours,
 			Issuer:      cfg.JWT.Issuer,
 		},
+		RequestID:            middleware.NewRequestIDMiddleware().Handle,
+		GatewayIdentity:      middleware.NewGatewayIdentityMiddleware().Handle,
+		RequirePlatformAdmin: middleware.NewRequirePlatformAdminMiddleware().Handle,
+		UserFlexibleAuth:     flex.Handle,
 	}
 }
