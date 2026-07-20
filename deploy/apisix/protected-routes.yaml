@@ -13,6 +13,10 @@ spec:
           - /api/v1/user/profile
           - /api/v1/user/notifications
           - /api/v1/user/notifications/*
+          - /api/v1/user/points
+          - /api/v1/user/points/*
+          - /api/v1/user/tasks
+          - /api/v1/user/tasks/*
         methods:
           - GET
           - PUT
@@ -84,6 +88,9 @@ spec:
           - /api/v1/user/favorites/*
           - /api/v1/user/article-favorites
           - /api/v1/user/article-likes
+          - /api/v1/user/articles
+          - /api/v1/user/articles/*
+          - /api/v1/user/article-uploads
           - /api/v1/products/*/favorite
           - /api/v1/products/*/favorite-count
           - /api/v1/articles/*/like
@@ -93,6 +100,7 @@ spec:
         methods:
           - GET
           - POST
+          - PUT
           - DELETE
           - OPTIONS
       backends:

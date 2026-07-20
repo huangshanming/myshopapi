@@ -32,15 +32,15 @@
       <view class="corner-tag"><text class="corner-text sale-gradient">限时特惠</text></view>
     </view>
 
-    <!-- 分类入口 -->
-    <scroll-view scroll-x :show-scrollbar="false" class="cat-scroll scroll-hide section-card">
-      <view class="cat-row">
-        <view v-for="c in categoryEntries" :key="c.name" class="cat-item" @tap="onCategory(c)">
-          <view class="cat-icon" :style="{ background: c.bg, color: c.color }">{{ c.emoji }}</view>
-          <text class="cat-name">{{ c.name }}</text>
+    <!-- 分类入口：两行 4×2 -->
+    <view class="cat-grid section-card">
+      <view v-for="(c, i) in categoryEntries" :key="c.id || c.name + '-' + i" class="cat-item" @tap="onCategory(c)">
+        <view class="cat-icon" :style="{ background: c.bg }" :class="{ bounce: c.bounce }">
+          <image class="cat-img" :src="c.icon" mode="aspectFit" />
         </view>
+        <text class="cat-name">{{ c.name }}</text>
       </view>
-    </scroll-view>
+    </view>
 
     <!-- 限时秒杀 -->
     <view class="section-card seckill">
@@ -241,6 +241,19 @@
         <text v-else @tap="loadMore">上拉加载更多</text>
       </view>
     </view>
+
+    <!-- 任务中心悬浮入口：礼盒风格 + 画面动效 -->
+    <view class="task-fab" @tap="goTaskCenter">
+      <view class="task-fab-glow" />
+      <image class="task-fab-art" src="/static/task-fab.png" mode="aspectFit" />
+      <view class="task-fab-coin c1">$</view>
+      <view class="task-fab-coin c2">$</view>
+      <view class="task-fab-spark s1" />
+      <view class="task-fab-spark s2" />
+      <view class="task-fab-spark s3" />
+      <view class="task-fab-spark s4" />
+      <text class="task-fab-badge">任务</text>
+    </view>
   </view>
 </template>
 
@@ -261,25 +274,65 @@ const fallbackBanners = [
 ]
 const banners = ref([...fallbackBanners])
 
-const fixedCats = [
-  { name: '全部商户', emoji: '🏬', bg: 'rgba(230,213,188,.35)', color: '#C8A876' },
-  { name: '种草社区', emoji: '✍️', bg: 'rgba(230,213,188,.35)', color: '#C8A876' },
-  { name: '限时秒杀', emoji: '⚡', bg: '#FEF2F2', color: '#D83636' },
+const CAT_ICON = {
+  shop: '/static/cat/shop.png',
+  fashion: '/static/cat/fashion.png',
+  snack: '/static/cat/snack.png',
+  fresh: '/static/cat/fresh.png',
+  beauty: '/static/cat/beauty.png',
+  digital: '/static/cat/digital.png',
+  community: '/static/cat/community.png',
+  seckill: '/static/cat/seckill.png',
+  coupon: '/static/cat/coupon.png',
+  orders: '/static/cat/orders.png',
+  messages: '/static/cat/messages.png',
+  more: '/static/cat/more.png',
+  brand: '/static/cat/brand.png',
+}
+const apiCatIconPool = [
+  CAT_ICON.fashion, CAT_ICON.snack, CAT_ICON.fresh, CAT_ICON.beauty, CAT_ICON.digital,
+]
+
+function resolveApiCatIcon(name, index) {
+  const n = String(name || '')
+  if (/服|鞋|包|衣|穿搭|时装/.test(n)) return CAT_ICON.fashion
+  if (/食|零食|休|糕|饮|茶|酒/.test(n)) return CAT_ICON.snack
+  if (/生鲜|烘焙|果|菜|肉|海鲜/.test(n)) return CAT_ICON.fresh
+  if (/美妆|妆|护肤|化妆/.test(n)) return CAT_ICON.beauty
+  if (/数码|电|手机|家电/.test(n)) return CAT_ICON.digital
+  return apiCatIconPool[index % apiCatIconPool.length]
+}
+
+const fixedLead = {
+  name: '全部商户',
+  icon: CAT_ICON.shop,
+  bg: 'rgba(230,213,188,.45)',
+}
+const fixedTail = [
+  { name: '种草社区', icon: CAT_ICON.community, bg: 'rgba(230,213,188,.45)' },
+  { name: '限时秒杀', icon: CAT_ICON.seckill, bg: '#FEF2F2', bounce: true },
+]
+const fillEntries = [
+  { name: '领券中心', icon: CAT_ICON.coupon, bg: '#FEF3C7', coupon: true },
+  { name: '我的订单', icon: CAT_ICON.orders, bg: '#DBEAFE', orders: true },
+  { name: '消息中心', icon: CAT_ICON.messages, bg: '#FCE7F3', messages: true },
+  { name: '更多分类', icon: CAT_ICON.more, bg: '#F4F4F5', more: true },
+  { name: '品牌好店', icon: CAT_ICON.brand, bg: 'rgba(230,213,188,.45)', brand: true },
 ]
 const apiCats = ref([])
 const categoryEntries = computed(() => {
-  const fromApi = apiCats.value.slice(0, 5).map((c, i) => {
-    const colors = [
-      { bg: '#DCFCE7', color: '#16A34A' },
-      { bg: '#DBEAFE', color: '#2563EB' },
-      { bg: '#FCE7F3', color: '#DB2777' },
-      { bg: '#FEF3C7', color: '#D97706' },
-      { bg: 'rgba(230,213,188,.35)', color: '#C8A876' },
-    ]
-    const sty = colors[i % colors.length]
-    return { name: c.name, emoji: '📦', id: c.id, ...sty }
-  })
-  return [fixedCats[0], ...fromApi, fixedCats[1], fixedCats[2]]
+  const colors = ['#E8F8EF', '#E8F0FE', '#FDE8F2', '#FFF6E0', '#EEF0FF']
+  const mid = apiCats.value.slice(0, 5).map((c, i) => ({
+    name: c.name,
+    icon: resolveApiCatIcon(c.name, i),
+    id: c.id,
+    bg: colors[i % colors.length],
+  }))
+  let fi = 0
+  while (mid.length < 5 && fi < fillEntries.length) {
+    mid.push(fillEntries[fi++])
+  }
+  return [fixedLead, ...mid, ...fixedTail]
 })
 
 const seckillItems = ref([])
@@ -343,8 +396,8 @@ function toast(title) {
 }
 
 function onCategory(c) {
-  if (c.name === '全部商户') {
-    goShopList('quality_shop')
+  if (c.name === '全部商户' || c.brand) {
+    goShopList(c.brand ? 'brand_shop' : 'quality_shop')
     return
   }
   if (c.name === '种草社区') {
@@ -353,6 +406,22 @@ function onCategory(c) {
   }
   if (c.name === '限时秒杀') {
     goSeckillList()
+    return
+  }
+  if (c.coupon) {
+    goCouponCenter()
+    return
+  }
+  if (c.orders) {
+    uni.navigateTo({ url: '/pages/order/list' })
+    return
+  }
+  if (c.messages) {
+    goMessages()
+    return
+  }
+  if (c.more) {
+    goCategoryPage()
     return
   }
   if (c.id) {
@@ -465,6 +534,14 @@ function goMessages() {
     return
   }
   uni.navigateTo({ url: '/pages/message/list' })
+}
+
+function goTaskCenter() {
+  if (!isLoggedIn()) {
+    uni.navigateTo({ url: '/pages/login/login?redirect=' + encodeURIComponent('/pages/task/index') })
+    return
+  }
+  uni.navigateTo({ url: '/pages/task/index' })
 }
 
 async function loadUnread() {
@@ -672,14 +749,108 @@ onUnmounted(() => {
   font-size: 20rpx; color: #fff; padding: 4rpx 0; transform: rotate(45deg);
 }
 .scroll-hide { width: 100%; white-space: nowrap; }
-.cat-scroll { padding: 28rpx 0; white-space: nowrap; }
-.cat-row { display: inline-flex; gap: 40rpx; padding: 0 24rpx; }
-.cat-item { width: 112rpx; display: inline-flex; flex-direction: column; align-items: center; }
-.cat-icon {
-  width: 88rpx; height: 88rpx; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center; font-size: 36rpx;
+.cat-grid {
+  display: flex; flex-wrap: wrap; padding: 28rpx 8rpx 20rpx;
 }
-.cat-name { font-size: 22rpx; margin-top: 12rpx; color: var(--shop-text); }
+.cat-item {
+  width: 25%; box-sizing: border-box;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 14rpx 0 22rpx;
+}
+.cat-icon {
+  width: 120rpx; height: 120rpx; border-radius: 32rpx;
+  display: flex; align-items: center; justify-content: center;
+}
+.cat-icon.bounce {
+  animation: cat-float 1.2s ease-in-out infinite;
+}
+.cat-img { width: 96rpx; height: 96rpx; }
+.cat-item:active .cat-icon { transform: scale(0.92); }
+.cat-item:active .cat-icon.bounce { animation-play-state: paused; }
+@keyframes cat-float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-10rpx) scale(1.06); }
+}
+.cat-name {
+  font-size: 22rpx; margin-top: 12rpx; color: var(--shop-text);
+  width: 100%; text-align: center; padding: 0 6rpx;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.task-fab {
+  position: fixed; right: 5rpx; bottom: calc(130rpx + env(safe-area-inset-bottom));
+  width: 88rpx; height: 88rpx; z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+}
+.task-fab-glow {
+  position: absolute; inset: -8rpx; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 180, 90, 0.55) 0%, rgba(255, 140, 80, 0.2) 50%, transparent 72%);
+  animation: fab-glow 2s ease-in-out infinite;
+  pointer-events: none;
+}
+.task-fab-art {
+  position: relative; z-index: 1;
+  width: 80rpx; height: 80rpx;
+  border-radius: 50%;
+  animation: fab-bob 2s ease-in-out infinite;
+  filter: drop-shadow(0 10rpx 18rpx rgba(232, 140, 70, 0.4));
+}
+.task-fab-coin {
+  position: absolute; z-index: 2;
+  width: 28rpx; height: 28rpx; border-radius: 50%;
+  background: linear-gradient(145deg, #ffe08a, #f0b429);
+  color: #c47a12; font-size: 16rpx; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4rpx 8rpx rgba(196, 122, 18, 0.35);
+  pointer-events: none;
+}
+.task-fab-coin.c1 {
+  top: 6rpx; right: 16rpx;
+  animation: coin-float-a 1.6s ease-in-out infinite;
+}
+.task-fab-coin.c2 {
+  top: 26rpx; left: 8rpx;
+  animation: coin-float-b 1.9s ease-in-out infinite;
+}
+.task-fab-spark {
+  position: absolute; z-index: 2; pointer-events: none;
+  width: 10rpx; height: 10rpx; border-radius: 2rpx;
+  background: #ffd76a;
+  animation: spark-twinkle 1.4s ease-in-out infinite;
+}
+.task-fab-spark.s1 { top: 12rpx; left: 36rpx; animation-delay: 0s; }
+.task-fab-spark.s2 { top: 40rpx; right: 8rpx; width: 8rpx; height: 8rpx; background: #fff6d6; animation-delay: .3s; }
+.task-fab-spark.s3 { bottom: 36rpx; left: 14rpx; width: 7rpx; height: 7rpx; transform: rotate(25deg); animation-delay: .6s; }
+.task-fab-spark.s4 { bottom: 48rpx; right: 22rpx; background: #ffb347; animation-delay: .9s; }
+.task-fab-badge {
+  position: absolute; z-index: 3; left: 50%; bottom: -10rpx;
+  transform: translateX(-50%);
+  padding: 4rpx 16rpx; border-radius: 20rpx;
+  font-size: 18rpx; font-weight: 700; color: #fff;
+  background: linear-gradient(90deg, #f0a04b, #e86b3a);
+  box-shadow: 0 4rpx 10rpx rgba(232, 107, 58, 0.35);
+  white-space: nowrap;
+}
+.task-fab:active .task-fab-art { transform: scale(0.92); animation-play-state: paused; }
+@keyframes fab-bob {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-10rpx) scale(1.04); }
+}
+@keyframes fab-glow {
+  0%, 100% { opacity: 0.65; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+@keyframes coin-float-a {
+  0%, 100% { transform: translateY(0) rotate(-8deg); opacity: 1; }
+  50% { transform: translateY(-14rpx) rotate(12deg); opacity: 1; }
+}
+@keyframes coin-float-b {
+  0%, 100% { transform: translateY(0) rotate(10deg) scale(0.9); }
+  50% { transform: translateY(-12rpx) rotate(-6deg) scale(1); }
+}
+@keyframes spark-twinkle {
+  0%, 100% { opacity: 0.25; transform: scale(0.7) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.2) rotate(20deg); }
+}
 .seckill { padding: 28rpx; }
 .sec-head, .block-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20rpx; }
 .block-head.no-pad { margin-bottom: 24rpx; }

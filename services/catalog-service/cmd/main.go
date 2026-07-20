@@ -225,6 +225,12 @@ func main() {
 		{Method: http.MethodGet, Path: "/api/v1/articles/:id/engagement", Handler: rid(gw(articlePublicH.Status))},
 		{Method: http.MethodGet, Path: "/api/v1/user/article-favorites", Handler: rid(gw(articlePublicH.ListMyFavorites))},
 		{Method: http.MethodGet, Path: "/api/v1/user/article-likes", Handler: rid(gw(articlePublicH.ListMyLikes))},
+		{Method: http.MethodGet, Path: "/api/v1/user/articles", Handler: rid(gw(articlePublicH.ListMine))},
+		{Method: http.MethodPost, Path: "/api/v1/user/articles", Handler: rid(gw(articlePublicH.CreateMine))},
+		{Method: http.MethodGet, Path: "/api/v1/user/articles/:id", Handler: rid(gw(articlePublicH.DetailMine))},
+		{Method: http.MethodPut, Path: "/api/v1/user/articles/:id", Handler: rid(gw(articlePublicH.UpdateMine))},
+		{Method: http.MethodDelete, Path: "/api/v1/user/articles/:id", Handler: rid(gw(articlePublicH.DeleteMine))},
+		{Method: http.MethodPost, Path: "/api/v1/user/article-uploads", Handler: rid(gw(articlePublicH.UploadMine))},
 
 		{Method: http.MethodPost, Path: "/api/v1/user/favorites", Handler: rid(gw(favoriteH.Add))},
 		{Method: http.MethodDelete, Path: "/api/v1/user/favorites/:product_id", Handler: rid(gw(favoriteH.Remove))},
@@ -354,6 +360,14 @@ func main() {
 		})},
 		{Method: http.MethodGet, Path: "/uploads/reviews/:user/:file", Handler: rid(func(w http.ResponseWriter, r *http.Request) {
 			p := uploadpath.Abs("reviews", httpserver.PathParam(r, "user"), httpserver.PathParam(r, "file"))
+			http.ServeFile(w, r, p)
+		})},
+		{Method: http.MethodGet, Path: "/uploads/points-mall/:file", Handler: rid(func(w http.ResponseWriter, r *http.Request) {
+			p := uploadpath.Abs("points-mall", httpserver.PathParam(r, "file"))
+			http.ServeFile(w, r, p)
+		})},
+		{Method: http.MethodGet, Path: "/uploads/banners/:file", Handler: rid(func(w http.ResponseWriter, r *http.Request) {
+			p := uploadpath.Abs("banners", httpserver.PathParam(r, "file"))
 			http.ServeFile(w, r, p)
 		})},
 	})

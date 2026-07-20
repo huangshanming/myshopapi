@@ -89,6 +89,10 @@ spec:
           - /api/v1/admin/configs/*
           - /api/v1/admin/notifications
           - /api/v1/admin/notifications/*
+          - /api/v1/admin/tasks
+          - /api/v1/admin/tasks/*
+          - /api/v1/admin/points-products
+          - /api/v1/admin/points-products/*
         methods:
           - GET
           - POST

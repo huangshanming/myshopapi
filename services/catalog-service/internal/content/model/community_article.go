@@ -37,6 +37,7 @@ func (CommunityArticleCategory) TableName() string { return "community_article_c
 type CommunityArticle struct {
 	ID                uint64            `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
 	ShopID            uint64            `gorm:"column:shop_id;not null;index" json:"shop_id"`
+	AuthorUserID      uint64            `gorm:"column:author_user_id;not null;default:0;index" json:"author_user_id"`
 	CategoryID        uint64            `gorm:"column:category_id;not null;default:0" json:"category_id"`
 	Title             string            `gorm:"column:title;type:varchar(200);not null" json:"title"`
 	CoverURL          string            `gorm:"column:cover_url;type:varchar(500)" json:"cover_url"`

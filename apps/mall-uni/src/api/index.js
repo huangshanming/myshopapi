@@ -1,4 +1,5 @@
-import { http } from '../utils/request'
+import { http, unwrapBody } from '../utils/request'
+import { getToken, getUser } from '../stores/user'
 
 export function listProducts(params) {
   return http.get('/api/v1/products/list', params)
@@ -78,6 +79,81 @@ export function listMyArticleFavorites(params = { page: 1, page_size: 10 }) {
 
 export function listMyArticleLikes(params = { page: 1, page_size: 10 }) {
   return http.get('/api/v1/user/article-likes', params)
+}
+
+export function listMyArticles(params = { page: 1, page_size: 10 }) {
+  return http.get('/api/v1/user/articles', params)
+}
+
+export function getMyArticle(id) {
+  return http.get(`/api/v1/user/articles/${id}`)
+}
+
+export function createMyArticle(data) {
+  return http.post('/api/v1/user/articles', data)
+}
+
+export function updateMyArticle(id, data) {
+  return http.put(`/api/v1/user/articles/${id}`, data)
+}
+
+export function deleteMyArticle(id) {
+  return http.delete(`/api/v1/user/articles/${id}`)
+}
+
+export function uploadArticleImage(filePath) {
+  return new Promise((resolve, reject) => {
+    const token = getToken()
+    const user = getUser()
+    const header = {}
+    if (token) header.Authorization = `Bearer ${token}`
+    if (user?.id) header['X-User-Id'] = String(user.id)
+    if (user?.role) header['X-User-Role'] = user.role
+    else if (token) header['X-User-Role'] = 'user'
+    uni.uploadFile({
+      url: '/api/v1/user/article-uploads',
+      filePath,
+      name: 'file',
+      header,
+      success: (res) => {
+        try {
+          const body = JSON.parse(res.data)
+          if (res.statusCode && res.statusCode >= 400) {
+            reject(new Error(body?.msg || body?.message || `HTTP ${res.statusCode}`))
+            return
+          }
+          resolve(unwrapBody(body))
+        } catch (e) {
+          reject(e)
+        }
+      },
+      fail: reject,
+    })
+  })
+}
+
+export function getUserPoints() {
+  return http.get('/api/v1/user/points')
+}
+
+export function listUserPointLogs(params) {
+  return http.get('/api/v1/user/points/logs', params)
+}
+
+export function listUserTasks() {
+  return http.get('/api/v1/user/tasks')
+}
+
+export function checkinTask() {
+  return http.post('/api/v1/user/tasks/checkin')
+}
+
+export function claimTask(code) {
+  return http.post(`/api/v1/user/tasks/${code}/claim`)
+}
+
+export function reportTaskEvent(data) {
+  return http.post('/api/v1/user/tasks/events', data, { silent: true })
 }
 
 export function listRegions(parentCode = '') {
@@ -227,16 +303,18 @@ export function listProductReviews(productId, params) {
 
 export function uploadReviewImage(filePath) {
   return new Promise((resolve, reject) => {
-    const token = uni.getStorageSync('token') || ''
-    const user = uni.getStorageSync('user') || {}
+    const token = getToken()
+    const user = getUser()
+    const header = {}
+    if (token) header.Authorization = `Bearer ${token}`
+    if (user?.id) header['X-User-Id'] = String(user.id)
+    if (user?.role) header['X-User-Role'] = user.role
+    else if (token) header['X-User-Role'] = 'user'
     uni.uploadFile({
       url: '/api/v1/user/review-uploads',
       filePath,
       name: 'file',
-      header: {
-        Authorization: token ? `Bearer ${token}` : '',
-        'X-User-Id': user.id ? String(user.id) : '',
-      },
+      header,
       success: (res) => {
         try {
           const body = JSON.parse(res.data)

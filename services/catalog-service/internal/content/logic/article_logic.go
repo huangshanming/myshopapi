@@ -197,12 +197,22 @@ func (l *ArticleLogic) Audit(id uint64, req types.ArticleAuditReq) error {
 		return nil
 	}
 	st, pub := l.resolvePublishStatus(a.SchedulePublishAt)
-	return l.svcCtx.Articles.Update(id, map[string]interface{}{
+	if err := l.svcCtx.Articles.Update(id, map[string]interface{}{
 		"audit_status":  model.ArticleAuditApproved,
 		"reject_reason": "",
 		"status":        st,
 		"published_at":  pub,
-	})
+	}); err != nil {
+		return err
+	}
+	// C 端用户发文审核通过 → 发文任务进度
+	if a.AuthorUserID > 0 && a.ShopID == 0 && l.svcCtx.UserHTTP != nil {
+		_ = l.svcCtx.UserHTTP.TaskEvent(l.ctx, userhttp.TaskEventReq{
+			UserID: a.AuthorUserID, TaskCode: "publish_article", Delta: 1,
+			RefType: "article", RefID: a.ID,
+		})
+	}
+	return nil
 }
 
 func (l *ArticleLogic) BatchAudit(req types.ArticleBatchAuditReq) error {
@@ -277,6 +287,90 @@ func (l *ArticleLogic) PermanentDelete(id uint64) error {
 
 func (l *ArticleLogic) Stats() (map[string]interface{}, error) {
 	return l.svcCtx.Articles.Stats()
+}
+
+// UserCreate C 端用户发文：shop_id=0，强制待审
+func (l *ArticleLogic) UserCreate(userID uint64, req types.ArticleSaveReq) (*model.CommunityArticle, error) {
+	if userID == 0 {
+		return nil, errors.New("未登录")
+	}
+	if strings.TrimSpace(req.Title) == "" {
+		return nil, errors.New("标题不能为空")
+	}
+	a := &model.CommunityArticle{
+		ShopID:       0,
+		AuthorUserID: userID,
+		CategoryID:   req.CategoryID,
+		Title:        strings.TrimSpace(req.Title),
+		CoverURL:     req.CoverURL,
+		Content:      req.Content,
+		AuditStatus:  model.ArticleAuditPending,
+		Status:       model.ArticleDraft,
+		IsTop:        0,
+		CreatedBy:    userID,
+	}
+	if err := l.svcCtx.Articles.Create(a); err != nil {
+		return nil, err
+	}
+	_ = l.svcCtx.Articles.ReplaceImages(a.ID, 0, req.ImageURLs)
+	return a, nil
+}
+
+func (l *ArticleLogic) UserUpdate(userID, id uint64, req types.ArticleSaveReq) error {
+	a, err := l.svcCtx.Articles.GetByIDAuthor(id, userID)
+	if err != nil {
+		return errors.New("文章不存在")
+	}
+	if a.Status == model.ArticleDeleted {
+		return errors.New("已删除")
+	}
+	if a.AuditStatus == model.ArticleAuditApproved && a.Status == model.ArticlePublished {
+		return errors.New("已发布文章不可编辑")
+	}
+	updates := map[string]interface{}{
+		"title":         strings.TrimSpace(req.Title),
+		"cover_url":     req.CoverURL,
+		"content":       req.Content,
+		"category_id":   req.CategoryID,
+		"audit_status":  model.ArticleAuditPending,
+		"status":        model.ArticleDraft,
+		"reject_reason": "",
+	}
+	if err := l.svcCtx.Articles.UpdateAuthor(id, userID, updates); err != nil {
+		return err
+	}
+	if req.ImageURLs != nil {
+		_ = l.svcCtx.Articles.ReplaceImages(id, 0, req.ImageURLs)
+	}
+	return nil
+}
+
+func (l *ArticleLogic) UserDelete(userID, id uint64) error {
+	a, err := l.svcCtx.Articles.GetByIDAuthor(id, userID)
+	if err != nil {
+		return errors.New("文章不存在")
+	}
+	if a.AuditStatus == model.ArticleAuditApproved && a.Status == model.ArticlePublished {
+		return errors.New("已发布文章请联系平台下架")
+	}
+	return l.svcCtx.Articles.SoftDeleteAuthor(id, userID)
+}
+
+func (l *ArticleLogic) UserListMine(userID uint64, page, pageSize int) (map[string]interface{}, error) {
+	list, total, err := l.svcCtx.Articles.ListByAuthor(userID, page, pageSize)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]interface{}{"list": list, "total": total}, nil
+}
+
+func (l *ArticleLogic) UserGetMine(userID, id uint64) (map[string]interface{}, error) {
+	a, err := l.svcCtx.Articles.GetByIDAuthor(id, userID)
+	if err != nil {
+		return nil, errors.New("文章不存在")
+	}
+	imgs, _ := l.svcCtx.Articles.ListImages(id)
+	return map[string]interface{}{"article": a, "images": imgs}, nil
 }
 
 // MerchantCreate 商家创建：强制待审
@@ -502,7 +596,17 @@ func (l *ArticleLogic) LikeArticle(userID, articleID uint64, like bool) error {
 			return errors.New("文章不存在")
 		}
 	}
-	return l.svcCtx.Articles.ToggleLike(userID, articleID, like)
+	changed, err := l.svcCtx.Articles.ToggleLike(userID, articleID, like)
+	if err != nil {
+		return err
+	}
+	if like && changed && l.svcCtx.UserHTTP != nil {
+		_ = l.svcCtx.UserHTTP.TaskEvent(l.ctx, userhttp.TaskEventReq{
+			UserID: userID, TaskCode: "like_article", Delta: 1,
+			RefType: "article_like", RefID: articleID,
+		})
+	}
+	return nil
 }
 
 func (l *ArticleLogic) FavoriteArticle(userID, articleID uint64, fav bool) error {
@@ -511,7 +615,17 @@ func (l *ArticleLogic) FavoriteArticle(userID, articleID uint64, fav bool) error
 			return errors.New("文章不存在")
 		}
 	}
-	return l.svcCtx.Articles.ToggleFavorite(userID, articleID, fav)
+	changed, err := l.svcCtx.Articles.ToggleFavorite(userID, articleID, fav)
+	if err != nil {
+		return err
+	}
+	if fav && changed && l.svcCtx.UserHTTP != nil {
+		_ = l.svcCtx.UserHTTP.TaskEvent(l.ctx, userhttp.TaskEventReq{
+			UserID: userID, TaskCode: "favorite_article", Delta: 1,
+			RefType: "article_fav", RefID: articleID,
+		})
+	}
+	return nil
 }
 
 func (l *ArticleLogic) EngagementStatus(userID, articleID uint64) (liked, favorited bool) {
@@ -652,6 +766,12 @@ func (l *ArticleLogic) CreatePublicComment(userID, articleID uint64, req CreateC
 	}
 	if err := l.svcCtx.Articles.CreateComment(c); err != nil {
 		return nil, err
+	}
+	if l.svcCtx.UserHTTP != nil {
+		_ = l.svcCtx.UserHTTP.TaskEvent(l.ctx, userhttp.TaskEventReq{
+			UserID: userID, TaskCode: "comment_article", Delta: 1,
+			RefType: "comment", RefID: c.ID,
+		})
 	}
 	tmp := []model.CommunityArticleComment{*c}
 	l.fillCommentUsers(tmp)

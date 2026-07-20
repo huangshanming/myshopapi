@@ -156,6 +156,27 @@
       "style": {
         "navigationBarTitleText": "我的点赞"
       }
+    },
+    {
+      "path": "pages/community/publish",
+      "style": {
+        "navigationBarTitleText": "发笔记",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black",
+        "backgroundColor": "#ffffff"
+      }
+    },
+    {
+      "path": "pages/community/mine",
+      "style": {
+        "navigationBarTitleText": "我的笔记"
+      }
+    },
+    {
+      "path": "pages/task/index",
+      "style": {
+        "navigationBarTitleText": "任务中心"
+      }
     }
   ],
   "globalStyle": {

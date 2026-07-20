@@ -42,6 +42,12 @@
             <text class="a-unit">张</text>
           </view>
         </view>
+        <view class="asset-col" @tap="goTasks">
+          <text class="a-label">积分</text>
+          <view class="a-amount-row">
+            <text class="a-num">{{ points }}</text>
+          </view>
+        </view>
       </view>
     </view>
 
@@ -91,7 +97,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { getOrderStatusCounts, getUserWallet, listMyCoupons } from '../../api/index'
+import { getOrderStatusCounts, getUserPoints, getUserWallet, listMyCoupons, reportTaskEvent } from '../../api/index'
 import { clearAuth, getUser, isLoggedIn } from '../../stores/user'
 
 const stroke = '#b8956a'
@@ -121,6 +127,7 @@ const ICO = {
 const user = ref(null)
 const wallet = ref({ balance: 0, frozen_balance: 0 })
 const couponCount = ref(0)
+const points = ref(0)
 const counts = ref({})
 
 const orderEntries = [
@@ -197,16 +204,35 @@ function goLikes() {
   uni.navigateTo({ url: '/pages/community/liked' })
 }
 
+function goTasks() {
+  if (!isLoggedIn()) {
+    goLogin()
+    return
+  }
+  uni.navigateTo({ url: '/pages/task/index' })
+}
+
+function goMyNotes() {
+  if (!isLoggedIn()) {
+    goLogin()
+    return
+  }
+  uni.navigateTo({ url: '/pages/community/mine' })
+}
+
 function logout() {
   clearAuth()
   user.value = null
   wallet.value = { balance: 0, frozen_balance: 0 }
   couponCount.value = 0
+  points.value = 0
   counts.value = {}
   uni.showToast({ title: '已退出', icon: 'none' })
 }
 
 const menuItems = computed(() => [
+  { key: 'tasks', label: '任务中心', icon: ICO.gift, bg: '#faf6ef', needLogin: true, onTap: goTasks },
+  { key: 'notes', label: '我的笔记', icon: ICO.like, bg: '#f7f3ec', needLogin: true, onTap: goMyNotes },
   { key: 'coupons', label: '我的优惠券', icon: ICO.coupon, bg: '#faf6ef', needLogin: true, onTap: goCoupons },
   { key: 'center', label: '领券中心', icon: ICO.gift, bg: '#f7f3ec', needLogin: false, onTap: goCouponCenter },
   { key: 'fav', label: '我的收藏', icon: ICO.heart, bg: '#faf6ef', needLogin: true, onTap: goFavorites },
@@ -226,6 +252,23 @@ async function loadWallet() {
     wallet.value = res || { balance: 0, frozen_balance: 0 }
   } catch {
     wallet.value = { balance: 0, frozen_balance: 0 }
+  }
+}
+
+async function loadPoints() {
+  if (!isLoggedIn()) {
+    points.value = 0
+    return
+  }
+  try {
+    const res = await getUserPoints()
+    points.value = Number(res?.points) || 0
+  } catch {
+    points.value = 0
+  }
+  const u = user.value
+  if (u?.nickname && u?.avatar) {
+    reportTaskEvent({ task_code: 'first_profile', ref_type: 'profile', ref_id: u.id }).catch(() => {})
   }
 }
 
@@ -258,6 +301,7 @@ onShow(() => {
   user.value = getUser()
   loadWallet()
   loadCouponCount()
+  loadPoints()
   loadOrderCounts()
 })
 </script>
@@ -385,7 +429,7 @@ onShow(() => {
   color: #8b7355;
 }
 .a-num {
-  font-size: 36rpx;
+  font-size: 32rpx;
   font-weight: 700;
   color: #2c2416;
   line-height: 1;

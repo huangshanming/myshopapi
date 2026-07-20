@@ -56,6 +56,8 @@ export default defineConfig({
       '/api/v1/user/favorites': to(svc.catalog),
       '/api/v1/user/article-favorites': to(svc.catalog),
       '/api/v1/user/article-likes': to(svc.catalog),
+      '/api/v1/user/articles': to(svc.catalog),
+      '/api/v1/user/article-uploads': to(svc.catalog),
       '/api/v1/user/review-uploads': to(svc.order),
       '/api/v1/products': to(svc.catalog),
       '/api/v1/product_category': to(svc.catalog),

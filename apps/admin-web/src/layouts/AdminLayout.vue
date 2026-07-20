@@ -34,129 +34,181 @@ import { useAuthStore } from '../stores/auth'
 const auth = useAuthStore()
 const router = useRouter()
 
-const EXTRA_MENUS = [
-  { id: 5, name: '全站商品', path: '/admin/products', type: 'menu', visible: 1 },
-  { id: 6, name: '商品分类', path: '/admin/products/categories', type: 'menu', visible: 1 },
-  { id: 7, name: '售后管理', path: '/admin/after-sales', type: 'menu', visible: 1 },
-  { id: 8, name: '物流管理', path: '/admin/logistics', type: 'menu', visible: 1 },
-  { id: 124, name: '用户消息', path: '/admin/messages', type: 'menu', visible: 1 },
+/** 侧栏目录定义：按业务域拆分，避免塞进少数大类 */
+const MENU_GROUPS = [
+  {
+    id: 140, name: '商家管理', sort: 10,
+    items: [
+      { id: 2, name: '入驻审核', path: '/admin/applications' },
+      { id: 3, name: '店铺管理', path: '/admin/shops' },
+    ],
+  },
+  {
+    id: 141, name: '商品中心', sort: 15,
+    items: [
+      { id: 5, name: '全站商品', path: '/admin/products' },
+      { id: 6, name: '商品分类', path: '/admin/products/categories' },
+    ],
+  },
+  {
+    id: 142, name: '交易中心', sort: 20,
+    items: [
+      { id: 4, name: '全站订单', path: '/admin/orders' },
+      { id: 7, name: '售后管理', path: '/admin/after-sales' },
+      { id: 8, name: '物流管理', path: '/admin/logistics' },
+      { id: 110, name: '评价管理', path: '/admin/reviews' },
+    ],
+  },
+  {
+    id: 90, name: '内容社区', sort: 25,
+    items: [
+      { id: 91, name: '文章列表', path: '/admin/articles' },
+      { id: 92, name: '分类管理', path: '/admin/articles/categories' },
+      { id: 93, name: '评论管理', path: '/admin/articles/comments' },
+      { id: 100, name: '评论表情', path: '/admin/articles/emojis' },
+      { id: 94, name: '文章回收站', path: '/admin/articles/recycle' },
+      { id: 95, name: '文章统计', path: '/admin/articles/stats' },
+    ],
+  },
+  {
+    id: 143, name: '首页运营', sort: 35,
+    items: [
+      { id: 115, name: '首页 Banner', path: '/admin/banners' },
+      { id: 118, name: '主题集市', path: '/admin/themes' },
+      { id: 112, name: '首页展位', path: '/admin/homepage' },
+    ],
+  },
+  {
+    id: 16, name: '营销玩法', sort: 40,
+    items: [
+      { id: 121, name: '优惠券', path: '/admin/coupons' },
+      { id: 17, name: '秒杀规则', path: '/admin/seckill/rule' },
+      { id: 18, name: '秒杀场次', path: '/admin/seckill/sessions' },
+      { id: 125, name: '任务中心', path: '/admin/tasks' },
+      { id: 127, name: '积分商城', path: '/admin/points-mall' },
+    ],
+  },
+  {
+    id: 144, name: '用户触达', sort: 50,
+    items: [
+      { id: 124, name: '用户消息', path: '/admin/messages' },
+    ],
+  },
+  {
+    id: 10, name: '系统管理', sort: 90,
+    items: [
+      { id: 11, name: '菜单管理', path: '/admin/system/menus' },
+      { id: 12, name: '角色管理', path: '/admin/system/roles' },
+      { id: 13, name: '用户管理', path: '/admin/system/users' },
+      { id: 14, name: '管理员设置', path: '/admin/system/admins' },
+      { id: 15, name: '系统设置', path: '/admin/system/configs' },
+    ],
+  },
 ]
 
-const EXTRA_ARTICLE_DIR = {
-  id: 90,
-  name: '文章管理',
+const HIDDEN_DIR_IDS = new Set([1]) // 业务管理(旧)
+
+function flattenMenus(tree) {
+  const byPath = new Map()
+  const byId = new Map()
+  const walk = (nodes) => {
+    for (const n of nodes || []) {
+      if (n.path) byPath.set(n.path, n)
+      if (n.id != null) byId.set(n.id, n)
+      if (n.children?.length) walk(n.children)
+    }
+  }
+  walk(tree)
+  return { byPath, byId }
+}
+
+function pickChild(raw, item) {
+  const hit = raw.byPath.get(item.path) || raw.byId.get(item.id)
+  if (hit && hit.visible === 0) return null
+  return {
+    id: hit?.id ?? item.id,
+    name: hit?.name || item.name,
+    path: hit?.path || item.path,
+    type: 'menu',
+    visible: 1,
+  }
+}
+
+/** 按固定分组重组侧栏；DB 有权限的项优先保留名称，缺省用兜底补齐 */
+function buildGroupedMenus(tree) {
+  const raw = flattenMenus(tree)
+  const knownPaths = new Set()
+  const groups = []
+
+  for (const g of MENU_GROUPS) {
+    const children = []
+    for (const item of g.items) {
+      const child = pickChild(raw, item)
+      if (!child) continue
+      children.push(child)
+      knownPaths.add(child.path)
+    }
+    if (!children.length) continue
+    const dir = raw.byId.get(g.id)
+    groups.push({
+      id: g.id,
+      name: dir?.name || g.name,
+      type: 'dir',
+      visible: 1,
+      sort: g.sort,
+      children,
+    })
+  }
+
+  // 未归类的可见菜单，挂到末尾「其他」
+  const orphans = []
+  for (const [, node] of raw.byPath) {
+    if (node.type === 'button' || node.visible === 0) continue
+    if (!node.path || knownPaths.has(node.path)) continue
+    orphans.push({
+      id: node.id,
+      name: node.name,
+      path: node.path,
+      type: 'menu',
+      visible: 1,
+    })
+  }
+  if (orphans.length) {
+    groups.push({
+      id: 9990,
+      name: '其他',
+      type: 'dir',
+      visible: 1,
+      sort: 80,
+      children: orphans,
+    })
+  }
+
+  return groups
+    .filter((g) => !HIDDEN_DIR_IDS.has(g.id))
+    .sort((a, b) => (a.sort || 0) - (b.sort || 0))
+}
+
+const FALLBACK_TREE = MENU_GROUPS.map((g) => ({
+  id: g.id,
+  name: g.name,
   type: 'dir',
   visible: 1,
-  children: [
-    { id: 91, name: '文章列表', path: '/admin/articles', type: 'menu', visible: 1 },
-    { id: 92, name: '分类管理', path: '/admin/articles/categories', type: 'menu', visible: 1 },
-    { id: 93, name: '评论管理', path: '/admin/articles/comments', type: 'menu', visible: 1 },
-    { id: 100, name: '评论表情', path: '/admin/articles/emojis', type: 'menu', visible: 1 },
-    { id: 94, name: '文章回收站', path: '/admin/articles/recycle', type: 'menu', visible: 1 },
-    { id: 95, name: '文章统计', path: '/admin/articles/stats', type: 'menu', visible: 1 },
-  ],
-}
-
-function ensureBizMenus(tree) {
-  const cloned = tree.map((n) => ({
-    ...n,
-    children: (n.children || []).map((c) => ({ ...c })),
-  }))
-  let biz = cloned.find((n) => n.id === 1 || n.name === '业务管理')
-  if (!biz) {
-    biz = { id: 1, name: '业务管理', type: 'dir', children: [] }
-    cloned.unshift(biz)
-  }
-  biz.children = biz.children || []
-  for (const m of EXTRA_MENUS) {
-    if (!biz.children.some((c) => c.path === m.path || c.id === m.id)) {
-      biz.children.push({ ...m })
-    }
-  }
-  return ensureMarketingMenus(ensureArticleMenus(cloned))
-}
-
-function ensureMarketingMenus(tree) {
-  const cloned = tree.map((n) => ({
-    ...n,
-    children: (n.children || []).map((c) => ({ ...c })),
-  }))
-  let mkt = cloned.find((n) => n.id === 16 || n.name === '营销中心')
-  if (!mkt) {
-    mkt = { id: 16, name: '营销中心', type: 'dir', visible: 1, children: [] }
-    cloned.push(mkt)
-  }
-  mkt.children = mkt.children || []
-  if (!mkt.children.some((c) => c.path === '/admin/banners' || c.id === 115)) {
-    mkt.children.push({ id: 115, name: '首页 Banner', path: '/admin/banners', type: 'menu', visible: 1 })
-  }
-  if (!mkt.children.some((c) => c.path === '/admin/themes' || c.id === 118)) {
-    mkt.children.push({ id: 118, name: '主题集市', path: '/admin/themes', type: 'menu', visible: 1 })
-  }
-  if (!mkt.children.some((c) => c.path === '/admin/coupons' || c.id === 121)) {
-    mkt.children.push({ id: 121, name: '优惠券', path: '/admin/coupons', type: 'menu', visible: 1 })
-  }
-  return cloned
-}
-
-function ensureArticleMenus(tree) {
-  const cloned = tree.map((n) => ({
-    ...n,
-    children: (n.children || []).map((c) => ({ ...c })),
-  }))
-  let art = cloned.find((n) => n.id === 90 || n.name === '文章管理')
-  if (!art) {
-    cloned.push({
-      ...EXTRA_ARTICLE_DIR,
-      children: EXTRA_ARTICLE_DIR.children.map((c) => ({ ...c })),
-    })
-    return cloned
-  }
-  art.children = art.children || []
-  for (const m of EXTRA_ARTICLE_DIR.children) {
-    if (!art.children.some((c) => c.path === m.path || c.id === m.id)) {
-      art.children.push({ ...m })
-    }
-  }
-  return cloned
-}
+  children: g.items.map((c) => ({ ...c, type: 'menu', visible: 1 })),
+}))
 
 const menuNodes = computed(() => {
   const tree = auth.menuTree || []
   if (tree.length) {
     const filtered = tree
-      .filter((n) => n.type !== 'button' && n.visible !== 0)
+      .filter((n) => n.type !== 'button' && n.visible !== 0 && !HIDDEN_DIR_IDS.has(n.id))
       .map((n) => ({
         ...n,
         children: (n.children || []).filter((c) => c.type === 'menu' && c.visible !== 0),
       }))
-    return ensureBizMenus(filtered)
+    return buildGroupedMenus(filtered)
   }
-  return [
-    {
-      id: 1,
-      name: '业务管理',
-      children: [
-        { id: 2, name: '入驻审核', path: '/admin/applications' },
-        { id: 3, name: '店铺管理', path: '/admin/shops' },
-        { id: 4, name: '全站订单', path: '/admin/orders' },
-        { id: 5, name: '全站商品', path: '/admin/products' },
-        { id: 6, name: '商品分类', path: '/admin/products/categories' },
-      ],
-    },
-    {
-      id: 90,
-      name: '文章管理',
-      children: [
-        { id: 91, name: '文章列表', path: '/admin/articles' },
-        { id: 92, name: '分类管理', path: '/admin/articles/categories' },
-        { id: 93, name: '评论管理', path: '/admin/articles/comments' },
-        { id: 100, name: '评论表情', path: '/admin/articles/emojis' },
-        { id: 94, name: '文章回收站', path: '/admin/articles/recycle' },
-        { id: 95, name: '文章统计', path: '/admin/articles/stats' },
-      ],
-    },
-  ]
+  return FALLBACK_TREE
 })
 
 onMounted(async () => {

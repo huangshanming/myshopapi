@@ -68,7 +68,7 @@ import { onLoad, onShow } from '@dcloudio/uni-app'
 import { computed, ref } from 'vue'
 import {
   addFavorite, getFavoriteStatus, getProductDetail, getSeckillEntry,
-  listProductReviews, removeFavorite,
+  listProductReviews, removeFavorite, reportTaskEvent,
 } from '../../api/index'
 import { addToCart, getCartCount, setCheckoutPayload } from '../../stores/cart'
 import { isLoggedIn } from '../../stores/user'
@@ -185,6 +185,9 @@ async function load() {
       }
     }
     await Promise.all([loadFav(), loadReviews()])
+    if (isLoggedIn() && productId) {
+      reportTaskEvent({ task_code: 'browse_products', ref_type: 'product', ref_id: productId }).catch(() => {})
+    }
   } catch {
     product.value = null
   } finally {

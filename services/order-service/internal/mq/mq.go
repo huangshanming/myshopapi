@@ -108,6 +108,10 @@ func (c *Consumer) handleReserved(ctx context.Context, _ string, body []byte) er
 			LinkID:   order.ID,
 			Extra:    string(extra),
 		})
+		_ = c.userHTTP.TaskEvent(ctx, userhttp.TaskEventReq{
+			UserID: order.UserID, TaskCode: "place_order", Delta: 1,
+			RefType: "order", RefID: order.ID,
+		})
 	}
 	return nil
 }

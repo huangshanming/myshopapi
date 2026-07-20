@@ -2,6 +2,8 @@ package logic
 
 import (
 	"context"
+
+	"mymall/services/catalog-service/internal/client/userhttp"
 	"mymall/services/catalog-service/internal/product/model"
 	"mymall/services/catalog-service/internal/svc"
 )
@@ -19,8 +21,17 @@ func NewFavoriteLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Favorite
 }
 
 func (l *FavoriteLogic) Add(userID, productID uint64) error {
-	_, err := l.svcCtx.Favorites.Add(userID, productID)
-	return err
+	created, err := l.svcCtx.Favorites.Add(userID, productID)
+	if err != nil {
+		return err
+	}
+	if created && l.svcCtx.UserHTTP != nil {
+		_ = l.svcCtx.UserHTTP.TaskEvent(l.ctx, userhttp.TaskEventReq{
+			UserID: userID, TaskCode: "first_favorite_product", Delta: 1,
+			RefType: "product", RefID: productID,
+		})
+	}
+	return nil
 }
 
 func (l *FavoriteLogic) Remove(userID, productID uint64) error {

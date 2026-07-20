@@ -102,6 +102,49 @@ func (r *ArticleRepository) GetByIDShop(id, shopID uint64) (*model.CommunityArti
 	return &a, nil
 }
 
+func (r *ArticleRepository) GetByIDAuthor(id, userID uint64) (*model.CommunityArticle, error) {
+	var a model.CommunityArticle
+	err := r.db.Where("id = ? AND author_user_id = ? AND shop_id = 0", id, userID).First(&a).Error
+	if err != nil {
+		return nil, err
+	}
+	return &a, nil
+}
+
+func (r *ArticleRepository) ListByAuthor(userID uint64, page, pageSize int) ([]model.CommunityArticle, int64, error) {
+	q := r.db.Model(&model.CommunityArticle{}).
+		Where("author_user_id = ? AND shop_id = 0 AND status <> ?", userID, model.ArticleDeleted)
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 20
+	}
+	var list []model.CommunityArticle
+	err := q.Order("id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
+	return list, total, err
+}
+
+func (r *ArticleRepository) UpdateAuthor(id, userID uint64, updates map[string]interface{}) error {
+	res := r.db.Model(&model.CommunityArticle{}).
+		Where("id = ? AND author_user_id = ? AND shop_id = 0", id, userID).Updates(updates)
+	if res.RowsAffected == 0 {
+		return errors.New("文章不存在或无权操作")
+	}
+	return res.Error
+}
+
+func (r *ArticleRepository) SoftDeleteAuthor(id, userID uint64) error {
+	now := common.LocalTime(time.Now())
+	return r.UpdateAuthor(id, userID, map[string]interface{}{
+		"status": model.ArticleDeleted, "deleted_at": now,
+	})
+}
+
 func (r *ArticleRepository) Create(a *model.CommunityArticle) error {
 	return r.db.Create(a).Error
 }
@@ -535,14 +578,15 @@ func (r *ArticleRepository) RecordRead(articleID, userID uint64) error {
 	})
 }
 
-func (r *ArticleRepository) ToggleLike(userID, articleID uint64, like bool) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *ArticleRepository) ToggleLike(userID, articleID uint64, like bool) (changed bool, err error) {
+	err = r.db.Transaction(func(tx *gorm.DB) error {
 		if like {
 			res := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&model.ArticleLike{UserID: userID, ArticleID: articleID})
 			if res.Error != nil {
 				return res.Error
 			}
 			if res.RowsAffected > 0 {
+				changed = true
 				return tx.Model(&model.CommunityArticle{}).Where("id = ?", articleID).
 					UpdateColumn("like_count", gorm.Expr("like_count + 1")).Error
 			}
@@ -553,21 +597,24 @@ func (r *ArticleRepository) ToggleLike(userID, articleID uint64, like bool) erro
 			return res.Error
 		}
 		if res.RowsAffected > 0 {
+			changed = true
 			return tx.Model(&model.CommunityArticle{}).Where("id = ?", articleID).
 				UpdateColumn("like_count", gorm.Expr("GREATEST(0, like_count - 1)")).Error
 		}
 		return nil
 	})
+	return changed, err
 }
 
-func (r *ArticleRepository) ToggleFavorite(userID, articleID uint64, fav bool) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *ArticleRepository) ToggleFavorite(userID, articleID uint64, fav bool) (changed bool, err error) {
+	err = r.db.Transaction(func(tx *gorm.DB) error {
 		if fav {
 			res := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&model.ArticleFavorite{UserID: userID, ArticleID: articleID})
 			if res.Error != nil {
 				return res.Error
 			}
 			if res.RowsAffected > 0 {
+				changed = true
 				return tx.Model(&model.CommunityArticle{}).Where("id = ?", articleID).
 					UpdateColumn("collect_count", gorm.Expr("collect_count + 1")).Error
 			}
@@ -578,11 +625,13 @@ func (r *ArticleRepository) ToggleFavorite(userID, articleID uint64, fav bool) e
 			return res.Error
 		}
 		if res.RowsAffected > 0 {
+			changed = true
 			return tx.Model(&model.CommunityArticle{}).Where("id = ?", articleID).
 				UpdateColumn("collect_count", gorm.Expr("GREATEST(0, collect_count - 1)")).Error
 		}
 		return nil
 	})
+	return changed, err
 }
 
 func (r *ArticleRepository) EngagementStatus(userID, articleID uint64) (liked, favorited bool) {

@@ -79,3 +79,33 @@ func (c *Client) Notify(ctx context.Context, req NotifyReq) error {
 	}
 	return nil
 }
+
+type TaskEventReq struct {
+	UserID   uint64 `json:"user_id"`
+	TaskCode string `json:"task_code"`
+	Delta    int    `json:"delta"`
+	RefType  string `json:"ref_type"`
+	RefID    uint64 `json:"ref_id"`
+}
+
+func (c *Client) TaskEvent(ctx context.Context, req TaskEventReq) error {
+	if c == nil || req.UserID == 0 || req.TaskCode == "" {
+		return nil
+	}
+	if req.Delta < 1 {
+		req.Delta = 1
+	}
+	body, _ := json.Marshal(req)
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.base+"/api/v1/internal/tasks/events", bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	res, err := c.client.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("任务服务不可用: %w", err)
+	}
+	defer res.Body.Close()
+	io.Copy(io.Discard, res.Body)
+	return nil
+}

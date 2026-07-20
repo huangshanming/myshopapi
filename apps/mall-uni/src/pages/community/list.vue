@@ -1,5 +1,9 @@
 <template>
   <view class="page">
+    <view class="top-bar">
+      <text class="link" @tap="goMine">我的笔记</text>
+      <text class="pub" @tap="goPublish">发笔记</text>
+    </view>
     <view
       v-for="a in list"
       :key="a.id"
@@ -43,6 +47,12 @@ const finished = ref(false)
 function goDetail(id) {
   uni.navigateTo({ url: `/pages/community/detail?id=${id}` })
 }
+function goPublish() {
+  uni.navigateTo({ url: '/pages/community/publish' })
+}
+function goMine() {
+  uni.navigateTo({ url: '/pages/community/mine' })
+}
 
 async function load(reset = false) {
   if (loading.value || (finished.value && !reset)) return
@@ -75,6 +85,15 @@ onReachBottom(() => load(false))
 
 <style scoped>
 .page { padding: 16rpx 24rpx 40rpx; }
+.top-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 16rpx; padding: 0 4rpx;
+}
+.link { font-size: 26rpx; color: #71717a; }
+.pub {
+  font-size: 26rpx; color: #fff; background: #c8a876;
+  padding: 10rpx 28rpx; border-radius: 28rpx;
+}
 .card {
   display: flex; gap: 20rpx; background: #fff; border-radius: 16rpx;
   padding: 20rpx; margin-bottom: 16rpx;

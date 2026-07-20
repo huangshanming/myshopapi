@@ -25,6 +25,7 @@ import (
 	"mymall/services/user-service/internal/model"
 	"mymall/services/user-service/internal/server"
 	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/uploadpath"
 
 	"github.com/zeromicro/go-zero/rest"
 )
@@ -72,11 +73,20 @@ func main() {
 		&model.Region{},
 		&model.UserNotification{},
 		&model.UserNotificationBatch{},
+		&model.UserPoints{},
+		&model.UserPointLog{},
+		&model.TaskDefinition{},
+		&model.UserTaskProgress{},
+		&model.UserTaskDedupe{},
+		&model.PointsProduct{},
 	); err != nil {
 		log.Fatalf("AutoMigrate 失败：%v", err)
 	}
 
 	svcCtx := svc.NewServiceContext(cfg, db)
+	if err := svcCtx.Tasks.SeedIfEmpty(); err != nil {
+		logger.Warn(fmt.Sprintf("seed tasks failed: %v", err))
+	}
 	if n, err := svcCtx.Repo.CountRegions(); err == nil && n == 0 {
 		if err := svcCtx.Repo.SeedRegionsFromPCA(data.PCACodeJSON); err != nil {
 			logger.Warn(fmt.Sprintf("seed regions failed: %v", err))
@@ -90,6 +100,8 @@ func main() {
 	walletHandler := handler.NewWalletHandler(svcCtx)
 	addressHandler := handler.NewAddressHandler(svcCtx)
 	regionHandler := handler.NewRegionHandler(svcCtx)
+	taskHandler := handler.NewTaskHandler(svcCtx)
+	pointsProductHandler := handler.NewPointsProductHandler(svcCtx)
 
 	healthReg := health.NewRegistry()
 	healthReg.Register("mysql", func(ctx context.Context) error {
@@ -164,6 +176,14 @@ func main() {
 		{Method: http.MethodPost, Path: "/api/v1/user/notifications/:id/read", Handler: userAuth(userHandler.MarkNotificationRead)},
 		{Method: http.MethodPost, Path: "/api/v1/user/notifications/read-all", Handler: userAuth(userHandler.MarkAllNotificationsRead)},
 		{Method: http.MethodPost, Path: "/api/v1/internal/notifications", Handler: rid(userHandler.InternalCreateNotification)},
+		{Method: http.MethodPost, Path: "/api/v1/internal/tasks/events", Handler: rid(taskHandler.InternalEvent)},
+
+		{Method: http.MethodGet, Path: "/api/v1/user/points", Handler: userAuth(taskHandler.UserPoints)},
+		{Method: http.MethodGet, Path: "/api/v1/user/points/logs", Handler: userAuth(taskHandler.UserPointLogs)},
+		{Method: http.MethodGet, Path: "/api/v1/user/tasks", Handler: userAuth(taskHandler.UserListTasks)},
+		{Method: http.MethodPost, Path: "/api/v1/user/tasks/checkin", Handler: userAuth(taskHandler.UserCheckin)},
+		{Method: http.MethodPost, Path: "/api/v1/user/tasks/:code/claim", Handler: userAuth(taskHandler.UserClaim)},
+		{Method: http.MethodPost, Path: "/api/v1/user/tasks/events", Handler: userAuth(taskHandler.UserReportEvent)},
 
 		{Method: http.MethodGet, Path: "/api/v1/regions", Handler: rid(regionHandler.List)},
 		{Method: http.MethodGet, Path: "/api/v1/regions/tree", Handler: rid(regionHandler.Tree)},
@@ -205,7 +225,25 @@ func main() {
 		{Method: http.MethodPost, Path: "/api/v1/admin/notifications/send", Handler: adminAuth("business:message:send", adminHandler.AdminSendNotification)},
 		{Method: http.MethodGet, Path: "/api/v1/admin/notifications/sends", Handler: adminAuth("business:message:send", adminHandler.AdminListNotificationSends)},
 		{Method: http.MethodGet, Path: "/api/v1/admin/notifications/sends/:id/recipients", Handler: adminAuth("business:message:send", adminHandler.AdminListNotificationRecipients)},
+
+		{Method: http.MethodGet, Path: "/api/v1/admin/tasks", Handler: adminAuth("marketing:task:list", taskHandler.AdminList)},
+		{Method: http.MethodPut, Path: "/api/v1/admin/tasks/:id", Handler: adminAuth("marketing:task:edit", taskHandler.AdminUpdate)},
+
+		{Method: http.MethodGet, Path: "/api/v1/admin/points-products", Handler: adminAuth("marketing:points_mall:list", pointsProductHandler.List)},
+		{Method: http.MethodPost, Path: "/api/v1/admin/points-products", Handler: adminAuth("marketing:points_mall:edit", pointsProductHandler.Create)},
+		{Method: http.MethodPost, Path: "/api/v1/admin/points-products/upload", Handler: adminAuth("marketing:points_mall:edit", pointsProductHandler.Upload)},
+		{Method: http.MethodGet, Path: "/api/v1/admin/points-products/:id", Handler: adminAuth("marketing:points_mall:list", pointsProductHandler.Detail)},
+		{Method: http.MethodPut, Path: "/api/v1/admin/points-products/:id", Handler: adminAuth("marketing:points_mall:edit", pointsProductHandler.Update)},
+		{Method: http.MethodPut, Path: "/api/v1/admin/points-products/:id/status", Handler: adminAuth("marketing:points_mall:edit", pointsProductHandler.SetStatus)},
+		{Method: http.MethodDelete, Path: "/api/v1/admin/points-products/:id", Handler: adminAuth("marketing:points_mall:edit", pointsProductHandler.Delete)},
+
+		{Method: http.MethodGet, Path: "/uploads/points-mall/:file", Handler: rid(func(w http.ResponseWriter, r *http.Request) {
+			p := uploadpath.Abs("points-mall", httpserver.PathParam(r, "file"))
+			http.ServeFile(w, r, p)
+		})},
 	})
+
+	_ = os.MkdirAll(uploadpath.Root(), 0o755)
 
 	go func() {
 		logger.Info(fmt.Sprintf("user-service HTTP(go-zero) 启动 :%d", cfg.Server.HTTPPort))
