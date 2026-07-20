@@ -10,29 +10,27 @@ import (
 	"mymall/pkg/httpserver"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
-	"mymall/services/user-service/internal/logic"
-	"mymall/services/user-service/internal/svc"
+	"mymall/services/merchant-service/internal/logic"
+	"mymall/services/merchant-service/internal/svc"
 
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-type PointsProductHandler struct {
+type PointsProductAdminHandler struct {
 	svcCtx *svc.ServiceContext
 	logic  *logic.PointsProductLogic
 }
 
-func NewPointsProductHandler(svcCtx *svc.ServiceContext) *PointsProductHandler {
-	return &PointsProductHandler{
+func NewPointsProductAdminHandler(svcCtx *svc.ServiceContext) *PointsProductAdminHandler {
+	return &PointsProductAdminHandler{
 		svcCtx: svcCtx,
 		logic:  logic.NewPointsProductLogic(context.Background(), svcCtx),
 	}
 }
 
-func (h *PointsProductHandler) List(w http.ResponseWriter, r *http.Request) {
+func (h *PointsProductAdminHandler) List(w http.ResponseWriter, r *http.Request) {
 	page, pageSize := middleware.ParsePage(r)
-	status := r.URL.Query().Get("status")
-	keyword := r.URL.Query().Get("keyword")
-	list, total, err := h.logic.List(page, pageSize, status, keyword)
+	list, total, err := h.logic.List(page, pageSize, r.URL.Query().Get("status"), r.URL.Query().Get("keyword"))
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
 		return
@@ -40,7 +38,7 @@ func (h *PointsProductHandler) List(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"list": list, "total": total})
 }
 
-func (h *PointsProductHandler) Detail(w http.ResponseWriter, r *http.Request) {
+func (h *PointsProductAdminHandler) Detail(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil || id == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "商品ID无效"))
@@ -54,7 +52,7 @@ func (h *PointsProductHandler) Detail(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, p)
 }
 
-func (h *PointsProductHandler) Create(w http.ResponseWriter, r *http.Request) {
+func (h *PointsProductAdminHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req logic.PointsProductSaveReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
@@ -68,7 +66,7 @@ func (h *PointsProductHandler) Create(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, p)
 }
 
-func (h *PointsProductHandler) Update(w http.ResponseWriter, r *http.Request) {
+func (h *PointsProductAdminHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil || id == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "商品ID无效"))
@@ -87,7 +85,7 @@ func (h *PointsProductHandler) Update(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, p)
 }
 
-func (h *PointsProductHandler) SetStatus(w http.ResponseWriter, r *http.Request) {
+func (h *PointsProductAdminHandler) SetStatus(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil || id == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "商品ID无效"))
@@ -108,7 +106,7 @@ func (h *PointsProductHandler) SetStatus(w http.ResponseWriter, r *http.Request)
 	httpx.OkJsonCtx(r.Context(), w, p)
 }
 
-func (h *PointsProductHandler) Delete(w http.ResponseWriter, r *http.Request) {
+func (h *PointsProductAdminHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil || id == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "商品ID无效"))
@@ -121,7 +119,7 @@ func (h *PointsProductHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
-func (h *PointsProductHandler) Upload(w http.ResponseWriter, r *http.Request) {
+func (h *PointsProductAdminHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(6 << 20); err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "上传失败"))
 		return

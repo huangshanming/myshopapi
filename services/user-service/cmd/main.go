@@ -78,7 +78,6 @@ func main() {
 		&model.TaskDefinition{},
 		&model.UserTaskProgress{},
 		&model.UserTaskDedupe{},
-		&model.PointsProduct{},
 	); err != nil {
 		log.Fatalf("AutoMigrate 失败：%v", err)
 	}
@@ -97,11 +96,16 @@ func main() {
 	userLogic := logic.NewUserLogic(context.Background(), svcCtx)
 	userHandler := handler.NewUserHandler(svcCtx)
 	adminHandler := handler.NewAdminHandler(svcCtx)
-	walletHandler := handler.NewWalletHandler(svcCtx)
-	addressHandler := handler.NewAddressHandler(svcCtx)
+	walletUser := handler.NewWalletUserHandler(svcCtx)
+	walletAdmin := handler.NewWalletAdminHandler(svcCtx)
+	walletInternal := handler.NewWalletInternalHandler(svcCtx)
+	addressUser := handler.NewAddressUserHandler(svcCtx)
+	addressAdmin := handler.NewAddressAdminHandler(svcCtx)
+	addressInternal := handler.NewAddressInternalHandler(svcCtx)
 	regionHandler := handler.NewRegionHandler(svcCtx)
-	taskHandler := handler.NewTaskHandler(svcCtx)
-	pointsProductHandler := handler.NewPointsProductHandler(svcCtx)
+	taskUser := handler.NewTaskUserHandler(svcCtx)
+	taskAdmin := handler.NewTaskAdminHandler(svcCtx)
+	taskInternal := handler.NewTaskInternalHandler(svcCtx)
 
 	healthReg := health.NewRegistry()
 	healthReg.Register("mysql", func(ctx context.Context) error {
@@ -158,32 +162,34 @@ func main() {
 		{Method: http.MethodPost, Path: "/api/v1/user/login", Handler: rid(userHandler.Login)},
 		{Method: http.MethodPost, Path: "/api/v1/user/register", Handler: rid(userHandler.Register)},
 		{Method: http.MethodGet, Path: "/api/v1/user/profile", Handler: rid(profile)},
-		{Method: http.MethodGet, Path: "/api/v1/user/wallet", Handler: userAuth(walletHandler.UserGetWallet)},
-		{Method: http.MethodGet, Path: "/api/v1/user/wallet/logs", Handler: userAuth(walletHandler.UserWalletLogs)},
-		{Method: http.MethodPost, Path: "/api/v1/user/wallet/freeze", Handler: rid(walletHandler.Freeze)},
-		{Method: http.MethodPost, Path: "/api/v1/user/wallet/unfreeze", Handler: rid(walletHandler.Unfreeze)},
-		{Method: http.MethodPost, Path: "/api/v1/user/wallet/settle", Handler: rid(walletHandler.Settle)},
+		{Method: http.MethodGet, Path: "/api/v1/user/wallet", Handler: userAuth(walletUser.UserGetWallet)},
+		{Method: http.MethodGet, Path: "/api/v1/user/wallet/logs", Handler: userAuth(walletUser.UserWalletLogs)},
+		{Method: http.MethodPost, Path: "/api/v1/user/wallet/freeze", Handler: rid(walletInternal.Freeze)},
+		{Method: http.MethodPost, Path: "/api/v1/user/wallet/unfreeze", Handler: rid(walletInternal.Unfreeze)},
+		{Method: http.MethodPost, Path: "/api/v1/user/wallet/settle", Handler: rid(walletInternal.Settle)},
 
-		{Method: http.MethodGet, Path: "/api/v1/user/addresses", Handler: userAuth(addressHandler.List)},
-		{Method: http.MethodPost, Path: "/api/v1/user/addresses", Handler: userAuth(addressHandler.Create)},
-		{Method: http.MethodPut, Path: "/api/v1/user/addresses/:id", Handler: userAuth(addressHandler.Update)},
-		{Method: http.MethodDelete, Path: "/api/v1/user/addresses/:id", Handler: userAuth(addressHandler.Delete)},
-		{Method: http.MethodPut, Path: "/api/v1/user/addresses/:id/default", Handler: userAuth(addressHandler.SetDefault)},
-		{Method: http.MethodGet, Path: "/api/v1/user/addresses/internal", Handler: rid(addressHandler.InternalGet)},
+		{Method: http.MethodGet, Path: "/api/v1/user/addresses", Handler: userAuth(addressUser.List)},
+		{Method: http.MethodPost, Path: "/api/v1/user/addresses", Handler: userAuth(addressUser.Create)},
+		{Method: http.MethodPut, Path: "/api/v1/user/addresses/:id", Handler: userAuth(addressUser.Update)},
+		{Method: http.MethodDelete, Path: "/api/v1/user/addresses/:id", Handler: userAuth(addressUser.Delete)},
+		{Method: http.MethodPut, Path: "/api/v1/user/addresses/:id/default", Handler: userAuth(addressUser.SetDefault)},
+		{Method: http.MethodGet, Path: "/api/v1/user/addresses/internal", Handler: rid(addressInternal.InternalGet)},
 
 		{Method: http.MethodGet, Path: "/api/v1/user/notifications", Handler: userAuth(userHandler.ListNotifications)},
 		{Method: http.MethodGet, Path: "/api/v1/user/notifications/unread-count", Handler: userAuth(userHandler.UnreadNotificationCount)},
 		{Method: http.MethodPost, Path: "/api/v1/user/notifications/:id/read", Handler: userAuth(userHandler.MarkNotificationRead)},
 		{Method: http.MethodPost, Path: "/api/v1/user/notifications/read-all", Handler: userAuth(userHandler.MarkAllNotificationsRead)},
 		{Method: http.MethodPost, Path: "/api/v1/internal/notifications", Handler: rid(userHandler.InternalCreateNotification)},
-		{Method: http.MethodPost, Path: "/api/v1/internal/tasks/events", Handler: rid(taskHandler.InternalEvent)},
+		{Method: http.MethodPost, Path: "/api/v1/internal/tasks/events", Handler: rid(taskInternal.InternalEvent)},
+		{Method: http.MethodPost, Path: "/api/v1/internal/points/deduct", Handler: rid(taskInternal.InternalDeductPoints)},
+		{Method: http.MethodPost, Path: "/api/v1/internal/points/refund", Handler: rid(taskInternal.InternalRefundPoints)},
 
-		{Method: http.MethodGet, Path: "/api/v1/user/points", Handler: userAuth(taskHandler.UserPoints)},
-		{Method: http.MethodGet, Path: "/api/v1/user/points/logs", Handler: userAuth(taskHandler.UserPointLogs)},
-		{Method: http.MethodGet, Path: "/api/v1/user/tasks", Handler: userAuth(taskHandler.UserListTasks)},
-		{Method: http.MethodPost, Path: "/api/v1/user/tasks/checkin", Handler: userAuth(taskHandler.UserCheckin)},
-		{Method: http.MethodPost, Path: "/api/v1/user/tasks/:code/claim", Handler: userAuth(taskHandler.UserClaim)},
-		{Method: http.MethodPost, Path: "/api/v1/user/tasks/events", Handler: userAuth(taskHandler.UserReportEvent)},
+		{Method: http.MethodGet, Path: "/api/v1/user/points", Handler: userAuth(taskUser.UserPoints)},
+		{Method: http.MethodGet, Path: "/api/v1/user/points/logs", Handler: userAuth(taskUser.UserPointLogs)},
+		{Method: http.MethodGet, Path: "/api/v1/user/tasks", Handler: userAuth(taskUser.UserListTasks)},
+		{Method: http.MethodPost, Path: "/api/v1/user/tasks/checkin", Handler: userAuth(taskUser.UserCheckin)},
+		{Method: http.MethodPost, Path: "/api/v1/user/tasks/:code/claim", Handler: userAuth(taskUser.UserClaim)},
+		{Method: http.MethodPost, Path: "/api/v1/user/tasks/events", Handler: userAuth(taskUser.UserReportEvent)},
 
 		{Method: http.MethodGet, Path: "/api/v1/regions", Handler: rid(regionHandler.List)},
 		{Method: http.MethodGet, Path: "/api/v1/regions/tree", Handler: rid(regionHandler.Tree)},
@@ -208,10 +214,10 @@ func main() {
 		{Method: http.MethodPut, Path: "/api/v1/admin/users/:id/status", Handler: adminAuth("system:user:status", adminHandler.SetUserStatus)},
 		{Method: http.MethodPut, Path: "/api/v1/admin/users/:id/password", Handler: adminAuth("system:user:reset", adminHandler.ResetUserPassword)},
 		{Method: http.MethodPost, Path: "/api/v1/admin/users/:id/token", Handler: adminAuth("system:user:list", adminHandler.GenerateUserToken)},
-		{Method: http.MethodGet, Path: "/api/v1/admin/users/:id/wallet", Handler: adminAuth("system:user:wallet", walletHandler.AdminGetWallet)},
-		{Method: http.MethodPost, Path: "/api/v1/admin/users/:id/wallet/adjust", Handler: adminAuth("system:user:wallet", walletHandler.AdminAdjustWallet)},
-		{Method: http.MethodGet, Path: "/api/v1/admin/users/:id/wallet/logs", Handler: adminAuth("system:user:wallet", walletHandler.AdminWalletLogs)},
-		{Method: http.MethodGet, Path: "/api/v1/admin/users/:id/addresses", Handler: adminAuth("system:user:list", addressHandler.AdminList)},
+		{Method: http.MethodGet, Path: "/api/v1/admin/users/:id/wallet", Handler: adminAuth("system:user:wallet", walletAdmin.AdminGetWallet)},
+		{Method: http.MethodPost, Path: "/api/v1/admin/users/:id/wallet/adjust", Handler: adminAuth("system:user:wallet", walletAdmin.AdminAdjustWallet)},
+		{Method: http.MethodGet, Path: "/api/v1/admin/users/:id/wallet/logs", Handler: adminAuth("system:user:wallet", walletAdmin.AdminWalletLogs)},
+		{Method: http.MethodGet, Path: "/api/v1/admin/users/:id/addresses", Handler: adminAuth("system:user:list", addressAdmin.AdminList)},
 
 		{Method: http.MethodGet, Path: "/api/v1/admin/admins", Handler: adminAuth("system:admin:list", adminHandler.ListAdmins)},
 		{Method: http.MethodPost, Path: "/api/v1/admin/admins", Handler: adminAuth("system:admin:add", adminHandler.CreateAdmin)},
@@ -226,21 +232,8 @@ func main() {
 		{Method: http.MethodGet, Path: "/api/v1/admin/notifications/sends", Handler: adminAuth("business:message:send", adminHandler.AdminListNotificationSends)},
 		{Method: http.MethodGet, Path: "/api/v1/admin/notifications/sends/:id/recipients", Handler: adminAuth("business:message:send", adminHandler.AdminListNotificationRecipients)},
 
-		{Method: http.MethodGet, Path: "/api/v1/admin/tasks", Handler: adminAuth("marketing:task:list", taskHandler.AdminList)},
-		{Method: http.MethodPut, Path: "/api/v1/admin/tasks/:id", Handler: adminAuth("marketing:task:edit", taskHandler.AdminUpdate)},
-
-		{Method: http.MethodGet, Path: "/api/v1/admin/points-products", Handler: adminAuth("marketing:points_mall:list", pointsProductHandler.List)},
-		{Method: http.MethodPost, Path: "/api/v1/admin/points-products", Handler: adminAuth("marketing:points_mall:edit", pointsProductHandler.Create)},
-		{Method: http.MethodPost, Path: "/api/v1/admin/points-products/upload", Handler: adminAuth("marketing:points_mall:edit", pointsProductHandler.Upload)},
-		{Method: http.MethodGet, Path: "/api/v1/admin/points-products/:id", Handler: adminAuth("marketing:points_mall:list", pointsProductHandler.Detail)},
-		{Method: http.MethodPut, Path: "/api/v1/admin/points-products/:id", Handler: adminAuth("marketing:points_mall:edit", pointsProductHandler.Update)},
-		{Method: http.MethodPut, Path: "/api/v1/admin/points-products/:id/status", Handler: adminAuth("marketing:points_mall:edit", pointsProductHandler.SetStatus)},
-		{Method: http.MethodDelete, Path: "/api/v1/admin/points-products/:id", Handler: adminAuth("marketing:points_mall:edit", pointsProductHandler.Delete)},
-
-		{Method: http.MethodGet, Path: "/uploads/points-mall/:file", Handler: rid(func(w http.ResponseWriter, r *http.Request) {
-			p := uploadpath.Abs("points-mall", httpserver.PathParam(r, "file"))
-			http.ServeFile(w, r, p)
-		})},
+		{Method: http.MethodGet, Path: "/api/v1/admin/tasks", Handler: adminAuth("marketing:task:list", taskAdmin.AdminList)},
+		{Method: http.MethodPut, Path: "/api/v1/admin/tasks/:id", Handler: adminAuth("marketing:task:edit", taskAdmin.AdminUpdate)},
 	})
 
 	_ = os.MkdirAll(uploadpath.Root(), 0o755)

@@ -85,7 +85,8 @@ const MENU_GROUPS = [
       { id: 17, name: '秒杀规则', path: '/admin/seckill/rule' },
       { id: 18, name: '秒杀场次', path: '/admin/seckill/sessions' },
       { id: 125, name: '任务中心', path: '/admin/tasks' },
-      { id: 127, name: '积分商城', path: '/admin/points-mall' },
+      { id: 127, name: '积分商品', path: '/admin/points-mall' },
+      { id: 129, name: '积分订单', path: '/admin/points-orders' },
     ],
   },
   {

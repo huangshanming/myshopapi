@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"mymall/services/user-service/internal/model"
-	"mymall/services/user-service/internal/svc"
-	"mymall/services/user-service/internal/uploadpath"
+	"mymall/services/merchant-service/internal/model"
+	"mymall/services/merchant-service/internal/svc"
+	"mymall/services/merchant-service/internal/uploadpath"
 )
 
 type PointsProductLogic struct {
@@ -58,14 +58,8 @@ func (l *PointsProductLogic) Create(req PointsProductSaveReq) (*model.PointsProd
 		return nil, errors.New("请填写商品名称")
 	}
 	p := &model.PointsProduct{
-		Name:         name,
-		CoverURL:     strings.TrimSpace(req.CoverURL),
-		Description:  strings.TrimSpace(req.Description),
-		Status:       model.PointsProductStatusOff,
-		PointsPrice:  0,
-		Stock:        0,
-		PerUserLimit: 0,
-		Sort:         0,
+		Name: name, CoverURL: strings.TrimSpace(req.CoverURL), Description: strings.TrimSpace(req.Description),
+		Status: model.PointsProductStatusOff,
 	}
 	if req.PointsPrice != nil {
 		if *req.PointsPrice < 0 {
@@ -109,9 +103,7 @@ func (l *PointsProductLogic) Update(id uint64, req PointsProductSaveReq) (*model
 		return nil, errors.New("请填写商品名称")
 	}
 	updates := map[string]interface{}{
-		"name":        name,
-		"cover_url":   strings.TrimSpace(req.CoverURL),
-		"description": strings.TrimSpace(req.Description),
+		"name": name, "cover_url": strings.TrimSpace(req.CoverURL), "description": strings.TrimSpace(req.Description),
 	}
 	if req.PointsPrice != nil {
 		if *req.PointsPrice < 0 {

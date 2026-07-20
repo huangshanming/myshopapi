@@ -33,3 +33,29 @@ export function uploadPointsProductImage(file) {
     headers: { 'Content-Type': 'multipart/form-data' },
   })
 }
+
+const orderBase = '/api/v1/admin/points-orders'
+
+export function listPointsOrders(params) {
+  return http.get(orderBase, { params })
+}
+
+export function getPointsOrder(id) {
+  return http.get(`${orderBase}/${id}`)
+}
+
+export function shipPointsOrder(id, data) {
+  return http.post(`${orderBase}/${id}/ship`, data)
+}
+
+export function completePointsOrder(id) {
+  return http.post(`${orderBase}/${id}/complete`)
+}
+
+export function cancelPointsOrder(id, data = {}) {
+  return http.post(`${orderBase}/${id}/cancel`, data)
+}
+
+export function remarkPointsOrder(id, data) {
+  return http.put(`${orderBase}/${id}/remark`, data)
+}

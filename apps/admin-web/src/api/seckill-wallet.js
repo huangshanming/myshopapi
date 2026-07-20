@@ -15,3 +15,5 @@ export const fetchMerchantWalletLogs = (params) => http.get('/api/v1/merchant/wa
 export const fetchMerchantSeckillSessions = () => http.get('/api/v1/merchant/seckill/sessions')
 export const applySeckill = (data) => http.post('/api/v1/merchant/seckill/entries', data)
 export const fetchMerchantSeckillEntries = (params) => http.get('/api/v1/merchant/seckill/entries', { params })
+export const setSeckillAutoRenew = (id, autoRenew) =>
+  http.put(`/api/v1/merchant/seckill/entries/${id}/auto-renew`, { auto_renew: autoRenew })

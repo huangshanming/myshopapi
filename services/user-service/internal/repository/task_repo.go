@@ -295,6 +295,74 @@ func (r *TaskRepository) addPointsTx(tx *gorm.DB, userID uint64, delta int, chan
 	return up, nil
 }
 
+// DeductPoints 扣减积分（幂等：同 ref_type+ref_id+change_type 已存在则直接成功）
+func (r *TaskRepository) DeductPoints(userID uint64, points int, changeType, remark, refType string, refID uint64) (*model.UserPoints, error) {
+	if userID == 0 || points <= 0 {
+		return nil, errors.New("参数无效")
+	}
+	if changeType == "" {
+		changeType = model.PointChangeMallExchange
+	}
+	var out *model.UserPoints
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		var n int64
+		if err := tx.Model(&model.UserPointLog{}).
+			Where("ref_type = ? AND ref_id = ? AND change_type = ?", refType, refID, changeType).
+			Count(&n).Error; err != nil {
+			return err
+		}
+		if n > 0 {
+			up, err := r.ensurePointsTx(tx, userID)
+			if err != nil {
+				return err
+			}
+			out = up
+			return nil
+		}
+		up, err := r.addPointsTx(tx, userID, -points, changeType, remark, refType, refID)
+		if err != nil {
+			return err
+		}
+		out = up
+		return nil
+	})
+	return out, err
+}
+
+// RefundPoints 退回积分（幂等）
+func (r *TaskRepository) RefundPoints(userID uint64, points int, changeType, remark, refType string, refID uint64) (*model.UserPoints, error) {
+	if userID == 0 || points <= 0 {
+		return nil, errors.New("参数无效")
+	}
+	if changeType == "" {
+		changeType = model.PointChangeMallRefund
+	}
+	var out *model.UserPoints
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		var n int64
+		if err := tx.Model(&model.UserPointLog{}).
+			Where("ref_type = ? AND ref_id = ? AND change_type = ?", refType, refID, changeType).
+			Count(&n).Error; err != nil {
+			return err
+		}
+		if n > 0 {
+			up, err := r.ensurePointsTx(tx, userID)
+			if err != nil {
+				return err
+			}
+			out = up
+			return nil
+		}
+		up, err := r.addPointsTx(tx, userID, points, changeType, remark, refType, refID)
+		if err != nil {
+			return err
+		}
+		out = up
+		return nil
+	})
+	return out, err
+}
+
 func (r *TaskRepository) GetPoints(userID uint64) (*model.UserPoints, error) {
 	var up model.UserPoints
 	err := r.db.Where("user_id = ?", userID).First(&up).Error

@@ -112,6 +112,12 @@ type SeckillApplyReq struct {
 	OriginPrice  float64 `json:"origin_price"`
 	SeckillPrice float64 `json:"seckill_price"`
 	SeckillStock int     `json:"seckill_stock"`
+	AutoRenew    *int8   `json:"auto_renew"` // 1=到期自动续费
+}
+
+// SeckillAutoRenewReq 开关自动续费
+type SeckillAutoRenewReq struct {
+	AutoRenew int8 `json:"auto_renew"`
 }
 
 // SeckillConsumeReq order-service 扣秒杀库存

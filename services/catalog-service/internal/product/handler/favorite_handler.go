@@ -15,15 +15,25 @@ import (
 	"mymall/services/catalog-service/internal/svc"
 )
 
-type FavoriteHandler struct {
+type favoriteDeps struct {
 	logic *logic.FavoriteLogic
 }
 
-func NewFavoriteHandler(svcCtx *svc.ServiceContext) *FavoriteHandler {
-	return &FavoriteHandler{logic: logic.NewFavoriteLogic(context.Background(), svcCtx)}
+func newFavoriteDeps(svcCtx *svc.ServiceContext) favoriteDeps {
+	return favoriteDeps{logic: logic.NewFavoriteLogic(context.Background(), svcCtx)}
 }
 
-func (h *FavoriteHandler) Add(w http.ResponseWriter, r *http.Request) {
+type FavoriteUserHandler struct{ favoriteDeps }
+type FavoriteAdminHandler struct{ favoriteDeps }
+
+func NewFavoriteUserHandler(svcCtx *svc.ServiceContext) *FavoriteUserHandler {
+	return &FavoriteUserHandler{favoriteDeps: newFavoriteDeps(svcCtx)}
+}
+func NewFavoriteAdminHandler(svcCtx *svc.ServiceContext) *FavoriteAdminHandler {
+	return &FavoriteAdminHandler{favoriteDeps: newFavoriteDeps(svcCtx)}
+}
+
+func (h *FavoriteUserHandler) Add(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok || userID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
@@ -43,7 +53,7 @@ func (h *FavoriteHandler) Add(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
-func (h *FavoriteHandler) Remove(w http.ResponseWriter, r *http.Request) {
+func (h *FavoriteUserHandler) Remove(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok || userID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
@@ -61,7 +71,7 @@ func (h *FavoriteHandler) Remove(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
-func (h *FavoriteHandler) RemoveBatch(w http.ResponseWriter, r *http.Request) {
+func (h *FavoriteUserHandler) RemoveBatch(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok || userID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
@@ -81,7 +91,7 @@ func (h *FavoriteHandler) RemoveBatch(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
-func (h *FavoriteHandler) List(w http.ResponseWriter, r *http.Request) {
+func (h *FavoriteUserHandler) List(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok || userID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
@@ -97,7 +107,7 @@ func (h *FavoriteHandler) List(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"list": list, "total": total})
 }
 
-func (h *FavoriteHandler) Status(w http.ResponseWriter, r *http.Request) {
+func (h *FavoriteUserHandler) Status(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok || userID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
@@ -116,7 +126,7 @@ func (h *FavoriteHandler) Status(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, map[string]bool{"favorited": okFav})
 }
 
-func (h *FavoriteHandler) Count(w http.ResponseWriter, r *http.Request) {
+func (h *FavoriteUserHandler) Count(w http.ResponseWriter, r *http.Request) {
 	productID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil || productID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "商品ID无效"))
@@ -130,7 +140,7 @@ func (h *FavoriteHandler) Count(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, map[string]int64{"count": n})
 }
 
-func (h *FavoriteHandler) AdminUserList(w http.ResponseWriter, r *http.Request) {
+func (h *FavoriteAdminHandler) AdminUserList(w http.ResponseWriter, r *http.Request) {
 	userID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil || userID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "用户ID无效"))

@@ -191,6 +191,35 @@ func (l *TaskLogic) GetPoints(userID uint64) (*model.UserPoints, error) {
 	return l.svcCtx.Tasks.GetPoints(userID)
 }
 
+type PointsLedgerReq struct {
+	UserID     uint64 `json:"user_id"`
+	Points     int    `json:"points"`
+	ChangeType string `json:"change_type"`
+	Remark     string `json:"remark"`
+	RefType    string `json:"ref_type"`
+	RefID      uint64 `json:"ref_id"`
+}
+
+func (l *TaskLogic) DeductPoints(req PointsLedgerReq) (*model.UserPoints, error) {
+	if req.UserID == 0 || req.Points <= 0 {
+		return nil, errors.New("参数无效")
+	}
+	if strings.TrimSpace(req.RefType) == "" || req.RefID == 0 {
+		return nil, errors.New("缺少业务单号")
+	}
+	return l.svcCtx.Tasks.DeductPoints(req.UserID, req.Points, req.ChangeType, req.Remark, req.RefType, req.RefID)
+}
+
+func (l *TaskLogic) RefundPoints(req PointsLedgerReq) (*model.UserPoints, error) {
+	if req.UserID == 0 || req.Points <= 0 {
+		return nil, errors.New("参数无效")
+	}
+	if strings.TrimSpace(req.RefType) == "" || req.RefID == 0 {
+		return nil, errors.New("缺少业务单号")
+	}
+	return l.svcCtx.Tasks.RefundPoints(req.UserID, req.Points, req.ChangeType, req.Remark, req.RefType, req.RefID)
+}
+
 func (l *TaskLogic) ListPointLogs(userID uint64, page, pageSize int) ([]model.UserPointLog, int64, error) {
 	if page < 1 {
 		page = 1

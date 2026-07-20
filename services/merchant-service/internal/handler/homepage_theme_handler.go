@@ -14,7 +14,7 @@ import (
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func (h *MerchantHandler) PublicThemeTiles(w http.ResponseWriter, r *http.Request) {
+func (h *HomepageThemePublicHandler) PublicThemeTiles(w http.ResponseWriter, r *http.Request) {
 	list, err := h.logic.ListThemeTiles()
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
@@ -23,7 +23,7 @@ func (h *MerchantHandler) PublicThemeTiles(w http.ResponseWriter, r *http.Reques
 	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"list": list})
 }
 
-func (h *MerchantHandler) AdminListThemeSlots(w http.ResponseWriter, r *http.Request) {
+func (h *HomepageThemeAdminHandler) AdminListThemeSlots(w http.ResponseWriter, r *http.Request) {
 	list, err := h.logic.AdminListThemeSlots()
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
@@ -32,7 +32,7 @@ func (h *MerchantHandler) AdminListThemeSlots(w http.ResponseWriter, r *http.Req
 	httpx.OkJsonCtx(r.Context(), w, list)
 }
 
-func (h *MerchantHandler) AdminUpdateThemeSlot(w http.ResponseWriter, r *http.Request) {
+func (h *HomepageThemeAdminHandler) AdminUpdateThemeSlot(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil || id == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "ID无效"))
@@ -64,7 +64,7 @@ func (h *MerchantHandler) AdminUpdateThemeSlot(w http.ResponseWriter, r *http.Re
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
-func (h *MerchantHandler) AdminListThemePackages(w http.ResponseWriter, r *http.Request) {
+func (h *HomepageThemeAdminHandler) AdminListThemePackages(w http.ResponseWriter, r *http.Request) {
 	slotID, _ := strconv.ParseUint(r.URL.Query().Get("theme_slot_id"), 10, 64)
 	list, err := h.logic.ListThemePackages(slotID, false)
 	if err != nil {
@@ -74,7 +74,7 @@ func (h *MerchantHandler) AdminListThemePackages(w http.ResponseWriter, r *http.
 	httpx.OkJsonCtx(r.Context(), w, list)
 }
 
-func (h *MerchantHandler) AdminCreateThemePackage(w http.ResponseWriter, r *http.Request) {
+func (h *HomepageThemeAdminHandler) AdminCreateThemePackage(w http.ResponseWriter, r *http.Request) {
 	var p model.HomepageThemePackage
 	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
@@ -87,7 +87,7 @@ func (h *MerchantHandler) AdminCreateThemePackage(w http.ResponseWriter, r *http
 	httpx.OkJsonCtx(r.Context(), w, p)
 }
 
-func (h *MerchantHandler) AdminUpdateThemePackage(w http.ResponseWriter, r *http.Request) {
+func (h *HomepageThemeAdminHandler) AdminUpdateThemePackage(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil || id == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "ID无效"))
@@ -109,7 +109,7 @@ func (h *MerchantHandler) AdminUpdateThemePackage(w http.ResponseWriter, r *http
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
-func (h *MerchantHandler) AdminListThemeOrders(w http.ResponseWriter, r *http.Request) {
+func (h *HomepageThemeAdminHandler) AdminListThemeOrders(w http.ResponseWriter, r *http.Request) {
 	shopID, _ := strconv.ParseUint(r.URL.Query().Get("shop_id"), 10, 64)
 	slotID, _ := strconv.ParseUint(r.URL.Query().Get("theme_slot_id"), 10, 64)
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
@@ -122,7 +122,7 @@ func (h *MerchantHandler) AdminListThemeOrders(w http.ResponseWriter, r *http.Re
 	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"list": list, "total": total})
 }
 
-func (h *MerchantHandler) AdminGrantTheme(w http.ResponseWriter, r *http.Request) {
+func (h *HomepageThemeAdminHandler) AdminGrantTheme(w http.ResponseWriter, r *http.Request) {
 	adminID, _ := middleware.GetUserID(r.Context())
 	var req logic.ThemeGrantReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -137,7 +137,7 @@ func (h *MerchantHandler) AdminGrantTheme(w http.ResponseWriter, r *http.Request
 	httpx.OkJsonCtx(r.Context(), w, o)
 }
 
-func (h *MerchantHandler) MerchantListThemeSlots(w http.ResponseWriter, r *http.Request) {
+func (h *HomepageThemeMerchantHandler) MerchantListThemeSlots(w http.ResponseWriter, r *http.Request) {
 	list, err := h.logic.AdminListThemeSlots()
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
@@ -152,7 +152,7 @@ func (h *MerchantHandler) MerchantListThemeSlots(w http.ResponseWriter, r *http.
 	httpx.OkJsonCtx(r.Context(), w, on)
 }
 
-func (h *MerchantHandler) MerchantListThemePackages(w http.ResponseWriter, r *http.Request) {
+func (h *HomepageThemeMerchantHandler) MerchantListThemePackages(w http.ResponseWriter, r *http.Request) {
 	slotID, _ := strconv.ParseUint(r.URL.Query().Get("theme_slot_id"), 10, 64)
 	list, err := h.logic.ListThemePackages(slotID, true)
 	if err != nil {
@@ -162,7 +162,7 @@ func (h *MerchantHandler) MerchantListThemePackages(w http.ResponseWriter, r *ht
 	httpx.OkJsonCtx(r.Context(), w, list)
 }
 
-func (h *MerchantHandler) MerchantBuyTheme(w http.ResponseWriter, r *http.Request) {
+func (h *HomepageThemeMerchantHandler) MerchantBuyTheme(w http.ResponseWriter, r *http.Request) {
 	shopID := middleware.GetShopID(r.Context())
 	userID, _ := middleware.GetUserID(r.Context())
 	if shopID == 0 {
@@ -182,7 +182,7 @@ func (h *MerchantHandler) MerchantBuyTheme(w http.ResponseWriter, r *http.Reques
 	httpx.OkJsonCtx(r.Context(), w, o)
 }
 
-func (h *MerchantHandler) MerchantListThemeOrders(w http.ResponseWriter, r *http.Request) {
+func (h *HomepageThemeMerchantHandler) MerchantListThemeOrders(w http.ResponseWriter, r *http.Request) {
 	shopID := middleware.GetShopID(r.Context())
 	if shopID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺"))

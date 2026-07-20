@@ -112,11 +112,43 @@ func (l *MerchantLogic) RotateSeckillSessions() {
 		return
 	}
 	end := time.Time(s.EndAt)
-	if !end.IsZero() && !time.Now().Before(end) {
-		_ = l.svcCtx.Repo.EndSession(s.ID)
-		now := time.Now()
-		_, _ = l.svcCtx.Repo.CreateSession(rule.ID, now, now.Add(time.Duration(rule.DurationHours)*time.Hour))
+	if end.IsZero() || time.Now().Before(end) {
+		return
 	}
+	oldID := s.ID
+	_ = l.svcCtx.Repo.EndSession(oldID)
+	now := time.Now()
+	next, err := l.svcCtx.Repo.CreateSession(rule.ID, now, now.Add(time.Duration(rule.DurationHours)*time.Hour))
+	if err != nil || next == nil {
+		return
+	}
+	// 到期优先：对本场开启自动续费的报名，按报名先后尝试续到下一场（余额不足则跳过）
+	entries, err := l.svcCtx.Repo.ListAutoRenewEntries(oldID)
+	if err != nil {
+		return
+	}
+	for _, e := range entries {
+		_ = l.svcCtx.Repo.RenewSeckillEntry(&e, next.ID, rule.ApplyFee, rule.MaxEntriesPerShop)
+	}
+}
+
+func (l *MerchantLogic) SetSeckillAutoRenew(shopID, entryID uint64, autoRenew int8) (*model.SeckillEntry, error) {
+	if shopID == 0 || entryID == 0 {
+		return nil, errors.New("参数无效")
+	}
+	e, err := l.svcCtx.Repo.FindShopEntry(shopID, entryID)
+	if err != nil {
+		return nil, errors.New("报名记录不存在")
+	}
+	// 仅进行中场次的报名可改开关；已结束场次改开关无意义，但仍允许关掉
+	if err := l.svcCtx.Repo.SetSeckillAutoRenew(shopID, entryID, autoRenew); err != nil {
+		return nil, err
+	}
+	e.AutoRenew = 0
+	if autoRenew != 0 {
+		e.AutoRenew = 1
+	}
+	return e, nil
 }
 
 func (l *MerchantLogic) ListSeckillSessions(page, pageSize int) ([]model.SeckillSession, int64, error) {
@@ -197,6 +229,9 @@ func (l *MerchantLogic) ApplySeckill(shopID, userID uint64, req types.SeckillApp
 		OriginPrice:  req.OriginPrice,
 		SeckillPrice: req.SeckillPrice,
 		SeckillStock: req.SeckillStock,
+	}
+	if req.AutoRenew != nil && *req.AutoRenew != 0 {
+		entry.AutoRenew = 1
 	}
 	op := userID
 	if err := l.svcCtx.Repo.ApplySeckillEntry(entry, rule.ApplyFee, &op); err != nil {

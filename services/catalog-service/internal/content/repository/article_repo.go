@@ -407,6 +407,7 @@ func (r *ArticleRepository) CreateComment(c *model.CommunityArticleComment) erro
 type CommentUserBrief struct {
 	ID       uint64 `json:"id"`
 	Nickname string `json:"nickname"`
+	Avatar   string `json:"avatar"`
 	Mobile   string `json:"mobile"`
 }
 
@@ -416,9 +417,28 @@ func (r *ArticleRepository) MapUserBriefs(ids []uint64) map[uint64]CommentUserBr
 		return out
 	}
 	var rows []CommentUserBrief
-	_ = r.db.Table("users").Select("id, nickname, mobile").Where("id IN ?", ids).Scan(&rows).Error
+	_ = r.db.Table("users").Select("id, nickname, COALESCE(avatar,'') AS avatar, mobile").Where("id IN ?", ids).Scan(&rows).Error
 	for _, u := range rows {
 		out[u.ID] = u
+	}
+	return out
+}
+
+type ShopBrief struct {
+	ID   uint64 `json:"id"`
+	Name string `json:"name"`
+	Logo string `json:"logo"`
+}
+
+func (r *ArticleRepository) MapShopBriefs(ids []uint64) map[uint64]ShopBrief {
+	out := map[uint64]ShopBrief{}
+	if len(ids) == 0 {
+		return out
+	}
+	var rows []ShopBrief
+	_ = r.db.Table("shops").Select("id, name, COALESCE(logo,'') AS logo").Where("id IN ?", ids).Scan(&rows).Error
+	for _, s := range rows {
+		out[s.ID] = s
 	}
 	return out
 }

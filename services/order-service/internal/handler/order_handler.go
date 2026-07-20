@@ -13,22 +13,38 @@ import (
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
 
-	"github.com/zeromicro/go-zero/rest/httpx"
-	"mymall/pkg/xerr")
+	"mymall/pkg/xerr"
 
-type OrderHandler struct {
+	"github.com/zeromicro/go-zero/rest/httpx"
+)
+
+type orderDeps struct {
 	svcCtx *svc.ServiceContext
 	logic  *logic.OrderLogic
 }
 
-func NewOrderHandler(svcCtx *svc.ServiceContext) *OrderHandler {
-	return &OrderHandler{
+func newOrderDeps(svcCtx *svc.ServiceContext) orderDeps {
+	return orderDeps{
 		svcCtx: svcCtx,
 		logic:  logic.NewOrderLogic(context.Background(), svcCtx),
 	}
 }
 
-func (h *OrderHandler) Create(w http.ResponseWriter, r *http.Request) {
+type OrderUserHandler struct{ orderDeps }
+type OrderMerchantHandler struct{ orderDeps }
+type OrderAdminHandler struct{ orderDeps }
+
+func NewOrderUserHandler(svcCtx *svc.ServiceContext) *OrderUserHandler {
+	return &OrderUserHandler{orderDeps: newOrderDeps(svcCtx)}
+}
+func NewOrderMerchantHandler(svcCtx *svc.ServiceContext) *OrderMerchantHandler {
+	return &OrderMerchantHandler{orderDeps: newOrderDeps(svcCtx)}
+}
+func NewOrderAdminHandler(svcCtx *svc.ServiceContext) *OrderAdminHandler {
+	return &OrderAdminHandler{orderDeps: newOrderDeps(svcCtx)}
+}
+
+func (h *OrderUserHandler) Create(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
@@ -47,7 +63,7 @@ func (h *OrderHandler) Create(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, order)
 }
 
-func (h *OrderHandler) CouponPreview(w http.ResponseWriter, r *http.Request) {
+func (h *OrderUserHandler) CouponPreview(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
@@ -66,7 +82,7 @@ func (h *OrderHandler) CouponPreview(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, resp)
 }
 
-func (h *OrderHandler) List(w http.ResponseWriter, r *http.Request) {
+func (h *OrderUserHandler) List(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
@@ -82,7 +98,7 @@ func (h *OrderHandler) List(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, types.PageListResp{Total: total, List: orders})
 }
 
-func (h *OrderHandler) StatusCounts(w http.ResponseWriter, r *http.Request) {
+func (h *OrderUserHandler) StatusCounts(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
@@ -96,7 +112,7 @@ func (h *OrderHandler) StatusCounts(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, counts)
 }
 
-func (h *OrderHandler) UserAfterSales(w http.ResponseWriter, r *http.Request) {
+func (h *OrderUserHandler) UserAfterSales(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
@@ -111,7 +127,7 @@ func (h *OrderHandler) UserAfterSales(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, types.PageListResp{Total: total, List: list})
 }
 
-func (h *OrderHandler) Detail(w http.ResponseWriter, r *http.Request) {
+func (h *OrderUserHandler) Detail(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
@@ -130,7 +146,7 @@ func (h *OrderHandler) Detail(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, order)
 }
 
-func (h *OrderHandler) Cancel(w http.ResponseWriter, r *http.Request) {
+func (h *OrderUserHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
@@ -148,7 +164,7 @@ func (h *OrderHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
-func (h *OrderHandler) ConfirmReceive(w http.ResponseWriter, r *http.Request) {
+func (h *OrderUserHandler) ConfirmReceive(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
@@ -166,7 +182,7 @@ func (h *OrderHandler) ConfirmReceive(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
-func (h *OrderHandler) CreateAfterSale(w http.ResponseWriter, r *http.Request) {
+func (h *OrderUserHandler) CreateAfterSale(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
@@ -190,7 +206,7 @@ func (h *OrderHandler) CreateAfterSale(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, as)
 }
 
-func (h *OrderHandler) MerchantList(w http.ResponseWriter, r *http.Request) {
+func (h *OrderMerchantHandler) MerchantList(w http.ResponseWriter, r *http.Request) {
 	shopID := middleware.GetShopID(r.Context())
 	if shopID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少 shop_id"))
@@ -205,7 +221,7 @@ func (h *OrderHandler) MerchantList(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, types.PageListResp{Total: total, List: orders})
 }
 
-func (h *OrderHandler) MerchantDetail(w http.ResponseWriter, r *http.Request) {
+func (h *OrderMerchantHandler) MerchantDetail(w http.ResponseWriter, r *http.Request) {
 	shopID := middleware.GetShopID(r.Context())
 	if shopID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少 shop_id"))
@@ -225,22 +241,22 @@ func (h *OrderHandler) MerchantDetail(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"order": order, "after_sales": as})
 }
 
-func (h *OrderHandler) MerchantShip(w http.ResponseWriter, r *http.Request) {
+func (h *OrderMerchantHandler) MerchantShip(w http.ResponseWriter, r *http.Request) {
 	shopID := middleware.GetShopID(r.Context())
 	h.ship(w, r, shopID)
 }
 
-func (h *OrderHandler) MerchantComplete(w http.ResponseWriter, r *http.Request) {
+func (h *OrderMerchantHandler) MerchantComplete(w http.ResponseWriter, r *http.Request) {
 	shopID := middleware.GetShopID(r.Context())
 	h.complete(w, r, shopID)
 }
 
-func (h *OrderHandler) MerchantRemark(w http.ResponseWriter, r *http.Request) {
+func (h *OrderMerchantHandler) MerchantRemark(w http.ResponseWriter, r *http.Request) {
 	shopID := middleware.GetShopID(r.Context())
 	h.remark(w, r, shopID)
 }
 
-func (h *OrderHandler) MerchantAfterSales(w http.ResponseWriter, r *http.Request) {
+func (h *OrderMerchantHandler) MerchantAfterSales(w http.ResponseWriter, r *http.Request) {
 	shopID := middleware.GetShopID(r.Context())
 	if shopID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少 shop_id"))
@@ -258,13 +274,13 @@ func (h *OrderHandler) MerchantAfterSales(w http.ResponseWriter, r *http.Request
 	httpx.OkJsonCtx(r.Context(), w, types.PageListResp{Total: total, List: list})
 }
 
-func (h *OrderHandler) MerchantHandleAfterSale(w http.ResponseWriter, r *http.Request) {
+func (h *OrderMerchantHandler) MerchantHandleAfterSale(w http.ResponseWriter, r *http.Request) {
 	shopID := middleware.GetShopID(r.Context())
 	uid, _ := middleware.GetUserID(r.Context())
 	h.handleAfterSale(w, r, shopID, uid)
 }
 
-func (h *OrderHandler) AdminList(w http.ResponseWriter, r *http.Request) {
+func (h *OrderAdminHandler) AdminList(w http.ResponseWriter, r *http.Request) {
 	p, ps := middleware.ParsePage(r)
 	shopID, _ := strconv.ParseUint(r.URL.Query().Get("shop_id"), 10, 64)
 	orders, total, err := h.logic.ListAll(shopID, p, ps, r.URL.Query().Get("status"), r.URL.Query().Get("order_no"))
@@ -275,7 +291,7 @@ func (h *OrderHandler) AdminList(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, types.PageListResp{Total: total, List: orders})
 }
 
-func (h *OrderHandler) AdminDetail(w http.ResponseWriter, r *http.Request) {
+func (h *OrderAdminHandler) AdminDetail(w http.ResponseWriter, r *http.Request) {
 	orderID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "订单ID无效"))
@@ -290,19 +306,19 @@ func (h *OrderHandler) AdminDetail(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"order": order, "after_sales": as})
 }
 
-func (h *OrderHandler) AdminShip(w http.ResponseWriter, r *http.Request) {
+func (h *OrderAdminHandler) AdminShip(w http.ResponseWriter, r *http.Request) {
 	h.ship(w, r, 0)
 }
 
-func (h *OrderHandler) AdminComplete(w http.ResponseWriter, r *http.Request) {
+func (h *OrderAdminHandler) AdminComplete(w http.ResponseWriter, r *http.Request) {
 	h.complete(w, r, 0)
 }
 
-func (h *OrderHandler) AdminRemark(w http.ResponseWriter, r *http.Request) {
+func (h *OrderAdminHandler) AdminRemark(w http.ResponseWriter, r *http.Request) {
 	h.remark(w, r, 0)
 }
 
-func (h *OrderHandler) AdminAfterSales(w http.ResponseWriter, r *http.Request) {
+func (h *OrderAdminHandler) AdminAfterSales(w http.ResponseWriter, r *http.Request) {
 	p, ps := middleware.ParsePage(r)
 	shopID, _ := strconv.ParseUint(r.URL.Query().Get("shop_id"), 10, 64)
 	list, total, err := h.logic.ListAfterSales(repository.AfterSaleListFilter{
@@ -316,12 +332,12 @@ func (h *OrderHandler) AdminAfterSales(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, types.PageListResp{Total: total, List: list})
 }
 
-func (h *OrderHandler) AdminHandleAfterSale(w http.ResponseWriter, r *http.Request) {
+func (h *OrderAdminHandler) AdminHandleAfterSale(w http.ResponseWriter, r *http.Request) {
 	uid, _ := middleware.GetUserID(r.Context())
 	h.handleAfterSale(w, r, 0, uid)
 }
 
-func (h *OrderHandler) ship(w http.ResponseWriter, r *http.Request, shopID uint64) {
+func (h *orderDeps) ship(w http.ResponseWriter, r *http.Request, shopID uint64) {
 	orderID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "订单ID无效"))
@@ -339,7 +355,7 @@ func (h *OrderHandler) ship(w http.ResponseWriter, r *http.Request, shopID uint6
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
-func (h *OrderHandler) complete(w http.ResponseWriter, r *http.Request, shopID uint64) {
+func (h *orderDeps) complete(w http.ResponseWriter, r *http.Request, shopID uint64) {
 	orderID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "订单ID无效"))
@@ -352,7 +368,7 @@ func (h *OrderHandler) complete(w http.ResponseWriter, r *http.Request, shopID u
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
-func (h *OrderHandler) remark(w http.ResponseWriter, r *http.Request, shopID uint64) {
+func (h *orderDeps) remark(w http.ResponseWriter, r *http.Request, shopID uint64) {
 	orderID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "订单ID无效"))
@@ -370,7 +386,7 @@ func (h *OrderHandler) remark(w http.ResponseWriter, r *http.Request, shopID uin
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
-func (h *OrderHandler) handleAfterSale(w http.ResponseWriter, r *http.Request, shopID, handledBy uint64) {
+func (h *orderDeps) handleAfterSale(w http.ResponseWriter, r *http.Request, shopID, handledBy uint64) {
 	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "ID无效"))

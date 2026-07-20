@@ -12,22 +12,38 @@ import (
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
 
-	"github.com/zeromicro/go-zero/rest/httpx"
-	"mymall/pkg/xerr")
+	"mymall/pkg/xerr"
 
-type AddressHandler struct {
+	"github.com/zeromicro/go-zero/rest/httpx"
+)
+
+type addressDeps struct {
 	svcCtx *svc.ServiceContext
 	logic  *logic.AddressLogic
 }
 
-func NewAddressHandler(svcCtx *svc.ServiceContext) *AddressHandler {
-	return &AddressHandler{
+func newAddressDeps(svcCtx *svc.ServiceContext) addressDeps {
+	return addressDeps{
 		svcCtx: svcCtx,
 		logic:  logic.NewAddressLogic(context.Background(), svcCtx),
 	}
 }
 
-func (h *AddressHandler) List(w http.ResponseWriter, r *http.Request) {
+type AddressUserHandler struct{ addressDeps }
+type AddressAdminHandler struct{ addressDeps }
+type AddressInternalHandler struct{ addressDeps }
+
+func NewAddressUserHandler(svcCtx *svc.ServiceContext) *AddressUserHandler {
+	return &AddressUserHandler{addressDeps: newAddressDeps(svcCtx)}
+}
+func NewAddressAdminHandler(svcCtx *svc.ServiceContext) *AddressAdminHandler {
+	return &AddressAdminHandler{addressDeps: newAddressDeps(svcCtx)}
+}
+func NewAddressInternalHandler(svcCtx *svc.ServiceContext) *AddressInternalHandler {
+	return &AddressInternalHandler{addressDeps: newAddressDeps(svcCtx)}
+}
+
+func (h *AddressUserHandler) List(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok || userID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
@@ -41,7 +57,7 @@ func (h *AddressHandler) List(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, list)
 }
 
-func (h *AddressHandler) Create(w http.ResponseWriter, r *http.Request) {
+func (h *AddressUserHandler) Create(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok || userID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
@@ -60,7 +76,7 @@ func (h *AddressHandler) Create(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, a)
 }
 
-func (h *AddressHandler) Update(w http.ResponseWriter, r *http.Request) {
+func (h *AddressUserHandler) Update(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok || userID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
@@ -83,7 +99,7 @@ func (h *AddressHandler) Update(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
-func (h *AddressHandler) Delete(w http.ResponseWriter, r *http.Request) {
+func (h *AddressUserHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok || userID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
@@ -101,7 +117,7 @@ func (h *AddressHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
-func (h *AddressHandler) SetDefault(w http.ResponseWriter, r *http.Request) {
+func (h *AddressUserHandler) SetDefault(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok || userID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
@@ -119,7 +135,7 @@ func (h *AddressHandler) SetDefault(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
-func (h *AddressHandler) AdminList(w http.ResponseWriter, r *http.Request) {
+func (h *AddressAdminHandler) AdminList(w http.ResponseWriter, r *http.Request) {
 	userID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "用户ID无效"))
@@ -133,7 +149,7 @@ func (h *AddressHandler) AdminList(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, list)
 }
 
-func (h *AddressHandler) InternalGet(w http.ResponseWriter, r *http.Request) {
+func (h *AddressInternalHandler) InternalGet(w http.ResponseWriter, r *http.Request) {
 	userID, _ := strconv.ParseUint(r.URL.Query().Get("user_id"), 10, 64)
 	id, _ := strconv.ParseUint(r.URL.Query().Get("id"), 10, 64)
 	if userID == 0 || id == 0 {

@@ -14,17 +14,18 @@ import (
 	"mymall/services/order-service/internal/types"
 
 	"github.com/zeromicro/go-zero/rest/httpx"
-	"mymall/pkg/xerr")
+	"mymall/pkg/xerr"
+)
 
-type LogisticsHandler struct {
+type LogisticsAdminHandler struct {
 	logic *logic.LogisticsLogic
 }
 
-func NewLogisticsHandler(svcCtx *svc.ServiceContext) *LogisticsHandler {
-	return &LogisticsHandler{logic: logic.NewLogisticsLogic(context.Background(), svcCtx)}
+func NewLogisticsAdminHandler(svcCtx *svc.ServiceContext) *LogisticsAdminHandler {
+	return &LogisticsAdminHandler{logic: logic.NewLogisticsLogic(context.Background(), svcCtx)}
 }
 
-func (h *LogisticsHandler) AdminList(w http.ResponseWriter, r *http.Request) {
+func (h *LogisticsAdminHandler) AdminList(w http.ResponseWriter, r *http.Request) {
 	p, ps := middleware.ParsePage(r)
 	f := repository.LogisticsListFilter{
 		Name: r.URL.Query().Get("name"), Code: r.URL.Query().Get("code"),
@@ -45,7 +46,7 @@ func (h *LogisticsHandler) AdminList(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, types.PageListResp{Total: total, List: list})
 }
 
-func (h *LogisticsHandler) Options(w http.ResponseWriter, r *http.Request) {
+func (h *LogisticsAdminHandler) Options(w http.ResponseWriter, r *http.Request) {
 	list, err := h.logic.Options(r.URL.Query().Get("keyword"))
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
@@ -54,7 +55,7 @@ func (h *LogisticsHandler) Options(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, list)
 }
 
-func (h *LogisticsHandler) Create(w http.ResponseWriter, r *http.Request) {
+func (h *LogisticsAdminHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req types.LogisticsSaveReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
@@ -68,7 +69,7 @@ func (h *LogisticsHandler) Create(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, c)
 }
 
-func (h *LogisticsHandler) Update(w http.ResponseWriter, r *http.Request) {
+func (h *LogisticsAdminHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "ID无效"))
@@ -86,7 +87,7 @@ func (h *LogisticsHandler) Update(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
-func (h *LogisticsHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
+func (h *LogisticsAdminHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "ID无效"))
@@ -104,7 +105,7 @@ func (h *LogisticsHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) 
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
-func (h *LogisticsHandler) Delete(w http.ResponseWriter, r *http.Request) {
+func (h *LogisticsAdminHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "ID无效"))

@@ -12,7 +12,7 @@ import (
 	"github.com/zeromicro/go-zero/rest/httpx"
 	"mymall/pkg/xerr")
 
-func (h *MerchantHandler) AdminGetWallet(w http.ResponseWriter, r *http.Request) {
+func (h *WalletAdminHandler) AdminGetWallet(w http.ResponseWriter, r *http.Request) {
 	shopID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "店铺ID无效"))
@@ -26,7 +26,7 @@ func (h *MerchantHandler) AdminGetWallet(w http.ResponseWriter, r *http.Request)
 	httpx.OkJsonCtx(r.Context(), w, wallet)
 }
 
-func (h *MerchantHandler) AdminAdjustWallet(w http.ResponseWriter, r *http.Request) {
+func (h *WalletAdminHandler) AdminAdjustWallet(w http.ResponseWriter, r *http.Request) {
 	shopID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "店铺ID无效"))
@@ -46,7 +46,7 @@ func (h *MerchantHandler) AdminAdjustWallet(w http.ResponseWriter, r *http.Reque
 	httpx.OkJsonCtx(r.Context(), w, wallet)
 }
 
-func (h *MerchantHandler) AdminWalletLogs(w http.ResponseWriter, r *http.Request) {
+func (h *WalletAdminHandler) AdminWalletLogs(w http.ResponseWriter, r *http.Request) {
 	shopID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "店铺ID无效"))
@@ -61,7 +61,7 @@ func (h *MerchantHandler) AdminWalletLogs(w http.ResponseWriter, r *http.Request
 	httpx.OkJsonCtx(r.Context(), w, types.PageListResp{Total: total, List: list})
 }
 
-func (h *MerchantHandler) MerchantGetWallet(w http.ResponseWriter, r *http.Request) {
+func (h *WalletMerchantHandler) MerchantGetWallet(w http.ResponseWriter, r *http.Request) {
 	shopID := middleware.GetShopID(r.Context())
 	wallet, err := h.logic.GetWallet(shopID)
 	if err != nil {
@@ -71,7 +71,7 @@ func (h *MerchantHandler) MerchantGetWallet(w http.ResponseWriter, r *http.Reque
 	httpx.OkJsonCtx(r.Context(), w, wallet)
 }
 
-func (h *MerchantHandler) MerchantWalletLogs(w http.ResponseWriter, r *http.Request) {
+func (h *WalletMerchantHandler) MerchantWalletLogs(w http.ResponseWriter, r *http.Request) {
 	shopID := middleware.GetShopID(r.Context())
 	p, ps := middleware.ParsePage(r)
 	list, total, err := h.logic.ListWalletLogs(shopID, p, ps)
@@ -82,7 +82,7 @@ func (h *MerchantHandler) MerchantWalletLogs(w http.ResponseWriter, r *http.Requ
 	httpx.OkJsonCtx(r.Context(), w, types.PageListResp{Total: total, List: list})
 }
 
-func (h *MerchantHandler) AdminGetSeckillRule(w http.ResponseWriter, r *http.Request) {
+func (h *SeckillAdminHandler) AdminGetSeckillRule(w http.ResponseWriter, r *http.Request) {
 	rule, err := h.logic.GetSeckillRule()
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
@@ -91,7 +91,7 @@ func (h *MerchantHandler) AdminGetSeckillRule(w http.ResponseWriter, r *http.Req
 	httpx.OkJsonCtx(r.Context(), w, rule)
 }
 
-func (h *MerchantHandler) AdminUpdateSeckillRule(w http.ResponseWriter, r *http.Request) {
+func (h *SeckillAdminHandler) AdminUpdateSeckillRule(w http.ResponseWriter, r *http.Request) {
 	var req types.SeckillRuleReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
@@ -105,7 +105,7 @@ func (h *MerchantHandler) AdminUpdateSeckillRule(w http.ResponseWriter, r *http.
 	httpx.OkJsonCtx(r.Context(), w, rule)
 }
 
-func (h *MerchantHandler) AdminListSeckillSessions(w http.ResponseWriter, r *http.Request) {
+func (h *SeckillAdminHandler) AdminListSeckillSessions(w http.ResponseWriter, r *http.Request) {
 	p, ps := middleware.ParsePage(r)
 	list, total, err := h.logic.ListSeckillSessions(p, ps)
 	if err != nil {
@@ -115,7 +115,7 @@ func (h *MerchantHandler) AdminListSeckillSessions(w http.ResponseWriter, r *htt
 	httpx.OkJsonCtx(r.Context(), w, types.PageListResp{Total: total, List: list})
 }
 
-func (h *MerchantHandler) AdminListSeckillEntries(w http.ResponseWriter, r *http.Request) {
+func (h *SeckillAdminHandler) AdminListSeckillEntries(w http.ResponseWriter, r *http.Request) {
 	p, ps := middleware.ParsePage(r)
 	sid, _ := strconv.ParseUint(r.URL.Query().Get("session_id"), 10, 64)
 	list, total, err := h.logic.ListAdminSeckillEntries(sid, p, ps)
@@ -126,7 +126,7 @@ func (h *MerchantHandler) AdminListSeckillEntries(w http.ResponseWriter, r *http
 	httpx.OkJsonCtx(r.Context(), w, types.PageListResp{Total: total, List: list})
 }
 
-func (h *MerchantHandler) MerchantSeckillSessions(w http.ResponseWriter, r *http.Request) {
+func (h *SeckillMerchantHandler) MerchantSeckillSessions(w http.ResponseWriter, r *http.Request) {
 	data, err := h.logic.MerchantSeckillSessions()
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
@@ -135,7 +135,7 @@ func (h *MerchantHandler) MerchantSeckillSessions(w http.ResponseWriter, r *http
 	httpx.OkJsonCtx(r.Context(), w, data)
 }
 
-func (h *MerchantHandler) MerchantApplySeckill(w http.ResponseWriter, r *http.Request) {
+func (h *SeckillMerchantHandler) MerchantApplySeckill(w http.ResponseWriter, r *http.Request) {
 	shopID := middleware.GetShopID(r.Context())
 	userID, _ := middleware.GetUserID(r.Context())
 	var req types.SeckillApplyReq
@@ -151,7 +151,27 @@ func (h *MerchantHandler) MerchantApplySeckill(w http.ResponseWriter, r *http.Re
 	httpx.OkJsonCtx(r.Context(), w, entry)
 }
 
-func (h *MerchantHandler) MerchantListSeckillEntries(w http.ResponseWriter, r *http.Request) {
+func (h *SeckillMerchantHandler) MerchantSetSeckillAutoRenew(w http.ResponseWriter, r *http.Request) {
+	shopID := middleware.GetShopID(r.Context())
+	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	if err != nil || id == 0 {
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "报名ID无效"))
+		return
+	}
+	var req types.SeckillAutoRenewReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
+		return
+	}
+	entry, err := h.logic.SetSeckillAutoRenew(shopID, id, req.AutoRenew)
+	if err != nil {
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
+		return
+	}
+	httpx.OkJsonCtx(r.Context(), w, entry)
+}
+
+func (h *SeckillMerchantHandler) MerchantListSeckillEntries(w http.ResponseWriter, r *http.Request) {
 	shopID := middleware.GetShopID(r.Context())
 	p, ps := middleware.ParsePage(r)
 	list, total, err := h.logic.ListShopSeckillEntries(shopID, p, ps)
@@ -162,7 +182,7 @@ func (h *MerchantHandler) MerchantListSeckillEntries(w http.ResponseWriter, r *h
 	httpx.OkJsonCtx(r.Context(), w, types.PageListResp{Total: total, List: list})
 }
 
-func (h *MerchantHandler) PublicSeckillCurrent(w http.ResponseWriter, r *http.Request) {
+func (h *SeckillPublicHandler) PublicSeckillCurrent(w http.ResponseWriter, r *http.Request) {
 	data, err := h.logic.PublicSeckillCurrent()
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
@@ -171,7 +191,7 @@ func (h *MerchantHandler) PublicSeckillCurrent(w http.ResponseWriter, r *http.Re
 	httpx.OkJsonCtx(r.Context(), w, data)
 }
 
-func (h *MerchantHandler) PublicSeckillList(w http.ResponseWriter, r *http.Request) {
+func (h *SeckillPublicHandler) PublicSeckillList(w http.ResponseWriter, r *http.Request) {
 	p, ps := middleware.ParsePage(r)
 	data, err := h.logic.PublicSeckillList(p, ps)
 	if err != nil {
@@ -181,7 +201,7 @@ func (h *MerchantHandler) PublicSeckillList(w http.ResponseWriter, r *http.Reque
 	httpx.OkJsonCtx(r.Context(), w, data)
 }
 
-func (h *MerchantHandler) PublicSeckillEntry(w http.ResponseWriter, r *http.Request) {
+func (h *SeckillPublicHandler) PublicSeckillEntry(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "ID无效"))
@@ -195,7 +215,7 @@ func (h *MerchantHandler) PublicSeckillEntry(w http.ResponseWriter, r *http.Requ
 	httpx.OkJsonCtx(r.Context(), w, data)
 }
 
-func (h *MerchantHandler) SeckillConsume(w http.ResponseWriter, r *http.Request) {
+func (h *SeckillInternalHandler) SeckillConsume(w http.ResponseWriter, r *http.Request) {
 	var req types.SeckillConsumeReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
@@ -209,7 +229,7 @@ func (h *MerchantHandler) SeckillConsume(w http.ResponseWriter, r *http.Request)
 	httpx.OkJsonCtx(r.Context(), w, data)
 }
 
-func (h *MerchantHandler) SeckillRestore(w http.ResponseWriter, r *http.Request) {
+func (h *SeckillInternalHandler) SeckillRestore(w http.ResponseWriter, r *http.Request) {
 	var req types.SeckillRestoreReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))

@@ -7,6 +7,17 @@
       mode="aspectFill"
     />
     <view class="panel">
+      <view class="author" :class="{ link: authorClickable }" @tap="goAuthor">
+        <image class="avatar" :src="authorAvatar" mode="aspectFill" />
+        <view class="author-meta">
+          <view class="author-row">
+            <text class="author-name">{{ author.name || '作者' }}</text>
+            <text v-if="author.label" class="author-tag">{{ author.label }}</text>
+          </view>
+          <text class="author-tip">{{ authorTip }}</text>
+        </view>
+        <text v-if="authorClickable" class="author-go">进店 ›</text>
+      </view>
       <view class="row">
         <text class="title">{{ article.title }}</text>
         <text v-if="paid" class="badge">推广</text>
@@ -149,6 +160,9 @@ import { isLoggedIn } from '../../stores/user'
 
 const loading = ref(true)
 const article = reactive({})
+const author = reactive({
+  type: '', id: 0, name: '', avatar: '', label: '', shop_id: 0,
+})
 const images = ref([])
 const liked = ref(false)
 const favorited = ref(false)
@@ -172,7 +186,34 @@ const inputFocus = ref(false)
 const emojis = ref([])
 const emojiMap = ref({})
 
+const defaultAvatar = 'https://picsum.photos/id/64/100/100'
+const authorAvatar = computed(() => author.avatar || defaultAvatar)
+const authorClickable = computed(() => author.type === 'shop' && !!author.shop_id)
+const authorTip = computed(() => {
+  if (author.type === 'shop') return '点击进入商家主页'
+  if (author.type === 'user') return '笔记作者'
+  if (author.type === 'platform') return '平台发布'
+  return ''
+})
+
 const composerVisible = computed(() => composerOpen.value || !!replyTarget.value || emojiOpen.value)
+
+function applyAuthor(raw) {
+  const a = raw || {}
+  Object.assign(author, {
+    type: a.author_type || '',
+    id: a.author_id || 0,
+    name: a.author_name || '',
+    avatar: a.author_avatar || '',
+    label: a.author_label || '',
+    shop_id: a.shop_id || 0,
+  })
+}
+
+function goAuthor() {
+  if (!authorClickable.value) return
+  uni.navigateTo({ url: `/pages/shop/detail?id=${author.shop_id}` })
+}
 
 function closeComposer() {
   composerOpen.value = false
@@ -270,6 +311,7 @@ async function load() {
     liked.value = !!data.liked
     favorited.value = !!data.favorited
     paid.value = !!data.paid
+    applyAuthor(data.author)
     if (article.title) uni.setNavigationBarTitle({ title: article.title })
     await loadEmojis()
     await loadComments(true)
@@ -383,6 +425,26 @@ onLoad((q) => {
   margin: 0 24rpx 24rpx; background: #fff; border-radius: 16rpx;
   padding: 28rpx; margin-top: -32rpx; position: relative; z-index: 1;
 }
+.author {
+  display: flex; align-items: center; gap: 16rpx;
+  margin-bottom: 24rpx; padding-bottom: 20rpx; border-bottom: 1rpx solid #f4f4f5;
+}
+.author.link:active { opacity: 0.85; }
+.avatar {
+  width: 72rpx; height: 72rpx; border-radius: 50%; background: #f4f4f5; flex-shrink: 0;
+}
+.author-meta { flex: 1; min-width: 0; }
+.author-row { display: flex; align-items: center; gap: 10rpx; }
+.author-name {
+  font-size: 28rpx; font-weight: 600; color: #18181b;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 360rpx;
+}
+.author-tag {
+  font-size: 18rpx; color: #c4894a; background: rgba(196,137,74,.12);
+  padding: 2rpx 10rpx; border-radius: 6rpx; flex-shrink: 0;
+}
+.author-tip { display: block; margin-top: 4rpx; font-size: 22rpx; color: #a1a1aa; }
+.author-go { font-size: 24rpx; color: #c4894a; flex-shrink: 0; }
 .comments { margin-top: 0; }
 .row { display: flex; gap: 12rpx; align-items: flex-start; }
 .title { flex: 1; font-size: 36rpx; font-weight: 700; color: #18181b; line-height: 1.4; }

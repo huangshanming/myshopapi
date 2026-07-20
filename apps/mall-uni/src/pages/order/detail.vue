@@ -1,5 +1,14 @@
 <template>
   <view class="page" v-if="order">
+    <view class="card shop-card" @tap="goShop">
+      <image class="shop-logo" :src="shop.logo || shopPlaceholder" mode="aspectFill" />
+      <view class="shop-meta">
+        <text class="shop-name">{{ shopDisplayName }}</text>
+        <text class="shop-sub">{{ shopLine }}</text>
+      </view>
+      <text class="shop-arrow">进店 ›</text>
+    </view>
+
     <view class="card">
       <view class="row">
         <text class="label">订单号</text>
@@ -49,9 +58,11 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { cancelOrder, confirmReceive, getOrder, ORDER_STATUS } from '../../api/index'
+import { cancelOrder, confirmReceive, getOrder, getShop, ORDER_STATUS } from '../../api/index'
 
+const shopPlaceholder = 'https://picsum.photos/id/20/100/100'
 const order = ref(null)
+const shop = ref({})
 const loading = ref(false)
 const busy = ref(false)
 let orderId = 0
@@ -64,6 +75,16 @@ const canConfirm = computed(() => order.value?.status === 'shipped')
 const canReview = computed(() => order.value?.status === 'completed')
 const canViewReview = computed(() => order.value?.status === 'reviewed')
 
+const shopDisplayName = computed(() =>
+  shop.value.name || order.value?.shop_name || (order.value?.shop_id ? `店铺 #${order.value.shop_id}` : '店铺'),
+)
+
+const shopLine = computed(() => {
+  const parts = [shop.value.province, shop.value.city, shop.value.district].filter(Boolean)
+  if (parts.length) return parts.join(' · ')
+  return shop.value.category ? `主营 ${shop.value.category}` : '官方店铺'
+})
+
 function statusText(s) {
   return ORDER_STATUS[s] || s
 }
@@ -73,17 +94,42 @@ onLoad((q) => {
   load()
 })
 
+async function loadShop(shopID) {
+  if (!shopID) {
+    shop.value = {}
+    return
+  }
+  try {
+    const res = await getShop(shopID)
+    shop.value = res || { name: order.value?.shop_name || `店铺 #${shopID}` }
+  } catch {
+    shop.value = { name: order.value?.shop_name || `店铺 #${shopID}` }
+  }
+}
+
 async function load() {
   if (!orderId) return
   loading.value = true
   try {
     const res = await getOrder(orderId)
     order.value = res || null
+    if (order.value?.shop_id) {
+      await loadShop(order.value.shop_id)
+    } else {
+      shop.value = { name: order.value?.shop_name || '店铺' }
+    }
   } catch {
     order.value = null
+    shop.value = {}
   } finally {
     loading.value = false
   }
+}
+
+function goShop() {
+  const id = order.value?.shop_id
+  if (!id) return
+  uni.navigateTo({ url: `/pages/shop/detail?id=${id}` })
 }
 
 async function onCancel() {
@@ -143,6 +189,17 @@ function goViewReview() {
   background: #fff; border-radius: 24rpx; padding: 28rpx; margin-bottom: 20rpx;
   box-shadow: 0 4rpx 24rpx rgba(200,168,118,.08);
 }
+.shop-card {
+  display: flex; align-items: center; gap: 16rpx; padding: 24rpx 28rpx;
+}
+.shop-logo { width: 72rpx; height: 72rpx; border-radius: 14rpx; background: #f4f4f5; flex-shrink: 0; }
+.shop-meta { flex: 1; min-width: 0; }
+.shop-name {
+  display: block; font-size: 28rpx; font-weight: 700; color: #18181b;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.shop-sub { display: block; margin-top: 4rpx; font-size: 22rpx; color: #a1a1aa; }
+.shop-arrow { font-size: 24rpx; color: #a1a1aa; flex-shrink: 0; }
 .row { display: flex; justify-content: space-between; padding: 12rpx 0; font-size: 26rpx; }
 .row.col { flex-direction: column; align-items: flex-start; gap: 8rpx; }
 .addr { color: #3f3f46; line-height: 1.4; }

@@ -15,7 +15,7 @@ import (
 	"mymall/services/merchant-service/internal/types"
 )
 
-func (h *MerchantHandler) AdminListSlotPackages(w http.ResponseWriter, r *http.Request) {
+func (h *HomepageSlotAdminHandler) AdminListSlotPackages(w http.ResponseWriter, r *http.Request) {
 	list, err := h.logic.ListSlotPackages(r.URL.Query().Get("slot_type"), false)
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
@@ -24,7 +24,7 @@ func (h *MerchantHandler) AdminListSlotPackages(w http.ResponseWriter, r *http.R
 	httpx.OkJsonCtx(r.Context(), w, list)
 }
 
-func (h *MerchantHandler) AdminCreateSlotPackage(w http.ResponseWriter, r *http.Request) {
+func (h *HomepageSlotAdminHandler) AdminCreateSlotPackage(w http.ResponseWriter, r *http.Request) {
 	var p model.HomepageSlotPackage
 	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
@@ -37,7 +37,7 @@ func (h *MerchantHandler) AdminCreateSlotPackage(w http.ResponseWriter, r *http.
 	httpx.OkJsonCtx(r.Context(), w, p)
 }
 
-func (h *MerchantHandler) AdminUpdateSlotPackage(w http.ResponseWriter, r *http.Request) {
+func (h *HomepageSlotAdminHandler) AdminUpdateSlotPackage(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil || id == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "ID无效"))
@@ -55,7 +55,7 @@ func (h *MerchantHandler) AdminUpdateSlotPackage(w http.ResponseWriter, r *http.
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
-func (h *MerchantHandler) AdminListSlotSettings(w http.ResponseWriter, r *http.Request) {
+func (h *HomepageSlotAdminHandler) AdminListSlotSettings(w http.ResponseWriter, r *http.Request) {
 	list, err := h.logic.ListSlotSettings()
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
@@ -64,7 +64,7 @@ func (h *MerchantHandler) AdminListSlotSettings(w http.ResponseWriter, r *http.R
 	httpx.OkJsonCtx(r.Context(), w, list)
 }
 
-func (h *MerchantHandler) AdminUpdateSlotSettings(w http.ResponseWriter, r *http.Request) {
+func (h *HomepageSlotAdminHandler) AdminUpdateSlotSettings(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Items []model.HomepageSlotSetting `json:"items"`
 	}
@@ -79,7 +79,7 @@ func (h *MerchantHandler) AdminUpdateSlotSettings(w http.ResponseWriter, r *http
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
-func (h *MerchantHandler) AdminListSlotOrders(w http.ResponseWriter, r *http.Request) {
+func (h *HomepageSlotAdminHandler) AdminListSlotOrders(w http.ResponseWriter, r *http.Request) {
 	p, ps := middleware.ParsePage(r)
 	shopID, _ := strconv.ParseUint(r.URL.Query().Get("shop_id"), 10, 64)
 	list, total, err := h.logic.ListSlotOrders(shopID, r.URL.Query().Get("slot_type"), r.URL.Query().Get("status"), p, ps)
@@ -90,7 +90,7 @@ func (h *MerchantHandler) AdminListSlotOrders(w http.ResponseWriter, r *http.Req
 	httpx.OkJsonCtx(r.Context(), w, types.PageListResp{Total: total, List: list})
 }
 
-func (h *MerchantHandler) AdminGrantSlot(w http.ResponseWriter, r *http.Request) {
+func (h *HomepageSlotAdminHandler) AdminGrantSlot(w http.ResponseWriter, r *http.Request) {
 	adminID, _ := middleware.GetUserID(r.Context())
 	var req logic.GrantSlotReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -105,7 +105,7 @@ func (h *MerchantHandler) AdminGrantSlot(w http.ResponseWriter, r *http.Request)
 	httpx.OkJsonCtx(r.Context(), w, order)
 }
 
-func (h *MerchantHandler) MerchantListSlotPackages(w http.ResponseWriter, r *http.Request) {
+func (h *HomepageSlotMerchantHandler) MerchantListSlotPackages(w http.ResponseWriter, r *http.Request) {
 	list, err := h.logic.ListSlotPackages(r.URL.Query().Get("slot_type"), true)
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
@@ -114,7 +114,7 @@ func (h *MerchantHandler) MerchantListSlotPackages(w http.ResponseWriter, r *htt
 	httpx.OkJsonCtx(r.Context(), w, list)
 }
 
-func (h *MerchantHandler) MerchantBuySlot(w http.ResponseWriter, r *http.Request) {
+func (h *HomepageSlotMerchantHandler) MerchantBuySlot(w http.ResponseWriter, r *http.Request) {
 	shopID := middleware.GetShopID(r.Context())
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok || shopID == 0 {
@@ -134,7 +134,7 @@ func (h *MerchantHandler) MerchantBuySlot(w http.ResponseWriter, r *http.Request
 	httpx.OkJsonCtx(r.Context(), w, order)
 }
 
-func (h *MerchantHandler) MerchantListSlotOrders(w http.ResponseWriter, r *http.Request) {
+func (h *HomepageSlotMerchantHandler) MerchantListSlotOrders(w http.ResponseWriter, r *http.Request) {
 	shopID := middleware.GetShopID(r.Context())
 	if shopID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺"))
@@ -149,7 +149,7 @@ func (h *MerchantHandler) MerchantListSlotOrders(w http.ResponseWriter, r *http.
 	httpx.OkJsonCtx(r.Context(), w, types.PageListResp{Total: total, List: list})
 }
 
-func (h *MerchantHandler) PublicHomeSlots(w http.ResponseWriter, r *http.Request) {
+func (h *HomepageSlotPublicHandler) PublicHomeSlots(w http.ResponseWriter, r *http.Request) {
 	slotType := r.URL.Query().Get("slot_type")
 	list, err := h.logic.HomeSlots(slotType)
 	if err != nil {

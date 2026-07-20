@@ -133,8 +133,10 @@ func main() {
 		logger.Info("shop menus seeded (layered)")
 	}
 	catalogLogic := productlogic.NewCatalogLogic(context.Background(), svcCtx)
-	catalogHandler := producthandler.NewCatalogHandler(svcCtx)
-	favoriteH := producthandler.NewFavoriteHandler(svcCtx)
+	catalogPublic := producthandler.NewCatalogPublicHandler(svcCtx)
+	catalogAdmin := producthandler.NewCatalogAdminHandler(svcCtx)
+	favoriteUser := producthandler.NewFavoriteUserHandler(svcCtx)
+	favoriteAdmin := producthandler.NewFavoriteAdminHandler(svcCtx)
 	adminH := producthandler.NewProductAdminHandler(svcCtx)
 	shopOpsH := shopopshandler.NewShopOpsHandler(svcCtx)
 	articleAdminH := contenthandler.NewArticleAdminHandler(svcCtx)
@@ -205,11 +207,11 @@ func main() {
 		{Method: http.MethodGet, Path: "/readyz", Handler: rid(healthReg.ReadyHandler())},
 		{Method: http.MethodGet, Path: "/metrics", Handler: rid(metrics.Handler())},
 
-		{Method: http.MethodGet, Path: "/api/v1/products/list", Handler: rid(catalogHandler.GetProductList)},
-		{Method: http.MethodGet, Path: "/api/v1/products/detail", Handler: rid(catalogHandler.GetProductDetail)},
-		{Method: http.MethodGet, Path: "/api/v1/products/sales-rank", Handler: rid(catalogHandler.GetSalesRank)},
-		{Method: http.MethodGet, Path: "/api/v1/product_category/list", Handler: rid(catalogHandler.GetCategoryList)},
-		{Method: http.MethodGet, Path: "/api/v1/product_category/detail", Handler: rid(catalogHandler.GetCategoryDetail)},
+		{Method: http.MethodGet, Path: "/api/v1/products/list", Handler: rid(catalogPublic.GetProductList)},
+		{Method: http.MethodGet, Path: "/api/v1/products/detail", Handler: rid(catalogPublic.GetProductDetail)},
+		{Method: http.MethodGet, Path: "/api/v1/products/sales-rank", Handler: rid(catalogPublic.GetSalesRank)},
+		{Method: http.MethodGet, Path: "/api/v1/product_category/list", Handler: rid(catalogPublic.GetCategoryList)},
+		{Method: http.MethodGet, Path: "/api/v1/product_category/detail", Handler: rid(catalogPublic.GetCategoryDetail)},
 
 		{Method: http.MethodGet, Path: "/api/v1/banners", Handler: rid(articlePublicH.ListBanners)},
 
@@ -232,13 +234,13 @@ func main() {
 		{Method: http.MethodDelete, Path: "/api/v1/user/articles/:id", Handler: rid(gw(articlePublicH.DeleteMine))},
 		{Method: http.MethodPost, Path: "/api/v1/user/article-uploads", Handler: rid(gw(articlePublicH.UploadMine))},
 
-		{Method: http.MethodPost, Path: "/api/v1/user/favorites", Handler: rid(gw(favoriteH.Add))},
-		{Method: http.MethodDelete, Path: "/api/v1/user/favorites/:product_id", Handler: rid(gw(favoriteH.Remove))},
-		{Method: http.MethodPost, Path: "/api/v1/user/favorites/batch-remove", Handler: rid(gw(favoriteH.RemoveBatch))},
-		{Method: http.MethodGet, Path: "/api/v1/user/favorites", Handler: rid(gw(favoriteH.List))},
-		{Method: http.MethodGet, Path: "/api/v1/products/:id/favorite", Handler: rid(gw(favoriteH.Status))},
-		{Method: http.MethodGet, Path: "/api/v1/products/:id/favorite-count", Handler: rid(favoriteH.Count)},
-		{Method: http.MethodGet, Path: "/api/v1/admin/users/:id/favorites", Handler: rid(middleware.Chain(favoriteH.AdminUserList, gwUser, adminRoles))},
+		{Method: http.MethodPost, Path: "/api/v1/user/favorites", Handler: rid(gw(favoriteUser.Add))},
+		{Method: http.MethodDelete, Path: "/api/v1/user/favorites/:product_id", Handler: rid(gw(favoriteUser.Remove))},
+		{Method: http.MethodPost, Path: "/api/v1/user/favorites/batch-remove", Handler: rid(gw(favoriteUser.RemoveBatch))},
+		{Method: http.MethodGet, Path: "/api/v1/user/favorites", Handler: rid(gw(favoriteUser.List))},
+		{Method: http.MethodGet, Path: "/api/v1/products/:id/favorite", Handler: rid(gw(favoriteUser.Status))},
+		{Method: http.MethodGet, Path: "/api/v1/products/:id/favorite-count", Handler: rid(favoriteUser.Count)},
+		{Method: http.MethodGet, Path: "/api/v1/admin/users/:id/favorites", Handler: rid(middleware.Chain(favoriteAdmin.AdminUserList, gwUser, adminRoles))},
 
 		{Method: http.MethodGet, Path: "/api/v1/merchant/products", Handler: rid(middleware.Chain(adminH.List, gwShop, merchantRoles))},
 		{Method: http.MethodPost, Path: "/api/v1/merchant/products", Handler: rid(middleware.Chain(adminH.Create, gwShop, merchantRoles))},
@@ -284,10 +286,10 @@ func main() {
 		{Method: http.MethodGet, Path: "/api/v1/admin/products", Handler: rid(middleware.Chain(platformProductH.List, gwUser, adminRoles))},
 		{Method: http.MethodPut, Path: "/api/v1/admin/products/:id/off_sale", Handler: rid(middleware.Chain(platformProductH.OffSale, gwUser, adminRoles))},
 		{Method: http.MethodDelete, Path: "/api/v1/admin/products/:id", Handler: rid(middleware.Chain(platformProductH.Delete, gwUser, adminRoles))},
-		{Method: http.MethodGet, Path: "/api/v1/admin/categories", Handler: rid(middleware.Chain(catalogHandler.AdminListCategories, gwUser, adminRoles))},
-		{Method: http.MethodPost, Path: "/api/v1/admin/categories", Handler: rid(middleware.Chain(catalogHandler.AdminCreateCategory, gwUser, adminRoles))},
-		{Method: http.MethodPut, Path: "/api/v1/admin/categories/:id", Handler: rid(middleware.Chain(catalogHandler.AdminUpdateCategory, gwUser, adminRoles))},
-		{Method: http.MethodDelete, Path: "/api/v1/admin/categories/:id", Handler: rid(middleware.Chain(catalogHandler.AdminDeleteCategory, gwUser, adminRoles))},
+		{Method: http.MethodGet, Path: "/api/v1/admin/categories", Handler: rid(middleware.Chain(catalogAdmin.AdminListCategories, gwUser, adminRoles))},
+		{Method: http.MethodPost, Path: "/api/v1/admin/categories", Handler: rid(middleware.Chain(catalogAdmin.AdminCreateCategory, gwUser, adminRoles))},
+		{Method: http.MethodPut, Path: "/api/v1/admin/categories/:id", Handler: rid(middleware.Chain(catalogAdmin.AdminUpdateCategory, gwUser, adminRoles))},
+		{Method: http.MethodDelete, Path: "/api/v1/admin/categories/:id", Handler: rid(middleware.Chain(catalogAdmin.AdminDeleteCategory, gwUser, adminRoles))},
 
 		// 社区文章 — 平台
 		{Method: http.MethodGet, Path: "/api/v1/admin/articles/stats", Handler: rid(middleware.Chain(articleAdminH.Stats, gwUser, adminRoles))},

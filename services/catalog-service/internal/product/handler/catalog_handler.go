@@ -13,10 +13,12 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/zeromicro/go-zero/rest/httpx"
-	"mymall/pkg/xerr")
+	"mymall/pkg/xerr"
 
-type CatalogHandler struct {
+	"github.com/zeromicro/go-zero/rest/httpx"
+)
+
+type catalogDeps struct {
 	svcCtx *svc.ServiceContext
 	logic  *logic.CatalogLogic
 }
@@ -29,11 +31,25 @@ var (
 	_ dto.CategoryDetailResp
 )
 
-func NewCatalogHandler(svcCtx *svc.ServiceContext) *CatalogHandler {
-	return &CatalogHandler{
+func newCatalogDeps(svcCtx *svc.ServiceContext) catalogDeps {
+	return catalogDeps{
 		svcCtx: svcCtx,
 		logic:  logic.NewCatalogLogic(context.Background(), svcCtx),
 	}
+}
+
+type CatalogPublicHandler struct{ catalogDeps }
+type CatalogAdminHandler struct{ catalogDeps }
+type CatalogMerchantHandler struct{ catalogDeps }
+
+func NewCatalogPublicHandler(svcCtx *svc.ServiceContext) *CatalogPublicHandler {
+	return &CatalogPublicHandler{catalogDeps: newCatalogDeps(svcCtx)}
+}
+func NewCatalogAdminHandler(svcCtx *svc.ServiceContext) *CatalogAdminHandler {
+	return &CatalogAdminHandler{catalogDeps: newCatalogDeps(svcCtx)}
+}
+func NewCatalogMerchantHandler(svcCtx *svc.ServiceContext) *CatalogMerchantHandler {
+	return &CatalogMerchantHandler{catalogDeps: newCatalogDeps(svcCtx)}
 }
 
 // GetProductList 商品列表
@@ -45,7 +61,7 @@ func NewCatalogHandler(svcCtx *svc.ServiceContext) *CatalogHandler {
 // @Param        page_size  query  int  false  "每页数量"   default(10)
 // @Success      200  {object}  apidoc.Response{data=dto.ProductListResp}  "查询成功"
 // @Router       /api/v1/products/list [get]
-func (h *CatalogHandler) GetProductList(w http.ResponseWriter, r *http.Request) {
+func (h *CatalogPublicHandler) GetProductList(w http.ResponseWriter, r *http.Request) {
 	page, pageSize := middleware.ParsePage(r)
 	pageReq := &pagination.PageReq{Page: page, PageSize: pageSize}
 	shopID, _ := strconv.ParseUint(r.URL.Query().Get("shop_id"), 10, 64)
@@ -60,7 +76,7 @@ func (h *CatalogHandler) GetProductList(w http.ResponseWriter, r *http.Request) 
 }
 
 // GetSalesRank 今日必买销量榜
-func (h *CatalogHandler) GetSalesRank(w http.ResponseWriter, r *http.Request) {
+func (h *CatalogPublicHandler) GetSalesRank(w http.ResponseWriter, r *http.Request) {
 	page, pageSize := middleware.ParsePage(r)
 	data, err := h.logic.GetSalesRank(page, pageSize)
 	if err != nil {
@@ -78,7 +94,7 @@ func (h *CatalogHandler) GetSalesRank(w http.ResponseWriter, r *http.Request) {
 // @Param        id  query  int  true  "商品 ID"
 // @Success      200  {object}  apidoc.Response{data=dto.ProductDetail}  "查询成功"
 // @Router       /api/v1/products/detail [get]
-func (h *CatalogHandler) GetProductDetail(w http.ResponseWriter, r *http.Request) {
+func (h *CatalogPublicHandler) GetProductDetail(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseUint(r.URL.Query().Get("id"), 10, 64)
 	if id == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
@@ -105,7 +121,7 @@ func (h *CatalogHandler) GetProductDetail(w http.ResponseWriter, r *http.Request
 // @Param        page_size  query  int  false  "每页数量"   default(10)
 // @Success      200  {object}  apidoc.Response{data=dto.CategoryListResp}  "查询成功"
 // @Router       /api/v1/product_category/list [get]
-func (h *CatalogHandler) GetCategoryList(w http.ResponseWriter, r *http.Request) {
+func (h *CatalogPublicHandler) GetCategoryList(w http.ResponseWriter, r *http.Request) {
 	page, pageSize := middleware.ParsePage(r)
 	pageReq := &pagination.PageReq{Page: page, PageSize: pageSize}
 	data, err := h.logic.GetCategoryList(pageReq)
@@ -124,7 +140,7 @@ func (h *CatalogHandler) GetCategoryList(w http.ResponseWriter, r *http.Request)
 // @Param        id  query  int  true  "分类 ID"
 // @Success      200  {object}  apidoc.Response{data=dto.CategoryDetailResp}  "查询成功"
 // @Router       /api/v1/product_category/detail [get]
-func (h *CatalogHandler) GetCategoryDetail(w http.ResponseWriter, r *http.Request) {
+func (h *CatalogPublicHandler) GetCategoryDetail(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseUint(r.URL.Query().Get("id"), 10, 64)
 	if id == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))

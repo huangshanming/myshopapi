@@ -15,19 +15,33 @@ import (
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-type TaskHandler struct {
+type taskDeps struct {
 	svcCtx *svc.ServiceContext
 	logic  *logic.TaskLogic
 }
 
-func NewTaskHandler(svcCtx *svc.ServiceContext) *TaskHandler {
-	return &TaskHandler{
+func newTaskDeps(svcCtx *svc.ServiceContext) taskDeps {
+	return taskDeps{
 		svcCtx: svcCtx,
 		logic:  logic.NewTaskLogic(context.Background(), svcCtx),
 	}
 }
 
-func (h *TaskHandler) UserPoints(w http.ResponseWriter, r *http.Request) {
+type TaskUserHandler struct{ taskDeps }
+type TaskAdminHandler struct{ taskDeps }
+type TaskInternalHandler struct{ taskDeps }
+
+func NewTaskUserHandler(svcCtx *svc.ServiceContext) *TaskUserHandler {
+	return &TaskUserHandler{taskDeps: newTaskDeps(svcCtx)}
+}
+func NewTaskAdminHandler(svcCtx *svc.ServiceContext) *TaskAdminHandler {
+	return &TaskAdminHandler{taskDeps: newTaskDeps(svcCtx)}
+}
+func NewTaskInternalHandler(svcCtx *svc.ServiceContext) *TaskInternalHandler {
+	return &TaskInternalHandler{taskDeps: newTaskDeps(svcCtx)}
+}
+
+func (h *TaskUserHandler) UserPoints(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok || userID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
@@ -41,7 +55,7 @@ func (h *TaskHandler) UserPoints(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, p)
 }
 
-func (h *TaskHandler) UserPointLogs(w http.ResponseWriter, r *http.Request) {
+func (h *TaskUserHandler) UserPointLogs(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok || userID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
@@ -56,7 +70,7 @@ func (h *TaskHandler) UserPointLogs(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"list": list, "total": total})
 }
 
-func (h *TaskHandler) UserListTasks(w http.ResponseWriter, r *http.Request) {
+func (h *TaskUserHandler) UserListTasks(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok || userID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
@@ -70,7 +84,7 @@ func (h *TaskHandler) UserListTasks(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"list": list})
 }
 
-func (h *TaskHandler) UserCheckin(w http.ResponseWriter, r *http.Request) {
+func (h *TaskUserHandler) UserCheckin(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok || userID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
@@ -84,7 +98,7 @@ func (h *TaskHandler) UserCheckin(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, p)
 }
 
-func (h *TaskHandler) UserClaim(w http.ResponseWriter, r *http.Request) {
+func (h *TaskUserHandler) UserClaim(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok || userID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
@@ -103,7 +117,7 @@ func (h *TaskHandler) UserClaim(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, p)
 }
 
-func (h *TaskHandler) UserReportEvent(w http.ResponseWriter, r *http.Request) {
+func (h *TaskUserHandler) UserReportEvent(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok || userID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
@@ -122,7 +136,7 @@ func (h *TaskHandler) UserReportEvent(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
-func (h *TaskHandler) InternalEvent(w http.ResponseWriter, r *http.Request) {
+func (h *TaskInternalHandler) InternalEvent(w http.ResponseWriter, r *http.Request) {
 	var req logic.TaskEventReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
@@ -135,7 +149,35 @@ func (h *TaskHandler) InternalEvent(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
-func (h *TaskHandler) AdminList(w http.ResponseWriter, r *http.Request) {
+func (h *TaskInternalHandler) InternalDeductPoints(w http.ResponseWriter, r *http.Request) {
+	var req logic.PointsLedgerReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
+		return
+	}
+	p, err := h.logic.DeductPoints(req)
+	if err != nil {
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
+		return
+	}
+	httpx.OkJsonCtx(r.Context(), w, p)
+}
+
+func (h *TaskInternalHandler) InternalRefundPoints(w http.ResponseWriter, r *http.Request) {
+	var req logic.PointsLedgerReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
+		return
+	}
+	p, err := h.logic.RefundPoints(req)
+	if err != nil {
+		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
+		return
+	}
+	httpx.OkJsonCtx(r.Context(), w, p)
+}
+
+func (h *TaskAdminHandler) AdminList(w http.ResponseWriter, r *http.Request) {
 	list, err := h.logic.AdminListTasks()
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
@@ -144,7 +186,7 @@ func (h *TaskHandler) AdminList(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"list": list})
 }
 
-func (h *TaskHandler) AdminUpdate(w http.ResponseWriter, r *http.Request) {
+func (h *TaskAdminHandler) AdminUpdate(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil || id == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "任务ID无效"))

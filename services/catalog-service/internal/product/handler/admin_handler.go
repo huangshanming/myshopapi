@@ -10,10 +10,12 @@ import (
 	"mymall/pkg/pagination"
 	"mymall/services/catalog-service/internal/product/types"
 
-	"github.com/zeromicro/go-zero/rest/httpx"
-	"mymall/pkg/xerr")
+	"mymall/pkg/xerr"
 
-func (h *CatalogHandler) MerchantListProducts(w http.ResponseWriter, r *http.Request) {
+	"github.com/zeromicro/go-zero/rest/httpx"
+)
+
+func (h *CatalogMerchantHandler) MerchantListProducts(w http.ResponseWriter, r *http.Request) {
 	shopID := middleware.GetShopID(r.Context())
 	if shopID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少 shop_id"))
@@ -30,7 +32,7 @@ func (h *CatalogHandler) MerchantListProducts(w http.ResponseWriter, r *http.Req
 	httpx.OkJsonCtx(r.Context(), w, data)
 }
 
-func (h *CatalogHandler) MerchantCreateProduct(w http.ResponseWriter, r *http.Request) {
+func (h *CatalogMerchantHandler) MerchantCreateProduct(w http.ResponseWriter, r *http.Request) {
 	shopID := middleware.GetShopID(r.Context())
 	if shopID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少 shop_id"))
@@ -53,7 +55,7 @@ func (h *CatalogHandler) MerchantCreateProduct(w http.ResponseWriter, r *http.Re
 	httpx.OkJsonCtx(r.Context(), w, p)
 }
 
-func (h *CatalogHandler) MerchantUpdateProduct(w http.ResponseWriter, r *http.Request) {
+func (h *CatalogMerchantHandler) MerchantUpdateProduct(w http.ResponseWriter, r *http.Request) {
 	shopID := middleware.GetShopID(r.Context())
 	if shopID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少 shop_id"))
@@ -80,7 +82,7 @@ func (h *CatalogHandler) MerchantUpdateProduct(w http.ResponseWriter, r *http.Re
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
-func (h *CatalogHandler) MerchantSetStatus(w http.ResponseWriter, r *http.Request) {
+func (h *CatalogMerchantHandler) MerchantSetStatus(w http.ResponseWriter, r *http.Request) {
 	shopID := middleware.GetShopID(r.Context())
 	if shopID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少 shop_id"))
@@ -103,7 +105,7 @@ func (h *CatalogHandler) MerchantSetStatus(w http.ResponseWriter, r *http.Reques
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
-func (h *CatalogHandler) AdminListProducts(w http.ResponseWriter, r *http.Request) {
+func (h *CatalogAdminHandler) AdminListProducts(w http.ResponseWriter, r *http.Request) {
 	page, pageSize := middleware.ParsePage(r)
 	pageReq := &pagination.PageReq{Page: page, PageSize: pageSize}
 	shopID, _ := strconv.ParseUint(r.URL.Query().Get("shop_id"), 10, 64)
@@ -116,7 +118,7 @@ func (h *CatalogHandler) AdminListProducts(w http.ResponseWriter, r *http.Reques
 	httpx.OkJsonCtx(r.Context(), w, data)
 }
 
-func (h *CatalogHandler) AdminForceOffSale(w http.ResponseWriter, r *http.Request) {
+func (h *CatalogAdminHandler) AdminForceOffSale(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "商品ID无效"))
@@ -129,7 +131,7 @@ func (h *CatalogHandler) AdminForceOffSale(w http.ResponseWriter, r *http.Reques
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
-func (h *CatalogHandler) AdminListCategories(w http.ResponseWriter, r *http.Request) {
+func (h *CatalogAdminHandler) AdminListCategories(w http.ResponseWriter, r *http.Request) {
 	list, err := h.logic.ListAllCategories()
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
@@ -138,7 +140,7 @@ func (h *CatalogHandler) AdminListCategories(w http.ResponseWriter, r *http.Requ
 	httpx.OkJsonCtx(r.Context(), w, list)
 }
 
-func (h *CatalogHandler) AdminCreateCategory(w http.ResponseWriter, r *http.Request) {
+func (h *CatalogAdminHandler) AdminCreateCategory(w http.ResponseWriter, r *http.Request) {
 	var req types.CategoryReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
@@ -156,7 +158,7 @@ func (h *CatalogHandler) AdminCreateCategory(w http.ResponseWriter, r *http.Requ
 	httpx.OkJsonCtx(r.Context(), w, cat)
 }
 
-func (h *CatalogHandler) AdminUpdateCategory(w http.ResponseWriter, r *http.Request) {
+func (h *CatalogAdminHandler) AdminUpdateCategory(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "分类ID无效"))
@@ -178,7 +180,7 @@ func (h *CatalogHandler) AdminUpdateCategory(w http.ResponseWriter, r *http.Requ
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
-func (h *CatalogHandler) AdminDeleteCategory(w http.ResponseWriter, r *http.Request) {
+func (h *CatalogAdminHandler) AdminDeleteCategory(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "分类ID无效"))

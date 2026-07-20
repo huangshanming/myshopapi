@@ -17,15 +17,29 @@ import (
 	"mymall/services/order-service/internal/svc"
 )
 
-type ReviewHandler struct {
+type reviewDeps struct {
 	logic *logic.ReviewLogic
 }
 
-func NewReviewHandler(svcCtx *svc.ServiceContext) *ReviewHandler {
-	return &ReviewHandler{logic: logic.NewReviewLogic(context.Background(), svcCtx)}
+func newReviewDeps(svcCtx *svc.ServiceContext) reviewDeps {
+	return reviewDeps{logic: logic.NewReviewLogic(context.Background(), svcCtx)}
 }
 
-func (h *ReviewHandler) Eligible(w http.ResponseWriter, r *http.Request) {
+type ReviewUserHandler struct{ reviewDeps }
+type ReviewMerchantHandler struct{ reviewDeps }
+type ReviewAdminHandler struct{ reviewDeps }
+
+func NewReviewUserHandler(svcCtx *svc.ServiceContext) *ReviewUserHandler {
+	return &ReviewUserHandler{reviewDeps: newReviewDeps(svcCtx)}
+}
+func NewReviewMerchantHandler(svcCtx *svc.ServiceContext) *ReviewMerchantHandler {
+	return &ReviewMerchantHandler{reviewDeps: newReviewDeps(svcCtx)}
+}
+func NewReviewAdminHandler(svcCtx *svc.ServiceContext) *ReviewAdminHandler {
+	return &ReviewAdminHandler{reviewDeps: newReviewDeps(svcCtx)}
+}
+
+func (h *ReviewUserHandler) Eligible(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok || userID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
@@ -44,7 +58,7 @@ func (h *ReviewHandler) Eligible(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, data)
 }
 
-func (h *ReviewHandler) Create(w http.ResponseWriter, r *http.Request) {
+func (h *ReviewUserHandler) Create(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok || userID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
@@ -68,7 +82,7 @@ func (h *ReviewHandler) Create(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, rev)
 }
 
-func (h *ReviewHandler) GetByOrder(w http.ResponseWriter, r *http.Request) {
+func (h *ReviewUserHandler) GetByOrder(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok || userID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
@@ -87,7 +101,7 @@ func (h *ReviewHandler) GetByOrder(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, rev)
 }
 
-func (h *ReviewHandler) ProductList(w http.ResponseWriter, r *http.Request) {
+func (h *ReviewUserHandler) ProductList(w http.ResponseWriter, r *http.Request) {
 	productID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil || productID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "商品ID无效"))
@@ -103,7 +117,7 @@ func (h *ReviewHandler) ProductList(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"list": list, "total": total})
 }
 
-func (h *ReviewHandler) Upload(w http.ResponseWriter, r *http.Request) {
+func (h *ReviewUserHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok || userID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
@@ -128,7 +142,7 @@ func (h *ReviewHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, map[string]string{"url": url})
 }
 
-func (h *ReviewHandler) MerchantList(w http.ResponseWriter, r *http.Request) {
+func (h *ReviewMerchantHandler) MerchantList(w http.ResponseWriter, r *http.Request) {
 	shopID := middleware.GetShopID(r.Context())
 	if shopID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "店铺未绑定"))
@@ -145,7 +159,7 @@ func (h *ReviewHandler) MerchantList(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"list": list, "total": total})
 }
 
-func (h *ReviewHandler) MerchantReply(w http.ResponseWriter, r *http.Request) {
+func (h *ReviewMerchantHandler) MerchantReply(w http.ResponseWriter, r *http.Request) {
 	shopID := middleware.GetShopID(r.Context())
 	if shopID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "店铺未绑定"))
@@ -170,7 +184,7 @@ func (h *ReviewHandler) MerchantReply(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
-func (h *ReviewHandler) MerchantDelete(w http.ResponseWriter, r *http.Request) {
+func (h *ReviewMerchantHandler) MerchantDelete(w http.ResponseWriter, r *http.Request) {
 	shopID := middleware.GetShopID(r.Context())
 	if shopID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "店铺未绑定"))
@@ -188,7 +202,7 @@ func (h *ReviewHandler) MerchantDelete(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
-func (h *ReviewHandler) AdminList(w http.ResponseWriter, r *http.Request) {
+func (h *ReviewAdminHandler) AdminList(w http.ResponseWriter, r *http.Request) {
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
 	level := r.URL.Query().Get("rating_level")
@@ -201,7 +215,7 @@ func (h *ReviewHandler) AdminList(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"list": list, "total": total})
 }
 
-func (h *ReviewHandler) AdminDelete(w http.ResponseWriter, r *http.Request) {
+func (h *ReviewAdminHandler) AdminDelete(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "评价ID无效"))

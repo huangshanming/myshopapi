@@ -3,8 +3,9 @@ package model
 import "mymall/common"
 
 const (
-	WalletLogAdminAdjust  = "admin_adjust"
-	WalletLogSeckillApply = "seckill_apply"
+	WalletLogAdminAdjust   = "admin_adjust"
+	WalletLogSeckillApply  = "seckill_apply"
+	WalletLogSeckillRenew  = "seckill_renew"
 
 	WalletFieldBalance = "balance"
 	WalletFieldDeposit = "deposit"
@@ -81,6 +82,7 @@ type SeckillEntry struct {
 	SeckillStock int              `gorm:"column:seckill_stock" json:"seckill_stock"`
 	FeeAmount    float64          `gorm:"column:fee_amount;type:decimal(12,2)" json:"fee_amount"`
 	Status       string           `gorm:"column:status;type:varchar(16)" json:"status"`
+	AutoRenew    int8             `gorm:"column:auto_renew" json:"auto_renew"`
 	CreatedAt    common.LocalTime `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt    common.LocalTime `gorm:"column:updated_at" json:"updated_at"`
 }

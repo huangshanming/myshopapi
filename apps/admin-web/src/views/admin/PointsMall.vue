@@ -4,7 +4,7 @@
       <h2>积分商城</h2>
       <el-button v-permission="'marketing:points_mall:edit'" type="primary" @click="openEdit()">新建商品</el-button>
     </div>
-    <p class="tip">配置可用积分兑换的商品。本期仅总后台管理；C 端兑换接口需另行对接。</p>
+    <p class="tip">配置可用积分兑换的商品。兑换订单请到「营销玩法 → 积分订单」处理。</p>
 
     <div class="filters">
       <el-input v-model="keyword" clearable placeholder="搜索名称" style="width: 220px" @keyup.enter="reload" />

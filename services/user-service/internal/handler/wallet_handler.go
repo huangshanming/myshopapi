@@ -12,22 +12,38 @@ import (
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
 
-	"github.com/zeromicro/go-zero/rest/httpx"
-	"mymall/pkg/xerr")
+	"mymall/pkg/xerr"
 
-type WalletHandler struct {
+	"github.com/zeromicro/go-zero/rest/httpx"
+)
+
+type userWalletDeps struct {
 	svcCtx *svc.ServiceContext
 	logic  *logic.WalletLogic
 }
 
-func NewWalletHandler(svcCtx *svc.ServiceContext) *WalletHandler {
-	return &WalletHandler{
+func newUserWalletDeps(svcCtx *svc.ServiceContext) userWalletDeps {
+	return userWalletDeps{
 		svcCtx: svcCtx,
 		logic:  logic.NewWalletLogic(context.Background(), svcCtx),
 	}
 }
 
-func (h *WalletHandler) AdminGetWallet(w http.ResponseWriter, r *http.Request) {
+type WalletUserHandler struct{ userWalletDeps }
+type WalletAdminHandler struct{ userWalletDeps }
+type WalletInternalHandler struct{ userWalletDeps }
+
+func NewWalletUserHandler(svcCtx *svc.ServiceContext) *WalletUserHandler {
+	return &WalletUserHandler{userWalletDeps: newUserWalletDeps(svcCtx)}
+}
+func NewWalletAdminHandler(svcCtx *svc.ServiceContext) *WalletAdminHandler {
+	return &WalletAdminHandler{userWalletDeps: newUserWalletDeps(svcCtx)}
+}
+func NewWalletInternalHandler(svcCtx *svc.ServiceContext) *WalletInternalHandler {
+	return &WalletInternalHandler{userWalletDeps: newUserWalletDeps(svcCtx)}
+}
+
+func (h *WalletAdminHandler) AdminGetWallet(w http.ResponseWriter, r *http.Request) {
 	userID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "用户ID无效"))
@@ -41,7 +57,7 @@ func (h *WalletHandler) AdminGetWallet(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, wallet)
 }
 
-func (h *WalletHandler) AdminAdjustWallet(w http.ResponseWriter, r *http.Request) {
+func (h *WalletAdminHandler) AdminAdjustWallet(w http.ResponseWriter, r *http.Request) {
 	userID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "用户ID无效"))
@@ -61,7 +77,7 @@ func (h *WalletHandler) AdminAdjustWallet(w http.ResponseWriter, r *http.Request
 	httpx.OkJsonCtx(r.Context(), w, wallet)
 }
 
-func (h *WalletHandler) AdminWalletLogs(w http.ResponseWriter, r *http.Request) {
+func (h *WalletAdminHandler) AdminWalletLogs(w http.ResponseWriter, r *http.Request) {
 	userID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "用户ID无效"))
@@ -76,7 +92,7 @@ func (h *WalletHandler) AdminWalletLogs(w http.ResponseWriter, r *http.Request) 
 	httpx.OkJsonCtx(r.Context(), w, types.PageListResp{Total: total, List: list})
 }
 
-func (h *WalletHandler) UserGetWallet(w http.ResponseWriter, r *http.Request) {
+func (h *WalletUserHandler) UserGetWallet(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok || userID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
@@ -90,7 +106,7 @@ func (h *WalletHandler) UserGetWallet(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, wallet)
 }
 
-func (h *WalletHandler) UserWalletLogs(w http.ResponseWriter, r *http.Request) {
+func (h *WalletUserHandler) UserWalletLogs(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok || userID == 0 {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
@@ -105,7 +121,7 @@ func (h *WalletHandler) UserWalletLogs(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, types.PageListResp{Total: total, List: list})
 }
 
-func (h *WalletHandler) Freeze(w http.ResponseWriter, r *http.Request) {
+func (h *WalletInternalHandler) Freeze(w http.ResponseWriter, r *http.Request) {
 	var req types.WalletOrderOpReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
@@ -118,7 +134,7 @@ func (h *WalletHandler) Freeze(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
-func (h *WalletHandler) Unfreeze(w http.ResponseWriter, r *http.Request) {
+func (h *WalletInternalHandler) Unfreeze(w http.ResponseWriter, r *http.Request) {
 	var req types.WalletOrderOpReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
@@ -131,7 +147,7 @@ func (h *WalletHandler) Unfreeze(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
-func (h *WalletHandler) Settle(w http.ResponseWriter, r *http.Request) {
+func (h *WalletInternalHandler) Settle(w http.ResponseWriter, r *http.Request) {
 	var req types.WalletOrderOpReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))

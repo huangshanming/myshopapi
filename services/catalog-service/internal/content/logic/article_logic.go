@@ -558,14 +558,22 @@ func (l *ArticleLogic) PublicList(page, pageSize int, home bool) (map[string]int
 	if err != nil {
 		return nil, err
 	}
+	shopIDs, userIDs := collectAuthorIDs(list)
+	shops := l.svcCtx.Articles.MapShopBriefs(shopIDs)
+	users := l.svcCtx.Articles.MapUserBriefs(userIDs)
 	items := make([]map[string]interface{}, 0, len(list))
 	for _, a := range list {
-		items = append(items, map[string]interface{}{
-			"id": a.ID, "shop_id": a.ShopID, "title": a.Title, "cover_url": a.CoverURL,
+		item := map[string]interface{}{
+			"id": a.ID, "shop_id": a.ShopID, "author_user_id": a.AuthorUserID,
+			"title": a.Title, "cover_url": a.CoverURL,
 			"like_count": a.LikeCount, "audience_count": a.AudienceCount, "read_count": a.ReadCount,
 			"collect_count": a.CollectCount, "published_at": a.PublishedAt,
 			"paid": l.svcCtx.Articles.IsArticleBoosted(a.ID),
-		})
+		}
+		for k, v := range authorPayload(a.ShopID, a.AuthorUserID, shops, users) {
+			item[k] = v
+		}
+		items = append(items, item)
 	}
 	return map[string]interface{}{"list": items, "total": total}, nil
 }
@@ -582,11 +590,82 @@ func (l *ArticleLogic) PublicDetail(id, userID uint64) (map[string]interface{}, 
 		liked, favorited = l.svcCtx.Articles.EngagementStatus(userID, id)
 	}
 	imgs, _ := l.svcCtx.Articles.ListImages(id)
+	shops := l.svcCtx.Articles.MapShopBriefs(nilIfZero(a.ShopID))
+	users := l.svcCtx.Articles.MapUserBriefs(nilIfZero(a.AuthorUserID))
+	author := authorPayload(a.ShopID, a.AuthorUserID, shops, users)
 	return map[string]interface{}{
 		"article": a, "images": imgs,
 		"liked": liked, "favorited": favorited,
 		"paid": l.svcCtx.Articles.IsArticleBoosted(id),
+		"author": author,
 	}, nil
+}
+
+func nilIfZero(id uint64) []uint64 {
+	if id == 0 {
+		return nil
+	}
+	return []uint64{id}
+}
+
+func collectAuthorIDs(list []model.CommunityArticle) (shopIDs, userIDs []uint64) {
+	seenShop := map[uint64]struct{}{}
+	seenUser := map[uint64]struct{}{}
+	for _, a := range list {
+		if a.ShopID > 0 {
+			if _, ok := seenShop[a.ShopID]; !ok {
+				seenShop[a.ShopID] = struct{}{}
+				shopIDs = append(shopIDs, a.ShopID)
+			}
+		} else if a.AuthorUserID > 0 {
+			if _, ok := seenUser[a.AuthorUserID]; !ok {
+				seenUser[a.AuthorUserID] = struct{}{}
+				userIDs = append(userIDs, a.AuthorUserID)
+			}
+		}
+	}
+	return
+}
+
+func authorPayload(shopID, authorUserID uint64, shops map[uint64]repository.ShopBrief, users map[uint64]repository.CommentUserBrief) map[string]interface{} {
+	if shopID > 0 {
+		s := shops[shopID]
+		name := s.Name
+		if name == "" {
+			name = "商家店铺"
+		}
+		return map[string]interface{}{
+			"author_type":   "shop",
+			"author_id":     shopID,
+			"author_name":   name,
+			"author_avatar": s.Logo,
+			"shop_id":       shopID,
+			"author_label":  "商家",
+		}
+	}
+	if authorUserID > 0 {
+		u := users[authorUserID]
+		name := u.Nickname
+		if name == "" {
+			name = "用户"
+		}
+		return map[string]interface{}{
+			"author_type":   "user",
+			"author_id":     authorUserID,
+			"author_name":   name,
+			"author_avatar": u.Avatar,
+			"shop_id":       0,
+			"author_label":  "作者",
+		}
+	}
+	return map[string]interface{}{
+		"author_type":   "platform",
+		"author_id":     0,
+		"author_name":   "平台官方",
+		"author_avatar": "",
+		"shop_id":       0,
+		"author_label":  "官方",
+	}
 }
 
 func (l *ArticleLogic) LikeArticle(userID, articleID uint64, like bool) error {

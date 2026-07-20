@@ -203,6 +203,10 @@ func (r *MerchantRepository) CreateSeckillEntry(entry *model.SeckillEntry) error
 }
 
 func (r *MerchantRepository) ApplySeckillEntry(entry *model.SeckillEntry, fee float64, operatorID *uint64) error {
+	return r.applySeckillEntryTx(entry, fee, operatorID, model.WalletLogSeckillApply, "秒杀报名扣费")
+}
+
+func (r *MerchantRepository) applySeckillEntryTx(entry *model.SeckillEntry, fee float64, operatorID *uint64, changeType, remark string) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		var w model.ShopWallet
 		err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("shop_id = ?", entry.ShopID).First(&w).Error
@@ -233,18 +237,73 @@ func (r *MerchantRepository) ApplySeckillEntry(entry *model.SeckillEntry, fee fl
 		}
 		log := model.ShopWalletLog{
 			ShopID:         entry.ShopID,
-			ChangeType:     model.WalletLogSeckillApply,
+			ChangeType:     changeType,
 			Amount:         -fee,
 			BalanceAfter:   w.Balance,
 			FrozenAfter:    w.FrozenBalance,
 			DepositAfter:   w.Deposit,
-			Remark:         "秒杀报名扣费",
+			Remark:         remark,
 			OperatorUserID: operatorID,
 			RefType:        "seckill_entry",
 			RefID:          entry.ID,
 		}
 		return tx.Create(&log).Error
 	})
+}
+
+// ListAutoRenewEntries 到期场次中开启自动续费的报名（按报名时间升序，优先先到期的）
+func (r *MerchantRepository) ListAutoRenewEntries(sessionID uint64) ([]model.SeckillEntry, error) {
+	var list []model.SeckillEntry
+	err := r.db.Where("session_id = ? AND status = ? AND auto_renew = 1", sessionID, model.SeckillEntryActive).
+		Order("id ASC").Find(&list).Error
+	return list, err
+}
+
+func (r *MerchantRepository) SetSeckillAutoRenew(shopID, entryID uint64, autoRenew int8) error {
+	if autoRenew != 0 {
+		autoRenew = 1
+	}
+	res := r.db.Model(&model.SeckillEntry{}).
+		Where("id = ? AND shop_id = ?", entryID, shopID).
+		Update("auto_renew", autoRenew)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return errors.New("报名记录不存在")
+	}
+	return nil
+}
+
+func (r *MerchantRepository) FindShopEntry(shopID, entryID uint64) (*model.SeckillEntry, error) {
+	var e model.SeckillEntry
+	if err := r.db.Where("id = ? AND shop_id = ?", entryID, shopID).First(&e).Error; err != nil {
+		return nil, err
+	}
+	return &e, nil
+}
+
+// RenewSeckillEntry 将旧报名续到新场次（余额不足则返回错误，由调用方跳过）
+func (r *MerchantRepository) RenewSeckillEntry(old *model.SeckillEntry, newSessionID uint64, fee float64, maxPerShop int) error {
+	cnt, err := r.CountShopEntries(newSessionID, old.ShopID)
+	if err != nil {
+		return err
+	}
+	if maxPerShop > 0 && int(cnt) >= maxPerShop {
+		return errors.New("已达本场次报名上限")
+	}
+	entry := &model.SeckillEntry{
+		SessionID:    newSessionID,
+		ShopID:       old.ShopID,
+		ProductID:    old.ProductID,
+		ProductName:  old.ProductName,
+		ProductImage: old.ProductImage,
+		OriginPrice:  old.OriginPrice,
+		SeckillPrice: old.SeckillPrice,
+		SeckillStock: old.SeckillStock,
+		AutoRenew:    1,
+	}
+	return r.applySeckillEntryTx(entry, fee, nil, model.WalletLogSeckillRenew, "秒杀到期自动续费")
 }
 
 func isDup(err error) bool {

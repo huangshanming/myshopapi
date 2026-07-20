@@ -3,7 +3,7 @@ package repository
 import (
 	"strings"
 
-	"mymall/services/user-service/internal/model"
+	"mymall/services/merchant-service/internal/model"
 
 	"gorm.io/gorm"
 )
