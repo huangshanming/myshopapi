@@ -91,6 +91,10 @@ spec:
           - /api/v1/admin/notifications/*
           - /api/v1/admin/tasks
           - /api/v1/admin/tasks/*
+          - /api/v1/admin/points-products
+          - /api/v1/admin/points-products/*
+          - /api/v1/admin/points-orders
+          - /api/v1/admin/points-orders/*
         methods:
           - GET
           - POST
@@ -191,15 +195,9 @@ spec:
           - /api/v1/admin/theme-orders/*
           - /api/v1/admin/coupons
           - /api/v1/admin/coupons/*
-          - /api/v1/admin/points-products
-          - /api/v1/admin/points-products/*
-          - /api/v1/admin/points-orders
-          - /api/v1/admin/points-orders/*
           - /api/v1/merchant/coupons
           - /api/v1/merchant/coupons/*
           - /api/v1/user/coupons
-          - /api/v1/user/points-mall
-          - /api/v1/user/points-mall/*
           - /api/v1/coupons/*/claim
         methods:
           - GET

@@ -1,10 +1,11 @@
 syntax = "v1"
 
 // Route table SSOT for merchant-service.
+// group: <role>/<module> → internal/handler/<role>/<module>/
 // Keep in sync with internal/handler/routes.go; run: scripts/check-api-routes.sh merchant-service
 @server (
 	middleware: RequestID
-	group:      public
+	group:      public/health
 )
 service merchantapi {
 	@handler Healthz
@@ -12,7 +13,13 @@ service merchantapi {
 
 	@handler Readyz
 	get /readyz
+}
 
+@server (
+	middleware: RequestID
+	group:      public/shop
+)
+service merchantapi {
 	@handler PublicListShops
 	get /api/v1/shops/list
 
@@ -24,7 +31,13 @@ service merchantapi {
 
 	@handler PublicGetShop
 	get /api/v1/shops/:id
+}
 
+@server (
+	middleware: RequestID
+	group:      public/seckill
+)
+service merchantapi {
 	@handler PublicSeckillCurrent
 	get /api/v1/seckill/current
 
@@ -33,20 +46,23 @@ service merchantapi {
 
 	@handler PublicSeckillEntry
 	get /api/v1/seckill/entries/:id
+}
 
+@server (
+	middleware: RequestID
+	group:      public/coupon
+)
+service merchantapi {
 	@handler PublicCouponCenter
 	get /api/v1/coupons/center
 
 	@handler PublicCouponPopup
 	get /api/v1/coupons/popup
-
-	@handler ServePointsMallUpload
-	get /uploads/points-mall/:file
 }
 
 @server (
 	middleware: RequestID
-	group:      internalapi
+	group:      internalapi/seckill
 )
 service merchantapi {
 	@handler SeckillConsume
@@ -54,7 +70,13 @@ service merchantapi {
 
 	@handler SeckillRestore
 	post /api/v1/seckill/restore
+}
 
+@server (
+	middleware: RequestID
+	group:      internalapi/coupon
+)
+service merchantapi {
 	@handler InternalMatchCoupons
 	post /api/v1/internal/coupons/match
 
@@ -76,7 +98,7 @@ service merchantapi {
 
 @server (
 	middleware: RequestID,GatewayIdentity
-	group:      user
+	group:      user/coupon
 )
 service merchantapi {
 	@handler ClaimCoupon
@@ -84,20 +106,11 @@ service merchantapi {
 
 	@handler ListMyCoupons
 	get /api/v1/user/coupons
-
-	@handler Exchange
-	post /api/v1/user/points-mall/exchange
-
-	@handler ListUserPointsOrders
-	get /api/v1/user/points-mall/orders
-
-	@handler DetailUserPointsOrder
-	get /api/v1/user/points-mall/orders/:id
 }
 
 @server (
 	middleware: RequestID,GatewayIdentity
-	group:      merchant
+	group:      merchant/shop
 )
 service merchantapi {
 	@handler Apply
@@ -109,18 +122,30 @@ service merchantapi {
 
 @server (
 	middleware: RequestID,GatewayIdentity,RequireMerchantOwner
-	group:      merchant
+	group:      merchant/shop
 )
 service merchantapi {
 	@handler UpdateMyShop
 	put /api/v1/merchant/shops/:id
+}
 
+@server (
+	middleware: RequestID,GatewayIdentity,RequireMerchantOwner
+	group:      merchant/wallet
+)
+service merchantapi {
 	@handler MerchantGetWallet
 	get /api/v1/merchant/wallet
 
 	@handler MerchantWalletLogs
 	get /api/v1/merchant/wallet/logs
+}
 
+@server (
+	middleware: RequestID,GatewayIdentity,RequireMerchantOwner
+	group:      merchant/seckill
+)
+service merchantapi {
 	@handler MerchantSeckillSessions
 	get /api/v1/merchant/seckill/sessions
 
@@ -132,7 +157,13 @@ service merchantapi {
 
 	@handler MerchantSetSeckillAutoRenew
 	put /api/v1/merchant/seckill/entries/:id/auto-renew
+}
 
+@server (
+	middleware: RequestID,GatewayIdentity,RequireMerchantOwner
+	group:      merchant/homepage
+)
+service merchantapi {
 	@handler MerchantListSlotPackages
 	get /api/v1/merchant/homepage-packages
 
@@ -141,7 +172,13 @@ service merchantapi {
 
 	@handler MerchantListSlotOrders
 	get /api/v1/merchant/homepage-orders
+}
 
+@server (
+	middleware: RequestID,GatewayIdentity,RequireMerchantOwner
+	group:      merchant/theme
+)
+service merchantapi {
 	@handler MerchantListThemeSlots
 	get /api/v1/merchant/theme-slots
 
@@ -153,7 +190,13 @@ service merchantapi {
 
 	@handler MerchantListThemeOrders
 	get /api/v1/merchant/theme-orders
+}
 
+@server (
+	middleware: RequestID,GatewayIdentity,RequireMerchantOwner
+	group:      merchant/coupon
+)
+service merchantapi {
 	@handler MerchantListCoupons
 	get /api/v1/merchant/coupons
 
@@ -184,7 +227,7 @@ service merchantapi {
 
 @server (
 	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
-	group:      admin
+	group:      admin/application
 )
 service merchantapi {
 	@handler AdminListApplications
@@ -195,7 +238,13 @@ service merchantapi {
 
 	@handler AdminReject
 	post /api/v1/admin/applications/:id/reject
+}
 
+@server (
+	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
+	group:      admin/shop
+)
+service merchantapi {
 	@handler AdminListShops
 	get /api/v1/admin/shops
 
@@ -216,7 +265,13 @@ service merchantapi {
 
 	@handler AdminEnableShop
 	put /api/v1/admin/shops/:id/enable
+}
 
+@server (
+	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
+	group:      admin/wallet
+)
+service merchantapi {
 	@handler AdminGetWallet
 	get /api/v1/admin/shops/:id/wallet
 
@@ -225,7 +280,13 @@ service merchantapi {
 
 	@handler AdminWalletLogs
 	get /api/v1/admin/shops/:id/wallet/logs
+}
 
+@server (
+	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
+	group:      admin/seckill
+)
+service merchantapi {
 	@handler AdminGetSeckillRule
 	get /api/v1/admin/seckill/rule
 
@@ -237,7 +298,13 @@ service merchantapi {
 
 	@handler AdminListSeckillEntries
 	get /api/v1/admin/seckill/entries
+}
 
+@server (
+	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
+	group:      admin/homepage
+)
+service merchantapi {
 	@handler AdminListSlotPackages
 	get /api/v1/admin/homepage-packages
 
@@ -258,7 +325,13 @@ service merchantapi {
 
 	@handler AdminGrantSlot
 	post /api/v1/admin/homepage-orders/grant
+}
 
+@server (
+	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
+	group:      admin/theme
+)
+service merchantapi {
 	@handler AdminListThemeSlots
 	get /api/v1/admin/theme-slots
 
@@ -279,7 +352,13 @@ service merchantapi {
 
 	@handler AdminGrantTheme
 	post /api/v1/admin/theme-orders/grant
+}
 
+@server (
+	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
+	group:      admin/coupon
+)
+service merchantapi {
 	@handler AdminListCoupons
 	get /api/v1/admin/coupons
 
@@ -306,44 +385,5 @@ service merchantapi {
 
 	@handler AdminCouponStats
 	get /api/v1/admin/coupons/:id/stats
-
-	@handler ListPointsProducts
-	get /api/v1/admin/points-products
-
-	@handler CreatePointsProduct
-	post /api/v1/admin/points-products
-
-	@handler UploadPointsProduct
-	post /api/v1/admin/points-products/upload
-
-	@handler DetailPointsProduct
-	get /api/v1/admin/points-products/:id
-
-	@handler UpdatePointsProduct
-	put /api/v1/admin/points-products/:id
-
-	@handler SetPointsProductStatus
-	put /api/v1/admin/points-products/:id/status
-
-	@handler DeletePointsProduct
-	delete /api/v1/admin/points-products/:id
-
-	@handler ListPointsOrders
-	get /api/v1/admin/points-orders
-
-	@handler DetailPointsOrder
-	get /api/v1/admin/points-orders/:id
-
-	@handler ShipPointsOrder
-	post /api/v1/admin/points-orders/:id/ship
-
-	@handler CompletePointsOrder
-	post /api/v1/admin/points-orders/:id/complete
-
-	@handler CancelPointsOrder
-	post /api/v1/admin/points-orders/:id/cancel
-
-	@handler RemarkPointsOrder
-	put /api/v1/admin/points-orders/:id/remark
 }
 

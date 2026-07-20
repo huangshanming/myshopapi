@@ -6,11 +6,16 @@ package handler
 import (
 	"net/http"
 
-	admin "mymall/services/order-service/internal/handler/admin"
-	merchant "mymall/services/order-service/internal/handler/merchant"
-	public "mymall/services/order-service/internal/handler/public"
-	shared "mymall/services/order-service/internal/handler/shared"
-	user "mymall/services/order-service/internal/handler/user"
+	adminlogistics "mymall/services/order-service/internal/handler/admin/logistics"
+	adminorder "mymall/services/order-service/internal/handler/admin/order"
+	adminreview "mymall/services/order-service/internal/handler/admin/review"
+	merchantorder "mymall/services/order-service/internal/handler/merchant/order"
+	merchantreview "mymall/services/order-service/internal/handler/merchant/review"
+	publichealth "mymall/services/order-service/internal/handler/public/health"
+	publicreview "mymall/services/order-service/internal/handler/public/review"
+	sharedlogistics "mymall/services/order-service/internal/handler/shared/logistics"
+	userorder "mymall/services/order-service/internal/handler/user/order"
+	userreview "mymall/services/order-service/internal/handler/user/review"
 	"mymall/services/order-service/internal/svc"
 
 	"github.com/zeromicro/go-zero/rest"
@@ -23,73 +28,89 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			[]rest.Route{
 				{
 					Method:  http.MethodGet,
-					Path:    "/api/v1/admin/after-sales",
-					Handler: admin.AdminAfterSalesHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/api/v1/admin/after-sales/:id/handle",
-					Handler: admin.AdminHandleAfterSaleHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
 					Path:    "/api/v1/admin/logistics",
-					Handler: admin.AdminListLogisticsHandler(serverCtx),
+					Handler: adminlogistics.AdminListLogisticsHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/admin/logistics",
-					Handler: admin.AdminCreateLogisticsHandler(serverCtx),
+					Handler: adminlogistics.AdminCreateLogisticsHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPut,
 					Path:    "/api/v1/admin/logistics/:id",
-					Handler: admin.AdminUpdateLogisticsHandler(serverCtx),
+					Handler: adminlogistics.AdminUpdateLogisticsHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodDelete,
 					Path:    "/api/v1/admin/logistics/:id",
-					Handler: admin.AdminDeleteLogisticsHandler(serverCtx),
+					Handler: adminlogistics.AdminDeleteLogisticsHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPut,
 					Path:    "/api/v1/admin/logistics/:id/status",
-					Handler: admin.UpdateStatusHandler(serverCtx),
+					Handler: adminlogistics.UpdateStatusHandler(serverCtx),
+				},
+			}...,
+		),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.RequestID, serverCtx.GatewayIdentity, serverCtx.RequirePlatformAdmin},
+			[]rest.Route{
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/admin/after-sales",
+					Handler: adminorder.AdminAfterSalesHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/api/v1/admin/after-sales/:id/handle",
+					Handler: adminorder.AdminHandleAfterSaleHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/admin/orders",
-					Handler: admin.AdminListOrdersHandler(serverCtx),
+					Handler: adminorder.AdminListOrdersHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/admin/orders/:id",
-					Handler: admin.AdminDetailHandler(serverCtx),
+					Handler: adminorder.AdminDetailHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPut,
 					Path:    "/api/v1/admin/orders/:id/complete",
-					Handler: admin.AdminCompleteHandler(serverCtx),
+					Handler: adminorder.AdminCompleteHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPut,
 					Path:    "/api/v1/admin/orders/:id/remark",
-					Handler: admin.AdminRemarkHandler(serverCtx),
+					Handler: adminorder.AdminRemarkHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPut,
 					Path:    "/api/v1/admin/orders/:id/ship",
-					Handler: admin.AdminShipHandler(serverCtx),
+					Handler: adminorder.AdminShipHandler(serverCtx),
 				},
+			}...,
+		),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.RequestID, serverCtx.GatewayIdentity, serverCtx.RequirePlatformAdmin},
+			[]rest.Route{
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/admin/reviews",
-					Handler: admin.AdminListReviewsHandler(serverCtx),
+					Handler: adminreview.AdminListReviewsHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodDelete,
 					Path:    "/api/v1/admin/reviews/:id",
-					Handler: admin.AdminDeleteHandler(serverCtx),
+					Handler: adminreview.AdminDeleteHandler(serverCtx),
 				},
 			}...,
 		),
@@ -102,52 +123,83 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/merchant/after-sales",
-					Handler: merchant.MerchantAfterSalesHandler(serverCtx),
+					Handler: merchantorder.MerchantAfterSalesHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPut,
 					Path:    "/api/v1/merchant/after-sales/:id/handle",
-					Handler: merchant.MerchantHandleAfterSaleHandler(serverCtx),
+					Handler: merchantorder.MerchantHandleAfterSaleHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/merchant/orders",
-					Handler: merchant.MerchantListOrdersHandler(serverCtx),
+					Handler: merchantorder.MerchantListOrdersHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/merchant/orders/:id",
-					Handler: merchant.MerchantDetailHandler(serverCtx),
+					Handler: merchantorder.MerchantDetailHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPut,
 					Path:    "/api/v1/merchant/orders/:id/complete",
-					Handler: merchant.MerchantCompleteHandler(serverCtx),
+					Handler: merchantorder.MerchantCompleteHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPut,
 					Path:    "/api/v1/merchant/orders/:id/remark",
-					Handler: merchant.MerchantRemarkHandler(serverCtx),
+					Handler: merchantorder.MerchantRemarkHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPut,
 					Path:    "/api/v1/merchant/orders/:id/ship",
-					Handler: merchant.MerchantShipHandler(serverCtx),
+					Handler: merchantorder.MerchantShipHandler(serverCtx),
 				},
+			}...,
+		),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.RequestID, serverCtx.GatewayIdentityShop, serverCtx.RequireMerchantOwner},
+			[]rest.Route{
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/merchant/reviews",
-					Handler: merchant.MerchantListReviewsHandler(serverCtx),
+					Handler: merchantreview.MerchantListReviewsHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodDelete,
 					Path:    "/api/v1/merchant/reviews/:id",
-					Handler: merchant.MerchantDeleteHandler(serverCtx),
+					Handler: merchantreview.MerchantDeleteHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPut,
 					Path:    "/api/v1/merchant/reviews/:id/reply",
-					Handler: merchant.MerchantReplyHandler(serverCtx),
+					Handler: merchantreview.MerchantReplyHandler(serverCtx),
+				},
+			}...,
+		),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.RequestID},
+			[]rest.Route{
+				{
+					Method:  http.MethodGet,
+					Path:    "/healthz",
+					Handler: publichealth.HealthzHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/metrics",
+					Handler: publichealth.MetricsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/readyz",
+					Handler: publichealth.ReadyzHandler(serverCtx),
 				},
 			}...,
 		),
@@ -160,22 +212,7 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/products/:id/reviews",
-					Handler: public.PublicListProductReviewsHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/healthz",
-					Handler: public.HealthzHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/metrics",
-					Handler: public.MetricsHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/readyz",
-					Handler: public.ReadyzHandler(serverCtx),
+					Handler: publicreview.PublicListProductReviewsHandler(serverCtx),
 				},
 			}...,
 		),
@@ -188,7 +225,7 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/logistics/options",
-					Handler: shared.LogisticsOptionsHandler(serverCtx),
+					Handler: sharedlogistics.LogisticsOptionsHandler(serverCtx),
 				},
 			}...,
 		),
@@ -201,67 +238,75 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/orders",
-					Handler: user.UserCreateOrderHandler(serverCtx),
+					Handler: userorder.UserCreateOrderHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/orders",
-					Handler: user.UserListOrdersHandler(serverCtx),
+					Handler: userorder.UserListOrdersHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/orders/:id",
-					Handler: user.UserGetOrderHandler(serverCtx),
+					Handler: userorder.UserGetOrderHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/orders/:id/after-sales",
-					Handler: user.CreateAfterSaleHandler(serverCtx),
+					Handler: userorder.CreateAfterSaleHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPut,
 					Path:    "/api/v1/orders/:id/cancel",
-					Handler: user.CancelHandler(serverCtx),
+					Handler: userorder.CancelHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPut,
 					Path:    "/api/v1/orders/:id/confirm-receive",
-					Handler: user.ConfirmReceiveHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/orders/:id/review",
-					Handler: user.GetByOrderHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/orders/:id/review-eligible",
-					Handler: user.EligibleHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/api/v1/orders/:id/reviews",
-					Handler: user.UserCreateReviewHandler(serverCtx),
+					Handler: userorder.ConfirmReceiveHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/orders/after-sales",
-					Handler: user.UserAfterSalesHandler(serverCtx),
+					Handler: userorder.UserAfterSalesHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/orders/coupon-preview",
-					Handler: user.CouponPreviewHandler(serverCtx),
+					Handler: userorder.CouponPreviewHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/orders/status-counts",
-					Handler: user.StatusCountsHandler(serverCtx),
+					Handler: userorder.StatusCountsHandler(serverCtx),
+				},
+			}...,
+		),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.RequestID, serverCtx.GatewayIdentity},
+			[]rest.Route{
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/orders/:id/review",
+					Handler: userreview.GetByOrderHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/orders/:id/review-eligible",
+					Handler: userreview.EligibleHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/orders/:id/reviews",
+					Handler: userreview.UserCreateReviewHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/user/review-uploads",
-					Handler: user.UserUploadReviewHandler(serverCtx),
+					Handler: userreview.UserUploadReviewHandler(serverCtx),
 				},
 			}...,
 		),

@@ -43,30 +43,6 @@ func NewHomepageThemeHandler(svcCtx *svc.ServiceContext) *HomepageThemeHandler {
 	}
 }
 
-type PointsOrderHandler struct {
-	svcCtx *svc.ServiceContext
-	logic  *biz.PointsOrderLogic
-}
-
-func NewPointsOrderHandler(svcCtx *svc.ServiceContext) *PointsOrderHandler {
-	return &PointsOrderHandler{
-		svcCtx: svcCtx,
-		logic:  biz.NewPointsOrderLogic(context.Background(), svcCtx),
-	}
-}
-
-type PointsProductHandler struct {
-	svcCtx *svc.ServiceContext
-	logic  *biz.PointsProductLogic
-}
-
-func NewPointsProductHandler(svcCtx *svc.ServiceContext) *PointsProductHandler {
-	return &PointsProductHandler{
-		svcCtx: svcCtx,
-		logic:  biz.NewPointsProductLogic(context.Background(), svcCtx),
-	}
-}
-
 type SeckillHandler struct {
 	svcCtx *svc.ServiceContext
 	logic  *biz.MerchantLogic

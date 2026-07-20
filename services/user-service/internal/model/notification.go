@@ -38,16 +38,16 @@ type UserNotification struct {
 func (UserNotification) TableName() string { return "user_notifications" }
 
 type UserNotificationBatch struct {
-	ID            uint64           `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
-	Title         string           `gorm:"column:title;type:varchar(200)" json:"title"`
-	Content       string           `gorm:"column:content;type:varchar(1000)" json:"content"`
-	Target        string           `gorm:"column:target;type:varchar(16)" json:"target"`
-	UserCount     int              `gorm:"column:user_count" json:"user_count"`
-	SuccessCount  int              `gorm:"column:success_count" json:"success_count"`
-	LinkType      string           `gorm:"column:link_type;type:varchar(16)" json:"link_type"`
-	LinkID        uint64           `gorm:"column:link_id" json:"link_id"`
-	SenderID      uint64           `gorm:"column:sender_id" json:"sender_id"`
-	CreatedAt     common.LocalTime `gorm:"column:created_at" json:"created_at"`
+	ID           uint64           `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
+	Title        string           `gorm:"column:title;type:varchar(200)" json:"title"`
+	Content      string           `gorm:"column:content;type:varchar(1000)" json:"content"`
+	Target       string           `gorm:"column:target;type:varchar(16)" json:"target"`
+	UserCount    int              `gorm:"column:user_count" json:"user_count"`
+	SuccessCount int              `gorm:"column:success_count" json:"success_count"`
+	LinkType     string           `gorm:"column:link_type;type:varchar(16)" json:"link_type"`
+	LinkID       uint64           `gorm:"column:link_id" json:"link_id"`
+	SenderID     uint64           `gorm:"column:sender_id" json:"sender_id"`
+	CreatedAt    common.LocalTime `gorm:"column:created_at" json:"created_at"`
 }
 
 func (UserNotificationBatch) TableName() string { return "user_notification_batches" }

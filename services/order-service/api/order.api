@@ -1,10 +1,11 @@
 syntax = "v1"
 
 // Route table SSOT for order-service.
+// group: <role>/<module> → internal/handler/<role>/<module>/
 // Keep in sync with internal/handler/routes.go; run: scripts/check-api-routes.sh order-service
 @server (
 	middleware: RequestID
-	group:      public
+	group:      public/health
 )
 service orderapi {
 	@handler Healthz
@@ -15,14 +16,20 @@ service orderapi {
 
 	@handler Metrics
 	get /metrics
+}
 
+@server (
+	middleware: RequestID
+	group:      public/review
+)
+service orderapi {
 	@handler PublicListProductReviews
 	get /api/v1/products/:id/reviews
 }
 
 @server (
 	middleware: RequestID,GatewayIdentity
-	group:      user
+	group:      user/order
 )
 service orderapi {
 	@handler UserCreateOrder
@@ -51,7 +58,13 @@ service orderapi {
 
 	@handler CreateAfterSale
 	post /api/v1/orders/:id/after-sales
+}
 
+@server (
+	middleware: RequestID,GatewayIdentity
+	group:      user/review
+)
+service orderapi {
 	@handler Eligible
 	get /api/v1/orders/:id/review-eligible
 
@@ -67,7 +80,7 @@ service orderapi {
 
 @server (
 	middleware: RequestID,GatewayIdentityShop,RequireMerchantOwner
-	group:      merchant
+	group:      merchant/review
 )
 service orderapi {
 	@handler MerchantListReviews
@@ -78,7 +91,13 @@ service orderapi {
 
 	@handler MerchantDelete
 	delete /api/v1/merchant/reviews/:id
+}
 
+@server (
+	middleware: RequestID,GatewayIdentityShop,RequireMerchantOwner
+	group:      merchant/order
+)
+service orderapi {
 	@handler MerchantListOrders
 	get /api/v1/merchant/orders
 
@@ -103,7 +122,7 @@ service orderapi {
 
 @server (
 	middleware: RequestID,GatewayIdentity,RequirePlatformOrMerchant
-	group:      shared
+	group:      shared/logistics
 )
 service orderapi {
 	@handler LogisticsOptions
@@ -112,7 +131,7 @@ service orderapi {
 
 @server (
 	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
-	group:      admin
+	group:      admin/review
 )
 service orderapi {
 	@handler AdminListReviews
@@ -120,7 +139,13 @@ service orderapi {
 
 	@handler AdminDelete
 	delete /api/v1/admin/reviews/:id
+}
 
+@server (
+	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
+	group:      admin/order
+)
+service orderapi {
 	@handler AdminListOrders
 	get /api/v1/admin/orders
 
@@ -141,7 +166,13 @@ service orderapi {
 
 	@handler AdminHandleAfterSale
 	put /api/v1/admin/after-sales/:id/handle
+}
 
+@server (
+	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
+	group:      admin/logistics
+)
+service orderapi {
 	@handler AdminListLogistics
 	get /api/v1/admin/logistics
 

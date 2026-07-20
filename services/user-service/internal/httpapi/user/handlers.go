@@ -54,3 +54,15 @@ func NewWalletHandler(svcCtx *svc.ServiceContext) *WalletHandler {
 		logic:  biz.NewWalletLogic(context.Background(), svcCtx),
 	}
 }
+
+type PointsOrderHandler struct {
+	svcCtx *svc.ServiceContext
+	logic  *biz.PointsOrderLogic
+}
+
+func NewPointsOrderHandler(svcCtx *svc.ServiceContext) *PointsOrderHandler {
+	return &PointsOrderHandler{
+		svcCtx: svcCtx,
+		logic:  biz.NewPointsOrderLogic(context.Background(), svcCtx),
+	}
+}

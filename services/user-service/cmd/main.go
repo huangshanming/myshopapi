@@ -72,6 +72,8 @@ func main() {
 		&model.TaskDefinition{},
 		&model.UserTaskProgress{},
 		&model.UserTaskDedupe{},
+		&model.PointsProduct{},
+		&model.PointsExchangeOrder{},
 	); err != nil {
 		log.Fatalf("AutoMigrate 失败：%v", err)
 	}

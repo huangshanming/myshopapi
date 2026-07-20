@@ -1,10 +1,11 @@
 syntax = "v1"
 
 // Route table SSOT for user-service.
+// group: <role>/<module> → internal/handler/<role>/<module>/
 // Keep in sync with internal/handler/routes.go; run: scripts/check-api-routes.sh user-service
 @server (
 	middleware: RequestID
-	group:      public
+	group:      public/health
 )
 service userapi {
 	@handler Healthz
@@ -15,13 +16,25 @@ service userapi {
 
 	@handler Metrics
 	get /metrics
+}
 
+@server (
+	middleware: RequestID
+	group:      public/auth
+)
+service userapi {
 	@handler Login
 	post /api/v1/user/login
 
 	@handler Register
 	post /api/v1/user/register
+}
 
+@server (
+	middleware: RequestID
+	group:      public/region
+)
+service userapi {
 	@handler ListRegions
 	get /api/v1/regions
 
@@ -31,7 +44,7 @@ service userapi {
 
 @server (
 	middleware: RequestID
-	group:      internalapi
+	group:      internalapi/wallet
 )
 service userapi {
 	@handler InternalFreezeWallet
@@ -42,16 +55,40 @@ service userapi {
 
 	@handler InternalSettleWallet
 	post /api/v1/user/wallet/settle
+}
 
+@server (
+	middleware: RequestID
+	group:      internalapi/address
+)
+service userapi {
 	@handler InternalGet
 	get /api/v1/user/addresses/internal
+}
 
+@server (
+	middleware: RequestID
+	group:      internalapi/notification
+)
+service userapi {
 	@handler InternalCreateNotification
 	post /api/v1/internal/notifications
+}
 
+@server (
+	middleware: RequestID
+	group:      internalapi/task
+)
+service userapi {
 	@handler InternalEvent
 	post /api/v1/internal/tasks/events
+}
 
+@server (
+	middleware: RequestID
+	group:      internalapi/points
+)
+service userapi {
 	@handler InternalDeductPoints
 	post /api/v1/internal/points/deduct
 
@@ -61,18 +98,30 @@ service userapi {
 
 @server (
 	middleware: RequestID,UserFlexibleAuth
-	group:      user
+	group:      user/profile
 )
 service userapi {
 	@handler UserProfile
 	get /api/v1/user/profile
+}
 
+@server (
+	middleware: RequestID,UserFlexibleAuth
+	group:      user/wallet
+)
+service userapi {
 	@handler UserGetWallet
 	get /api/v1/user/wallet
 
 	@handler UserWalletLogs
 	get /api/v1/user/wallet/logs
+}
 
+@server (
+	middleware: RequestID,UserFlexibleAuth
+	group:      user/address
+)
+service userapi {
 	@handler UserListAddresses
 	get /api/v1/user/addresses
 
@@ -87,7 +136,13 @@ service userapi {
 
 	@handler SetDefault
 	put /api/v1/user/addresses/:id/default
+}
 
+@server (
+	middleware: RequestID,UserFlexibleAuth
+	group:      user/notification
+)
+service userapi {
 	@handler ListNotifications
 	get /api/v1/user/notifications
 
@@ -99,13 +154,25 @@ service userapi {
 
 	@handler MarkAllNotificationsRead
 	post /api/v1/user/notifications/read-all
+}
 
+@server (
+	middleware: RequestID,UserFlexibleAuth
+	group:      user/points
+)
+service userapi {
 	@handler UserPoints
 	get /api/v1/user/points
 
 	@handler UserPointLogs
 	get /api/v1/user/points/logs
+}
 
+@server (
+	middleware: RequestID,UserFlexibleAuth
+	group:      user/task
+)
+service userapi {
 	@handler UserListTasks
 	get /api/v1/user/tasks
 
@@ -121,12 +188,18 @@ service userapi {
 
 @server (
 	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
-	group:      admin
+	group:      admin/auth
 )
 service userapi {
 	@handler AuthMe
 	get /api/v1/admin/auth/me
+}
 
+@server (
+	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
+	group:      admin/menu
+)
+service userapi {
 	@handler MenuTree
 	get /api/v1/admin/menus
 
@@ -138,7 +211,13 @@ service userapi {
 
 	@handler DeleteMenu
 	delete /api/v1/admin/menus/:id
+}
 
+@server (
+	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
+	group:      admin/role
+)
+service userapi {
 	@handler ListRoles
 	get /api/v1/admin/roles
 
@@ -156,7 +235,13 @@ service userapi {
 
 	@handler AssignRoleMenus
 	put /api/v1/admin/roles/:id/menus
+}
 
+@server (
+	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
+	group:      admin/user
+)
+service userapi {
 	@handler ListUsers
 	get /api/v1/admin/users
 
@@ -186,7 +271,13 @@ service userapi {
 
 	@handler AdminListUserAddresses
 	get /api/v1/admin/users/:id/addresses
+}
 
+@server (
+	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
+	group:      admin/staff
+)
+service userapi {
 	@handler ListAdmins
 	get /api/v1/admin/admins
 
@@ -201,13 +292,25 @@ service userapi {
 
 	@handler ResetAdminPassword
 	put /api/v1/admin/admins/:id/password
+}
 
+@server (
+	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
+	group:      admin/config
+)
+service userapi {
 	@handler ListConfigs
 	get /api/v1/admin/configs
 
 	@handler SaveConfigs
 	put /api/v1/admin/configs
+}
 
+@server (
+	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
+	group:      admin/notification
+)
+service userapi {
 	@handler AdminSendNotification
 	post /api/v1/admin/notifications/send
 
@@ -216,11 +319,86 @@ service userapi {
 
 	@handler AdminListNotificationRecipients
 	get /api/v1/admin/notifications/sends/:id/recipients
+}
 
+@server (
+	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
+	group:      admin/task
+)
+service userapi {
 	@handler AdminListTasks
 	get /api/v1/admin/tasks
 
 	@handler AdminUpdateTask
 	put /api/v1/admin/tasks/:id
+}
+
+@server (
+	middleware: RequestID
+	group:      public/points_mall
+)
+service userapi {
+	@handler ServePointsMallUpload
+	get /uploads/points-mall/:file
+}
+
+@server (
+	middleware: RequestID,GatewayIdentity
+	group:      user/points_mall
+)
+service userapi {
+	@handler Exchange
+	post /api/v1/user/points-mall/exchange
+
+	@handler ListUserPointsOrders
+	get /api/v1/user/points-mall/orders
+
+	@handler DetailUserPointsOrder
+	get /api/v1/user/points-mall/orders/:id
+}
+
+@server (
+	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
+	group:      admin/points_mall
+)
+service userapi {
+	@handler ListPointsProducts
+	get /api/v1/admin/points-products
+
+	@handler CreatePointsProduct
+	post /api/v1/admin/points-products
+
+	@handler UploadPointsProduct
+	post /api/v1/admin/points-products/upload
+
+	@handler DetailPointsProduct
+	get /api/v1/admin/points-products/:id
+
+	@handler UpdatePointsProduct
+	put /api/v1/admin/points-products/:id
+
+	@handler SetPointsProductStatus
+	put /api/v1/admin/points-products/:id/status
+
+	@handler DeletePointsProduct
+	delete /api/v1/admin/points-products/:id
+
+	@handler ListPointsOrders
+	get /api/v1/admin/points-orders
+
+	@handler DetailPointsOrder
+	get /api/v1/admin/points-orders/:id
+
+	@handler ShipPointsOrder
+	post /api/v1/admin/points-orders/:id/ship
+
+	@handler CompletePointsOrder
+	post /api/v1/admin/points-orders/:id/complete
+
+	@handler CancelPointsOrder
+	post /api/v1/admin/points-orders/:id/cancel
+
+	@handler RemarkPointsOrder
+	put /api/v1/admin/points-orders/:id/remark
 }
 

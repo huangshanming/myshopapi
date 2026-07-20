@@ -63,8 +63,6 @@ func main() {
 		&model.UserCoupon{},
 		&model.CouponGrant{},
 		&model.CouponRedeemLog{},
-		&model.PointsProduct{},
-		&model.PointsExchangeOrder{},
 	); err != nil {
 		log.Fatalf("AutoMigrate 失败：%v", err)
 	}
