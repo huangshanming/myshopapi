@@ -2,12 +2,15 @@ package notification
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"mymall/pkg/appinput"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	nlogic "mymall/services/catalog-service/internal/notify/logic"
+	"mymall/services/catalog-service/internal/notify/repository"
+	"net/http"
 	"net/url"
 
-	hhandler "mymall/services/catalog-service/internal/notify/handler"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
 
@@ -27,20 +30,24 @@ func NewMerchantListNotificationsLogic(ctx context.Context, svcCtx *svc.ServiceC
 }
 
 func (l *MerchantListNotificationsLogic) MerchantListNotifications(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hhandler.NewNotificationHandler(l.svcCtx).List(ctx, appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}})
-	if err != nil {
-		return nil, err
+	in := appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}}
+
+	shopID := middleware.GetShopID(ctx)
+	if shopID == 0 {
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	b, _ := json.Marshal(data)
-	var out types.PageListResp
-	if err := json.Unmarshal(b, &out); err != nil {
-		var list interface{}
-		if err2 := func() error { b, _ := json.Marshal(data); return json.Unmarshal(b, &list) }(); err2 == nil {
-			return &types.PageListResp{List: list}, nil
+	page, pageSize := in.Page()
+	f := repository.NotificationListFilter{ShopID: shopID, Page: page, PageSize: pageSize}
+	if s := in.QueryGet("is_read"); s == "0" || s == "1" {
+		v := int8(0)
+		if s == "1" {
+			v = 1
 		}
-		return nil, err
+		f.IsRead = &v
 	}
-	return &out, nil
+	data, err := nlogic.NewNotificationLogic(l.svcCtx).List(ctx, f)
+	if err != nil {
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
+	}
+	return &types.PageListResp{List: data}, nil
 }

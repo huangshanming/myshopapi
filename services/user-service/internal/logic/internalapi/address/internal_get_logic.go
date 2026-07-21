@@ -2,14 +2,14 @@ package address
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
-	hinternal "mymall/services/user-service/internal/app/internalapi"
-	"mymall/services/user-service/internal/svc"
-	"mymall/services/user-service/internal/types"
-	"net/url"
+	"net/http"
 
 	"github.com/zeromicro/go-zero/core/logx"
+
+	"mymall/pkg/xerr"
+	"mymall/services/user-service/internal/biz"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 )
 
 type InternalGetLogic struct {
@@ -25,9 +25,12 @@ func NewInternalGetLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Inter
 }
 
 func (l *InternalGetLogic) InternalGet(ctx context.Context, req *types.InternalAddressReq) (resp *types.AnyResp, err error) {
-	data, err := hinternal.NewAddressHandler(l.svcCtx).InternalGet(ctx, appinput.CallInput{Query: url.Values{"id": {fmt.Sprintf("%d", req.Id)}, "user_id": {fmt.Sprintf("%d", req.UserID)}}})
-	if err != nil {
-		return nil, err
+	if req.UserID == 0 || req.Id == 0 {
+		return nil, xerr.New(http.StatusBadRequest, "参数无效")
 	}
-	return &types.AnyResp{Data: data}, nil
+	a, err := biz.NewAddressLogic(l.svcCtx).Get(ctx, req.UserID, req.Id)
+	if err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
+	}
+	return &types.AnyResp{Data: a}, nil
 }

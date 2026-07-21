@@ -2,11 +2,13 @@ package article
 
 import (
 	"context"
-	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	clogic "mymall/services/catalog-service/internal/content/logic"
+	ctypes "mymall/services/catalog-service/internal/content/types"
+	"net/http"
 
-	hadmin "mymall/services/catalog-service/internal/content/app/admin"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
 
@@ -26,11 +28,16 @@ func NewAdminCreateArticleLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 }
 
 func (l *AdminCreateArticleLogic) AdminCreateArticle(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hadmin.NewArticleHandler(l.svcCtx).Create(ctx, appinput.CallInput{Body: req})
-	if err != nil {
-		return nil, err
+	in := appinput.CallInput{Body: req}
+
+	uid, _ := middleware.GetUserID(ctx)
+	var body ctypes.ArticleSaveReq
+	if err := appinput.BindBody(in, &body); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	return &types.AnyResp{Data: data}, nil
+	a, err := clogic.NewArticleLogic(l.svcCtx).AdminCreate(ctx, uid, body)
+	if err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
+	}
+	return &types.AnyResp{Data: a}, nil
 }

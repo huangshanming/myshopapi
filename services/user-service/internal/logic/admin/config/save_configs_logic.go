@@ -2,12 +2,14 @@ package config
 
 import (
 	"context"
-	"mymall/pkg/appinput"
-	hadmin "mymall/services/user-service/internal/app/admin"
-	"mymall/services/user-service/internal/svc"
-	"mymall/services/user-service/internal/types"
+	"net/http"
 
 	"github.com/zeromicro/go-zero/core/logx"
+
+	"mymall/pkg/xerr"
+	"mymall/services/user-service/internal/biz"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 )
 
 type SaveConfigsLogic struct {
@@ -23,9 +25,8 @@ func NewSaveConfigsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *SaveC
 }
 
 func (l *SaveConfigsLogic) SaveConfigs(ctx context.Context, req *types.ConfigBatchReq) error {
-	_, err := hadmin.NewAdminHandler(l.svcCtx).SaveConfigs(ctx, appinput.CallInput{Body: req})
-	if err != nil {
-		return err
+	if err := biz.NewRBACLogic(l.svcCtx).SaveConfigs(ctx, req.Items); err != nil {
+		return xerr.New(http.StatusBadRequest, err.Error())
 	}
 	return nil
 }

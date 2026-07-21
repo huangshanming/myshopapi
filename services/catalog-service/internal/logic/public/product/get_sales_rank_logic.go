@@ -2,11 +2,11 @@ package product
 
 import (
 	"context"
-	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/xerr"
+	plogic "mymall/services/catalog-service/internal/product/logic"
+	"net/http"
 
-	hpublic "mymall/services/catalog-service/internal/product/app/public"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
 
@@ -26,11 +26,12 @@ func NewGetSalesRankLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetS
 }
 
 func (l *GetSalesRankLogic) GetSalesRank(ctx context.Context) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hpublic.NewCatalogHandler(l.svcCtx).GetSalesRank(ctx, appinput.CallInput{})
+	in := appinput.CallInput{}
+
+	page, pageSize := in.Page()
+	data, err := plogic.NewCatalogLogic(l.svcCtx).GetSalesRank(ctx, page, pageSize)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusInternalServerError, "查询失败")
 	}
 	return &types.AnyResp{Data: data}, nil
 }

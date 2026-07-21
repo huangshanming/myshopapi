@@ -2,11 +2,11 @@ package shop
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	"mymall/services/merchant-service/internal/biz"
+	"net/http"
 
-	hmerchant "mymall/services/merchant-service/internal/app/merchant"
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
 
@@ -26,11 +26,14 @@ func NewMyShopsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MyShopsLo
 }
 
 func (l *MyShopsLogic) MyShops(ctx context.Context) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hmerchant.NewShopHandler(l.svcCtx).MyShops(ctx, appinput.CallInput{})
-	if err != nil {
-		return nil, err
+
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
-	return &types.AnyResp{Data: data}, nil
+	shops, err := biz.NewMerchantLogic(l.svcCtx).MyShops(ctx, userID)
+	if err != nil {
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
+	}
+	return &types.AnyResp{Data: shops}, nil
 }

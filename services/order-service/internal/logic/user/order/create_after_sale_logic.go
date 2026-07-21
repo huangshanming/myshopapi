@@ -2,11 +2,11 @@ package order
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
-	"net/url"
+	"net/http"
 
-	huser "mymall/services/order-service/internal/app/user"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	"mymall/services/order-service/internal/biz"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
 
@@ -19,18 +19,19 @@ type CreateAfterSaleLogic struct {
 }
 
 func NewCreateAfterSaleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *CreateAfterSaleLogic {
-	return &CreateAfterSaleLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &CreateAfterSaleLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *CreateAfterSaleLogic) CreateAfterSale(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := huser.NewOrderHandler(l.svcCtx).CreateAfterSale(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
-	if err != nil {
-		return nil, err
+func (l *CreateAfterSaleLogic) CreateAfterSale(ctx context.Context, req *types.CreateAfterSaleBodyReq) (*types.AnyResp, error) {
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
-	return &types.AnyResp{Data: data}, nil
+	as, err := biz.NewOrderLogic(l.svcCtx).CreateAfterSale(ctx, userID, req.Id, types.CreateAfterSaleReq{
+		Type: req.Type, Reason: req.Reason, Amount: req.Amount,
+	})
+	if err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
+	}
+	return &types.AnyResp{Data: as}, nil
 }

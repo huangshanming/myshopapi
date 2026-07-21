@@ -2,11 +2,11 @@ package coupon
 
 import (
 	"context"
-	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/xerr"
+	"mymall/services/merchant-service/internal/biz"
+	"net/http"
 
-	hinternal "mymall/services/merchant-service/internal/app/internalapi"
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
 
@@ -26,11 +26,15 @@ func NewInternalMatchCouponsLogic(ctx context.Context, svcCtx *svc.ServiceContex
 }
 
 func (l *InternalMatchCouponsLogic) InternalMatchCoupons(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hinternal.NewCouponHandler(l.svcCtx).InternalMatchCoupons(ctx, appinput.CallInput{Body: req})
+	in := appinput.CallInput{Body: req}
+
+	var body biz.MatchReq
+	if err := appinput.BindBody(in, &body); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
+	}
+	data, err := biz.NewMerchantLogic(l.svcCtx).MatchCoupons(body)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
 	return &types.AnyResp{Data: data}, nil
 }

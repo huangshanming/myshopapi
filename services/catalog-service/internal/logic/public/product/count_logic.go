@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/xerr"
+	plogic "mymall/services/catalog-service/internal/product/logic"
+	"net/http"
+	"strconv"
 
-	huser "mymall/services/catalog-service/internal/product/app/user"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
 
@@ -26,11 +28,15 @@ func NewCountLogic(ctx context.Context, svcCtx *svc.ServiceContext) *CountLogic 
 }
 
 func (l *CountLogic) Count(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := huser.NewFavoriteHandler(l.svcCtx).Count(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}})
-	if err != nil {
-		return nil, err
+	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}}
+
+	productID, err := strconv.ParseUint(in.Path("id"), 10, 64)
+	if err != nil || productID == 0 {
+		return nil, xerr.New(http.StatusBadRequest, "商品ID无效")
 	}
-	return &types.AnyResp{Data: data}, nil
+	n, err := plogic.NewFavoriteLogic(l.svcCtx).FavoriteCount(productID)
+	if err != nil {
+		return nil, xerr.New(http.StatusNotFound, "商品不存在")
+	}
+	return &types.AnyResp{Data: map[string]int64{"count": n}}, nil
 }

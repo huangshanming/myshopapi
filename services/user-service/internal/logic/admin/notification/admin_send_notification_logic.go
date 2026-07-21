@@ -2,12 +2,16 @@ package notification
 
 import (
 	"context"
-	"mymall/pkg/appinput"
-	hadmin "mymall/services/user-service/internal/app/admin"
-	"mymall/services/user-service/internal/svc"
-	"mymall/services/user-service/internal/types"
+	"net/http"
 
 	"github.com/zeromicro/go-zero/core/logx"
+
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	"mymall/services/user-service/internal/biz"
+	"mymall/services/user-service/internal/model"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 )
 
 type AdminSendNotificationLogic struct {
@@ -23,9 +27,19 @@ func NewAdminSendNotificationLogic(ctx context.Context, svcCtx *svc.ServiceConte
 }
 
 func (l *AdminSendNotificationLogic) AdminSendNotification(ctx context.Context, req *types.AdminSendReq) (resp *types.AnyResp, err error) {
-	data, err := hadmin.NewAdminHandler(l.svcCtx).AdminSendNotification(ctx, appinput.CallInput{Body: req})
-	if err != nil {
-		return nil, err
+	adminID, _ := middleware.GetUserID(ctx)
+	target := model.NotifyTargetUsers
+	if req.SendAll {
+		target = model.NotifyTargetAll
 	}
-	return &types.AnyResp{Data: data}, nil
+	batch, err := biz.NewUserLogic(l.svcCtx).AdminSend(ctx, adminID, biz.AdminSendReq{
+		Title:   req.Title,
+		Content: req.Content,
+		Target:  target,
+		UserIDs: req.UserIDs,
+	})
+	if err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
+	}
+	return &types.AnyResp{Data: batch}, nil
 }

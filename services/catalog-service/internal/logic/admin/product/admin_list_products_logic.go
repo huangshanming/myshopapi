@@ -2,12 +2,16 @@ package product
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"mymall/pkg/appinput"
+	"mymall/pkg/xerr"
+	plogic "mymall/services/catalog-service/internal/product/logic"
+	"mymall/services/catalog-service/internal/product/repository"
+	"net/http"
 	"net/url"
+	"strconv"
+	"time"
 
-	hadmin "mymall/services/catalog-service/internal/product/app/admin"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
 
@@ -27,20 +31,42 @@ func NewAdminListProductsLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 }
 
 func (l *AdminListProductsLogic) AdminListProducts(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hadmin.NewPlatformProductHandler(l.svcCtx).List(ctx, appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}})
-	if err != nil {
-		return nil, err
+	in := appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}}
+
+	page, pageSize := in.Page()
+	shopID, _ := strconv.ParseUint(in.QueryGet("shop_id"), 10, 64)
+	catID, _ := strconv.ParseUint(in.QueryGet("category_id"), 10, 64)
+	f := repository.ProductListFilter{
+		ShopID: shopID, Name: in.QueryGet("name"), ProductNo: in.QueryGet("product_no"),
+		CategoryID: catID, Status: in.QueryGet("status"), ProductType: in.QueryGet("product_type"),
+		Page: page, PageSize: pageSize, OrderBy: in.QueryGet("order_by"),
+		PlatformScope: true,
 	}
-	b, _ := json.Marshal(data)
-	var out types.PageListResp
-	if err := json.Unmarshal(b, &out); err != nil {
-		var list interface{}
-		if err2 := func() error { b, _ := json.Marshal(data); return json.Unmarshal(b, &list) }(); err2 == nil {
-			return &types.PageListResp{List: list}, nil
+	if s := in.QueryGet("created_from"); s != "" {
+		if t, err := time.ParseInLocation("2006-01-02", s, time.Local); err == nil {
+			f.CreatedFrom = &t
 		}
-		return nil, err
 	}
-	return &out, nil
+	if s := in.QueryGet("created_to"); s != "" {
+		if t, err := time.ParseInLocation("2006-01-02", s, time.Local); err == nil {
+			end := t.Add(24*time.Hour - time.Second)
+			f.CreatedTo = &end
+		}
+	}
+	if s := in.QueryGet("publish_from"); s != "" {
+		if t, err := time.ParseInLocation("2006-01-02", s, time.Local); err == nil {
+			f.PublishFrom = &t
+		}
+	}
+	if s := in.QueryGet("publish_to"); s != "" {
+		if t, err := time.ParseInLocation("2006-01-02", s, time.Local); err == nil {
+			end := t.Add(24*time.Hour - time.Second)
+			f.PublishTo = &end
+		}
+	}
+	data, err := plogic.NewPlatformProductLogic(l.svcCtx).List(ctx, f)
+	if err != nil {
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
+	}
+	return &types.PageListResp{List: data}, nil
 }

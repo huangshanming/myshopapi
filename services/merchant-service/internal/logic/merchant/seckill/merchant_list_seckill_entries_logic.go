@@ -2,12 +2,14 @@ package seckill
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"mymall/pkg/appinput"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	"mymall/services/merchant-service/internal/biz"
+	"net/http"
 	"net/url"
 
-	hmerchant "mymall/services/merchant-service/internal/app/merchant"
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
 
@@ -27,20 +29,14 @@ func NewMerchantListSeckillEntriesLogic(ctx context.Context, svcCtx *svc.Service
 }
 
 func (l *MerchantListSeckillEntriesLogic) MerchantListSeckillEntries(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hmerchant.NewSeckillHandler(l.svcCtx).MerchantListSeckillEntries(ctx, appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}})
+	in := appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}}
+
+	shopID := middleware.GetShopID(ctx)
+	p, ps := in.Page()
+	list, total, err := biz.NewMerchantLogic(l.svcCtx).ListShopSeckillEntries(shopID, p, ps)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	b, _ := json.Marshal(data)
-	var out types.PageListResp
-	if err := json.Unmarshal(b, &out); err != nil {
-		var list interface{}
-		if err2 := func() error { b,_:=json.Marshal(data); return json.Unmarshal(b, &list) }(); err2 == nil {
-			return &types.PageListResp{List: list}, nil
-		}
-		return nil, err
-	}
-	return &out, nil
+	return &types.PageListResp{Total: total, List: list}, nil
+
 }

@@ -2,12 +2,14 @@ package config
 
 import (
 	"context"
-	"mymall/pkg/appinput"
-	hadmin "mymall/services/user-service/internal/app/admin"
-	"mymall/services/user-service/internal/svc"
-	"mymall/services/user-service/internal/types"
+	"net/http"
 
 	"github.com/zeromicro/go-zero/core/logx"
+
+	"mymall/pkg/xerr"
+	"mymall/services/user-service/internal/biz"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 )
 
 type ListConfigsLogic struct {
@@ -23,9 +25,9 @@ func NewListConfigsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListC
 }
 
 func (l *ListConfigsLogic) ListConfigs(ctx context.Context) (resp *types.PageListResp, err error) {
-	data, err := hadmin.NewAdminHandler(l.svcCtx).ListConfigs(ctx, appinput.CallInput{})
+	list, err := biz.NewRBACLogic(l.svcCtx).ListConfigs(ctx)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.PageListResp{List: data}, nil
+	return &types.PageListResp{List: list}, nil
 }

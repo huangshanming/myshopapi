@@ -2,12 +2,17 @@ package article
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"mymall/pkg/appinput"
+	"mymall/pkg/xerr"
+	clogic "mymall/services/catalog-service/internal/content/logic"
+	"mymall/services/catalog-service/internal/content/repository"
+	"net/http"
 	"net/url"
+	"strconv"
+	"strings"
+	"time"
 
-	hadmin "mymall/services/catalog-service/internal/content/app/admin"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
 
@@ -27,20 +32,42 @@ func NewAdminListArticleRecycleLogic(ctx context.Context, svcCtx *svc.ServiceCon
 }
 
 func (l *AdminListArticleRecycleLogic) AdminListArticleRecycle(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hadmin.NewArticleHandler(l.svcCtx).List(ctx, appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}})
-	if err != nil {
-		return nil, err
+	in := appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}}
+
+	page, pageSize := in.Page()
+	f := repository.ArticleListFilter{
+		Title:       in.QueryGet("title"),
+		AuditStatus: in.QueryGet("audit_status"),
+		Status:      in.QueryGet("status"),
+		Page:        page, PageSize: pageSize,
+		Recycle: in.QueryGet("recycle") == "1" || (in.Request != nil && strings.Contains(in.Request.URL.Path, "/recycle")),
 	}
-	b, _ := json.Marshal(data)
-	var out types.PageListResp
-	if err := json.Unmarshal(b, &out); err != nil {
-		var list interface{}
-		if err2 := func() error { b, _ := json.Marshal(data); return json.Unmarshal(b, &list) }(); err2 == nil {
-			return &types.PageListResp{List: list}, nil
+	if s := in.QueryGet("shop_id"); s != "" {
+		shopID, _ := strconv.ParseUint(s, 10, 64)
+		f.ShopID = shopID
+		f.FilterShop = true
+	}
+	if s := in.QueryGet("has_schedule"); s == "1" {
+		v := true
+		f.HasSchedule = &v
+	} else if s == "0" {
+		v := false
+		f.HasSchedule = &v
+	}
+	if s := in.QueryGet("created_from"); s != "" {
+		if t, err := time.ParseInLocation("2006-01-02", s, time.Local); err == nil {
+			f.CreatedFrom = &t
 		}
-		return nil, err
 	}
-	return &out, nil
+	if s := in.QueryGet("created_to"); s != "" {
+		if t, err := time.ParseInLocation("2006-01-02", s, time.Local); err == nil {
+			end := t.Add(24*time.Hour - time.Second)
+			f.CreatedTo = &end
+		}
+	}
+	data, err := clogic.NewArticleLogic(l.svcCtx).List(ctx, f)
+	if err != nil {
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
+	}
+	return &types.PageListResp{List: data}, nil
 }

@@ -2,11 +2,12 @@ package favorite
 
 import (
 	"context"
-	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	plogic "mymall/services/catalog-service/internal/product/logic"
+	"net/http"
 
-	huser "mymall/services/catalog-service/internal/product/app/user"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
 
@@ -26,11 +27,20 @@ func NewRemoveBatchLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Remov
 }
 
 func (l *RemoveBatchLogic) RemoveBatch(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := huser.NewFavoriteHandler(l.svcCtx).RemoveBatch(ctx, appinput.CallInput{Body: req})
-	if err != nil {
-		return nil, err
+	in := appinput.CallInput{Body: req}
+
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok || userID == 0 {
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	return &types.AnyResp{Data: data}, nil
+	var body struct {
+		ProductIDs []uint64 `json:"product_ids"`
+	}
+	if err := appinput.BindBody(in, &body); err != nil || len(body.ProductIDs) == 0 {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
+	}
+	if err := plogic.NewFavoriteLogic(l.svcCtx).RemoveBatch(ctx, userID, body.ProductIDs); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
+	}
+	return &types.AnyResp{Data: &types.AnyResp{}}, nil
 }

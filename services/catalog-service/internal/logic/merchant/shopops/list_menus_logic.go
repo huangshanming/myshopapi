@@ -2,12 +2,11 @@ package shopops
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	"mymall/services/catalog-service/internal/shopops/repository"
+	"net/http"
 
-	hhandler "mymall/services/catalog-service/internal/shopops/handler"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
 
@@ -27,20 +26,23 @@ func NewListMenusLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListMen
 }
 
 func (l *ListMenusLogic) ListMenus(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hhandler.NewShopOpsHandler(l.svcCtx).ListMenus(ctx, appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}})
+
+	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
+		shopID = middleware.GetShopID(ctx)
+		userID, _ = middleware.GetUserID(ctx)
+		return shopID, userID, shopID > 0 && userID > 0
+	}
+
+	shopID, uid, ok := shopUser(ctx)
+	if !ok {
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
+	}
+	_ = l.svcCtx.ShopRBAC.EnsureShopMenus(ctx)
+	_ = l.svcCtx.ShopRBAC.EnsureOwnerRole(ctx, shopID, uid)
+	menus, err := l.svcCtx.ShopRBAC.MenuTree(ctx)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	b, _ := json.Marshal(data)
-	var out types.PageListResp
-	if err := json.Unmarshal(b, &out); err != nil {
-		var list interface{}
-		if err2 := func() error { b, _ := json.Marshal(data); return json.Unmarshal(b, &list) }(); err2 == nil {
-			return &types.PageListResp{List: list}, nil
-		}
-		return nil, err
-	}
-	return &out, nil
+	return &types.PageListResp{List: repository.BuildShopMenuTree(menus)}, nil
+
 }

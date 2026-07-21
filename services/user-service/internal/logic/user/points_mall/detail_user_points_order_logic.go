@@ -2,13 +2,15 @@ package points_mall
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
-	huser "mymall/services/user-service/internal/app/user"
-	"mymall/services/user-service/internal/svc"
-	"mymall/services/user-service/internal/types"
+	"net/http"
 
 	"github.com/zeromicro/go-zero/core/logx"
+
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	"mymall/services/user-service/internal/biz"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 )
 
 type DetailUserPointsOrderLogic struct {
@@ -24,9 +26,16 @@ func NewDetailUserPointsOrderLogic(ctx context.Context, svcCtx *svc.ServiceConte
 }
 
 func (l *DetailUserPointsOrderLogic) DetailUserPointsOrder(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	data, err := huser.NewPointsOrderHandler(l.svcCtx).Detail(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%v", req.Id)}})
-	if err != nil {
-		return nil, err
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok || userID == 0 {
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	return &types.AnyResp{Data: data}, nil
+	if req.Id == 0 {
+		return nil, xerr.New(http.StatusBadRequest, "订单ID无效")
+	}
+	o, err := biz.NewPointsOrderLogic(l.svcCtx).UserGet(ctx, userID, req.Id)
+	if err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
+	}
+	return &types.AnyResp{Data: o}, nil
 }

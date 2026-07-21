@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/xerr"
+	clogic "mymall/services/catalog-service/internal/content/logic"
+	"net/http"
+	"strconv"
 
-	hadmin "mymall/services/catalog-service/internal/content/app/admin"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
 
@@ -26,11 +28,12 @@ func NewAdminGetArticleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *A
 }
 
 func (l *AdminGetArticleLogic) AdminGetArticle(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hadmin.NewArticleHandler(l.svcCtx).Detail(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}})
+	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}}
+
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
+	data, err := clogic.NewArticleLogic(l.svcCtx).Detail(ctx, id, 0)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusNotFound, err.Error())
 	}
 	return &types.AnyResp{Data: data}, nil
 }

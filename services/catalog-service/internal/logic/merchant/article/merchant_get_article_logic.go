@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	clogic "mymall/services/catalog-service/internal/content/logic"
+	"net/http"
+	"strconv"
 
-	hmerchant "mymall/services/catalog-service/internal/content/app/merchant"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
 
@@ -26,11 +29,22 @@ func NewMerchantGetArticleLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 }
 
 func (l *MerchantGetArticleLogic) MerchantGetArticle(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hmerchant.NewArticleHandler(l.svcCtx).Detail(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}})
+	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}}
+
+	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
+		shopID = middleware.GetShopID(ctx)
+		userID, _ = middleware.GetUserID(ctx)
+		return shopID, userID, shopID > 0 && userID > 0
+	}
+
+	shopID, _, ok := shopUser(ctx)
+	if !ok {
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
+	}
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
+	data, err := clogic.NewArticleLogic(l.svcCtx).Detail(ctx, id, shopID)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusNotFound, err.Error())
 	}
 	return &types.AnyResp{Data: data}, nil
 }

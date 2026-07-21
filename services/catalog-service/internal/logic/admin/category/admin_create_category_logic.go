@@ -2,11 +2,12 @@ package category
 
 import (
 	"context"
-	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/xerr"
+	plogic "mymall/services/catalog-service/internal/product/logic"
+	ptypes "mymall/services/catalog-service/internal/product/types"
+	"net/http"
 
-	hadmin "mymall/services/catalog-service/internal/product/app/admin"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
 
@@ -26,11 +27,18 @@ func NewAdminCreateCategoryLogic(ctx context.Context, svcCtx *svc.ServiceContext
 }
 
 func (l *AdminCreateCategoryLogic) AdminCreateCategory(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hadmin.NewCatalogHandler(l.svcCtx).AdminCreateCategory(ctx, appinput.CallInput{Body: req})
-	if err != nil {
-		return nil, err
+	in := appinput.CallInput{Body: req}
+
+	var body ptypes.CategoryReq
+	if err := appinput.BindBody(in, &body); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	return &types.AnyResp{Data: data}, nil
+	if body.Name == "" {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
+	}
+	cat, err := plogic.NewCatalogLogic(l.svcCtx).CreateCategory(ctx, body)
+	if err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
+	}
+	return &types.AnyResp{Data: cat}, nil
 }

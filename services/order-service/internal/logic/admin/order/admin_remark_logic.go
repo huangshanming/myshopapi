@@ -2,11 +2,10 @@ package order
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
-	"net/url"
+	"net/http"
 
-	hadmin "mymall/services/order-service/internal/app/admin"
+	"mymall/pkg/xerr"
+	"mymall/services/order-service/internal/biz"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
 
@@ -19,18 +18,12 @@ type AdminRemarkLogic struct {
 }
 
 func NewAdminRemarkLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminRemarkLogic {
-	return &AdminRemarkLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &AdminRemarkLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *AdminRemarkLogic) AdminRemark(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hadmin.NewOrderHandler(l.svcCtx).AdminRemark(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
-	if err != nil {
-		return nil, err
+func (l *AdminRemarkLogic) AdminRemark(ctx context.Context, req *types.RemarkBodyReq) (*types.EmptyResp, error) {
+	if err := biz.NewOrderLogic(l.svcCtx).UpdateRemark(ctx, req.Id, 0, req.Remark); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.EmptyResp{}, nil
 }

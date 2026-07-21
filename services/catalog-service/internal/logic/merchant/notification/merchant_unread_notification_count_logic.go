@@ -2,11 +2,11 @@ package notification
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	nlogic "mymall/services/catalog-service/internal/notify/logic"
+	"net/http"
 
-	hhandler "mymall/services/catalog-service/internal/notify/handler"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
 
@@ -26,11 +26,14 @@ func NewMerchantUnreadNotificationCountLogic(ctx context.Context, svcCtx *svc.Se
 }
 
 func (l *MerchantUnreadNotificationCountLogic) MerchantUnreadNotificationCount(ctx context.Context) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hhandler.NewNotificationHandler(l.svcCtx).UnreadCount(ctx, appinput.CallInput{})
+
+	shopID := middleware.GetShopID(ctx)
+	if shopID == 0 {
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
+	}
+	data, err := nlogic.NewNotificationLogic(l.svcCtx).UnreadCount(ctx, shopID)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
 	return &types.AnyResp{Data: data}, nil
 }

@@ -2,11 +2,10 @@ package order
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
-	"net/url"
+	"net/http"
 
-	hadmin "mymall/services/order-service/internal/app/admin"
+	"mymall/pkg/xerr"
+	"mymall/services/order-service/internal/biz"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
 
@@ -19,18 +18,12 @@ type AdminShipLogic struct {
 }
 
 func NewAdminShipLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminShipLogic {
-	return &AdminShipLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &AdminShipLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *AdminShipLogic) AdminShip(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hadmin.NewOrderHandler(l.svcCtx).AdminShip(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
-	if err != nil {
-		return nil, err
+func (l *AdminShipLogic) AdminShip(ctx context.Context, req *types.ShipBodyReq) (*types.EmptyResp, error) {
+	if err := biz.NewOrderLogic(l.svcCtx).Ship(ctx, req.Id, 0, req.ShipCompany, req.ShipNo); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.EmptyResp{}, nil
 }

@@ -2,11 +2,12 @@ package points
 
 import (
 	"context"
-	"encoding/json"
-	"mymall/pkg/appinput"
-	huser "mymall/services/user-service/internal/app/user"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	"mymall/services/user-service/internal/biz"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
+	"net/http"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -17,27 +18,17 @@ type UserPointsLogic struct {
 }
 
 func NewUserPointsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserPointsLogic {
-	return &UserPointsLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &UserPointsLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *UserPointsLogic) UserPoints(ctx context.Context) (resp *types.PointsResp, err error) {
-	data, err := huser.NewTaskHandler(l.svcCtx).UserPoints(ctx, appinput.CallInput{})
+func (l *UserPointsLogic) UserPoints(ctx context.Context) (*types.PointsResp, error) {
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok || userID == 0 {
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
+	}
+	n, err := biz.NewTaskLogic(l.svcCtx).GetPoints(ctx, userID)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	b, _ := json.Marshal(data)
-	var out types.PointsResp
-	if err := json.Unmarshal(b, &out); err != nil {
-		// may be bare number or {points:n}
-		var n int64
-		if err2 := json.Unmarshal(b, &n); err2 == nil {
-			out.Points = n
-			return &out, nil
-		}
-		return nil, err
-	}
-	return &out, nil
+	return &types.PointsResp{Points: n.Points}, nil
 }

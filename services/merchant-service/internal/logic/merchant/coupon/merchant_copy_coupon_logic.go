@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	"mymall/services/merchant-service/internal/biz"
+	"net/http"
+	"strconv"
 
-	hmerchant "mymall/services/merchant-service/internal/app/merchant"
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
 
@@ -26,11 +29,14 @@ func NewMerchantCopyCouponLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 }
 
 func (l *MerchantCopyCouponLogic) MerchantCopyCoupon(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hmerchant.NewCouponHandler(l.svcCtx).MerchantCopyCoupon(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
+	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req}
+
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
+	shopID := middleware.GetShopID(ctx)
+	userID, _ := middleware.GetUserID(ctx)
+	c, err := biz.NewMerchantLogic(l.svcCtx).CopyCoupon(id, shopID, userID, false)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.AnyResp{Data: c}, nil
 }

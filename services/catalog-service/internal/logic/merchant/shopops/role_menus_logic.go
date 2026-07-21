@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	"net/http"
+	"strconv"
 
-	hhandler "mymall/services/catalog-service/internal/shopops/handler"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
 
@@ -26,11 +28,22 @@ func NewRoleMenusLogic(ctx context.Context, svcCtx *svc.ServiceContext) *RoleMen
 }
 
 func (l *RoleMenusLogic) RoleMenus(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hhandler.NewShopOpsHandler(l.svcCtx).RoleMenus(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}})
-	if err != nil {
-		return nil, err
+	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}}
+
+	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
+		shopID = middleware.GetShopID(ctx)
+		userID, _ = middleware.GetUserID(ctx)
+		return shopID, userID, shopID > 0 && userID > 0
 	}
-	return &types.AnyResp{Data: data}, nil
+
+	_, _, ok := shopUser(ctx)
+	if !ok {
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
+	}
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
+	ids, err := l.svcCtx.ShopRBAC.ListRoleMenuIDs(ctx, id)
+	if err != nil {
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
+	}
+	return &types.AnyResp{Data: ids}, nil
 }

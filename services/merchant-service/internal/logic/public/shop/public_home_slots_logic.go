@@ -2,11 +2,11 @@ package shop
 
 import (
 	"context"
-	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/xerr"
+	"mymall/services/merchant-service/internal/biz"
+	"net/http"
 
-	hpublic "mymall/services/merchant-service/internal/app/public"
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
 
@@ -26,11 +26,12 @@ func NewPublicHomeSlotsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *P
 }
 
 func (l *PublicHomeSlotsLogic) PublicHomeSlots(ctx context.Context) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hpublic.NewHomepageSlotHandler(l.svcCtx).PublicHomeSlots(ctx, appinput.CallInput{})
+	in := appinput.CallInput{}
+
+	slotType := in.QueryGet("slot_type")
+	list, err := biz.NewMerchantLogic(l.svcCtx).HomeSlots(slotType)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.AnyResp{Data: list}, nil
 }

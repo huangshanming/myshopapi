@@ -2,11 +2,11 @@ package shop
 
 import (
 	"context"
-	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/xerr"
+	"mymall/services/merchant-service/internal/biz"
+	"net/http"
 
-	hadmin "mymall/services/merchant-service/internal/app/admin"
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
 
@@ -26,11 +26,15 @@ func NewAdminCreateShopLogic(ctx context.Context, svcCtx *svc.ServiceContext) *A
 }
 
 func (l *AdminCreateShopLogic) AdminCreateShop(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hadmin.NewShopHandler(l.svcCtx).AdminCreateShop(ctx, appinput.CallInput{Body: req})
-	if err != nil {
-		return nil, err
+	in := appinput.CallInput{Body: req}
+
+	var body types.AdminCreateShopReq
+	if err := appinput.BindBody(in, &body); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	return &types.AnyResp{Data: data}, nil
+	shop, err := biz.NewMerchantLogic(l.svcCtx).CreateShop(ctx, body)
+	if err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
+	}
+	return &types.AnyResp{Data: shop}, nil
 }

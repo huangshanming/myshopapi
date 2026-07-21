@@ -2,11 +2,11 @@ package article
 
 import (
 	"context"
-	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/xerr"
+	clogic "mymall/services/catalog-service/internal/content/logic"
+	"net/http"
 
-	hadmin "mymall/services/catalog-service/internal/content/app/admin"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
 
@@ -26,11 +26,17 @@ func NewAdminPurgeArticleRecycleLogic(ctx context.Context, svcCtx *svc.ServiceCo
 }
 
 func (l *AdminPurgeArticleRecycleLogic) AdminPurgeArticleRecycle(ctx context.Context) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hadmin.NewArticleHandler(l.svcCtx).RecycleDelete(ctx, appinput.CallInput{})
-	if err != nil {
-		return nil, err
+	in := appinput.CallInput{}
+
+	var body struct {
+		ID uint64 `json:"id"`
 	}
-	return &types.AnyResp{Data: data}, nil
+	_ = appinput.BindBody(in, &body)
+	if body.ID == 0 {
+		return nil, xerr.New(http.StatusBadRequest, "缺少 id")
+	}
+	if err := clogic.NewArticleLogic(l.svcCtx).PermanentDelete(ctx, body.ID); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
+	}
+	return &types.AnyResp{Data: &types.AnyResp{}}, nil
 }

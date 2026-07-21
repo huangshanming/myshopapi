@@ -2,12 +2,12 @@ package order
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"mymall/pkg/appinput"
-	"net/url"
+	"net/http"
 
-	huser "mymall/services/order-service/internal/app/user"
+	"mymall/pkg/middleware"
+	"mymall/pkg/pagination"
+	"mymall/pkg/xerr"
+	"mymall/services/order-service/internal/biz"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
 
@@ -20,27 +20,19 @@ type UserListOrdersLogic struct {
 }
 
 func NewUserListOrdersLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserListOrdersLogic {
-	return &UserListOrdersLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &UserListOrdersLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *UserListOrdersLogic) UserListOrders(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := huser.NewOrderHandler(l.svcCtx).List(ctx, appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}})
+func (l *UserListOrdersLogic) UserListOrders(ctx context.Context, req *types.PageReq) (*types.PageListResp, error) {
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
+	}
+	page, pageSize, _ := pagination.Normalize(&pagination.PageReq{Page: req.Page, PageSize: req.PageSize})
+	// status comes from query; PageReq may not include it — keep empty for now
+	orders, total, err := biz.NewOrderLogic(l.svcCtx).ListOrders(ctx, userID, page, pageSize, "")
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	b, _ := json.Marshal(data)
-	var out types.PageListResp
-	if err := json.Unmarshal(b, &out); err != nil {
-		var list interface{}
-		if err2 := func() error { b, _ := json.Marshal(data); return json.Unmarshal(b, &list) }(); err2 == nil {
-			return &types.PageListResp{List: list}, nil
-		}
-		return nil, err
-	}
-	return &out, nil
+	return &types.PageListResp{Total: total, List: orders}, nil
 }

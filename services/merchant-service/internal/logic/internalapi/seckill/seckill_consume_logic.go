@@ -2,11 +2,11 @@ package seckill
 
 import (
 	"context"
-	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/xerr"
+	"mymall/services/merchant-service/internal/biz"
+	"net/http"
 
-	hinternal "mymall/services/merchant-service/internal/app/internalapi"
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
 
@@ -26,11 +26,15 @@ func NewSeckillConsumeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Se
 }
 
 func (l *SeckillConsumeLogic) SeckillConsume(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hinternal.NewSeckillHandler(l.svcCtx).SeckillConsume(ctx, appinput.CallInput{Body: req})
+	in := appinput.CallInput{Body: req}
+
+	var body types.SeckillConsumeReq
+	if err := appinput.BindBody(in, &body); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
+	}
+	data, err := biz.NewMerchantLogic(l.svcCtx).ConsumeSeckill(body.EntryID, body.ProductID, body.Quantity)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
 	return &types.AnyResp{Data: data}, nil
 }

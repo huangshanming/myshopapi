@@ -2,11 +2,12 @@ package seckill
 
 import (
 	"context"
-	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	"mymall/services/merchant-service/internal/biz"
+	"net/http"
 
-	hmerchant "mymall/services/merchant-service/internal/app/merchant"
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
 
@@ -26,11 +27,17 @@ func NewMerchantApplySeckillLogic(ctx context.Context, svcCtx *svc.ServiceContex
 }
 
 func (l *MerchantApplySeckillLogic) MerchantApplySeckill(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hmerchant.NewSeckillHandler(l.svcCtx).MerchantApplySeckill(ctx, appinput.CallInput{Body: req})
-	if err != nil {
-		return nil, err
+	in := appinput.CallInput{Body: req}
+
+	shopID := middleware.GetShopID(ctx)
+	userID, _ := middleware.GetUserID(ctx)
+	var body types.SeckillApplyReq
+	if err := appinput.BindBody(in, &body); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	return &types.AnyResp{Data: data}, nil
+	entry, err := biz.NewMerchantLogic(l.svcCtx).ApplySeckill(shopID, userID, body)
+	if err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
+	}
+	return &types.AnyResp{Data: entry}, nil
 }

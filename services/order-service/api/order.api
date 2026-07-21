@@ -30,6 +30,87 @@ type AnyResp {
 
 type JSONBody {}
 
+type CreateOrderItem {
+	ProductID      uint64 `json:"product_id"`
+	SkuID          uint64 `json:"sku_id"`
+	SkuSnapshot    string `json:"sku_snapshot,optional"`
+	Quantity       int    `json:"quantity"`
+	SeckillEntryID uint64 `json:"seckill_entry_id,optional"`
+}
+
+type CreateOrderReq {
+	AddressID    uint64            `json:"address_id"`
+	Items        []CreateOrderItem `json:"items"`
+	UserCouponID uint64            `json:"user_coupon_id,optional"`
+}
+
+type CouponPreviewReq {
+	Items        []CreateOrderItem `json:"items"`
+	UserCouponID uint64            `json:"user_coupon_id,optional"`
+}
+
+type OrderStatusCountsResp {
+	Counts map[string]int64 `json:"counts"`
+}
+
+type ShipBodyReq {
+	Id          uint64 `path:"id"`
+	ShipCompany string `json:"ship_company"`
+	ShipNo      string `json:"ship_no"`
+}
+
+type RemarkBodyReq {
+	Id     uint64 `path:"id"`
+	Remark string `json:"remark"`
+}
+
+type CreateAfterSaleBodyReq {
+	Id     uint64  `path:"id"`
+	Type   string  `json:"type"`
+	Reason string  `json:"reason"`
+	Amount float64 `json:"amount"`
+}
+
+type HandleAfterSaleBodyReq {
+	Id          uint64 `path:"id"`
+	Action      string `json:"action"`
+	AdminRemark string `json:"admin_remark,optional"`
+}
+
+type LogisticsSaveBodyReq {
+	Name   string `json:"name"`
+	Code   string `json:"code"`
+	Sort   int    `json:"sort,optional"`
+	Status int    `json:"status,optional"`
+}
+
+type CreateReviewBodyReq {
+	Id          uint64   `path:"id"`
+	Rating      int      `json:"rating"`
+	Content     string   `json:"content,optional"`
+	IsAnonymous bool     `json:"is_anonymous,optional"`
+	OrderItemID uint64   `json:"order_item_id,optional"`
+	Images      []string `json:"images,optional"`
+}
+
+type ReviewReplyBodyReq {
+	Id    uint64 `path:"id"`
+	Reply string `json:"reply"`
+}
+
+type LogisticsUpdateBodyReq {
+	Id     uint64 `path:"id"`
+	Name   string `json:"name"`
+	Code   string `json:"code"`
+	Sort   int    `json:"sort,optional"`
+	Status int    `json:"status,optional"`
+}
+
+type LogisticsStatusBodyReq {
+	Id     uint64 `path:"id"`
+	Status int    `json:"status"`
+}
+
 // Route table SSOT for order-service.
 // group: <role>/<module> → internal/handler/<role>/<module>/
 // Keep in sync with internal/handler/routes.go; run: scripts/check-api-routes.sh order-service
@@ -63,16 +144,16 @@ service orderapi {
 )
 service orderapi {
 	@handler UserCreateOrder
-	post /api/v1/orders (JSONBody) returns (AnyResp)
+	post /api/v1/orders (CreateOrderReq) returns (AnyResp)
 
 	@handler CouponPreview
-	post /api/v1/orders/coupon-preview (JSONBody) returns (AnyResp)
+	post /api/v1/orders/coupon-preview (CouponPreviewReq) returns (AnyResp)
 
 	@handler StatusCounts
-	get /api/v1/orders/status-counts returns (AnyResp)
+	get /api/v1/orders/status-counts returns (OrderStatusCountsResp)
 
 	@handler UserAfterSales
-	get /api/v1/orders/after-sales returns (AnyResp)
+	get /api/v1/orders/after-sales (PageReq) returns (PageListResp)
 
 	@handler UserListOrders
 	get /api/v1/orders (PageReq) returns (PageListResp)
@@ -81,13 +162,13 @@ service orderapi {
 	get /api/v1/orders/:id (IdPathReq) returns (AnyResp)
 
 	@handler Cancel
-	put /api/v1/orders/:id/cancel (IdPathReq) returns (AnyResp)
+	put /api/v1/orders/:id/cancel (IdPathReq) returns (EmptyResp)
 
 	@handler ConfirmReceive
-	put /api/v1/orders/:id/confirm-receive (IdPathReq) returns (AnyResp)
+	put /api/v1/orders/:id/confirm-receive (IdPathReq) returns (EmptyResp)
 
 	@handler CreateAfterSale
-	post /api/v1/orders/:id/after-sales (IdPathReq) returns (AnyResp)
+	post /api/v1/orders/:id/after-sales (CreateAfterSaleBodyReq) returns (AnyResp)
 }
 
 @server (
@@ -99,7 +180,7 @@ service orderapi {
 	get /api/v1/orders/:id/review-eligible (IdPathReq) returns (AnyResp)
 
 	@handler UserCreateReview
-	post /api/v1/orders/:id/reviews (IdPathReq) returns (AnyResp)
+	post /api/v1/orders/:id/reviews (CreateReviewBodyReq) returns (AnyResp)
 
 	@handler GetByOrder
 	get /api/v1/orders/:id/review (IdPathReq) returns (AnyResp)
@@ -117,10 +198,10 @@ service orderapi {
 	get /api/v1/merchant/reviews (PageReq) returns (PageListResp)
 
 	@handler MerchantReply
-	put /api/v1/merchant/reviews/:id/reply (IdPathReq) returns (AnyResp)
+	put /api/v1/merchant/reviews/:id/reply (ReviewReplyBodyReq) returns (EmptyResp)
 
 	@handler MerchantDelete
-	delete /api/v1/merchant/reviews/:id (IdPathReq) returns (AnyResp)
+	delete /api/v1/merchant/reviews/:id (IdPathReq) returns (EmptyResp)
 }
 
 @server (
@@ -135,19 +216,19 @@ service orderapi {
 	get /api/v1/merchant/orders/:id (IdPathReq) returns (AnyResp)
 
 	@handler MerchantShip
-	put /api/v1/merchant/orders/:id/ship (IdPathReq) returns (AnyResp)
+	put /api/v1/merchant/orders/:id/ship (ShipBodyReq) returns (EmptyResp)
 
 	@handler MerchantComplete
-	put /api/v1/merchant/orders/:id/complete (IdPathReq) returns (AnyResp)
+	put /api/v1/merchant/orders/:id/complete (IdPathReq) returns (EmptyResp)
 
 	@handler MerchantRemark
-	put /api/v1/merchant/orders/:id/remark (IdPathReq) returns (AnyResp)
+	put /api/v1/merchant/orders/:id/remark (RemarkBodyReq) returns (EmptyResp)
 
 	@handler MerchantAfterSales
-	get /api/v1/merchant/after-sales returns (AnyResp)
+	get /api/v1/merchant/after-sales (PageReq) returns (PageListResp)
 
 	@handler MerchantHandleAfterSale
-	put /api/v1/merchant/after-sales/:id/handle (IdPathReq) returns (AnyResp)
+	put /api/v1/merchant/after-sales/:id/handle (HandleAfterSaleBodyReq) returns (EmptyResp)
 }
 
 @server (
@@ -183,19 +264,19 @@ service orderapi {
 	get /api/v1/admin/orders/:id (IdPathReq) returns (AnyResp)
 
 	@handler AdminShip
-	put /api/v1/admin/orders/:id/ship (IdPathReq) returns (AnyResp)
+	put /api/v1/admin/orders/:id/ship (ShipBodyReq) returns (EmptyResp)
 
 	@handler AdminComplete
-	put /api/v1/admin/orders/:id/complete (IdPathReq) returns (AnyResp)
+	put /api/v1/admin/orders/:id/complete (IdPathReq) returns (EmptyResp)
 
 	@handler AdminRemark
-	put /api/v1/admin/orders/:id/remark (IdPathReq) returns (AnyResp)
+	put /api/v1/admin/orders/:id/remark (RemarkBodyReq) returns (EmptyResp)
 
 	@handler AdminAfterSales
-	get /api/v1/admin/after-sales returns (AnyResp)
+	get /api/v1/admin/after-sales (PageReq) returns (PageListResp)
 
 	@handler AdminHandleAfterSale
-	put /api/v1/admin/after-sales/:id/handle (IdPathReq) returns (AnyResp)
+	put /api/v1/admin/after-sales/:id/handle (HandleAfterSaleBodyReq) returns (EmptyResp)
 }
 
 @server (
@@ -207,15 +288,15 @@ service orderapi {
 	get /api/v1/admin/logistics (PageReq) returns (PageListResp)
 
 	@handler AdminCreateLogistics
-	post /api/v1/admin/logistics (JSONBody) returns (AnyResp)
+	post /api/v1/admin/logistics (LogisticsSaveBodyReq) returns (AnyResp)
 
 	@handler AdminUpdateLogistics
-	put /api/v1/admin/logistics/:id (IdPathReq) returns (AnyResp)
+	put /api/v1/admin/logistics/:id (LogisticsUpdateBodyReq) returns (EmptyResp)
 
 	@handler UpdateStatus
-	put /api/v1/admin/logistics/:id/status (IdPathReq) returns (AnyResp)
+	put /api/v1/admin/logistics/:id/status (LogisticsStatusBodyReq) returns (EmptyResp)
 
 	@handler AdminDeleteLogistics
-	delete /api/v1/admin/logistics/:id (IdPathReq) returns (AnyResp)
+	delete /api/v1/admin/logistics/:id (IdPathReq) returns (EmptyResp)
 }
 

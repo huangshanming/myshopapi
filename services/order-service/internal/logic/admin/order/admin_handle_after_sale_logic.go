@@ -2,11 +2,11 @@ package order
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
-	"net/url"
+	"net/http"
 
-	hadmin "mymall/services/order-service/internal/app/admin"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	"mymall/services/order-service/internal/biz"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
 
@@ -19,18 +19,13 @@ type AdminHandleAfterSaleLogic struct {
 }
 
 func NewAdminHandleAfterSaleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminHandleAfterSaleLogic {
-	return &AdminHandleAfterSaleLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &AdminHandleAfterSaleLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *AdminHandleAfterSaleLogic) AdminHandleAfterSale(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hadmin.NewOrderHandler(l.svcCtx).AdminHandleAfterSale(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
-	if err != nil {
-		return nil, err
+func (l *AdminHandleAfterSaleLogic) AdminHandleAfterSale(ctx context.Context, req *types.HandleAfterSaleBodyReq) (*types.EmptyResp, error) {
+	uid, _ := middleware.GetUserID(ctx)
+	if err := biz.NewOrderLogic(l.svcCtx).HandleAfterSale(ctx, req.Id, 0, uid, req.Action, req.AdminRemark); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.EmptyResp{}, nil
 }

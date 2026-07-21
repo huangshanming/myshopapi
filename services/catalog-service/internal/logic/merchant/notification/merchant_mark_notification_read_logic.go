@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	nlogic "mymall/services/catalog-service/internal/notify/logic"
+	"net/http"
+	"strconv"
 
-	hhandler "mymall/services/catalog-service/internal/notify/handler"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
 
@@ -26,11 +29,15 @@ func NewMerchantMarkNotificationReadLogic(ctx context.Context, svcCtx *svc.Servi
 }
 
 func (l *MerchantMarkNotificationReadLogic) MerchantMarkNotificationRead(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hhandler.NewNotificationHandler(l.svcCtx).MarkRead(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
-	if err != nil {
-		return nil, err
+	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req}
+
+	shopID := middleware.GetShopID(ctx)
+	if shopID == 0 {
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	return &types.AnyResp{Data: data}, nil
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
+	if err := nlogic.NewNotificationLogic(l.svcCtx).MarkRead(ctx, id, shopID); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
+	}
+	return &types.AnyResp{Data: &types.AnyResp{}}, nil
 }

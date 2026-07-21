@@ -2,15 +2,14 @@ package points_mall
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"mymall/pkg/appinput"
-	hadmin "mymall/services/user-service/internal/app/admin"
-	"mymall/services/user-service/internal/svc"
-	"mymall/services/user-service/internal/types"
-	"net/url"
+	"net/http"
 
 	"github.com/zeromicro/go-zero/core/logx"
+
+	"mymall/pkg/xerr"
+	"mymall/services/user-service/internal/biz"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 )
 
 type ListPointsProductsLogic struct {
@@ -26,21 +25,9 @@ func NewListPointsProductsLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 }
 
 func (l *ListPointsProductsLogic) ListPointsProducts(ctx context.Context, req *types.ListPointsProductsReq) (resp *types.PageListResp, err error) {
-	data, err := hadmin.NewPointsProductHandler(l.svcCtx).List(ctx, appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}, "status": {req.Status}, "keyword": {req.Keyword}}})
+	list, total, err := biz.NewPointsProductLogic(l.svcCtx).List(ctx, req.Page, req.PageSize, req.Status, req.Keyword)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	b, _ := json.Marshal(data)
-	var out types.PageListResp
-	if err := json.Unmarshal(b, &out); err != nil {
-		// raw may already be {list,total}
-		var m map[string]json.RawMessage
-		if err2 := json.Unmarshal(b, &m); err2 == nil {
-			_ = json.Unmarshal(m["list"], &out.List)
-			_ = json.Unmarshal(m["total"], &out.Total)
-			return &out, nil
-		}
-		return nil, err
-	}
-	return &out, nil
+	return &types.PageListResp{List: list, Total: total}, nil
 }

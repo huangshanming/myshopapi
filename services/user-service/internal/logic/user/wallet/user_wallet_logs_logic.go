@@ -2,15 +2,14 @@ package wallet
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"mymall/pkg/appinput"
-	huser "mymall/services/user-service/internal/app/user"
+	"net/http"
+	"github.com/zeromicro/go-zero/core/logx"
+	"mymall/pkg/middleware"
+	"mymall/pkg/pagination"
+	"mymall/pkg/xerr"
+	"mymall/services/user-service/internal/biz"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
-	"net/url"
-
-	"github.com/zeromicro/go-zero/core/logx"
 )
 
 type UserWalletLogsLogic struct {
@@ -19,28 +18,18 @@ type UserWalletLogsLogic struct {
 }
 
 func NewUserWalletLogsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserWalletLogsLogic {
-	return &UserWalletLogsLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &UserWalletLogsLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *UserWalletLogsLogic) UserWalletLogs(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
-	data, err := huser.NewWalletHandler(l.svcCtx).UserWalletLogs(ctx, appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}})
+func (l *UserWalletLogsLogic) UserWalletLogs(ctx context.Context, req *types.PageReq) (*types.PageListResp, error) {
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
+	}
+	page, pageSize, _ := pagination.Normalize(&pagination.PageReq{Page: req.Page, PageSize: req.PageSize})
+	list, total, err := biz.NewWalletLogic(l.svcCtx).ListWalletLogs(ctx, userID, page, pageSize)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	b, _ := json.Marshal(data)
-	var out types.PageListResp
-	if err := json.Unmarshal(b, &out); err != nil {
-		// raw may already be {list,total}
-		var m map[string]json.RawMessage
-		if err2 := json.Unmarshal(b, &m); err2 == nil {
-			_ = json.Unmarshal(m["list"], &out.List)
-			_ = json.Unmarshal(m["total"], &out.Total)
-			return &out, nil
-		}
-		return nil, err
-	}
-	return &out, nil
+	return &types.PageListResp{Total: total, List: list}, nil
 }

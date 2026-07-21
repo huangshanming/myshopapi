@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/xerr"
+	"mymall/services/merchant-service/internal/biz"
+	"net/http"
+	"strconv"
 
-	hadmin "mymall/services/merchant-service/internal/app/admin"
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
 
@@ -26,11 +28,15 @@ func NewAdminCouponRedeemsLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 }
 
 func (l *AdminCouponRedeemsLogic) AdminCouponRedeems(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hadmin.NewCouponHandler(l.svcCtx).AdminCouponRedeems(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}})
+	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}}
+
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
+	page, _ := strconv.Atoi(in.QueryGet("page"))
+	pageSize, _ := strconv.Atoi(in.QueryGet("page_size"))
+	list, total, err := biz.NewMerchantLogic(l.svcCtx).CouponRedeems(id, page, pageSize)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.AnyResp{Data: map[string]interface{}{"list": list, "total": total}}, nil
+
 }

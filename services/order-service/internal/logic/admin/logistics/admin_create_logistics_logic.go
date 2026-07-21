@@ -2,11 +2,10 @@ package logistics
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
-	"net/url"
+	"net/http"
 
-	hadmin "mymall/services/order-service/internal/app/admin"
+	"mymall/pkg/xerr"
+	"mymall/services/order-service/internal/biz"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
 
@@ -19,18 +18,16 @@ type AdminCreateLogisticsLogic struct {
 }
 
 func NewAdminCreateLogisticsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminCreateLogisticsLogic {
-	return &AdminCreateLogisticsLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &AdminCreateLogisticsLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *AdminCreateLogisticsLogic) AdminCreateLogistics(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hadmin.NewLogisticsHandler(l.svcCtx).Create(ctx, appinput.CallInput{Body: req})
+func (l *AdminCreateLogisticsLogic) AdminCreateLogistics(ctx context.Context, req *types.LogisticsSaveBodyReq) (*types.AnyResp, error) {
+	status := int8(req.Status)
+	c, err := biz.NewLogisticsLogic(l.svcCtx).Create(ctx, types.LogisticsSaveReq{
+		Name: req.Name, Code: req.Code, Sort: req.Sort, Status: &status,
+	})
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.AnyResp{Data: c}, nil
 }

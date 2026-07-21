@@ -2,12 +2,15 @@ package favorite
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"mymall/pkg/appinput"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	plogic "mymall/services/catalog-service/internal/product/logic"
+	"net/http"
 	"net/url"
+	"strconv"
 
-	huser "mymall/services/catalog-service/internal/product/app/user"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
 
@@ -27,20 +30,18 @@ func NewUserListFavoritesLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 }
 
 func (l *UserListFavoritesLogic) UserListFavorites(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := huser.NewFavoriteHandler(l.svcCtx).List(ctx, appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}})
+	in := appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}}
+
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok || userID == 0 {
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
+	}
+	page, _ := strconv.Atoi(in.QueryGet("page"))
+	pageSize, _ := strconv.Atoi(in.QueryGet("page_size"))
+	list, total, err := plogic.NewFavoriteLogic(l.svcCtx).List(ctx, userID, page, pageSize)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	b, _ := json.Marshal(data)
-	var out types.PageListResp
-	if err := json.Unmarshal(b, &out); err != nil {
-		var list interface{}
-		if err2 := func() error { b, _ := json.Marshal(data); return json.Unmarshal(b, &list) }(); err2 == nil {
-			return &types.PageListResp{List: list}, nil
-		}
-		return nil, err
-	}
-	return &out, nil
+	return &types.PageListResp{List: map[string]interface{}{"list": list, "total": total}}, nil
+
 }

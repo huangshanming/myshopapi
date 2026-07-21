@@ -2,12 +2,14 @@ package role
 
 import (
 	"context"
-	"mymall/pkg/appinput"
-	hadmin "mymall/services/user-service/internal/app/admin"
-	"mymall/services/user-service/internal/svc"
-	"mymall/services/user-service/internal/types"
+	"net/http"
 
 	"github.com/zeromicro/go-zero/core/logx"
+
+	"mymall/pkg/xerr"
+	"mymall/services/user-service/internal/biz"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 )
 
 type ListRolesLogic struct {
@@ -23,9 +25,9 @@ func NewListRolesLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListRol
 }
 
 func (l *ListRolesLogic) ListRoles(ctx context.Context) (resp *types.PageListResp, err error) {
-	data, err := hadmin.NewAdminHandler(l.svcCtx).ListRoles(ctx, appinput.CallInput{})
+	list, err := biz.NewRBACLogic(l.svcCtx).ListRoles(ctx)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.PageListResp{List: data}, nil
+	return &types.PageListResp{List: list}, nil
 }

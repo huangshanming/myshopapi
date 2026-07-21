@@ -2,13 +2,15 @@ package user
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
-	hadmin "mymall/services/user-service/internal/app/admin"
-	"mymall/services/user-service/internal/svc"
-	"mymall/services/user-service/internal/types"
+	"net/http"
 
 	"github.com/zeromicro/go-zero/core/logx"
+
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	"mymall/services/user-service/internal/biz"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 )
 
 type AdminAdjustWalletLogic struct {
@@ -24,9 +26,10 @@ func NewAdminAdjustWalletLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 }
 
 func (l *AdminAdjustWalletLogic) AdminAdjustWallet(ctx context.Context, req *types.WalletAdjustReq) (resp *types.AnyResp, err error) {
-	data, err := hadmin.NewWalletHandler(l.svcCtx).AdminAdjustWallet(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%v", req.Id)}, Body: req})
+	adminID, _ := middleware.GetUserID(ctx)
+	wallet, err := biz.NewWalletLogic(l.svcCtx).AdjustWallet(ctx, req.Id, req.Field, req.Amount, req.Remark, adminID)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.AnyResp{Data: wallet}, nil
 }

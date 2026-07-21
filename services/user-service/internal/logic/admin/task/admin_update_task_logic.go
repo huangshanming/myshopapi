@@ -2,13 +2,14 @@ package task
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
-	hadmin "mymall/services/user-service/internal/app/admin"
-	"mymall/services/user-service/internal/svc"
-	"mymall/services/user-service/internal/types"
+	"net/http"
 
 	"github.com/zeromicro/go-zero/core/logx"
+
+	"mymall/pkg/xerr"
+	"mymall/services/user-service/internal/biz"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 )
 
 type AdminUpdateTaskLogic struct {
@@ -24,9 +25,33 @@ func NewAdminUpdateTaskLogic(ctx context.Context, svcCtx *svc.ServiceContext) *A
 }
 
 func (l *AdminUpdateTaskLogic) AdminUpdateTask(ctx context.Context, req *types.UpdateTaskReq) (resp *types.AnyResp, err error) {
-	data, err := hadmin.NewTaskHandler(l.svcCtx).AdminUpdate(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%v", req.Id)}, Body: req})
-	if err != nil {
-		return nil, err
+	if req.Id == 0 {
+		return nil, xerr.New(http.StatusBadRequest, "任务ID无效")
 	}
-	return &types.AnyResp{Data: data}, nil
+	bizReq := biz.UpdateTaskReq{}
+	if req.Name != "" {
+		bizReq.Title = &req.Name
+	}
+	if req.Description != "" {
+		bizReq.Description = &req.Description
+	}
+	if req.Points != 0 {
+		p := int(req.Points)
+		bizReq.RewardPoints = &p
+	}
+	if req.Status != "" {
+		var enabled int8
+		switch req.Status {
+		case "1", "enabled", "true":
+			enabled = 1
+		default:
+			enabled = 0
+		}
+		bizReq.Enabled = &enabled
+	}
+	t, err := biz.NewTaskLogic(l.svcCtx).AdminUpdateTask(ctx, req.Id, bizReq)
+	if err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
+	}
+	return &types.AnyResp{Data: t}, nil
 }

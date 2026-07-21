@@ -2,12 +2,15 @@ package product
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"mymall/pkg/appinput"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	plogic "mymall/services/catalog-service/internal/product/logic"
+	"net/http"
 	"net/url"
+	"strconv"
 
-	hmerchant "mymall/services/catalog-service/internal/product/app/merchant"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
 
@@ -27,20 +30,23 @@ func NewOpLogsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *OpLogsLogi
 }
 
 func (l *OpLogsLogic) OpLogs(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hmerchant.NewProductHandler(l.svcCtx).OpLogs(ctx, appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}})
+	in := appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}}
+
+	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
+		shopID = middleware.GetShopID(ctx)
+		userID, _ = middleware.GetUserID(ctx)
+		return shopID, userID, shopID > 0 && userID > 0
+	}
+
+	shopID, _, ok := shopUser(ctx)
+	if !ok {
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
+	}
+	pid, _ := strconv.ParseUint(in.QueryGet("product_id"), 10, 64)
+	page, pageSize := in.Page()
+	data, err := plogic.NewProductAdminLogic(l.svcCtx).OpLogs(ctx, shopID, pid, page, pageSize)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	b, _ := json.Marshal(data)
-	var out types.PageListResp
-	if err := json.Unmarshal(b, &out); err != nil {
-		var list interface{}
-		if err2 := func() error { b, _ := json.Marshal(data); return json.Unmarshal(b, &list) }(); err2 == nil {
-			return &types.PageListResp{List: list}, nil
-		}
-		return nil, err
-	}
-	return &out, nil
+	return &types.PageListResp{List: data}, nil
 }

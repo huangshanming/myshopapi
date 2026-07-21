@@ -2,11 +2,11 @@ package order
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
-	"net/url"
+	"net/http"
 
-	huser "mymall/services/order-service/internal/app/user"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	"mymall/services/order-service/internal/biz"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
 
@@ -19,18 +19,17 @@ type UserGetOrderLogic struct {
 }
 
 func NewUserGetOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserGetOrderLogic {
-	return &UserGetOrderLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &UserGetOrderLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *UserGetOrderLogic) UserGetOrder(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := huser.NewOrderHandler(l.svcCtx).Detail(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}})
-	if err != nil {
-		return nil, err
+func (l *UserGetOrderLogic) UserGetOrder(ctx context.Context, req *types.IdPathReq) (*types.AnyResp, error) {
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
-	return &types.AnyResp{Data: data}, nil
+	order, err := biz.NewOrderLogic(l.svcCtx).GetOrder(ctx, userID, req.Id)
+	if err != nil {
+		return nil, xerr.New(http.StatusNotFound, "订单不存在")
+	}
+	return &types.AnyResp{Data: order}, nil
 }

@@ -2,11 +2,11 @@ package comment
 
 import (
 	"context"
-	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/xerr"
+	clogic "mymall/services/catalog-service/internal/content/logic"
+	"net/http"
 
-	hadmin "mymall/services/catalog-service/internal/content/app/admin"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
 
@@ -26,11 +26,24 @@ func NewEmojiCreateLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Emoji
 }
 
 func (l *EmojiCreateLogic) EmojiCreate(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hadmin.NewArticleHandler(l.svcCtx).EmojiCreate(ctx, appinput.CallInput{Body: req})
-	if err != nil {
-		return nil, err
+	in := appinput.CallInput{Body: req}
+
+	var body struct {
+		Name     string `json:"name"`
+		ImageURL string `json:"image_url"`
+		Sort     int    `json:"sort"`
+		Status   *int8  `json:"status"`
 	}
-	return &types.AnyResp{Data: data}, nil
+	if err := appinput.BindBody(in, &body); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
+	}
+	status := int8(1)
+	if body.Status != nil {
+		status = *body.Status
+	}
+	e, err := clogic.NewArticleLogic(l.svcCtx).CreateEmoji(ctx, body.Name, body.ImageURL, body.Sort, status)
+	if err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
+	}
+	return &types.AnyResp{Data: e}, nil
 }

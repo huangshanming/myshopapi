@@ -2,11 +2,12 @@ package order
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
-	"net/url"
+	"net/http"
 
-	huser "mymall/services/order-service/internal/app/user"
+	"mymall/pkg/middleware"
+	"mymall/pkg/pagination"
+	"mymall/pkg/xerr"
+	"mymall/services/order-service/internal/biz"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
 
@@ -19,18 +20,18 @@ type UserAfterSalesLogic struct {
 }
 
 func NewUserAfterSalesLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserAfterSalesLogic {
-	return &UserAfterSalesLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &UserAfterSalesLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *UserAfterSalesLogic) UserAfterSales(ctx context.Context) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := huser.NewOrderHandler(l.svcCtx).UserAfterSales(ctx, appinput.CallInput{})
-	if err != nil {
-		return nil, err
+func (l *UserAfterSalesLogic) UserAfterSales(ctx context.Context, req *types.PageReq) (*types.PageListResp, error) {
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
-	return &types.AnyResp{Data: data}, nil
+	page, pageSize, _ := pagination.Normalize(&pagination.PageReq{Page: req.Page, PageSize: req.PageSize})
+	list, total, err := biz.NewOrderLogic(l.svcCtx).ListUserAfterSales(ctx, userID, page, pageSize)
+	if err != nil {
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
+	}
+	return &types.PageListResp{Total: total, List: list}, nil
 }

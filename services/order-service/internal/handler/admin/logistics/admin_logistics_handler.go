@@ -12,12 +12,11 @@ import (
 
 func AdminCreateLogisticsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
+		var req types.LogisticsSaveBodyReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}
-
 		l := logistics.NewAdminCreateLogisticsLogic(r.Context(), svcCtx)
 		resp, err := l.AdminCreateLogistics(r.Context(), &req)
 		if err != nil {
@@ -35,7 +34,6 @@ func AdminDeleteLogisticsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}
-
 		l := logistics.NewAdminDeleteLogisticsLogic(r.Context(), svcCtx)
 		resp, err := l.AdminDeleteLogistics(r.Context(), &req)
 		if err != nil {
@@ -53,7 +51,6 @@ func AdminListLogisticsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}
-
 		l := logistics.NewAdminListLogisticsLogic(r.Context(), svcCtx)
 		resp, err := l.AdminListLogistics(r.Context(), &req)
 		if err != nil {
@@ -66,12 +63,11 @@ func AdminListLogisticsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func AdminUpdateLogisticsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.IdPathReq
+		var req types.LogisticsUpdateBodyReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}
-
 		l := logistics.NewAdminUpdateLogisticsLogic(r.Context(), svcCtx)
 		resp, err := l.AdminUpdateLogistics(r.Context(), &req)
 		if err != nil {
@@ -84,12 +80,11 @@ func AdminUpdateLogisticsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func UpdateStatusHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.IdPathReq
+		var req types.LogisticsStatusBodyReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}
-
 		l := logistics.NewUpdateStatusLogic(r.Context(), svcCtx)
 		resp, err := l.UpdateStatus(r.Context(), &req)
 		if err != nil {

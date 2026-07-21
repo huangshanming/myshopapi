@@ -2,11 +2,12 @@ package homepage
 
 import (
 	"context"
-	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	"mymall/services/merchant-service/internal/biz"
+	"net/http"
 
-	hmerchant "mymall/services/merchant-service/internal/app/merchant"
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
 
@@ -26,11 +27,20 @@ func NewMerchantBuySlotLogic(ctx context.Context, svcCtx *svc.ServiceContext) *M
 }
 
 func (l *MerchantBuySlotLogic) MerchantBuySlot(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hmerchant.NewHomepageSlotHandler(l.svcCtx).MerchantBuySlot(ctx, appinput.CallInput{Body: req})
-	if err != nil {
-		return nil, err
+	in := appinput.CallInput{Body: req}
+
+	shopID := middleware.GetShopID(ctx)
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok || shopID == 0 {
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
-	return &types.AnyResp{Data: data}, nil
+	var body biz.BuySlotReq
+	if err := appinput.BindBody(in, &body); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
+	}
+	order, err := biz.NewMerchantLogic(l.svcCtx).BuySlot(shopID, userID, body)
+	if err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
+	}
+	return &types.AnyResp{Data: order}, nil
 }

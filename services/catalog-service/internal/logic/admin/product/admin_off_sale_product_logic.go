@@ -4,9 +4,13 @@ import (
 	"context"
 	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	plogic "mymall/services/catalog-service/internal/product/logic"
+	ptypes "mymall/services/catalog-service/internal/product/types"
+	"net/http"
+	"strconv"
 
-	hadmin "mymall/services/catalog-service/internal/product/app/admin"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
 
@@ -26,11 +30,14 @@ func NewAdminOffSaleProductLogic(ctx context.Context, svcCtx *svc.ServiceContext
 }
 
 func (l *AdminOffSaleProductLogic) AdminOffSaleProduct(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hadmin.NewPlatformProductHandler(l.svcCtx).OffSale(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
-	if err != nil {
-		return nil, err
+	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req}
+
+	uid, _ := middleware.GetUserID(ctx)
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
+	var body ptypes.PlatformProductRemarkReq
+	_ = appinput.BindBody(in, &body)
+	if err := plogic.NewPlatformProductLogic(l.svcCtx).ForceOffSale(ctx, id, uid, body.Remark); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.AnyResp{Data: &types.AnyResp{}}, nil
 }

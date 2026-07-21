@@ -2,12 +2,13 @@ package article
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/xerr"
+	clogic "mymall/services/catalog-service/internal/content/logic"
+	"net/http"
+	"strconv"
 
-	hpublic "mymall/services/catalog-service/internal/content/app/public"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
 
@@ -27,20 +28,17 @@ func NewListCommentsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *List
 }
 
 func (l *ListCommentsLogic) ListComments(ctx context.Context, req *types.IdPathReq) (resp *types.PageListResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hpublic.NewArticleHandler(l.svcCtx).ListComments(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}})
+	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}}
+
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
+	if err != nil || id == 0 {
+		return nil, xerr.New(http.StatusBadRequest, "文章ID无效")
+	}
+	page, _ := strconv.Atoi(in.QueryGet("page"))
+	pageSize, _ := strconv.Atoi(in.QueryGet("page_size"))
+	data, err := clogic.NewArticleLogic(l.svcCtx).PublicListComments(ctx, id, page, pageSize)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	b, _ := json.Marshal(data)
-	var out types.PageListResp
-	if err := json.Unmarshal(b, &out); err != nil {
-		var list interface{}
-		if err2 := func() error { b, _ := json.Marshal(data); return json.Unmarshal(b, &list) }(); err2 == nil {
-			return &types.PageListResp{List: list}, nil
-		}
-		return nil, err
-	}
-	return &out, nil
+	return &types.PageListResp{List: data}, nil
 }

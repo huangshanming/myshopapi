@@ -2,12 +2,14 @@ package menu
 
 import (
 	"context"
-	"mymall/pkg/appinput"
-	hadmin "mymall/services/user-service/internal/app/admin"
-	"mymall/services/user-service/internal/svc"
-	"mymall/services/user-service/internal/types"
+	"net/http"
 
 	"github.com/zeromicro/go-zero/core/logx"
+
+	"mymall/pkg/xerr"
+	"mymall/services/user-service/internal/biz"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 )
 
 type MenuTreeLogic struct {
@@ -23,9 +25,9 @@ func NewMenuTreeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MenuTree
 }
 
 func (l *MenuTreeLogic) MenuTree(ctx context.Context) (resp *types.AnyResp, err error) {
-	data, err := hadmin.NewAdminHandler(l.svcCtx).MenuTree(ctx, appinput.CallInput{})
+	tree, err := biz.NewRBACLogic(l.svcCtx).MenuTreeAll(ctx)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.AnyResp{Data: tree}, nil
 }

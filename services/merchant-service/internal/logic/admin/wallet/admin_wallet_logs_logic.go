@@ -2,12 +2,13 @@ package wallet
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/xerr"
+	"mymall/services/merchant-service/internal/biz"
+	"net/http"
+	"strconv"
 
-	hadmin "mymall/services/merchant-service/internal/app/admin"
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
 
@@ -27,20 +28,17 @@ func NewAdminWalletLogsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *A
 }
 
 func (l *AdminWalletLogsLogic) AdminWalletLogs(ctx context.Context, req *types.IdPathReq) (resp *types.PageListResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hadmin.NewWalletHandler(l.svcCtx).AdminWalletLogs(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}})
+	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}}
+
+	shopID, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusBadRequest, "店铺ID无效")
 	}
-	b, _ := json.Marshal(data)
-	var out types.PageListResp
-	if err := json.Unmarshal(b, &out); err != nil {
-		var list interface{}
-		if err2 := func() error { b,_:=json.Marshal(data); return json.Unmarshal(b, &list) }(); err2 == nil {
-			return &types.PageListResp{List: list}, nil
-		}
-		return nil, err
+	p, ps := in.Page()
+	list, total, err := biz.NewMerchantLogic(l.svcCtx).ListWalletLogs(shopID, p, ps)
+	if err != nil {
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &out, nil
+	return &types.PageListResp{Total: total, List: list}, nil
+
 }

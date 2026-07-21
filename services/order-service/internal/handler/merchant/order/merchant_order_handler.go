@@ -12,8 +12,13 @@ import (
 
 func MerchantAfterSalesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var req types.PageReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
 		l := order.NewMerchantAfterSalesLogic(r.Context(), svcCtx)
-		resp, err := l.MerchantAfterSales(r.Context())
+		resp, err := l.MerchantAfterSales(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {
@@ -29,7 +34,6 @@ func MerchantCompleteHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}
-
 		l := order.NewMerchantCompleteLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantComplete(r.Context(), &req)
 		if err != nil {
@@ -47,7 +51,6 @@ func MerchantDetailHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}
-
 		l := order.NewMerchantDetailLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantDetail(r.Context(), &req)
 		if err != nil {
@@ -60,12 +63,11 @@ func MerchantDetailHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func MerchantHandleAfterSaleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.IdPathReq
+		var req types.HandleAfterSaleBodyReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}
-
 		l := order.NewMerchantHandleAfterSaleLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantHandleAfterSale(r.Context(), &req)
 		if err != nil {
@@ -83,7 +85,6 @@ func MerchantListOrdersHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}
-
 		l := order.NewMerchantListOrdersLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantListOrders(r.Context(), &req)
 		if err != nil {
@@ -96,12 +97,11 @@ func MerchantListOrdersHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func MerchantRemarkHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.IdPathReq
+		var req types.RemarkBodyReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}
-
 		l := order.NewMerchantRemarkLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantRemark(r.Context(), &req)
 		if err != nil {
@@ -114,12 +114,11 @@ func MerchantRemarkHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func MerchantShipHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.IdPathReq
+		var req types.ShipBodyReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}
-
 		l := order.NewMerchantShipLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantShip(r.Context(), &req)
 		if err != nil {

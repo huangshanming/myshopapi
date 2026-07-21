@@ -2,11 +2,11 @@ package order
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
-	"net/url"
+	"net/http"
 
-	hmerchant "mymall/services/order-service/internal/app/merchant"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	"mymall/services/order-service/internal/biz"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
 
@@ -19,18 +19,14 @@ type MerchantHandleAfterSaleLogic struct {
 }
 
 func NewMerchantHandleAfterSaleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantHandleAfterSaleLogic {
-	return &MerchantHandleAfterSaleLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &MerchantHandleAfterSaleLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *MerchantHandleAfterSaleLogic) MerchantHandleAfterSale(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hmerchant.NewOrderHandler(l.svcCtx).MerchantHandleAfterSale(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
-	if err != nil {
-		return nil, err
+func (l *MerchantHandleAfterSaleLogic) MerchantHandleAfterSale(ctx context.Context, req *types.HandleAfterSaleBodyReq) (*types.EmptyResp, error) {
+	shopID := middleware.GetShopID(ctx)
+	uid, _ := middleware.GetUserID(ctx)
+	if err := biz.NewOrderLogic(l.svcCtx).HandleAfterSale(ctx, req.Id, shopID, uid, req.Action, req.AdminRemark); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.EmptyResp{}, nil
 }

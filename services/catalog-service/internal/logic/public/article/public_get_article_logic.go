@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	clogic "mymall/services/catalog-service/internal/content/logic"
+	"net/http"
+	"strconv"
 
-	hpublic "mymall/services/catalog-service/internal/content/app/public"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
 
@@ -26,11 +29,21 @@ func NewPublicGetArticleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 }
 
 func (l *PublicGetArticleLogic) PublicGetArticle(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hpublic.NewArticleHandler(l.svcCtx).Detail(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}})
+	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}}
+
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
+	if err != nil || id == 0 {
+		return nil, xerr.New(http.StatusBadRequest, "文章ID无效")
+	}
+	userID, _ := middleware.GetUserID(ctx)
+	if userID == 0 && in.Request != nil {
+		if raw := in.Request.Header.Get(middleware.GatewayUserIDHeader); raw != "" {
+			userID, _ = strconv.ParseUint(raw, 10, 64)
+		}
+	}
+	data, err := clogic.NewArticleLogic(l.svcCtx).PublicDetail(ctx, id, userID)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusNotFound, err.Error())
 	}
 	return &types.AnyResp{Data: data}, nil
 }

@@ -2,11 +2,11 @@ package review
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
-	"net/url"
+	"net/http"
 
-	huser "mymall/services/order-service/internal/app/user"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	"mymall/services/order-service/internal/biz"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
 
@@ -19,18 +19,17 @@ type EligibleLogic struct {
 }
 
 func NewEligibleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *EligibleLogic {
-	return &EligibleLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &EligibleLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *EligibleLogic) Eligible(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := huser.NewReviewHandler(l.svcCtx).Eligible(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}})
+func (l *EligibleLogic) Eligible(ctx context.Context, req *types.IdPathReq) (*types.AnyResp, error) {
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok || userID == 0 {
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
+	}
+	data, err := biz.NewReviewLogic(l.svcCtx).ReviewEligible(ctx, userID, req.Id)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
 	return &types.AnyResp{Data: data}, nil
 }

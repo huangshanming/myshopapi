@@ -12,8 +12,13 @@ import (
 
 func AdminAfterSalesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var req types.PageReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
 		l := order.NewAdminAfterSalesLogic(r.Context(), svcCtx)
-		resp, err := l.AdminAfterSales(r.Context())
+		resp, err := l.AdminAfterSales(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {
@@ -29,7 +34,6 @@ func AdminCompleteHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}
-
 		l := order.NewAdminCompleteLogic(r.Context(), svcCtx)
 		resp, err := l.AdminComplete(r.Context(), &req)
 		if err != nil {
@@ -47,7 +51,6 @@ func AdminDetailHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}
-
 		l := order.NewAdminDetailLogic(r.Context(), svcCtx)
 		resp, err := l.AdminDetail(r.Context(), &req)
 		if err != nil {
@@ -60,12 +63,11 @@ func AdminDetailHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func AdminHandleAfterSaleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.IdPathReq
+		var req types.HandleAfterSaleBodyReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}
-
 		l := order.NewAdminHandleAfterSaleLogic(r.Context(), svcCtx)
 		resp, err := l.AdminHandleAfterSale(r.Context(), &req)
 		if err != nil {
@@ -83,7 +85,6 @@ func AdminListOrdersHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}
-
 		l := order.NewAdminListOrdersLogic(r.Context(), svcCtx)
 		resp, err := l.AdminListOrders(r.Context(), &req)
 		if err != nil {
@@ -96,12 +97,11 @@ func AdminListOrdersHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func AdminRemarkHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.IdPathReq
+		var req types.RemarkBodyReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}
-
 		l := order.NewAdminRemarkLogic(r.Context(), svcCtx)
 		resp, err := l.AdminRemark(r.Context(), &req)
 		if err != nil {
@@ -114,12 +114,11 @@ func AdminRemarkHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func AdminShipHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.IdPathReq
+		var req types.ShipBodyReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}
-
 		l := order.NewAdminShipLogic(r.Context(), svcCtx)
 		resp, err := l.AdminShip(r.Context(), &req)
 		if err != nil {

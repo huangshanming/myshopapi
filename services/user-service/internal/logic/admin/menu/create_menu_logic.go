@@ -2,12 +2,14 @@ package menu
 
 import (
 	"context"
-	"mymall/pkg/appinput"
-	hadmin "mymall/services/user-service/internal/app/admin"
-	"mymall/services/user-service/internal/svc"
-	"mymall/services/user-service/internal/types"
+	"net/http"
 
 	"github.com/zeromicro/go-zero/core/logx"
+
+	"mymall/pkg/xerr"
+	"mymall/services/user-service/internal/biz"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 )
 
 type CreateMenuLogic struct {
@@ -23,9 +25,9 @@ func NewCreateMenuLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Create
 }
 
 func (l *CreateMenuLogic) CreateMenu(ctx context.Context, req *types.MenuReq) (resp *types.AnyResp, err error) {
-	data, err := hadmin.NewAdminHandler(l.svcCtx).CreateMenu(ctx, appinput.CallInput{Body: req})
+	m, err := biz.NewRBACLogic(l.svcCtx).CreateMenu(ctx, *req)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.AnyResp{Data: m}, nil
 }

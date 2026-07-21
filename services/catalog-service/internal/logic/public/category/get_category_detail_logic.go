@@ -2,15 +2,17 @@ package category
 
 import (
 	"context"
-	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/xerr"
+	plogic "mymall/services/catalog-service/internal/product/logic"
+	"net/http"
+	"strconv"
 
-	hpublic "mymall/services/catalog-service/internal/product/app/public"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"gorm.io/gorm"
 )
 
 type GetCategoryDetailLogic struct {
@@ -26,11 +28,18 @@ func NewGetCategoryDetailLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 }
 
 func (l *GetCategoryDetailLogic) GetCategoryDetail(ctx context.Context) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hpublic.NewCatalogHandler(l.svcCtx).GetCategoryDetail(ctx, appinput.CallInput{})
+	in := appinput.CallInput{}
+
+	id, _ := strconv.ParseUint(in.QueryGet("id"), 10, 64)
+	if id == 0 {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
+	}
+	data, err := plogic.NewCatalogLogic(l.svcCtx).GetCategoryDetail(ctx, id)
 	if err != nil {
-		return nil, err
+		if err == gorm.ErrRecordNotFound {
+			return nil, xerr.New(http.StatusNotFound, "分类不存在")
+		}
+		return nil, xerr.New(http.StatusInternalServerError, "查询失败")
 	}
 	return &types.AnyResp{Data: data}, nil
 }

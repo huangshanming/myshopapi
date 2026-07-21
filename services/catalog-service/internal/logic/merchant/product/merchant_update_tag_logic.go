@@ -4,9 +4,13 @@ import (
 	"context"
 	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	ptypes "mymall/services/catalog-service/internal/product/types"
+	"net/http"
+	"strconv"
 
-	hmerchant "mymall/services/catalog-service/internal/product/app/merchant"
+	"mymall/services/catalog-service/internal/product/model"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
 
@@ -26,11 +30,24 @@ func NewMerchantUpdateTagLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 }
 
 func (l *MerchantUpdateTagLogic) MerchantUpdateTag(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hmerchant.NewProductHandler(l.svcCtx).SaveTag(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
-	if err != nil {
-		return nil, err
+	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req}
+
+	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
+		shopID = middleware.GetShopID(ctx)
+		userID, _ = middleware.GetUserID(ctx)
+		return shopID, userID, shopID > 0 && userID > 0
 	}
-	return &types.AnyResp{Data: data}, nil
+
+	shopID, _, ok := shopUser(ctx)
+	if !ok {
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
+	}
+	var body ptypes.TagReq
+	_ = appinput.BindBody(in, &body)
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
+	tag := &model.ProductTag{ID: id, ShopID: shopID, Name: body.Name, Color: body.Color, Status: 1}
+	if err := l.svcCtx.ProductAdmin.SaveTag(ctx, tag); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
+	}
+	return &types.AnyResp{Data: tag}, nil
 }

@@ -2,12 +2,12 @@ package task
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"mymall/pkg/appinput"
-	huser "mymall/services/user-service/internal/app/user"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	"mymall/services/user-service/internal/biz"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
+	"net/http"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -18,27 +18,17 @@ type UserClaimLogic struct {
 }
 
 func NewUserClaimLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserClaimLogic {
-	return &UserClaimLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &UserClaimLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *UserClaimLogic) UserClaim(ctx context.Context, req *types.CodePathReq) (resp *types.PointsResp, err error) {
-	data, err := huser.NewTaskHandler(l.svcCtx).UserClaim(ctx, appinput.CallInput{PathVars: map[string]string{"code": fmt.Sprintf("%v", req.Code)}})
+func (l *UserClaimLogic) UserClaim(ctx context.Context, req *types.CodePathReq) (*types.PointsResp, error) {
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok || userID == 0 {
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
+	}
+	n, err := biz.NewTaskLogic(l.svcCtx).Claim(ctx, userID, req.Code)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	b, _ := json.Marshal(data)
-	var out types.PointsResp
-	if err := json.Unmarshal(b, &out); err != nil {
-		// may be bare number or {points:n}
-		var n int64
-		if err2 := json.Unmarshal(b, &n); err2 == nil {
-			out.Points = n
-			return &out, nil
-		}
-		return nil, err
-	}
-	return &out, nil
+	return &types.PointsResp{Points: n.Points}, nil
 }

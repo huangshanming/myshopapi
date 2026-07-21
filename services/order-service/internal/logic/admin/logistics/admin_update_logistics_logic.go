@@ -2,11 +2,10 @@ package logistics
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
-	"net/url"
+	"net/http"
 
-	hadmin "mymall/services/order-service/internal/app/admin"
+	"mymall/pkg/xerr"
+	"mymall/services/order-service/internal/biz"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
 
@@ -19,18 +18,15 @@ type AdminUpdateLogisticsLogic struct {
 }
 
 func NewAdminUpdateLogisticsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminUpdateLogisticsLogic {
-	return &AdminUpdateLogisticsLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &AdminUpdateLogisticsLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *AdminUpdateLogisticsLogic) AdminUpdateLogistics(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hadmin.NewLogisticsHandler(l.svcCtx).Delete(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
-	if err != nil {
-		return nil, err
+func (l *AdminUpdateLogisticsLogic) AdminUpdateLogistics(ctx context.Context, req *types.LogisticsUpdateBodyReq) (*types.EmptyResp, error) {
+	status := int8(req.Status)
+	if err := biz.NewLogisticsLogic(l.svcCtx).Update(ctx, req.Id, types.LogisticsSaveReq{
+		Name: req.Name, Code: req.Code, Sort: req.Sort, Status: &status,
+	}); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.EmptyResp{}, nil
 }

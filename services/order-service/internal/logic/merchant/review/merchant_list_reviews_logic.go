@@ -2,12 +2,12 @@ package review
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"mymall/pkg/appinput"
-	"net/url"
+	"net/http"
 
-	hmerchant "mymall/services/order-service/internal/app/merchant"
+	"mymall/pkg/middleware"
+	"mymall/pkg/pagination"
+	"mymall/pkg/xerr"
+	"mymall/services/order-service/internal/biz"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
 
@@ -20,27 +20,15 @@ type MerchantListReviewsLogic struct {
 }
 
 func NewMerchantListReviewsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantListReviewsLogic {
-	return &MerchantListReviewsLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &MerchantListReviewsLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *MerchantListReviewsLogic) MerchantListReviews(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hmerchant.NewReviewHandler(l.svcCtx).MerchantList(ctx, appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}})
+func (l *MerchantListReviewsLogic) MerchantListReviews(ctx context.Context, req *types.PageReq) (*types.PageListResp, error) {
+	shopID := middleware.GetShopID(ctx)
+	page, pageSize, _ := pagination.Normalize(&pagination.PageReq{Page: req.Page, PageSize: req.PageSize})
+	list, total, err := biz.NewReviewLogic(l.svcCtx).MerchantList(ctx, shopID, "", page, pageSize)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	b, _ := json.Marshal(data)
-	var out types.PageListResp
-	if err := json.Unmarshal(b, &out); err != nil {
-		var list interface{}
-		if err2 := func() error { b, _ := json.Marshal(data); return json.Unmarshal(b, &list) }(); err2 == nil {
-			return &types.PageListResp{List: list}, nil
-		}
-		return nil, err
-	}
-	return &out, nil
+	return &types.PageListResp{Total: total, List: list}, nil
 }

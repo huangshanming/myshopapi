@@ -2,11 +2,11 @@ package wallet
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	"mymall/services/merchant-service/internal/biz"
+	"net/http"
 
-	hmerchant "mymall/services/merchant-service/internal/app/merchant"
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
 
@@ -26,11 +26,11 @@ func NewMerchantGetWalletLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 }
 
 func (l *MerchantGetWalletLogic) MerchantGetWallet(ctx context.Context) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hmerchant.NewWalletHandler(l.svcCtx).MerchantGetWallet(ctx, appinput.CallInput{})
+
+	shopID := middleware.GetShopID(ctx)
+	wallet, err := biz.NewMerchantLogic(l.svcCtx).GetWallet(shopID)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.AnyResp{Data: wallet}, nil
 }

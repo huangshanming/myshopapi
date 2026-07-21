@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	plogic "mymall/services/catalog-service/internal/product/logic"
+	"net/http"
+	"strconv"
 
-	huser "mymall/services/catalog-service/internal/product/app/user"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
 
@@ -26,11 +29,19 @@ func NewUserFavoriteStatusLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 }
 
 func (l *UserFavoriteStatusLogic) UserFavoriteStatus(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := huser.NewFavoriteHandler(l.svcCtx).Status(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}})
-	if err != nil {
-		return nil, err
+	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}}
+
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok || userID == 0 {
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	return &types.AnyResp{Data: data}, nil
+	productID, err := strconv.ParseUint(in.Path("id"), 10, 64)
+	if err != nil || productID == 0 {
+		return nil, xerr.New(http.StatusBadRequest, "商品ID无效")
+	}
+	okFav, err := plogic.NewFavoriteLogic(l.svcCtx).IsFavorited(ctx, userID, productID)
+	if err != nil {
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
+	}
+	return &types.AnyResp{Data: map[string]bool{"favorited": okFav}}, nil
 }

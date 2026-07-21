@@ -2,13 +2,13 @@ package points
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"mymall/pkg/appinput"
-	huser "mymall/services/user-service/internal/app/user"
+	"mymall/pkg/middleware"
+	"mymall/pkg/pagination"
+	"mymall/pkg/xerr"
+	"mymall/services/user-service/internal/biz"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
-	"net/url"
+	"net/http"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -19,28 +19,18 @@ type UserPointLogsLogic struct {
 }
 
 func NewUserPointLogsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserPointLogsLogic {
-	return &UserPointLogsLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &UserPointLogsLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *UserPointLogsLogic) UserPointLogs(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
-	data, err := huser.NewTaskHandler(l.svcCtx).UserPointLogs(ctx, appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}})
+func (l *UserPointLogsLogic) UserPointLogs(ctx context.Context, req *types.PageReq) (*types.PageListResp, error) {
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok || userID == 0 {
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
+	}
+	page, pageSize, _ := pagination.Normalize(&pagination.PageReq{Page: req.Page, PageSize: req.PageSize})
+	list, total, err := biz.NewTaskLogic(l.svcCtx).ListPointLogs(ctx, userID, page, pageSize)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	b, _ := json.Marshal(data)
-	var out types.PageListResp
-	if err := json.Unmarshal(b, &out); err != nil {
-		// raw may already be {list,total}
-		var m map[string]json.RawMessage
-		if err2 := json.Unmarshal(b, &m); err2 == nil {
-			_ = json.Unmarshal(m["list"], &out.List)
-			_ = json.Unmarshal(m["total"], &out.Total)
-			return &out, nil
-		}
-		return nil, err
-	}
-	return &out, nil
+	return &types.PageListResp{Total: total, List: list}, nil
 }

@@ -2,11 +2,12 @@ package notification
 
 import (
 	"context"
-	"encoding/json"
-	"mymall/pkg/appinput"
-	huser "mymall/services/user-service/internal/app/user"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	"mymall/services/user-service/internal/biz"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
+	"net/http"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -17,21 +18,17 @@ type UnreadNotificationCountLogic struct {
 }
 
 func NewUnreadNotificationCountLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UnreadNotificationCountLogic {
-	return &UnreadNotificationCountLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &UnreadNotificationCountLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *UnreadNotificationCountLogic) UnreadNotificationCount(ctx context.Context) (resp *types.CountResp, err error) {
-	data, err := huser.NewUserHandler(l.svcCtx).UnreadNotificationCount(ctx, appinput.CallInput{})
+func (l *UnreadNotificationCountLogic) UnreadNotificationCount(ctx context.Context) (*types.CountResp, error) {
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
+	}
+	n, err := biz.NewUserLogic(l.svcCtx).UnreadCount(ctx, userID)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	b, _ := json.Marshal(data)
-	var out types.CountResp
-	if err := json.Unmarshal(b, &out); err != nil {
-		return nil, err
-	}
-	return &out, nil
+	return &types.CountResp{Count: n}, nil
 }

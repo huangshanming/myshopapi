@@ -2,11 +2,11 @@ package order
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
-	"net/url"
+	"net/http"
 
-	hmerchant "mymall/services/order-service/internal/app/merchant"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	"mymall/services/order-service/internal/biz"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
 
@@ -19,18 +19,19 @@ type MerchantDetailLogic struct {
 }
 
 func NewMerchantDetailLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantDetailLogic {
-	return &MerchantDetailLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &MerchantDetailLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *MerchantDetailLogic) MerchantDetail(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hmerchant.NewOrderHandler(l.svcCtx).MerchantDetail(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}})
-	if err != nil {
-		return nil, err
+func (l *MerchantDetailLogic) MerchantDetail(ctx context.Context, req *types.IdPathReq) (*types.AnyResp, error) {
+	shopID := middleware.GetShopID(ctx)
+	if shopID == 0 {
+		return nil, xerr.New(http.StatusForbidden, "缺少 shop_id")
 	}
-	return &types.AnyResp{Data: data}, nil
+	ol := biz.NewOrderLogic(l.svcCtx)
+	order, err := ol.GetOrderByShop(ctx, shopID, req.Id)
+	if err != nil {
+		return nil, xerr.New(http.StatusNotFound, "订单不存在")
+	}
+	as, _ := ol.ListAfterSalesByOrder(ctx, req.Id)
+	return &types.AnyResp{Data: map[string]interface{}{"order": order, "after_sales": as}}, nil
 }

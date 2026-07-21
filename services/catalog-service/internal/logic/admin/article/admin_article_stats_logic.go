@@ -2,11 +2,10 @@ package article
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/xerr"
+	clogic "mymall/services/catalog-service/internal/content/logic"
+	"net/http"
 
-	hadmin "mymall/services/catalog-service/internal/content/app/admin"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
 
@@ -26,11 +25,10 @@ func NewAdminArticleStatsLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 }
 
 func (l *AdminArticleStatsLogic) AdminArticleStats(ctx context.Context) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hadmin.NewArticleHandler(l.svcCtx).Stats(ctx, appinput.CallInput{})
+
+	data, err := clogic.NewArticleLogic(l.svcCtx).Stats(ctx)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
 	return &types.AnyResp{Data: data}, nil
 }

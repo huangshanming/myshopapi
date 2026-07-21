@@ -2,12 +2,12 @@ package auth
 
 import (
 	"context"
-	"mymall/pkg/appinput"
-	huser "mymall/services/user-service/internal/app/user"
+	"net/http"
+	"github.com/zeromicro/go-zero/core/logx"
+	"mymall/pkg/xerr"
+	"mymall/services/user-service/internal/biz"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
-
-	"github.com/zeromicro/go-zero/core/logx"
 )
 
 type RegisterLogic struct {
@@ -16,16 +16,13 @@ type RegisterLogic struct {
 }
 
 func NewRegisterLogic(ctx context.Context, svcCtx *svc.ServiceContext) *RegisterLogic {
-	return &RegisterLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &RegisterLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *RegisterLogic) Register(ctx context.Context, req *types.RegisterReq) (resp *types.AnyResp, err error) {
-	data, err := huser.NewUserHandler(l.svcCtx).Register(ctx, appinput.CallInput{Body: req})
+func (l *RegisterLogic) Register(ctx context.Context, req *types.RegisterReq) (*types.AnyResp, error) {
+	user, err := biz.NewUserLogic(l.svcCtx).Register(ctx, req.Mobile, req.Password)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.AnyResp{Data: user}, nil
 }

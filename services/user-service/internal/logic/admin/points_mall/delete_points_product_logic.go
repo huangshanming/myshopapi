@@ -2,13 +2,14 @@ package points_mall
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
-	hadmin "mymall/services/user-service/internal/app/admin"
-	"mymall/services/user-service/internal/svc"
-	"mymall/services/user-service/internal/types"
+	"net/http"
 
 	"github.com/zeromicro/go-zero/core/logx"
+
+	"mymall/pkg/xerr"
+	"mymall/services/user-service/internal/biz"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 )
 
 type DeletePointsProductLogic struct {
@@ -24,9 +25,11 @@ func NewDeletePointsProductLogic(ctx context.Context, svcCtx *svc.ServiceContext
 }
 
 func (l *DeletePointsProductLogic) DeletePointsProduct(ctx context.Context, req *types.IdPathReq) error {
-	_, err := hadmin.NewPointsProductHandler(l.svcCtx).Delete(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%v", req.Id)}})
-	if err != nil {
-		return err
+	if req.Id == 0 {
+		return xerr.New(http.StatusBadRequest, "商品ID无效")
+	}
+	if err := biz.NewPointsProductLogic(l.svcCtx).Delete(ctx, req.Id); err != nil {
+		return xerr.New(http.StatusBadRequest, err.Error())
 	}
 	return nil
 }

@@ -2,8 +2,11 @@ package auth
 
 import (
 	"context"
-	"mymall/pkg/appinput"
-	hadmin "mymall/services/user-service/internal/app/admin"
+	"net/http"
+
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	"mymall/services/user-service/internal/biz"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
 
@@ -16,16 +19,17 @@ type AuthMeLogic struct {
 }
 
 func NewAuthMeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AuthMeLogic {
-	return &AuthMeLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &AuthMeLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *AuthMeLogic) AuthMe(ctx context.Context) (resp *types.AnyResp, err error) {
-	data, err := hadmin.NewAdminHandler(l.svcCtx).AuthMe(ctx, appinput.CallInput{})
-	if err != nil {
-		return nil, err
+func (l *AuthMeLogic) AuthMe(ctx context.Context) (*types.AuthMeResp, error) {
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
-	return &types.AnyResp{Data: data}, nil
+	data, err := biz.NewRBACLogic(l.svcCtx).AuthMe(ctx, userID)
+	if err != nil {
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
+	}
+	return data, nil
 }

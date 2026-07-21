@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/xerr"
+	"mymall/services/merchant-service/internal/biz"
+	"net/http"
+	"strconv"
 
-	hadmin "mymall/services/merchant-service/internal/app/admin"
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
 
@@ -26,11 +28,16 @@ func NewAdminDisableShopLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 }
 
 func (l *AdminDisableShopLogic) AdminDisableShop(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hadmin.NewShopHandler(l.svcCtx).AdminDisableShop(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
+	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req}
+
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusBadRequest, "店铺ID无效")
 	}
-	return &types.AnyResp{Data: data}, nil
+	var body types.RejectReq
+	_ = appinput.BindBody(in, &body)
+	if err := biz.NewMerchantLogic(l.svcCtx).DisableShop(ctx, id, body.Reason); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
+	}
+	return &types.AnyResp{}, nil
 }

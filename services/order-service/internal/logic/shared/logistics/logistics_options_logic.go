@@ -2,11 +2,10 @@ package logistics
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
-	"net/url"
+	"net/http"
 
-	hadmin "mymall/services/order-service/internal/app/admin"
+	"mymall/pkg/xerr"
+	"mymall/services/order-service/internal/biz"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
 
@@ -19,18 +18,13 @@ type LogisticsOptionsLogic struct {
 }
 
 func NewLogisticsOptionsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *LogisticsOptionsLogic {
-	return &LogisticsOptionsLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &LogisticsOptionsLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *LogisticsOptionsLogic) LogisticsOptions(ctx context.Context) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hadmin.NewLogisticsHandler(l.svcCtx).Options(ctx, appinput.CallInput{})
+func (l *LogisticsOptionsLogic) LogisticsOptions(ctx context.Context) (*types.AnyResp, error) {
+	list, err := biz.NewLogisticsLogic(l.svcCtx).Options(ctx, "")
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.AnyResp{Data: list}, nil
 }

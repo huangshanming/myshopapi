@@ -2,13 +2,14 @@ package user
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
-	hadmin "mymall/services/user-service/internal/app/admin"
-	"mymall/services/user-service/internal/svc"
-	"mymall/services/user-service/internal/types"
+	"net/http"
 
 	"github.com/zeromicro/go-zero/core/logx"
+
+	"mymall/pkg/xerr"
+	"mymall/services/user-service/internal/biz"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 )
 
 type AdminListUserAddressesLogic struct {
@@ -24,9 +25,9 @@ func NewAdminListUserAddressesLogic(ctx context.Context, svcCtx *svc.ServiceCont
 }
 
 func (l *AdminListUserAddressesLogic) AdminListUserAddresses(ctx context.Context, req *types.IdPathReq) (resp *types.PageListResp, err error) {
-	data, err := hadmin.NewAddressHandler(l.svcCtx).AdminList(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%v", req.Id)}})
+	list, err := biz.NewAddressLogic(l.svcCtx).List(ctx, req.Id)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.PageListResp{List: data}, nil
+	return &types.PageListResp{List: list}, nil
 }

@@ -2,11 +2,11 @@ package order
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
-	"net/url"
+	"net/http"
 
-	huser "mymall/services/order-service/internal/app/user"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	"mymall/services/order-service/internal/biz"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
 
@@ -19,18 +19,17 @@ type CouponPreviewLogic struct {
 }
 
 func NewCouponPreviewLogic(ctx context.Context, svcCtx *svc.ServiceContext) *CouponPreviewLogic {
-	return &CouponPreviewLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &CouponPreviewLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *CouponPreviewLogic) CouponPreview(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := huser.NewOrderHandler(l.svcCtx).CouponPreview(ctx, appinput.CallInput{Body: req})
+func (l *CouponPreviewLogic) CouponPreview(ctx context.Context, req *types.CouponPreviewReq) (*types.AnyResp, error) {
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
+	}
+	data, err := biz.NewOrderLogic(l.svcCtx).CouponPreview(ctx, userID, req.Items, req.UserCouponID)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
 	return &types.AnyResp{Data: data}, nil
 }

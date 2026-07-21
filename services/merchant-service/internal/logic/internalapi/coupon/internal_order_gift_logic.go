@@ -2,11 +2,11 @@ package coupon
 
 import (
 	"context"
-	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/xerr"
+	"mymall/services/merchant-service/internal/biz"
+	"net/http"
 
-	hinternal "mymall/services/merchant-service/internal/app/internalapi"
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
 
@@ -26,11 +26,18 @@ func NewInternalOrderGiftLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 }
 
 func (l *InternalOrderGiftLogic) InternalOrderGift(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hinternal.NewCouponHandler(l.svcCtx).InternalOrderGift(ctx, appinput.CallInput{Body: req})
-	if err != nil {
-		return nil, err
+	in := appinput.CallInput{Body: req}
+
+	var body struct {
+		UserID uint64 `json:"user_id"`
+		ShopID uint64 `json:"shop_id"`
 	}
-	return &types.AnyResp{Data: data}, nil
+	if err := appinput.BindBody(in, &body); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
+	}
+	n, err := biz.NewMerchantLogic(l.svcCtx).OrderGiftCoupons(body.UserID, body.ShopID)
+	if err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
+	}
+	return &types.AnyResp{Data: map[string]interface{}{"granted": n}}, nil
 }

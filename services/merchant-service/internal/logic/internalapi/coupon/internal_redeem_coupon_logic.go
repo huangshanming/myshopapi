@@ -2,11 +2,11 @@ package coupon
 
 import (
 	"context"
-	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/xerr"
+	"mymall/services/merchant-service/internal/biz"
+	"net/http"
 
-	hinternal "mymall/services/merchant-service/internal/app/internalapi"
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
 
@@ -26,11 +26,18 @@ func NewInternalRedeemCouponLogic(ctx context.Context, svcCtx *svc.ServiceContex
 }
 
 func (l *InternalRedeemCouponLogic) InternalRedeemCoupon(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hinternal.NewCouponHandler(l.svcCtx).InternalRedeemCoupon(ctx, appinput.CallInput{Body: req})
-	if err != nil {
-		return nil, err
+	in := appinput.CallInput{Body: req}
+
+	var body struct {
+		UserCouponID   uint64  `json:"user_coupon_id"`
+		OrderID        uint64  `json:"order_id"`
+		DiscountAmount float64 `json:"discount_amount"`
 	}
-	return &types.AnyResp{Data: data}, nil
+	if err := appinput.BindBody(in, &body); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
+	}
+	if err := biz.NewMerchantLogic(l.svcCtx).RedeemCoupon(body.UserCouponID, body.OrderID, body.DiscountAmount); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
+	}
+	return &types.AnyResp{}, nil
 }

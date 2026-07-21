@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/xerr"
+	"mymall/services/merchant-service/internal/biz"
+	"net/http"
+	"strconv"
 
-	hadmin "mymall/services/merchant-service/internal/app/admin"
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
 
@@ -26,11 +28,15 @@ func NewAdminGetShopLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Admi
 }
 
 func (l *AdminGetShopLogic) AdminGetShop(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hadmin.NewShopHandler(l.svcCtx).AdminGetShop(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}})
+	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}}
+
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusBadRequest, "店铺ID无效")
 	}
-	return &types.AnyResp{Data: data}, nil
+	shop, err := biz.NewMerchantLogic(l.svcCtx).GetShop(ctx, id)
+	if err != nil {
+		return nil, xerr.New(http.StatusNotFound, "店铺不存在")
+	}
+	return &types.AnyResp{Data: shop}, nil
 }

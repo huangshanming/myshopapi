@@ -2,11 +2,11 @@ package order
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
-	"net/url"
+	"net/http"
 
-	hmerchant "mymall/services/order-service/internal/app/merchant"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	"mymall/services/order-service/internal/biz"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
 
@@ -19,18 +19,13 @@ type MerchantCompleteLogic struct {
 }
 
 func NewMerchantCompleteLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantCompleteLogic {
-	return &MerchantCompleteLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &MerchantCompleteLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *MerchantCompleteLogic) MerchantComplete(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hmerchant.NewOrderHandler(l.svcCtx).MerchantComplete(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
-	if err != nil {
-		return nil, err
+func (l *MerchantCompleteLogic) MerchantComplete(ctx context.Context, req *types.IdPathReq) (*types.EmptyResp, error) {
+	shopID := middleware.GetShopID(ctx)
+	if err := biz.NewOrderLogic(l.svcCtx).Complete(ctx, req.Id, shopID); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.EmptyResp{}, nil
 }

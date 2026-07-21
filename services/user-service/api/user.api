@@ -531,7 +531,7 @@ service userapi {
 )
 service userapi {
 	@handler AuthMe
-	get /api/v1/admin/auth/me returns (AnyResp)
+	get /api/v1/admin/auth/me returns (AuthMeResp)
 }
 
 @server (

@@ -2,12 +2,15 @@ package task
 
 import (
 	"context"
-	"mymall/pkg/appinput"
-	hinternal "mymall/services/user-service/internal/app/internalapi"
-	"mymall/services/user-service/internal/svc"
-	"mymall/services/user-service/internal/types"
+	"net/http"
+	"strconv"
 
 	"github.com/zeromicro/go-zero/core/logx"
+
+	"mymall/pkg/xerr"
+	"mymall/services/user-service/internal/biz"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 )
 
 type InternalEventLogic struct {
@@ -23,9 +26,14 @@ func NewInternalEventLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Int
 }
 
 func (l *InternalEventLogic) InternalEvent(ctx context.Context, req *types.TaskEventReq) error {
-	_, err := hinternal.NewTaskHandler(l.svcCtx).InternalEvent(ctx, appinput.CallInput{Body: req})
-	if err != nil {
-		return err
+	refID, _ := strconv.ParseUint(req.RefId, 10, 64)
+	bizReq := biz.TaskEventReq{
+		TaskCode: req.Event,
+		Delta:    1,
+		RefID:    refID,
+	}
+	if err := biz.NewTaskLogic(l.svcCtx).HandleEvent(ctx, bizReq); err != nil {
+		return xerr.New(http.StatusBadRequest, err.Error())
 	}
 	return nil
 }

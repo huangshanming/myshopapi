@@ -2,12 +2,13 @@ package wallet
 
 import (
 	"context"
-	"mymall/pkg/appinput"
-	huser "mymall/services/user-service/internal/app/user"
+	"net/http"
+	"github.com/zeromicro/go-zero/core/logx"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	"mymall/services/user-service/internal/biz"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
-
-	"github.com/zeromicro/go-zero/core/logx"
 )
 
 type UserGetWalletLogic struct {
@@ -16,16 +17,17 @@ type UserGetWalletLogic struct {
 }
 
 func NewUserGetWalletLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserGetWalletLogic {
-	return &UserGetWalletLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &UserGetWalletLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *UserGetWalletLogic) UserGetWallet(ctx context.Context) (resp *types.AnyResp, err error) {
-	data, err := huser.NewWalletHandler(l.svcCtx).UserGetWallet(ctx, appinput.CallInput{})
-	if err != nil {
-		return nil, err
+func (l *UserGetWalletLogic) UserGetWallet(ctx context.Context) (*types.AnyResp, error) {
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
-	return &types.AnyResp{Data: data}, nil
+	w, err := biz.NewWalletLogic(l.svcCtx).GetWallet(ctx, userID)
+	if err != nil {
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
+	}
+	return &types.AnyResp{Data: w}, nil
 }

@@ -2,11 +2,11 @@ package shopops
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	"mymall/services/catalog-service/internal/shopops/repository"
+	"net/http"
 
-	hhandler "mymall/services/catalog-service/internal/shopops/handler"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
 
@@ -26,11 +26,23 @@ func NewMerchantAuthMeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Me
 }
 
 func (l *MerchantAuthMeLogic) MerchantAuthMe(ctx context.Context) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hhandler.NewShopOpsHandler(l.svcCtx).AuthMe(ctx, appinput.CallInput{})
-	if err != nil {
-		return nil, err
+
+	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
+		shopID = middleware.GetShopID(ctx)
+		userID, _ = middleware.GetUserID(ctx)
+		return shopID, userID, shopID > 0 && userID > 0
 	}
-	return &types.AnyResp{Data: data}, nil
+
+	shopID, uid, ok := shopUser(ctx)
+	if !ok {
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
+	}
+	_ = l.svcCtx.ShopRBAC.EnsureOwnerRole(ctx, shopID, uid)
+	perms, _ := l.svcCtx.ShopRBAC.ListPerms(ctx, shopID, uid)
+	menus, _ := l.svcCtx.ShopRBAC.ListMenusForUser(ctx, shopID, uid)
+	return &types.AnyResp{Data: map[string]interface{}{
+		"perms": perms, "menus": menus, "menu_tree": repository.BuildShopMenuTree(menus),
+		"is_owner": l.svcCtx.ShopRBAC.IsOwner(ctx, shopID, uid),
+	}}, nil
+
 }

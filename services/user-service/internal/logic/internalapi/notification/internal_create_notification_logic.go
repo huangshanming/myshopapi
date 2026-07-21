@@ -2,12 +2,14 @@ package notification
 
 import (
 	"context"
-	"mymall/pkg/appinput"
-	hinternal "mymall/services/user-service/internal/app/internalapi"
-	"mymall/services/user-service/internal/svc"
-	"mymall/services/user-service/internal/types"
+	"net/http"
 
 	"github.com/zeromicro/go-zero/core/logx"
+
+	"mymall/pkg/xerr"
+	"mymall/services/user-service/internal/biz"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 )
 
 type InternalCreateNotificationLogic struct {
@@ -23,9 +25,14 @@ func NewInternalCreateNotificationLogic(ctx context.Context, svcCtx *svc.Service
 }
 
 func (l *InternalCreateNotificationLogic) InternalCreateNotification(ctx context.Context, req *types.NotifyCreateReq) (resp *types.AnyResp, err error) {
-	data, err := hinternal.NewNotificationHandler(l.svcCtx).InternalCreateNotification(ctx, appinput.CallInput{Body: req})
+	n, err := biz.NewUserLogic(l.svcCtx).CreateNotification(ctx, biz.NotifyCreateReq{
+		UserID:  req.UserID,
+		Title:   req.Title,
+		Content: req.Content,
+		MsgType: req.Type,
+	})
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.AnyResp{Data: n}, nil
 }

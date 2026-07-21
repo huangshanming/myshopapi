@@ -2,11 +2,12 @@ package coupon
 
 import (
 	"context"
-	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	"mymall/services/merchant-service/internal/biz"
+	"net/http"
 
-	hadmin "mymall/services/merchant-service/internal/app/admin"
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
 
@@ -26,11 +27,19 @@ func NewAdminGrantCouponLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 }
 
 func (l *AdminGrantCouponLogic) AdminGrantCoupon(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hadmin.NewCouponHandler(l.svcCtx).AdminGrantCoupon(ctx, appinput.CallInput{Body: req})
-	if err != nil {
-		return nil, err
+	in := appinput.CallInput{Body: req}
+
+	adminID, _ := middleware.GetUserID(ctx)
+	var body struct {
+		CouponID uint64   `json:"coupon_id"`
+		UserIDs  []uint64 `json:"user_ids"`
 	}
-	return &types.AnyResp{Data: data}, nil
+	if err := appinput.BindBody(in, &body); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
+	}
+	g, err := biz.NewMerchantLogic(l.svcCtx).GrantCoupon(adminID, body.CouponID, body.UserIDs, 0, true)
+	if err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
+	}
+	return &types.AnyResp{Data: g}, nil
 }

@@ -2,10 +2,12 @@ package review
 
 import (
 	"context"
-	"mymall/pkg/appinput"
+	"io"
 	"net/http"
 
-	huser "mymall/services/order-service/internal/app/user"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	"mymall/services/order-service/internal/biz"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
 
@@ -18,16 +20,26 @@ type UserUploadReviewLogic struct {
 }
 
 func NewUserUploadReviewLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserUploadReviewLogic {
-	return &UserUploadReviewLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &UserUploadReviewLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *UserUploadReviewLogic) UserUploadReview(ctx context.Context, r *http.Request) (resp *types.AnyResp, err error) {
-	data, err := huser.NewReviewHandler(l.svcCtx).Upload(ctx, appinput.CallInput{Request: r})
-	if err != nil {
-		return nil, err
+func (l *UserUploadReviewLogic) UserUploadReview(ctx context.Context, r *http.Request) (*types.AnyResp, error) {
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok || userID == 0 {
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
-	return &types.AnyResp{Data: data}, nil
+	file, hdr, err := r.FormFile("file")
+	if err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "请上传文件")
+	}
+	defer file.Close()
+	data, err := io.ReadAll(file)
+	if err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "读取文件失败")
+	}
+	url, err := biz.NewReviewLogic(l.svcCtx).SaveUpload(userID, hdr.Filename, data)
+	if err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
+	}
+	return &types.AnyResp{Data: map[string]string{"url": url}}, nil
 }

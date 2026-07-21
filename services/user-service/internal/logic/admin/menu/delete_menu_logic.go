@@ -2,13 +2,14 @@ package menu
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
-	hadmin "mymall/services/user-service/internal/app/admin"
-	"mymall/services/user-service/internal/svc"
-	"mymall/services/user-service/internal/types"
+	"net/http"
 
 	"github.com/zeromicro/go-zero/core/logx"
+
+	"mymall/pkg/xerr"
+	"mymall/services/user-service/internal/biz"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 )
 
 type DeleteMenuLogic struct {
@@ -24,9 +25,8 @@ func NewDeleteMenuLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Delete
 }
 
 func (l *DeleteMenuLogic) DeleteMenu(ctx context.Context, req *types.IdPathReq) error {
-	_, err := hadmin.NewAdminHandler(l.svcCtx).DeleteMenu(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%v", req.Id)}})
-	if err != nil {
-		return err
+	if err := biz.NewRBACLogic(l.svcCtx).DeleteMenu(ctx, req.Id); err != nil {
+		return xerr.New(http.StatusBadRequest, err.Error())
 	}
 	return nil
 }

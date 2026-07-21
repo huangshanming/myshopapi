@@ -2,13 +2,16 @@ package points
 
 import (
 	"context"
-	"encoding/json"
-	"mymall/pkg/appinput"
-	hinternal "mymall/services/user-service/internal/app/internalapi"
-	"mymall/services/user-service/internal/svc"
-	"mymall/services/user-service/internal/types"
+	"net/http"
+	"strconv"
 
 	"github.com/zeromicro/go-zero/core/logx"
+
+	"mymall/pkg/xerr"
+	"mymall/services/user-service/internal/biz"
+	"mymall/services/user-service/internal/model"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 )
 
 type InternalDeductPointsLogic struct {
@@ -24,20 +27,17 @@ func NewInternalDeductPointsLogic(ctx context.Context, svcCtx *svc.ServiceContex
 }
 
 func (l *InternalDeductPointsLogic) InternalDeductPoints(ctx context.Context, req *types.PointsLedgerReq) (resp *types.PointsResp, err error) {
-	data, err := hinternal.NewTaskHandler(l.svcCtx).InternalDeductPoints(ctx, appinput.CallInput{Body: req})
+	refID, _ := strconv.ParseUint(req.RefNo, 10, 64)
+	p, err := biz.NewTaskLogic(l.svcCtx).DeductPoints(ctx, biz.PointsLedgerReq{
+		UserID:     req.UserID,
+		Points:     int(req.Points),
+		ChangeType: model.PointChangeAdminAdjust,
+		Remark:     req.Reason,
+		RefType:    "ref",
+		RefID:      refID,
+	})
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	b, _ := json.Marshal(data)
-	var out types.PointsResp
-	if err := json.Unmarshal(b, &out); err != nil {
-		// may be bare number or {points:n}
-		var n int64
-		if err2 := json.Unmarshal(b, &n); err2 == nil {
-			out.Points = n
-			return &out, nil
-		}
-		return nil, err
-	}
-	return &out, nil
+	return &types.PointsResp{Points: p.Points}, nil
 }

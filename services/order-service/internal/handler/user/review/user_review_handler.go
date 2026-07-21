@@ -48,7 +48,7 @@ func GetByOrderHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func UserCreateReviewHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.IdPathReq
+		var req types.CreateReviewBodyReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return

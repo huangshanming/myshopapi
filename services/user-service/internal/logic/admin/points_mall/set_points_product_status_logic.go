@@ -2,13 +2,14 @@ package points_mall
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
-	hadmin "mymall/services/user-service/internal/app/admin"
-	"mymall/services/user-service/internal/svc"
-	"mymall/services/user-service/internal/types"
+	"net/http"
 
 	"github.com/zeromicro/go-zero/core/logx"
+
+	"mymall/pkg/xerr"
+	"mymall/services/user-service/internal/biz"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 )
 
 type SetPointsProductStatusLogic struct {
@@ -24,9 +25,12 @@ func NewSetPointsProductStatusLogic(ctx context.Context, svcCtx *svc.ServiceCont
 }
 
 func (l *SetPointsProductStatusLogic) SetPointsProductStatus(ctx context.Context, req *types.PointsProductStatusReq) (resp *types.AnyResp, err error) {
-	data, err := hadmin.NewPointsProductHandler(l.svcCtx).SetStatus(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%v", req.Id)}, Body: req})
-	if err != nil {
-		return nil, err
+	if req.Id == 0 {
+		return nil, xerr.New(http.StatusBadRequest, "商品ID无效")
 	}
-	return &types.AnyResp{Data: data}, nil
+	p, err := biz.NewPointsProductLogic(l.svcCtx).SetStatus(ctx, req.Id, req.Status)
+	if err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
+	}
+	return &types.AnyResp{Data: p}, nil
 }

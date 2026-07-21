@@ -2,10 +2,12 @@ package address
 
 import (
 	"context"
-	"mymall/pkg/appinput"
-	huser "mymall/services/user-service/internal/app/user"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	"mymall/services/user-service/internal/biz"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
+	"net/http"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -16,16 +18,17 @@ type UserListAddressesLogic struct {
 }
 
 func NewUserListAddressesLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserListAddressesLogic {
-	return &UserListAddressesLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &UserListAddressesLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *UserListAddressesLogic) UserListAddresses(ctx context.Context) (resp *types.PageListResp, err error) {
-	data, err := huser.NewAddressHandler(l.svcCtx).List(ctx, appinput.CallInput{})
-	if err != nil {
-		return nil, err
+func (l *UserListAddressesLogic) UserListAddresses(ctx context.Context) (*types.PageListResp, error) {
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
-	return &types.PageListResp{List: data}, nil
+	list, err := biz.NewAddressLogic(l.svcCtx).List(ctx, userID)
+	if err != nil {
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
+	}
+	return &types.PageListResp{List: list}, nil
 }

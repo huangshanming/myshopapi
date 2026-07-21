@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/xerr"
+	"mymall/services/merchant-service/internal/biz"
+	"net/http"
+	"strconv"
 
-	hadmin "mymall/services/merchant-service/internal/app/admin"
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
 
@@ -26,11 +28,31 @@ func NewAdminUpdateThemeSlotLogic(ctx context.Context, svcCtx *svc.ServiceContex
 }
 
 func (l *AdminUpdateThemeSlotLogic) AdminUpdateThemeSlot(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hadmin.NewHomepageThemeHandler(l.svcCtx).AdminUpdateThemeSlot(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
-	if err != nil {
-		return nil, err
+	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req}
+
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
+	if err != nil || id == 0 {
+		return nil, xerr.New(http.StatusBadRequest, "ID无效")
 	}
-	return &types.AnyResp{Data: data}, nil
+	var body map[string]interface{}
+	if err := appinput.BindBody(in, &body); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
+	}
+	allowed := map[string]bool{
+		"name": true, "desc": true, "cover_url": true, "default_link_type": true,
+		"default_link_id": true, "status": true, "sort": true, "position": true,
+	}
+	updates := map[string]interface{}{}
+	for k, v := range body {
+		if allowed[k] {
+			updates[k] = v
+		}
+	}
+	if len(updates) == 0 {
+		return nil, xerr.New(http.StatusBadRequest, "无更新字段")
+	}
+	if err := biz.NewMerchantLogic(l.svcCtx).AdminUpdateThemeSlot(id, updates); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
+	}
+	return &types.AnyResp{}, nil
 }

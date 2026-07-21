@@ -2,11 +2,10 @@ package order
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
-	"net/url"
+	"net/http"
 
-	hadmin "mymall/services/order-service/internal/app/admin"
+	"mymall/pkg/xerr"
+	"mymall/services/order-service/internal/biz"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
 
@@ -19,18 +18,15 @@ type AdminDetailLogic struct {
 }
 
 func NewAdminDetailLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminDetailLogic {
-	return &AdminDetailLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &AdminDetailLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *AdminDetailLogic) AdminDetail(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hadmin.NewOrderHandler(l.svcCtx).AdminDetail(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}})
+func (l *AdminDetailLogic) AdminDetail(ctx context.Context, req *types.IdPathReq) (*types.AnyResp, error) {
+	ol := biz.NewOrderLogic(l.svcCtx)
+	order, err := ol.GetOrderAdmin(ctx, req.Id)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusNotFound, "订单不存在")
 	}
-	return &types.AnyResp{Data: data}, nil
+	as, _ := ol.ListAfterSalesByOrder(ctx, req.Id)
+	return &types.AnyResp{Data: map[string]interface{}{"order": order, "after_sales": as}}, nil
 }

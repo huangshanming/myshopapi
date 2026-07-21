@@ -2,12 +2,12 @@ package region
 
 import (
 	"context"
-	"mymall/pkg/appinput"
-	hpublic "mymall/services/user-service/internal/app/public"
+	"net/http"
+	"github.com/zeromicro/go-zero/core/logx"
+	"mymall/pkg/xerr"
+	"mymall/services/user-service/internal/biz"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
-
-	"github.com/zeromicro/go-zero/core/logx"
 )
 
 type RegionTreeLogic struct {
@@ -16,16 +16,13 @@ type RegionTreeLogic struct {
 }
 
 func NewRegionTreeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *RegionTreeLogic {
-	return &RegionTreeLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &RegionTreeLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *RegionTreeLogic) RegionTree(ctx context.Context) (resp *types.AnyResp, err error) {
-	data, err := hpublic.NewRegionHandler(l.svcCtx).Tree(ctx, appinput.CallInput{})
+func (l *RegionTreeLogic) RegionTree(ctx context.Context) (*types.AnyResp, error) {
+	tree, err := biz.NewRegionLogic(l.svcCtx).Tree(ctx)
 	if err != nil {
-		return nil, err
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.AnyResp{Data: tree}, nil
 }

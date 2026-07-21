@@ -2,10 +2,13 @@ package shop
 
 import (
 	"context"
+	"io"
 	"mymall/pkg/appinput"
+	"mymall/pkg/xerr"
+	"mymall/services/catalog-service/internal/product/upload"
 	"net/http"
+	"strconv"
 
-	hadmin "mymall/services/catalog-service/internal/product/app/admin"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
 
@@ -25,9 +28,25 @@ func NewAdminUploadShopLogic(ctx context.Context, svcCtx *svc.ServiceContext) *A
 }
 
 func (l *AdminUploadShopLogic) AdminUploadShop(ctx context.Context, r *http.Request) (resp *types.AnyResp, err error) {
-	data, err := hadmin.NewShopUploadHandler().Upload(ctx, appinput.CallInput{Request: r})
-	if err != nil {
-		return nil, err
+	in := appinput.CallInput{Request: r}
+
+	if in.Request == nil {
+		return nil, xerr.New(http.StatusBadRequest, "缺少上传请求")
 	}
-	return &types.AnyResp{Data: data}, nil
+
+	shopID, _ := strconv.ParseUint(in.QueryGet("shop_id"), 10, 64)
+	file, hdr, err := in.Request.FormFile("file")
+	if err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "缺少文件")
+	}
+	defer file.Close()
+	data, err := io.ReadAll(file)
+	if err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "读取失败")
+	}
+	url, err := upload.SaveShopImage(shopID, hdr.Filename, data)
+	if err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
+	}
+	return &types.AnyResp{Data: map[string]string{"url": url}}, nil
 }

@@ -2,11 +2,11 @@ package order
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
-	"net/url"
+	"net/http"
 
-	huser "mymall/services/order-service/internal/app/user"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	"mymall/services/order-service/internal/biz"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
 
@@ -19,18 +19,17 @@ type UserCreateOrderLogic struct {
 }
 
 func NewUserCreateOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserCreateOrderLogic {
-	return &UserCreateOrderLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &UserCreateOrderLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *UserCreateOrderLogic) UserCreateOrder(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := huser.NewOrderHandler(l.svcCtx).List(ctx, appinput.CallInput{Body: req})
-	if err != nil {
-		return nil, err
+func (l *UserCreateOrderLogic) UserCreateOrder(ctx context.Context, req *types.CreateOrderReq) (*types.AnyResp, error) {
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
-	return &types.AnyResp{Data: data}, nil
+	order, err := biz.NewOrderLogic(l.svcCtx).CreateOrder(ctx, userID, req.AddressID, req.Items, req.UserCouponID)
+	if err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
+	}
+	return &types.AnyResp{Data: order}, nil
 }

@@ -2,11 +2,11 @@ package notification
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
-	"net/url"
+	"mymall/pkg/middleware"
+	"mymall/pkg/xerr"
+	nlogic "mymall/services/catalog-service/internal/notify/logic"
+	"net/http"
 
-	hhandler "mymall/services/catalog-service/internal/notify/handler"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
 
@@ -26,11 +26,13 @@ func NewMerchantMarkAllNotificationsReadLogic(ctx context.Context, svcCtx *svc.S
 }
 
 func (l *MerchantMarkAllNotificationsReadLogic) MerchantMarkAllNotificationsRead(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	data, err := hhandler.NewNotificationHandler(l.svcCtx).MarkAllRead(ctx, appinput.CallInput{Body: req})
-	if err != nil {
-		return nil, err
+
+	shopID := middleware.GetShopID(ctx)
+	if shopID == 0 {
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	return &types.AnyResp{Data: data}, nil
+	if err := nlogic.NewNotificationLogic(l.svcCtx).MarkAllRead(ctx, shopID); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
+	}
+	return &types.AnyResp{Data: &types.AnyResp{}}, nil
 }
