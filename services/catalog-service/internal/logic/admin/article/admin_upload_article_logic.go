@@ -3,7 +3,6 @@ package article
 import (
 	"context"
 	"io"
-	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	clogic "mymall/services/catalog-service/internal/content/logic"
 	"net/http"
@@ -28,14 +27,12 @@ func NewAdminUploadArticleLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 }
 
 func (l *AdminUploadArticleLogic) AdminUploadArticle(ctx context.Context, r *http.Request) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{Request: r}
-
-	if in.Request == nil {
+	if r == nil {
 		return nil, xerr.New(http.StatusBadRequest, "缺少上传请求")
 	}
 
-	shopID, _ := strconv.ParseUint(in.QueryGet("shop_id"), 10, 64)
-	file, hdr, err := in.Request.FormFile("file")
+	shopID, _ := strconv.ParseUint(r.URL.Query().Get("shop_id"), 10, 64)
+	file, hdr, err := r.FormFile("file")
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, "缺少文件")
 	}

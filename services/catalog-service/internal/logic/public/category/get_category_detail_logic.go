@@ -2,11 +2,9 @@ package category
 
 import (
 	"context"
-	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	plogic "mymall/services/catalog-service/internal/product/logic"
 	"net/http"
-	"strconv"
 
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -27,14 +25,11 @@ func NewGetCategoryDetailLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 	}
 }
 
-func (l *GetCategoryDetailLogic) GetCategoryDetail(ctx context.Context) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{}
-
-	id, _ := strconv.ParseUint(in.QueryGet("id"), 10, 64)
-	if id == 0 {
+func (l *GetCategoryDetailLogic) GetCategoryDetail(ctx context.Context, req *types.IdQueryReq) (resp *types.AnyResp, err error) {
+	if req.Id == 0 {
 		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	data, err := plogic.NewCatalogLogic(l.svcCtx).GetCategoryDetail(ctx, id)
+	data, err := plogic.NewCatalogLogic(l.svcCtx).GetCategoryDetail(ctx, req.Id)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, xerr.New(http.StatusNotFound, "分类不存在")

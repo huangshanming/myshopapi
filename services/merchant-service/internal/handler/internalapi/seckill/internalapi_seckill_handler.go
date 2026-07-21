@@ -12,7 +12,7 @@ import (
 
 func SeckillConsumeHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
+		var req types.SeckillConsumeReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -30,7 +30,7 @@ func SeckillConsumeHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func SeckillRestoreHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
+		var req types.SeckillRestoreReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return

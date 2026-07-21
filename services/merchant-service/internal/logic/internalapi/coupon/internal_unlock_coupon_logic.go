@@ -2,7 +2,6 @@ package coupon
 
 import (
 	"context"
-	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	"mymall/services/merchant-service/internal/biz"
 	"net/http"
@@ -25,17 +24,8 @@ func NewInternalUnlockCouponLogic(ctx context.Context, svcCtx *svc.ServiceContex
 	}
 }
 
-func (l *InternalUnlockCouponLogic) InternalUnlockCoupon(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{Body: req}
-
-	var body struct {
-		UserCouponID uint64 `json:"user_coupon_id"`
-		OrderID      uint64 `json:"order_id"`
-	}
-	if err := appinput.BindBody(in, &body); err != nil {
-		return nil, xerr.New(http.StatusBadRequest, "参数错误")
-	}
-	if err := biz.NewMerchantLogic(l.svcCtx).UnlockCoupon(body.UserCouponID, body.OrderID); err != nil {
+func (l *InternalUnlockCouponLogic) InternalUnlockCoupon(ctx context.Context, req *types.UnlockCouponReq) (resp *types.AnyResp, err error) {
+	if err := biz.NewMerchantLogic(l.svcCtx).UnlockCoupon(req.UserCouponID, req.OrderID); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
 	return &types.AnyResp{}, nil

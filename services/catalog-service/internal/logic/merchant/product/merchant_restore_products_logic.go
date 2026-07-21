@@ -2,11 +2,9 @@ package product
 
 import (
 	"context"
-	"mymall/pkg/appinput"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	plogic "mymall/services/catalog-service/internal/product/logic"
-	ptypes "mymall/services/catalog-service/internal/product/types"
 	"net/http"
 
 	"mymall/services/catalog-service/internal/svc"
@@ -27,9 +25,7 @@ func NewMerchantRestoreProductsLogic(ctx context.Context, svcCtx *svc.ServiceCon
 	}
 }
 
-func (l *MerchantRestoreProductsLogic) MerchantRestoreProducts(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{Body: req}
-
+func (l *MerchantRestoreProductsLogic) MerchantRestoreProducts(ctx context.Context, req *types.RecycleReq) (resp *types.AnyResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -40,9 +36,7 @@ func (l *MerchantRestoreProductsLogic) MerchantRestoreProducts(ctx context.Conte
 	if !ok {
 		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	var body ptypes.RecycleReq
-	_ = appinput.BindBody(in, &body)
-	if err := plogic.NewProductAdminLogic(l.svcCtx).Restore(shopID, uid, body.ProductIDs); err != nil {
+	if err := plogic.NewProductAdminLogic(l.svcCtx).Restore(shopID, uid, req.ProductIDs); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
 	return &types.AnyResp{Data: &types.AnyResp{}}, nil

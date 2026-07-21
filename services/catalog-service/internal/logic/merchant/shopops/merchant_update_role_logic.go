@@ -2,14 +2,10 @@ package shopops
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	"mymall/services/catalog-service/internal/shopops/model"
-	sotypes "mymall/services/catalog-service/internal/shopops/types"
 	"net/http"
-	"strconv"
 
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -29,9 +25,7 @@ func NewMerchantUpdateRoleLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 	}
 }
 
-func (l *MerchantUpdateRoleLogic) MerchantUpdateRole(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req}
-
+func (l *MerchantUpdateRoleLogic) MerchantUpdateRole(ctx context.Context, req *types.ShopRoleUpdateBodyReq) (resp *types.AnyResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -42,14 +36,11 @@ func (l *MerchantUpdateRoleLogic) MerchantUpdateRole(ctx context.Context, req *t
 	if !ok || !l.svcCtx.ShopRBAC.IsOwner(ctx, shopID, uid) {
 		return nil, xerr.New(http.StatusForbidden, "仅店主可操作")
 	}
-	var body sotypes.ShopRoleReq
-	_ = appinput.BindBody(in, &body)
-	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
-	role := &model.ShopRole{ID: id, ShopID: shopID, Code: body.Code, Name: body.Name, Remark: body.Remark, Status: 1}
+	role := &model.ShopRole{ID: req.Id, ShopID: shopID, Code: req.Code, Name: req.Name, Remark: req.Remark, Status: 1}
 	if role.Code == "" {
 		role.Code = "custom"
 	}
-	if err := l.svcCtx.ShopRBAC.SaveRole(ctx, role, body.MenuIDs); err != nil {
+	if err := l.svcCtx.ShopRBAC.SaveRole(ctx, role, req.MenuIDs); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
 	return &types.AnyResp{Data: role}, nil

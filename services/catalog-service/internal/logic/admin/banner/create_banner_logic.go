@@ -2,12 +2,10 @@ package banner
 
 import (
 	"context"
-	"mymall/pkg/appinput"
-	"mymall/pkg/xerr"
-	"mymall/services/catalog-service/internal/content/logic"
-	clogic "mymall/services/catalog-service/internal/content/logic"
 	"net/http"
 
+	"mymall/pkg/xerr"
+	clogic "mymall/services/catalog-service/internal/content/logic"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
 
@@ -26,14 +24,11 @@ func NewCreateBannerLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Crea
 	}
 }
 
-func (l *CreateBannerLogic) CreateBanner(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{Body: req}
-
-	var body logic.BannerSaveReq
-	if err := appinput.BindBody(in, &body); err != nil {
-		return nil, xerr.New(http.StatusBadRequest, "参数错误")
-	}
-	b, err := clogic.NewArticleLogic(l.svcCtx).AdminCreateBanner(body)
+func (l *CreateBannerLogic) CreateBanner(ctx context.Context, req *types.BannerSaveReq) (resp *types.AnyResp, err error) {
+	b, err := clogic.NewArticleLogic(l.svcCtx).AdminCreateBanner(clogic.BannerSaveReq{
+		Title: req.Title, ImageURL: req.ImageURL, LinkType: req.LinkType, LinkID: req.LinkID,
+		Sort: req.Sort, Status: req.Status, StartAt: req.StartAt, EndAt: req.EndAt,
+	})
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}

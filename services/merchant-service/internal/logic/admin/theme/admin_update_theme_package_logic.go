@@ -2,14 +2,10 @@ package theme
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
+	"net/http"
+
 	"mymall/pkg/xerr"
 	"mymall/services/merchant-service/internal/biz"
-	"mymall/services/merchant-service/internal/model"
-	"net/http"
-	"strconv"
-
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
 
@@ -28,22 +24,15 @@ func NewAdminUpdateThemePackageLogic(ctx context.Context, svcCtx *svc.ServiceCon
 	}
 }
 
-func (l *AdminUpdateThemePackageLogic) AdminUpdateThemePackage(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req}
-
-	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
-	if err != nil || id == 0 {
+func (l *AdminUpdateThemePackageLogic) AdminUpdateThemePackage(ctx context.Context, req *types.ThemePackageUpdateBodyReq) (resp *types.AnyResp, err error) {
+	if req.Id == 0 {
 		return nil, xerr.New(http.StatusBadRequest, "ID无效")
 	}
-	var p model.HomepageThemePackage
-	if err := appinput.BindBody(in, &p); err != nil {
-		return nil, xerr.New(http.StatusBadRequest, "参数错误")
-	}
 	updates := map[string]interface{}{
-		"theme_slot_id": p.ThemeSlotID, "name": p.Name, "price": p.Price,
-		"duration_days": p.DurationDays, "status": p.Status, "sort": p.Sort, "remark": p.Remark,
+		"theme_slot_id": req.ThemeSlotID, "name": req.Name, "price": req.Price,
+		"duration_days": req.DurationDays, "status": req.Status, "sort": req.Sort, "remark": req.Remark,
 	}
-	if err := biz.NewMerchantLogic(l.svcCtx).AdminUpdateThemePackage(id, updates); err != nil {
+	if err := biz.NewMerchantLogic(l.svcCtx).AdminUpdateThemePackage(req.Id, updates); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
 	return &types.AnyResp{}, nil

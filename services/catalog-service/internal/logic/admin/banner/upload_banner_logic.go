@@ -3,7 +3,6 @@ package banner
 import (
 	"context"
 	"io"
-	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	clogic "mymall/services/catalog-service/internal/content/logic"
 	"net/http"
@@ -27,13 +26,11 @@ func NewUploadBannerLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Uplo
 }
 
 func (l *UploadBannerLogic) UploadBanner(ctx context.Context, r *http.Request) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{Request: r}
-
-	if in.Request == nil {
+	if r == nil {
 		return nil, xerr.New(http.StatusBadRequest, "缺少上传请求")
 	}
 
-	file, hdr, err := in.Request.FormFile("file")
+	file, hdr, err := r.FormFile("file")
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, "缺少文件")
 	}

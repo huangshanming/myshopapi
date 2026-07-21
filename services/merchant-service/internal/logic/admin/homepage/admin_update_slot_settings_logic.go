@@ -2,7 +2,6 @@ package homepage
 
 import (
 	"context"
-	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	"mymall/services/merchant-service/internal/biz"
 	"mymall/services/merchant-service/internal/model"
@@ -26,16 +25,12 @@ func NewAdminUpdateSlotSettingsLogic(ctx context.Context, svcCtx *svc.ServiceCon
 	}
 }
 
-func (l *AdminUpdateSlotSettingsLogic) AdminUpdateSlotSettings(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{Body: req}
-
-	var body struct {
-		Items []model.HomepageSlotSetting `json:"items"`
+func (l *AdminUpdateSlotSettingsLogic) AdminUpdateSlotSettings(ctx context.Context, req *types.UpdateSlotSettingsReq) (resp *types.AnyResp, err error) {
+items := make([]model.HomepageSlotSetting, 0, len(req.Items))
+	for _, it := range req.Items {
+		items = append(items, model.HomepageSlotSetting{SlotType: it.SlotType, HomeLimit: it.HomeLimit})
 	}
-	if err := appinput.BindBody(in, &body); err != nil {
-		return nil, xerr.New(http.StatusBadRequest, "参数错误")
-	}
-	if err := biz.NewMerchantLogic(l.svcCtx).UpdateSlotSettings(body.Items); err != nil {
+	if err := biz.NewMerchantLogic(l.svcCtx).UpdateSlotSettings(items); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
 	return &types.AnyResp{}, nil

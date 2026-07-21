@@ -12,7 +12,7 @@ import (
 
 func RemoveBatchHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
+		var req types.FavoriteBatchRemoveReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -30,7 +30,7 @@ func RemoveBatchHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func UserAddFavoriteHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
+		var req types.FavoriteAddReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -84,8 +84,14 @@ func UserListFavoritesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func UserRemoveFavoriteHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var req types.ProductIdPathReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
 		l := favorite.NewUserRemoveFavoriteLogic(r.Context(), svcCtx)
-		resp, err := l.UserRemoveFavorite(r.Context())
+		resp, err := l.UserRemoveFavorite(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {

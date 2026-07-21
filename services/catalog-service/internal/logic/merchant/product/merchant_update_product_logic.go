@@ -2,15 +2,11 @@ package product
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
 	"mymall/pkg/jwt"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	plogic "mymall/services/catalog-service/internal/product/logic"
-	ptypes "mymall/services/catalog-service/internal/product/types"
 	"net/http"
-	"strconv"
 
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -30,9 +26,7 @@ func NewMerchantUpdateProductLogic(ctx context.Context, svcCtx *svc.ServiceConte
 	}
 }
 
-func (l *MerchantUpdateProductLogic) MerchantUpdateProduct(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req}
-
+func (l *MerchantUpdateProductLogic) MerchantUpdateProduct(ctx context.Context, req *types.ProductUpdateBodyReq) (resp *types.AnyResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -60,12 +54,7 @@ func (l *MerchantUpdateProductLogic) MerchantUpdateProduct(ctx context.Context, 
 	if !ok {
 		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
-	var body ptypes.MerchantProductSaveReq
-	if err := appinput.BindBody(in, &body); err != nil {
-		return nil, xerr.New(http.StatusBadRequest, "参数错误")
-	}
-	p, err := plogic.NewProductAdminLogic(l.svcCtx).Save(ctx, shopID, uid, id, body)
+	p, err := plogic.NewProductAdminLogic(l.svcCtx).Save(ctx, shopID, uid, req.Id, req.ToProduct())
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}

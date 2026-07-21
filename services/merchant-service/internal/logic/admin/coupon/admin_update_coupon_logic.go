@@ -2,12 +2,9 @@ package coupon
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	"mymall/services/merchant-service/internal/biz"
 	"net/http"
-	"strconv"
 
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
@@ -27,15 +24,9 @@ func NewAdminUpdateCouponLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 	}
 }
 
-func (l *AdminUpdateCouponLogic) AdminUpdateCoupon(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req}
-
-	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
-	var body biz.CouponSaveReq
-	if err := appinput.BindBody(in, &body); err != nil {
-		return nil, xerr.New(http.StatusBadRequest, "参数错误")
-	}
-	if err := biz.NewMerchantLogic(l.svcCtx).UpdateCoupon(id, 0, true, body); err != nil {
+func (l *AdminUpdateCouponLogic) AdminUpdateCoupon(ctx context.Context, req *types.CouponUpdateBodyReq) (resp *types.AnyResp, err error) {
+	id := req.Id
+	if err := biz.NewMerchantLogic(l.svcCtx).UpdateCoupon(id, 0, true, req.ToCouponSaveReq()); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
 	return &types.AnyResp{}, nil

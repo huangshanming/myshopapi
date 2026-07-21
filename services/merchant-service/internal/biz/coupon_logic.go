@@ -8,47 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"mymall/common"
 	"mymall/services/merchant-service/internal/model"
+	"mymall/services/merchant-service/internal/types"
 
 	"github.com/google/uuid"
 )
-
-type CouponSaveReq struct {
-	Name              string              `json:"name"`
-	CouponType        string              `json:"coupon_type"`
-	ThresholdAmount   float64             `json:"threshold_amount"`
-	DiscountAmount    float64             `json:"discount_amount"`
-	DiscountRate      float64             `json:"discount_rate"`
-	MaxDiscountAmount float64             `json:"max_discount_amount"`
-	ScopeType         string              `json:"scope_type"`
-	TotalCount        int                 `json:"total_count"`
-	PerUserLimit      int                 `json:"per_user_limit"`
-	ValidType         string              `json:"valid_type"`
-	ValidStart        *common.LocalTime   `json:"valid_start"`
-	ValidEnd          *common.LocalTime   `json:"valid_end"`
-	ValidDays         int                 `json:"valid_days"`
-	Stackable         *int8               `json:"stackable"`
-	UserIdentity      string              `json:"user_identity"`
-	Channels          []string            `json:"channels"`
-	Status            string              `json:"status"`
-	Remark            string              `json:"remark"`
-	Scopes            []model.CouponScope `json:"scopes"`
-}
-
-type MatchItem struct {
-	ProductID      uint64  `json:"product_id"`
-	CategoryID     uint64  `json:"category_id"`
-	Amount         float64 `json:"amount"`
-	SeckillEntryID uint64  `json:"seckill_entry_id"`
-}
-
-type MatchReq struct {
-	UserID       uint64      `json:"user_id"`
-	ShopID       uint64      `json:"shop_id"`
-	Items        []MatchItem `json:"items"`
-	UserCouponID uint64      `json:"user_coupon_id"`
-}
 
 type MatchCouponView struct {
 	UserCouponID    uint64  `json:"user_coupon_id"`
@@ -72,7 +36,7 @@ type MatchResp struct {
 	Unavailable      []MatchCouponView `json:"unavailable"`
 }
 
-func (l *MerchantLogic) validateCouponSave(req CouponSaveReq, issuerType string, shopID uint64) (*model.Coupon, []model.CouponScope, error) {
+func (l *MerchantLogic) validateCouponSave(req types.CouponSaveReq, issuerType string, shopID uint64) (*model.Coupon, []model.CouponScope, error) {
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
 		return nil, nil, errors.New("请填写名称")
@@ -213,7 +177,7 @@ func (l *MerchantLogic) validateCouponSave(req CouponSaveReq, issuerType string,
 	return c, scopes, nil
 }
 
-func (l *MerchantLogic) AdminCreateCoupon(adminID uint64, req CouponSaveReq) (*model.Coupon, error) {
+func (l *MerchantLogic) AdminCreateCoupon(adminID uint64, req types.CouponSaveReq) (*model.Coupon, error) {
 	c, scopes, err := l.validateCouponSave(req, model.CouponIssuerPlatform, 0)
 	if err != nil {
 		return nil, err
@@ -226,7 +190,7 @@ func (l *MerchantLogic) AdminCreateCoupon(adminID uint64, req CouponSaveReq) (*m
 	return c, nil
 }
 
-func (l *MerchantLogic) MerchantCreateCoupon(shopID, userID uint64, req CouponSaveReq) (*model.Coupon, error) {
+func (l *MerchantLogic) MerchantCreateCoupon(shopID, userID uint64, req types.CouponSaveReq) (*model.Coupon, error) {
 	if shopID == 0 {
 		return nil, errors.New("缺少店铺")
 	}
@@ -242,7 +206,7 @@ func (l *MerchantLogic) MerchantCreateCoupon(shopID, userID uint64, req CouponSa
 	return c, nil
 }
 
-func (l *MerchantLogic) UpdateCoupon(id, shopID uint64, platform bool, req CouponSaveReq) error {
+func (l *MerchantLogic) UpdateCoupon(id, shopID uint64, platform bool, req types.CouponSaveReq) error {
 	old, err := l.svcCtx.Repo.GetCoupon(context.Background(), id)
 	if err != nil {
 		return errors.New("优惠券不存在")
@@ -498,7 +462,7 @@ func calcDiscount(c *model.Coupon, eligible float64) float64 {
 	return round2(d)
 }
 
-func eligibleAmount(c *model.Coupon, items []MatchItem) float64 {
+func eligibleAmount(c *model.Coupon, items []types.MatchItem) float64 {
 	scopeIDs := map[uint64]bool{}
 	for _, s := range c.Scopes {
 		scopeIDs[s.RefID] = true
@@ -521,7 +485,7 @@ func eligibleAmount(c *model.Coupon, items []MatchItem) float64 {
 	return round2(sum)
 }
 
-func hasSeckill(items []MatchItem) bool {
+func hasSeckill(items []types.MatchItem) bool {
 	for _, it := range items {
 		if it.SeckillEntryID > 0 {
 			return true
@@ -530,7 +494,7 @@ func hasSeckill(items []MatchItem) bool {
 	return false
 }
 
-func (l *MerchantLogic) MatchCoupons(req MatchReq) (*MatchResp, error) {
+func (l *MerchantLogic) MatchCoupons(req types.MatchCouponsReq) (*MatchResp, error) {
 	goods := 0.0
 	for _, it := range req.Items {
 		goods += it.Amount

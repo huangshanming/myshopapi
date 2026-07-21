@@ -2,13 +2,10 @@ package article
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	clogic "mymall/services/catalog-service/internal/content/logic"
 	"net/http"
-	"strconv"
 
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -29,8 +26,6 @@ func NewMerchantGetArticleLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 }
 
 func (l *MerchantGetArticleLogic) MerchantGetArticle(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}}
-
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -41,7 +36,7 @@ func (l *MerchantGetArticleLogic) MerchantGetArticle(ctx context.Context, req *t
 	if !ok {
 		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
+	id := req.Id
 	data, err := clogic.NewArticleLogic(l.svcCtx).Detail(ctx, id, shopID)
 	if err != nil {
 		return nil, xerr.New(http.StatusNotFound, err.Error())

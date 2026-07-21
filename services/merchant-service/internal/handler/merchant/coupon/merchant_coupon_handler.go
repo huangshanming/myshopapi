@@ -84,7 +84,7 @@ func MerchantCouponStatsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func MerchantCreateCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
+		var req types.CouponSaveReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -102,7 +102,7 @@ func MerchantCreateCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func MerchantGrantCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
+		var req types.GrantCouponReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -156,7 +156,7 @@ func MerchantOffCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func MerchantUpdateCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.IdPathReq
+		var req types.CouponUpdateBodyReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return

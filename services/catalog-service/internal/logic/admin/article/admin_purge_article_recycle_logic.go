@@ -2,7 +2,6 @@ package article
 
 import (
 	"context"
-	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	clogic "mymall/services/catalog-service/internal/content/logic"
 	"net/http"
@@ -25,17 +24,11 @@ func NewAdminPurgeArticleRecycleLogic(ctx context.Context, svcCtx *svc.ServiceCo
 	}
 }
 
-func (l *AdminPurgeArticleRecycleLogic) AdminPurgeArticleRecycle(ctx context.Context) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{}
-
-	var body struct {
-		ID uint64 `json:"id"`
-	}
-	_ = appinput.BindBody(in, &body)
-	if body.ID == 0 {
+func (l *AdminPurgeArticleRecycleLogic) AdminPurgeArticleRecycle(ctx context.Context, req *types.ArticleIdListReq) (resp *types.AnyResp, err error) {
+	if req.Id == 0 {
 		return nil, xerr.New(http.StatusBadRequest, "缺少 id")
 	}
-	if err := clogic.NewArticleLogic(l.svcCtx).PermanentDelete(ctx, body.ID); err != nil {
+	if err := clogic.NewArticleLogic(l.svcCtx).PermanentDelete(ctx, req.Id); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
 	return &types.AnyResp{Data: &types.AnyResp{}}, nil

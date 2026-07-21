@@ -12,7 +12,7 @@ import (
 
 func MerchantApplySeckillHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
+		var req types.SeckillApplyReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -60,7 +60,7 @@ func MerchantSeckillSessionsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc
 
 func MerchantSetSeckillAutoRenewHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.IdPathReq
+		var req types.SeckillAutoRenewBodyReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return

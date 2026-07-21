@@ -2,13 +2,10 @@ package product
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	plogic "mymall/services/catalog-service/internal/product/logic"
 	"mymall/services/catalog-service/internal/product/repository"
 	"net/http"
-	"net/url"
 	"strconv"
 	"time"
 
@@ -31,34 +28,32 @@ func NewAdminListProductsLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 }
 
 func (l *AdminListProductsLogic) AdminListProducts(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
-	in := appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}}
-
-	page, pageSize := in.Page()
-	shopID, _ := strconv.ParseUint(in.QueryGet("shop_id"), 10, 64)
-	catID, _ := strconv.ParseUint(in.QueryGet("category_id"), 10, 64)
+	page, pageSize := req.Page, req.PageSize
+	shopID, _ := strconv.ParseUint("" /* was query:shop_id */, 10, 64)
+	catID, _ := strconv.ParseUint("" /* was query:category_id */, 10, 64)
 	f := repository.ProductListFilter{
-		ShopID: shopID, Name: in.QueryGet("name"), ProductNo: in.QueryGet("product_no"),
-		CategoryID: catID, Status: in.QueryGet("status"), ProductType: in.QueryGet("product_type"),
-		Page: page, PageSize: pageSize, OrderBy: in.QueryGet("order_by"),
+		ShopID: shopID, Name: "" /* was query:name */, ProductNo: "" /* was query:product_no */,
+		CategoryID: catID, Status: "" /* was query:status */, ProductType: "" /* was query:product_type */,
+		Page: page, PageSize: pageSize, OrderBy: "" /* was query:order_by */,
 		PlatformScope: true,
 	}
-	if s := in.QueryGet("created_from"); s != "" {
+	if s := "" /* was query:created_from */; s != "" {
 		if t, err := time.ParseInLocation("2006-01-02", s, time.Local); err == nil {
 			f.CreatedFrom = &t
 		}
 	}
-	if s := in.QueryGet("created_to"); s != "" {
+	if s := "" /* was query:created_to */; s != "" {
 		if t, err := time.ParseInLocation("2006-01-02", s, time.Local); err == nil {
 			end := t.Add(24*time.Hour - time.Second)
 			f.CreatedTo = &end
 		}
 	}
-	if s := in.QueryGet("publish_from"); s != "" {
+	if s := "" /* was query:publish_from */; s != "" {
 		if t, err := time.ParseInLocation("2006-01-02", s, time.Local); err == nil {
 			f.PublishFrom = &t
 		}
 	}
-	if s := in.QueryGet("publish_to"); s != "" {
+	if s := "" /* was query:publish_to */; s != "" {
 		if t, err := time.ParseInLocation("2006-01-02", s, time.Local); err == nil {
 			end := t.Add(24*time.Hour - time.Second)
 			f.PublishTo = &end

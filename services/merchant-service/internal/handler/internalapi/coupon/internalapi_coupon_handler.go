@@ -12,7 +12,7 @@ import (
 
 func InternalLockCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
+		var req types.LockCouponReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -30,7 +30,7 @@ func InternalLockCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func InternalMatchCouponsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
+		var req types.MatchCouponsReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -48,7 +48,7 @@ func InternalMatchCouponsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func InternalOrderGiftHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
+		var req types.OrderGiftCouponReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -66,7 +66,7 @@ func InternalOrderGiftHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func InternalRedeemCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
+		var req types.RedeemCouponReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -84,7 +84,7 @@ func InternalRedeemCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func InternalReturnCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
+		var req types.ReturnCouponReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -102,7 +102,7 @@ func InternalReturnCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func InternalUnlockCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
+		var req types.UnlockCouponReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return

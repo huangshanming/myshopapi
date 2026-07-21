@@ -2,10 +2,8 @@ package shopops
 
 import (
 	"context"
-	"mymall/pkg/appinput"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
-	sotypes "mymall/services/catalog-service/internal/shopops/types"
 	"net/http"
 
 	"mymall/services/catalog-service/internal/svc"
@@ -26,9 +24,7 @@ func NewBindStaffLogic(ctx context.Context, svcCtx *svc.ServiceContext) *BindSta
 	}
 }
 
-func (l *BindStaffLogic) BindStaff(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{Body: req}
-
+func (l *BindStaffLogic) BindStaff(ctx context.Context, req *types.ShopStaffReq) (resp *types.AnyResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -39,34 +35,30 @@ func (l *BindStaffLogic) BindStaff(ctx context.Context, req *types.JSONBody) (re
 	if !ok || !l.svcCtx.ShopRBAC.IsOwner(ctx, shopID, uid) {
 		return nil, xerr.New(http.StatusForbidden, "仅店主可操作")
 	}
-	var body sotypes.ShopStaffReq
-	if err := appinput.BindBody(in, &body); err != nil {
-		return nil, xerr.New(http.StatusBadRequest, "参数错误")
-	}
-	if body.Mobile == "" {
+	if req.Mobile == "" {
 		return nil, xerr.New(http.StatusBadRequest, "请填写手机号")
 	}
-	if body.RoleID == 0 {
+	if req.RoleID == 0 {
 		return nil, xerr.New(http.StatusBadRequest, "请选择角色")
 	}
-	mode := body.Mode
+	mode := req.Mode
 	if mode == "" {
 		mode = "bind"
 	}
 	var userID uint64
 	switch mode {
 	case "create":
-		userID, err = l.svcCtx.ShopRBAC.CreateStaffUser(ctx, body.Mobile, body.Password, body.Nickname)
+		userID, err = l.svcCtx.ShopRBAC.CreateStaffUser(ctx, req.Mobile, req.Password, req.Nickname)
 		if err != nil {
 			return nil, xerr.New(http.StatusBadRequest, err.Error())
 		}
 	default:
-		userID, err = l.svcCtx.ShopRBAC.FindUserIDByMobile(ctx, body.Mobile)
+		userID, err = l.svcCtx.ShopRBAC.FindUserIDByMobile(ctx, req.Mobile)
 		if err != nil {
 			return nil, xerr.New(http.StatusBadRequest, err.Error())
 		}
 	}
-	if err = l.svcCtx.ShopRBAC.BindStaff(ctx, shopID, userID, body.RoleID); err != nil {
+	if err = l.svcCtx.ShopRBAC.BindStaff(ctx, shopID, userID, req.RoleID); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
 	msg := "已绑定"

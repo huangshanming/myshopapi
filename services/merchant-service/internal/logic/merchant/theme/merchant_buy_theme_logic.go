@@ -2,7 +2,6 @@ package theme
 
 import (
 	"context"
-	"mymall/pkg/appinput"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	"mymall/services/merchant-service/internal/biz"
@@ -26,19 +25,13 @@ func NewMerchantBuyThemeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 	}
 }
 
-func (l *MerchantBuyThemeLogic) MerchantBuyTheme(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{Body: req}
-
+func (l *MerchantBuyThemeLogic) MerchantBuyTheme(ctx context.Context, req *types.ThemeBuyReq) (resp *types.AnyResp, err error) {
 	shopID := middleware.GetShopID(ctx)
 	userID, _ := middleware.GetUserID(ctx)
 	if shopID == 0 {
 		return nil, xerr.New(http.StatusForbidden, "缺少店铺")
 	}
-	var body biz.ThemeBuyReq
-	if err := appinput.BindBody(in, &body); err != nil {
-		return nil, xerr.New(http.StatusBadRequest, "参数错误")
-	}
-	o, err := biz.NewMerchantLogic(l.svcCtx).BuyTheme(shopID, userID, body)
+	o, err := biz.NewMerchantLogic(l.svcCtx).BuyTheme(shopID, userID, *req)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}

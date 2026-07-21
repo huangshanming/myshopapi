@@ -2,12 +2,10 @@ package article
 
 import (
 	"context"
-	"mymall/pkg/appinput"
 	"mymall/pkg/jwt"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	clogic "mymall/services/catalog-service/internal/content/logic"
-	ctypes "mymall/services/catalog-service/internal/content/types"
 	"net/http"
 
 	"mymall/services/catalog-service/internal/svc"
@@ -28,9 +26,7 @@ func NewMerchantCreateArticleLogic(ctx context.Context, svcCtx *svc.ServiceConte
 	}
 }
 
-func (l *MerchantCreateArticleLogic) MerchantCreateArticle(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{Body: req}
-
+func (l *MerchantCreateArticleLogic) MerchantCreateArticle(ctx context.Context, req *types.ArticleSaveReq) (resp *types.AnyResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -55,11 +51,7 @@ func (l *MerchantCreateArticleLogic) MerchantCreateArticle(ctx context.Context, 
 		return nil, err
 	}
 	shopID, uid, _ := shopUser(ctx)
-	var body ctypes.ArticleSaveReq
-	if err := appinput.BindBody(in, &body); err != nil {
-		return nil, xerr.New(http.StatusBadRequest, "参数错误")
-	}
-	a, err := clogic.NewArticleLogic(l.svcCtx).MerchantCreate(ctx, shopID, uid, body)
+	a, err := clogic.NewArticleLogic(l.svcCtx).MerchantCreate(ctx, shopID, uid, req.ToContent())
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}

@@ -2,13 +2,9 @@ package banner
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
-	"mymall/services/catalog-service/internal/content/logic"
 	clogic "mymall/services/catalog-service/internal/content/logic"
 	"net/http"
-	"strconv"
 
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -28,18 +24,8 @@ func NewUpdateBannerLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Upda
 	}
 }
 
-func (l *UpdateBannerLogic) UpdateBanner(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req}
-
-	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
-	if err != nil || id == 0 {
-		return nil, xerr.New(http.StatusBadRequest, "ID无效")
-	}
-	var body logic.BannerSaveReq
-	if err := appinput.BindBody(in, &body); err != nil {
-		return nil, xerr.New(http.StatusBadRequest, "参数错误")
-	}
-	if err := clogic.NewArticleLogic(l.svcCtx).AdminUpdateBanner(id, body); err != nil {
+func (l *UpdateBannerLogic) UpdateBanner(ctx context.Context, req *types.BannerUpdateBodyReq) (resp *types.AnyResp, err error) {
+	if err := clogic.NewArticleLogic(l.svcCtx).AdminUpdateBanner(req.Id, clogic.BannerSaveReq{Title: req.Title, ImageURL: req.ImageURL, LinkType: req.LinkType, LinkID: req.LinkID, Sort: req.Sort, Status: req.Status, StartAt: req.StartAt, EndAt: req.EndAt}); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
 	return &types.AnyResp{Data: &types.AnyResp{}}, nil

@@ -2,14 +2,11 @@ package article
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
 	"mymall/pkg/jwt"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	clogic "mymall/services/catalog-service/internal/content/logic"
 	"net/http"
-	"strconv"
 
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -30,8 +27,6 @@ func NewMerchantDeleteArticleCommentLogic(ctx context.Context, svcCtx *svc.Servi
 }
 
 func (l *MerchantDeleteArticleCommentLogic) MerchantDeleteArticleComment(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}}
-
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -56,7 +51,7 @@ func (l *MerchantDeleteArticleCommentLogic) MerchantDeleteArticleComment(ctx con
 		return nil, err
 	}
 	shopID, _, _ := shopUser(ctx)
-	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
+	id := req.Id
 	if err := clogic.NewArticleLogic(l.svcCtx).DeleteComment(ctx, id, shopID); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}

@@ -2,14 +2,11 @@ package homepage
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
+	"net/http"
+
 	"mymall/pkg/xerr"
 	"mymall/services/merchant-service/internal/biz"
 	"mymall/services/merchant-service/internal/model"
-	"net/http"
-	"strconv"
-
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
 
@@ -28,18 +25,15 @@ func NewAdminUpdateSlotPackageLogic(ctx context.Context, svcCtx *svc.ServiceCont
 	}
 }
 
-func (l *AdminUpdateSlotPackageLogic) AdminUpdateSlotPackage(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req}
-
-	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
-	if err != nil || id == 0 {
+func (l *AdminUpdateSlotPackageLogic) AdminUpdateSlotPackage(ctx context.Context, req *types.SlotPackageUpdateBodyReq) (resp *types.AnyResp, err error) {
+	if req.Id == 0 {
 		return nil, xerr.New(http.StatusBadRequest, "ID无效")
 	}
-	var p model.HomepageSlotPackage
-	if err := appinput.BindBody(in, &p); err != nil {
-		return nil, xerr.New(http.StatusBadRequest, "参数错误")
+	p := model.HomepageSlotPackage{
+		SlotType: req.SlotType, Name: req.Name, Price: req.Price, DurationDays: req.DurationDays,
+		Status: req.Status, Sort: req.Sort, Remark: req.Remark,
 	}
-	if err := biz.NewMerchantLogic(l.svcCtx).UpdateSlotPackage(id, &p); err != nil {
+	if err := biz.NewMerchantLogic(l.svcCtx).UpdateSlotPackage(req.Id, &p); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
 	return &types.AnyResp{}, nil

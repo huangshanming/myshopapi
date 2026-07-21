@@ -2,13 +2,10 @@ package category
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
 	"mymall/pkg/pagination"
 	"mymall/pkg/xerr"
 	plogic "mymall/services/catalog-service/internal/product/logic"
 	"net/http"
-	"net/url"
 
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -29,9 +26,7 @@ func NewGetCategoryListLogic(ctx context.Context, svcCtx *svc.ServiceContext) *G
 }
 
 func (l *GetCategoryListLogic) GetCategoryList(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
-	in := appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}}
-
-	page, pageSize := in.Page()
+	page, pageSize := req.Page, req.PageSize
 	pageReq := &pagination.PageReq{Page: page, PageSize: pageSize}
 	data, err := plogic.NewCatalogLogic(l.svcCtx).GetCategoryList(ctx, pageReq)
 	if err != nil {

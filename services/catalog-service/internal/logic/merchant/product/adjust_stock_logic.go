@@ -2,14 +2,10 @@ package product
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	plogic "mymall/services/catalog-service/internal/product/logic"
-	ptypes "mymall/services/catalog-service/internal/product/types"
 	"net/http"
-	"strconv"
 
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -29,9 +25,7 @@ func NewAdjustStockLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Adjus
 	}
 }
 
-func (l *AdjustStockLogic) AdjustStock(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req}
-
+func (l *AdjustStockLogic) AdjustStock(ctx context.Context, req *types.StockAdjustBodyReq) (resp *types.AnyResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -42,11 +36,9 @@ func (l *AdjustStockLogic) AdjustStock(ctx context.Context, req *types.IdPathReq
 	if !ok {
 		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
-	var body ptypes.StockAdjustReq
-	_ = appinput.BindBody(in, &body)
-	body.SkuID = id
-	if err := plogic.NewProductAdminLogic(l.svcCtx).AdjustStock(ctx, shopID, body); err != nil {
+	id := req.Id
+	req.SkuID = id
+	if err := plogic.NewProductAdminLogic(l.svcCtx).AdjustStock(ctx, shopID, req.ToProduct()); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
 	return &types.AnyResp{Data: &types.AnyResp{}}, nil

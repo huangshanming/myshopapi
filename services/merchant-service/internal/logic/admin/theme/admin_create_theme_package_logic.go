@@ -2,7 +2,6 @@ package theme
 
 import (
 	"context"
-	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	"mymall/services/merchant-service/internal/biz"
 	"mymall/services/merchant-service/internal/model"
@@ -26,12 +25,10 @@ func NewAdminCreateThemePackageLogic(ctx context.Context, svcCtx *svc.ServiceCon
 	}
 }
 
-func (l *AdminCreateThemePackageLogic) AdminCreateThemePackage(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{Body: req}
-
-	var p model.HomepageThemePackage
-	if err := appinput.BindBody(in, &p); err != nil {
-		return nil, xerr.New(http.StatusBadRequest, "参数错误")
+func (l *AdminCreateThemePackageLogic) AdminCreateThemePackage(ctx context.Context, req *types.ThemePackageSaveReq) (resp *types.AnyResp, err error) {
+p := model.HomepageThemePackage{
+		ThemeSlotID: req.ThemeSlotID, Name: req.Name, Price: req.Price, DurationDays: req.DurationDays,
+		Status: req.Status, Sort: req.Sort, Remark: req.Remark,
 	}
 	if err := biz.NewMerchantLogic(l.svcCtx).AdminCreateThemePackage(&p); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())

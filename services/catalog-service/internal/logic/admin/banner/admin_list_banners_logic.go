@@ -2,13 +2,9 @@ package banner
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	clogic "mymall/services/catalog-service/internal/content/logic"
 	"net/http"
-	"net/url"
-	"strconv"
 
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -29,10 +25,7 @@ func NewAdminListBannersLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 }
 
 func (l *AdminListBannersLogic) AdminListBanners(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
-	in := appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}}
-
-	page, _ := strconv.Atoi(in.QueryGet("page"))
-	pageSize, _ := strconv.Atoi(in.QueryGet("page_size"))
+	page, pageSize := int(req.Page), int(req.PageSize)
 	data, err := clogic.NewArticleLogic(l.svcCtx).AdminListBanners(page, pageSize)
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())

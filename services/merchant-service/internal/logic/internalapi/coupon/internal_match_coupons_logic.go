@@ -2,7 +2,6 @@ package coupon
 
 import (
 	"context"
-	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	"mymall/services/merchant-service/internal/biz"
 	"net/http"
@@ -25,14 +24,8 @@ func NewInternalMatchCouponsLogic(ctx context.Context, svcCtx *svc.ServiceContex
 	}
 }
 
-func (l *InternalMatchCouponsLogic) InternalMatchCoupons(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{Body: req}
-
-	var body biz.MatchReq
-	if err := appinput.BindBody(in, &body); err != nil {
-		return nil, xerr.New(http.StatusBadRequest, "参数错误")
-	}
-	data, err := biz.NewMerchantLogic(l.svcCtx).MatchCoupons(body)
+func (l *InternalMatchCouponsLogic) InternalMatchCoupons(ctx context.Context, req *types.MatchCouponsReq) (resp *types.AnyResp, err error) {
+	data, err := biz.NewMerchantLogic(l.svcCtx).MatchCoupons(*req)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}

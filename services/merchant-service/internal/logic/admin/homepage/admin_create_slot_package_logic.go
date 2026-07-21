@@ -2,7 +2,6 @@ package homepage
 
 import (
 	"context"
-	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	"mymall/services/merchant-service/internal/biz"
 	"mymall/services/merchant-service/internal/model"
@@ -26,12 +25,10 @@ func NewAdminCreateSlotPackageLogic(ctx context.Context, svcCtx *svc.ServiceCont
 	}
 }
 
-func (l *AdminCreateSlotPackageLogic) AdminCreateSlotPackage(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{Body: req}
-
-	var p model.HomepageSlotPackage
-	if err := appinput.BindBody(in, &p); err != nil {
-		return nil, xerr.New(http.StatusBadRequest, "参数错误")
+func (l *AdminCreateSlotPackageLogic) AdminCreateSlotPackage(ctx context.Context, req *types.SlotPackageSaveReq) (resp *types.AnyResp, err error) {
+p := model.HomepageSlotPackage{
+		SlotType: req.SlotType, Name: req.Name, Price: req.Price, DurationDays: req.DurationDays,
+		Status: req.Status, Sort: req.Sort, Remark: req.Remark,
 	}
 	if err := biz.NewMerchantLogic(l.svcCtx).CreateSlotPackage(&p); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())

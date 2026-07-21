@@ -2,7 +2,6 @@ package product
 
 import (
 	"context"
-	"mymall/pkg/appinput"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	plogic "mymall/services/catalog-service/internal/product/logic"
@@ -26,9 +25,7 @@ func NewStockWarningsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Sto
 	}
 }
 
-func (l *StockWarningsLogic) StockWarnings(ctx context.Context) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{}
-
+func (l *StockWarningsLogic) StockWarnings(ctx context.Context, req *types.PageReq) (resp *types.AnyResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -39,8 +36,7 @@ func (l *StockWarningsLogic) StockWarnings(ctx context.Context) (resp *types.Any
 	if !ok {
 		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	page, pageSize := in.Page()
-	data, err := plogic.NewProductAdminLogic(l.svcCtx).StockWarnings(ctx, shopID, page, pageSize)
+	data, err := plogic.NewProductAdminLogic(l.svcCtx).StockWarnings(ctx, shopID, req.Page, req.PageSize)
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}

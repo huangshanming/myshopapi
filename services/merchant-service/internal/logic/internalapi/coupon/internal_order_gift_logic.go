@@ -2,7 +2,6 @@ package coupon
 
 import (
 	"context"
-	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	"mymall/services/merchant-service/internal/biz"
 	"net/http"
@@ -25,17 +24,8 @@ func NewInternalOrderGiftLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 	}
 }
 
-func (l *InternalOrderGiftLogic) InternalOrderGift(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{Body: req}
-
-	var body struct {
-		UserID uint64 `json:"user_id"`
-		ShopID uint64 `json:"shop_id"`
-	}
-	if err := appinput.BindBody(in, &body); err != nil {
-		return nil, xerr.New(http.StatusBadRequest, "参数错误")
-	}
-	n, err := biz.NewMerchantLogic(l.svcCtx).OrderGiftCoupons(body.UserID, body.ShopID)
+func (l *InternalOrderGiftLogic) InternalOrderGift(ctx context.Context, req *types.OrderGiftCouponReq) (resp *types.AnyResp, err error) {
+	n, err := biz.NewMerchantLogic(l.svcCtx).OrderGiftCoupons(req.UserID, req.ShopID)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}

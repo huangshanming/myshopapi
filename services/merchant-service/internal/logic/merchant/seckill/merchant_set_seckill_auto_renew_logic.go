@@ -2,14 +2,11 @@ package seckill
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
+	"net/http"
+
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	"mymall/services/merchant-service/internal/biz"
-	"net/http"
-	"strconv"
-
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
 
@@ -28,19 +25,12 @@ func NewMerchantSetSeckillAutoRenewLogic(ctx context.Context, svcCtx *svc.Servic
 	}
 }
 
-func (l *MerchantSetSeckillAutoRenewLogic) MerchantSetSeckillAutoRenew(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req}
-
+func (l *MerchantSetSeckillAutoRenewLogic) MerchantSetSeckillAutoRenew(ctx context.Context, req *types.SeckillAutoRenewBodyReq) (resp *types.AnyResp, err error) {
 	shopID := middleware.GetShopID(ctx)
-	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
-	if err != nil || id == 0 {
+	if req.Id == 0 {
 		return nil, xerr.New(http.StatusBadRequest, "报名ID无效")
 	}
-	var body types.SeckillAutoRenewReq
-	if err := appinput.BindBody(in, &body); err != nil {
-		return nil, xerr.New(http.StatusBadRequest, "参数错误")
-	}
-	entry, err := biz.NewMerchantLogic(l.svcCtx).SetSeckillAutoRenew(shopID, id, body.AutoRenew)
+	entry, err := biz.NewMerchantLogic(l.svcCtx).SetSeckillAutoRenew(shopID, req.Id, req.AutoRenew)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}

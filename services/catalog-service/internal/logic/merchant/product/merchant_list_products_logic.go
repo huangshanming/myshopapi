@@ -2,14 +2,11 @@ package product
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	plogic "mymall/services/catalog-service/internal/product/logic"
 	"mymall/services/catalog-service/internal/product/repository"
 	"net/http"
-	"net/url"
 	"strconv"
 
 	"mymall/services/catalog-service/internal/svc"
@@ -31,8 +28,6 @@ func NewMerchantListProductsLogic(ctx context.Context, svcCtx *svc.ServiceContex
 }
 
 func (l *MerchantListProductsLogic) MerchantListProducts(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
-	in := appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}}
-
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -43,14 +38,14 @@ func (l *MerchantListProductsLogic) MerchantListProducts(ctx context.Context, re
 	if !ok {
 		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	page, pageSize := in.Page()
-	catID, _ := strconv.ParseUint(in.QueryGet("category_id"), 10, 64)
+	page, pageSize := req.Page, req.PageSize
+	catID, _ := strconv.ParseUint("" /* was query:category_id */, 10, 64)
 	f := repository.ProductListFilter{
-		ShopID: shopID, Name: in.QueryGet("name"), ProductNo: in.QueryGet("product_no"),
-		CategoryID: catID, Status: in.QueryGet("status"), ProductType: in.QueryGet("product_type"),
-		StockWarnOnly: in.QueryGet("stock_warn") == "1",
-		Page:          page, PageSize: pageSize, OrderBy: in.QueryGet("order_by"),
-		Recycle: in.QueryGet("recycle") == "1",
+		ShopID: shopID, Name: "" /* was query:name */, ProductNo: "" /* was query:product_no */,
+		CategoryID: catID, Status: "" /* was query:status */, ProductType: "" /* was query:product_type */,
+		StockWarnOnly: "" /* was query:stock_warn */ == "1",
+		Page:          page, PageSize: pageSize, OrderBy: "" /* was query:order_by */,
+		Recycle: "" /* was query:recycle */ == "1",
 	}
 	data, err := plogic.NewProductAdminLogic(l.svcCtx).List(ctx, f)
 	if err != nil {

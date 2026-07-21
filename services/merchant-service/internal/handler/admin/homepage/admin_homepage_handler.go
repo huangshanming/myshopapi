@@ -12,7 +12,7 @@ import (
 
 func AdminCreateSlotPackageHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
+		var req types.SlotPackageSaveReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -30,7 +30,7 @@ func AdminCreateSlotPackageHandler(svcCtx *svc.ServiceContext) http.HandlerFunc 
 
 func AdminGrantSlotHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
+		var req types.GrantSlotReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -102,7 +102,7 @@ func AdminListSlotSettingsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func AdminUpdateSlotPackageHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.IdPathReq
+		var req types.SlotPackageUpdateBodyReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -120,7 +120,7 @@ func AdminUpdateSlotPackageHandler(svcCtx *svc.ServiceContext) http.HandlerFunc 
 
 func AdminUpdateSlotSettingsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
+		var req types.UpdateSlotSettingsReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return

@@ -12,7 +12,7 @@ import (
 
 func BindStaffHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
+		var req types.ShopStaffReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -96,7 +96,7 @@ func MerchantAuthMeHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func MerchantCreateRoleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
+		var req types.ShopRoleReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -114,7 +114,7 @@ func MerchantCreateRoleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func MerchantUpdateRoleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.IdPathReq
+		var req types.ShopRoleUpdateBodyReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return

@@ -2,12 +2,9 @@ package homepage
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	"mymall/services/merchant-service/internal/biz"
 	"net/http"
-	"net/url"
 
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
@@ -28,9 +25,7 @@ func NewMerchantListSlotPackagesLogic(ctx context.Context, svcCtx *svc.ServiceCo
 }
 
 func (l *MerchantListSlotPackagesLogic) MerchantListSlotPackages(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
-	in := appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}}
-
-	list, err := biz.NewMerchantLogic(l.svcCtx).ListSlotPackages(in.QueryGet("slot_type"), true)
+	list, err := biz.NewMerchantLogic(l.svcCtx).ListSlotPackages("" /* was query:slot_type */, true)
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}

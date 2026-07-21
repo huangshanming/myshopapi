@@ -2,7 +2,6 @@ package shop
 
 import (
 	"context"
-	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	"mymall/services/merchant-service/internal/biz"
 	"net/http"
@@ -25,10 +24,8 @@ func NewPublicHomeSlotsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *P
 	}
 }
 
-func (l *PublicHomeSlotsLogic) PublicHomeSlots(ctx context.Context) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{}
-
-	slotType := in.QueryGet("slot_type")
+func (l *PublicHomeSlotsLogic) PublicHomeSlots(ctx context.Context, req *types.SlotTypeQueryReq) (resp *types.AnyResp, err error) {
+	slotType := req.SlotType
 	list, err := biz.NewMerchantLogic(l.svcCtx).HomeSlots(slotType)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())

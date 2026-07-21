@@ -2,13 +2,9 @@ package article
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	clogic "mymall/services/catalog-service/internal/content/logic"
-	ctypes "mymall/services/catalog-service/internal/content/types"
 	"net/http"
-	"strconv"
 
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -28,13 +24,9 @@ func NewAdminSoftDeleteArticleLogic(ctx context.Context, svcCtx *svc.ServiceCont
 	}
 }
 
-func (l *AdminSoftDeleteArticleLogic) AdminSoftDeleteArticle(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}}
-
-	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
-	var body ctypes.ArticleRemarkReq
-	_ = appinput.BindBody(in, &body)
-	if err := clogic.NewArticleLogic(l.svcCtx).SoftDelete(ctx, id, body.Remark); err != nil {
+func (l *AdminSoftDeleteArticleLogic) AdminSoftDeleteArticle(ctx context.Context, req *types.ArticleRemarkBodyReq) (resp *types.AnyResp, err error) {
+	id := req.Id
+	if err := clogic.NewArticleLogic(l.svcCtx).SoftDelete(ctx, id, req.Remark); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
 	return &types.AnyResp{Data: &types.AnyResp{}}, nil

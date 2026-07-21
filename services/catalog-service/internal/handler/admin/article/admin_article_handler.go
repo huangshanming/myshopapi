@@ -24,7 +24,7 @@ func AdminArticleStatsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func AdminAuditArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.IdPathReq
+		var req types.ArticleAuditBodyReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -42,7 +42,7 @@ func AdminAuditArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func AdminBatchAuditArticlesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
+		var req types.ArticleBatchAuditReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -60,7 +60,7 @@ func AdminBatchAuditArticlesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc
 
 func AdminCreateArticleCategoryHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
+		var req types.ArticleCategorySaveReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -78,7 +78,7 @@ func AdminCreateArticleCategoryHandler(svcCtx *svc.ServiceContext) http.HandlerF
 
 func AdminCreateArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
+		var req types.ArticleSaveReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -186,7 +186,7 @@ func AdminListArticlesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func AdminOfflineArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.IdPathReq
+		var req types.ArticleRemarkBodyReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -204,8 +204,14 @@ func AdminOfflineArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func AdminPurgeArticleRecycleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var req types.ArticleIdListReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
 		l := article.NewAdminPurgeArticleRecycleLogic(r.Context(), svcCtx)
-		resp, err := l.AdminPurgeArticleRecycle(r.Context())
+		resp, err := l.AdminPurgeArticleRecycle(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {
@@ -216,7 +222,7 @@ func AdminPurgeArticleRecycleHandler(svcCtx *svc.ServiceContext) http.HandlerFun
 
 func AdminRestoreArticleRecycleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
+		var req types.ArticleIdListReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -234,7 +240,7 @@ func AdminRestoreArticleRecycleHandler(svcCtx *svc.ServiceContext) http.HandlerF
 
 func AdminSoftDeleteArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.IdPathReq
+		var req types.ArticleRemarkBodyReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -252,7 +258,7 @@ func AdminSoftDeleteArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc 
 
 func AdminTopArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.IdPathReq
+		var req types.ArticleTopBodyReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -270,7 +276,7 @@ func AdminTopArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func AdminUpdateArticleCategoryHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.IdPathReq
+		var req types.ArticleCategoryUpdateBodyReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -288,7 +294,7 @@ func AdminUpdateArticleCategoryHandler(svcCtx *svc.ServiceContext) http.HandlerF
 
 func AdminUpdateArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.IdPathReq
+		var req types.ArticleUpdateBodyReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return

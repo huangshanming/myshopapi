@@ -2,12 +2,9 @@ package category
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	plogic "mymall/services/catalog-service/internal/product/logic"
 	"net/http"
-	"strconv"
 
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -28,12 +25,7 @@ func NewAdminDeleteCategoryLogic(ctx context.Context, svcCtx *svc.ServiceContext
 }
 
 func (l *AdminDeleteCategoryLogic) AdminDeleteCategory(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}}
-
-	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
-	if err != nil {
-		return nil, xerr.New(http.StatusBadRequest, "分类ID无效")
-	}
+	id := req.Id
 	if err := plogic.NewCatalogLogic(l.svcCtx).DeleteCategory(ctx, id); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}

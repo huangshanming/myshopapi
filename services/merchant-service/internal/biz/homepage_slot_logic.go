@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"mymall/services/merchant-service/internal/model"
+	"mymall/services/merchant-service/internal/types"
 )
 
 func validSlotType(t string) bool {
@@ -101,12 +102,7 @@ func (l *MerchantLogic) ListSlotOrders(shopID uint64, slotType, status string, p
 	return list, total, nil
 }
 
-type BuySlotReq struct {
-	PackageID uint64 `json:"package_id"`
-	TargetID  uint64 `json:"target_id"`
-}
-
-func (l *MerchantLogic) BuySlot(shopID, userID uint64, req BuySlotReq) (*model.HomepageSlotOrder, error) {
+func (l *MerchantLogic) BuySlot(shopID, userID uint64, req types.BuySlotReq) (*model.HomepageSlotOrder, error) {
 	pkg, err := l.svcCtx.Repo.GetSlotPackage(context.Background(), req.PackageID)
 	if err != nil || pkg.Status != model.SlotPkgOn {
 		return nil, errors.New("套餐不存在或已下架")
@@ -147,13 +143,7 @@ func (l *MerchantLogic) BuySlot(shopID, userID uint64, req BuySlotReq) (*model.H
 	return order, nil
 }
 
-type GrantSlotReq struct {
-	ShopID    uint64 `json:"shop_id"`
-	PackageID uint64 `json:"package_id"`
-	TargetID  uint64 `json:"target_id"`
-}
-
-func (l *MerchantLogic) GrantSlot(adminID uint64, req GrantSlotReq) (*model.HomepageSlotOrder, error) {
+func (l *MerchantLogic) GrantSlot(adminID uint64, req types.GrantSlotReq) (*model.HomepageSlotOrder, error) {
 	pkg, err := l.svcCtx.Repo.GetSlotPackage(context.Background(), req.PackageID)
 	if err != nil {
 		return nil, errors.New("套餐不存在")

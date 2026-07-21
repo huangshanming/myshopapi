@@ -2,7 +2,6 @@ package comment
 
 import (
 	"context"
-	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	clogic "mymall/services/catalog-service/internal/content/logic"
 	"net/http"
@@ -25,23 +24,12 @@ func NewEmojiCreateLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Emoji
 	}
 }
 
-func (l *EmojiCreateLogic) EmojiCreate(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{Body: req}
-
-	var body struct {
-		Name     string `json:"name"`
-		ImageURL string `json:"image_url"`
-		Sort     int    `json:"sort"`
-		Status   *int8  `json:"status"`
-	}
-	if err := appinput.BindBody(in, &body); err != nil {
-		return nil, xerr.New(http.StatusBadRequest, "参数错误")
-	}
+func (l *EmojiCreateLogic) EmojiCreate(ctx context.Context, req *types.EmojiSaveReq) (resp *types.AnyResp, err error) {
 	status := int8(1)
-	if body.Status != nil {
-		status = *body.Status
+	if req.Status != nil {
+		status = *req.Status
 	}
-	e, err := clogic.NewArticleLogic(l.svcCtx).CreateEmoji(ctx, body.Name, body.ImageURL, body.Sort, status)
+	e, err := clogic.NewArticleLogic(l.svcCtx).CreateEmoji(ctx, req.Name, req.ImageURL, req.Sort, status)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}

@@ -12,7 +12,7 @@ import (
 
 func MerchantCreateArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
+		var req types.ArticleSaveReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -138,7 +138,7 @@ func MerchantListArticlesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func MerchantPatchArticleCommentHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.IdPathReq
+		var req types.ArticleCommentPatchBodyReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -156,7 +156,7 @@ func MerchantPatchArticleCommentHandler(svcCtx *svc.ServiceContext) http.Handler
 
 func MerchantUpdateArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.IdPathReq
+		var req types.ArticleUpdateBodyReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return

@@ -2,7 +2,6 @@ package product
 
 import (
 	"context"
-	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	plogic "mymall/services/catalog-service/internal/product/logic"
 	"net/http"
@@ -25,11 +24,8 @@ func NewGetSalesRankLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetS
 	}
 }
 
-func (l *GetSalesRankLogic) GetSalesRank(ctx context.Context) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{}
-
-	page, pageSize := in.Page()
-	data, err := plogic.NewCatalogLogic(l.svcCtx).GetSalesRank(ctx, page, pageSize)
+func (l *GetSalesRankLogic) GetSalesRank(ctx context.Context, req *types.PageReq) (resp *types.AnyResp, err error) {
+	data, err := plogic.NewCatalogLogic(l.svcCtx).GetSalesRank(ctx, req.Page, req.PageSize)
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, "查询失败")
 	}

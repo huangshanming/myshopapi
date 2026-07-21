@@ -2,7 +2,6 @@ package seckill
 
 import (
 	"context"
-	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	"mymall/services/merchant-service/internal/biz"
 	"net/http"
@@ -25,14 +24,8 @@ func NewAdminUpdateSeckillRuleLogic(ctx context.Context, svcCtx *svc.ServiceCont
 	}
 }
 
-func (l *AdminUpdateSeckillRuleLogic) AdminUpdateSeckillRule(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{Body: req}
-
-	var body types.SeckillRuleReq
-	if err := appinput.BindBody(in, &body); err != nil {
-		return nil, xerr.New(http.StatusBadRequest, "参数错误")
-	}
-	rule, err := biz.NewMerchantLogic(l.svcCtx).UpdateSeckillRule(body)
+func (l *AdminUpdateSeckillRuleLogic) AdminUpdateSeckillRule(ctx context.Context, req *types.SeckillRuleReq) (resp *types.AnyResp, err error) {
+	rule, err := biz.NewMerchantLogic(l.svcCtx).UpdateSeckillRule(*req)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}

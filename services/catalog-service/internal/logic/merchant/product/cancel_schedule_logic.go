@@ -2,12 +2,9 @@ package product
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	"net/http"
-	"strconv"
 
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -28,8 +25,6 @@ func NewCancelScheduleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Ca
 }
 
 func (l *CancelScheduleLogic) CancelSchedule(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}}
-
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -40,7 +35,7 @@ func (l *CancelScheduleLogic) CancelSchedule(ctx context.Context, req *types.IdP
 	if !ok {
 		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
+	id := req.Id
 	_ = l.svcCtx.ProductAdmin.CancelSchedule(ctx, id, shopID)
 	return &types.AnyResp{Data: &types.AnyResp{}}, nil
 }

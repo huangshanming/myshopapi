@@ -48,7 +48,7 @@ func AdminListArticleCommentsHandler(svcCtx *svc.ServiceContext) http.HandlerFun
 
 func AdminPatchArticleCommentHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.IdPathReq
+		var req types.ArticleCommentPatchBodyReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -66,7 +66,7 @@ func AdminPatchArticleCommentHandler(svcCtx *svc.ServiceContext) http.HandlerFun
 
 func EmojiCreateHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
+		var req types.EmojiSaveReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -120,7 +120,7 @@ func EmojiListHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func EmojiUpdateHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.IdPathReq
+		var req types.EmojiUpdateBodyReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return

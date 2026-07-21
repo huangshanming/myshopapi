@@ -2,14 +2,11 @@ package article
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	clogic "mymall/services/catalog-service/internal/content/logic"
 	"mymall/services/catalog-service/internal/content/repository"
 	"net/http"
-	"net/url"
 	"strconv"
 
 	"mymall/services/catalog-service/internal/svc"
@@ -31,8 +28,6 @@ func NewMerchantListArticleCommentsLogic(ctx context.Context, svcCtx *svc.Servic
 }
 
 func (l *MerchantListArticleCommentsLogic) MerchantListArticleComments(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
-	in := appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}}
-
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -43,10 +38,10 @@ func (l *MerchantListArticleCommentsLogic) MerchantListArticleComments(ctx conte
 	if !ok {
 		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	page, pageSize := in.Page()
-	articleID, _ := strconv.ParseUint(in.QueryGet("article_id"), 10, 64)
+	page, pageSize := req.Page, req.PageSize
+	articleID, _ := strconv.ParseUint("" /* was query:article_id */, 10, 64)
 	data, err := clogic.NewArticleLogic(l.svcCtx).ListComments(ctx, repository.CommentListFilter{
-		ShopID: shopID, ArticleID: articleID, Status: in.QueryGet("status"),
+		ShopID: shopID, ArticleID: articleID, Status: "" /* was query:status */,
 		Page: page, PageSize: pageSize,
 	})
 	if err != nil {

@@ -30,8 +30,14 @@ func PublicGetShopHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func PublicHomeSlotsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var req types.SlotTypeQueryReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
 		l := shop.NewPublicHomeSlotsLogic(r.Context(), svcCtx)
-		resp, err := l.PublicHomeSlots(r.Context())
+		resp, err := l.PublicHomeSlots(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {

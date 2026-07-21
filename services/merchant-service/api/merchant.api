@@ -30,6 +30,325 @@ type AnyResp {
 
 type JSONBody {}
 
+type SlotTypeQueryReq {
+	SlotType string `form:"slot_type,optional"`
+}
+type ShopIdQueryReq {
+	ShopId uint64 `form:"shop_id,optional"`
+}
+
+type ApplyReq {
+	ShopName          string `json:"shop_name"`
+	ContactName       string `json:"contact_name"`
+	ContactPhone      string `json:"contact_phone"`
+	Description       string `json:"description"`
+	Category          string `json:"category"`
+	Province          string `json:"province"`
+	City              string `json:"city"`
+	District          string `json:"district"`
+	Address           string `json:"address"`
+	BusinessLicenseNo string `json:"business_license_no"`
+	LegalPerson       string `json:"legal_person"`
+	LicenseImage      string `json:"license_image"`
+	StorefrontImage   string `json:"storefront_image"`
+}
+
+type UpdateShopBodyReq {
+	Id              uint64 `path:"id"`
+	Name            string `json:"name"`
+	Logo            string `json:"logo"`
+	ContactName     string `json:"contact_name"`
+	ContactPhone    string `json:"contact_phone"`
+	Description     string `json:"description"`
+	Category        string `json:"category"`
+	Province        string `json:"province"`
+	City            string `json:"city"`
+	District        string `json:"district"`
+	Address         string `json:"address"`
+	StorefrontImage string `json:"storefront_image"`
+}
+
+type AdminCreateShopReq {
+	Name              string `json:"name"`
+	Logo              string `json:"logo"`
+	ContactName       string `json:"contact_name"`
+	ContactPhone      string `json:"contact_phone"`
+	Description       string `json:"description"`
+	Category          string `json:"category"`
+	Province          string `json:"province"`
+	City              string `json:"city"`
+	District          string `json:"district"`
+	Address           string `json:"address"`
+	BusinessLicenseNo string `json:"business_license_no"`
+	LegalPerson       string `json:"legal_person"`
+	LicenseImage      string `json:"license_image"`
+	StorefrontImage   string `json:"storefront_image"`
+	OwnerMobile       string `json:"owner_mobile"`
+	OwnerPassword     string `json:"owner_password"`
+	OwnerNickname     string `json:"owner_nickname"`
+}
+
+type AdminUpdateShopBodyReq {
+	Id                uint64 `path:"id"`
+	Name              string `json:"name"`
+	Logo              string `json:"logo"`
+	ContactName       string `json:"contact_name"`
+	ContactPhone      string `json:"contact_phone"`
+	Description       string `json:"description"`
+	Category          string `json:"category"`
+	Province          string `json:"province"`
+	City              string `json:"city"`
+	District          string `json:"district"`
+	Address           string `json:"address"`
+	BusinessLicenseNo string `json:"business_license_no"`
+	LegalPerson       string `json:"legal_person"`
+	LicenseImage      string `json:"license_image"`
+	StorefrontImage   string `json:"storefront_image"`
+}
+
+type OwnerPasswordBodyReq {
+	Id       uint64 `path:"id"`
+	Password string `json:"password"`
+}
+
+type RejectBodyReq {
+	Id     uint64 `path:"id"`
+	Reason string `json:"reason"`
+}
+
+type WalletAdjustBodyReq {
+	Id     uint64  `path:"id"`
+	Field  string  `json:"field"`
+	Amount float64 `json:"amount"`
+	Remark string  `json:"remark"`
+}
+
+type SeckillRuleReq {
+	DurationHours     int     `json:"duration_hours"`
+	ApplyFee          float64 `json:"apply_fee"`
+	MaxEntriesPerShop int     `json:"max_entries_per_shop"`
+	Status            int8    `json:"status"`
+}
+
+type SeckillApplyReq {
+	SessionID    uint64  `json:"session_id"`
+	ProductID    uint64  `json:"product_id"`
+	ProductName  string  `json:"product_name"`
+	ProductImage string  `json:"product_image"`
+	OriginPrice  float64 `json:"origin_price"`
+	SeckillPrice float64 `json:"seckill_price"`
+	SeckillStock int     `json:"seckill_stock"`
+	AutoRenew    int8    `json:"auto_renew,optional"`
+}
+
+type SeckillAutoRenewBodyReq {
+	Id        uint64 `path:"id"`
+	AutoRenew int8   `json:"auto_renew"`
+}
+
+type SeckillConsumeReq {
+	EntryID   uint64 `json:"entry_id"`
+	ProductID uint64 `json:"product_id"`
+	Quantity  int    `json:"quantity"`
+}
+
+type SeckillRestoreReq {
+	EntryID  uint64 `json:"entry_id"`
+	Quantity int    `json:"quantity"`
+}
+
+type BuySlotReq {
+	PackageID uint64 `json:"package_id"`
+	TargetID  uint64 `json:"target_id,optional"`
+}
+
+type GrantSlotReq {
+	ShopID    uint64 `json:"shop_id"`
+	PackageID uint64 `json:"package_id"`
+	TargetID  uint64 `json:"target_id,optional"`
+}
+
+type ThemeBuyReq {
+	ThemeSlotID uint64 `json:"theme_slot_id"`
+	PackageID   uint64 `json:"package_id"`
+	Title       string `json:"title"`
+	Subtitle    string `json:"subtitle,optional"`
+	CoverURL    string `json:"cover_url"`
+	LinkType    string `json:"link_type"`
+	LinkID      uint64 `json:"link_id,optional"`
+}
+
+type ThemeGrantReq {
+	ShopID      uint64 `json:"shop_id"`
+	ThemeSlotID uint64 `json:"theme_slot_id"`
+	PackageID   uint64 `json:"package_id"`
+	Title       string `json:"title"`
+	Subtitle    string `json:"subtitle,optional"`
+	CoverURL    string `json:"cover_url"`
+	LinkType    string `json:"link_type"`
+	LinkID      uint64 `json:"link_id,optional"`
+}
+
+type SlotPackageSaveReq {
+	SlotType     string  `json:"slot_type"`
+	Name         string  `json:"name"`
+	Price        float64 `json:"price"`
+	DurationDays int     `json:"duration_days"`
+	Status       string  `json:"status,optional"`
+	Sort         int     `json:"sort,optional"`
+	Remark       string  `json:"remark,optional"`
+}
+
+type SlotPackageUpdateBodyReq {
+	Id           uint64  `path:"id"`
+	SlotType     string  `json:"slot_type"`
+	Name         string  `json:"name"`
+	Price        float64 `json:"price"`
+	DurationDays int     `json:"duration_days"`
+	Status       string  `json:"status,optional"`
+	Sort         int     `json:"sort,optional"`
+	Remark       string  `json:"remark,optional"`
+}
+
+type SlotSettingItem {
+	SlotType  string `json:"slot_type"`
+	HomeLimit int    `json:"home_limit"`
+}
+
+type UpdateSlotSettingsReq {
+	Items []SlotSettingItem `json:"items"`
+}
+
+type ThemePackageSaveReq {
+	ThemeSlotID  uint64  `json:"theme_slot_id,optional"`
+	Name         string  `json:"name"`
+	Price        float64 `json:"price"`
+	DurationDays int     `json:"duration_days"`
+	Status       string  `json:"status,optional"`
+	Sort         int     `json:"sort,optional"`
+	Remark       string  `json:"remark,optional"`
+}
+
+type ThemePackageUpdateBodyReq {
+	Id           uint64  `path:"id"`
+	ThemeSlotID  uint64  `json:"theme_slot_id,optional"`
+	Name         string  `json:"name"`
+	Price        float64 `json:"price"`
+	DurationDays int     `json:"duration_days"`
+	Status       string  `json:"status,optional"`
+	Sort         int     `json:"sort,optional"`
+	Remark       string  `json:"remark,optional"`
+}
+
+type ThemeSlotUpdateBodyReq {
+	Id              uint64 `path:"id"`
+	Name            string `json:"name,optional"`
+	Desc            string `json:"desc,optional"`
+	CoverURL        string `json:"cover_url,optional"`
+	DefaultLinkType string `json:"default_link_type,optional"`
+	DefaultLinkID   uint64 `json:"default_link_id,optional"`
+	Status          string `json:"status,optional"`
+	Sort            int    `json:"sort,optional"`
+	Position        string `json:"position,optional"`
+}
+
+type CouponScopeItem {
+	RefType string `json:"ref_type"`
+	RefID   uint64 `json:"ref_id"`
+}
+
+type CouponSaveReq {
+	Name              string            `json:"name"`
+	CouponType        string            `json:"coupon_type"`
+	ThresholdAmount   float64           `json:"threshold_amount,optional"`
+	DiscountAmount    float64           `json:"discount_amount,optional"`
+	DiscountRate      float64           `json:"discount_rate,optional"`
+	MaxDiscountAmount float64           `json:"max_discount_amount,optional"`
+	ScopeType         string            `json:"scope_type,optional"`
+	TotalCount        int               `json:"total_count,optional"`
+	PerUserLimit      int               `json:"per_user_limit,optional"`
+	ValidType         string            `json:"valid_type,optional"`
+	ValidDays         int               `json:"valid_days,optional"`
+	UserIdentity      string            `json:"user_identity,optional"`
+	Channels          []string          `json:"channels,optional"`
+	Status            string            `json:"status,optional"`
+	Remark            string            `json:"remark,optional"`
+	Scopes            []CouponScopeItem `json:"scopes,optional"`
+}
+
+type CouponUpdateBodyReq {
+	Id                uint64            `path:"id"`
+	Name              string            `json:"name"`
+	CouponType        string            `json:"coupon_type"`
+	ThresholdAmount   float64           `json:"threshold_amount,optional"`
+	DiscountAmount    float64           `json:"discount_amount,optional"`
+	DiscountRate      float64           `json:"discount_rate,optional"`
+	MaxDiscountAmount float64           `json:"max_discount_amount,optional"`
+	ScopeType         string            `json:"scope_type,optional"`
+	TotalCount        int               `json:"total_count,optional"`
+	PerUserLimit      int               `json:"per_user_limit,optional"`
+	ValidType         string            `json:"valid_type,optional"`
+	ValidDays         int               `json:"valid_days,optional"`
+	UserIdentity      string            `json:"user_identity,optional"`
+	Channels          []string          `json:"channels,optional"`
+	Status            string            `json:"status,optional"`
+	Remark            string            `json:"remark,optional"`
+	Scopes            []CouponScopeItem `json:"scopes,optional"`
+}
+
+type GrantCouponReq {
+	CouponID uint64   `json:"coupon_id"`
+	UserIDs  []uint64 `json:"user_ids"`
+}
+
+type ClaimCouponBodyReq {
+	Id     uint64 `path:"id"`
+	Source string `json:"source,optional"`
+}
+
+type MatchItem {
+	ProductID      uint64  `json:"product_id"`
+	CategoryID     uint64  `json:"category_id,optional"`
+	Amount         float64 `json:"amount"`
+	SeckillEntryID uint64  `json:"seckill_entry_id,optional"`
+}
+
+type MatchCouponsReq {
+	UserID       uint64      `json:"user_id"`
+	ShopID       uint64      `json:"shop_id"`
+	Items        []MatchItem `json:"items"`
+	UserCouponID uint64      `json:"user_coupon_id,optional"`
+}
+
+type LockCouponReq {
+	UserCouponID   uint64  `json:"user_coupon_id"`
+	UserID         uint64  `json:"user_id"`
+	OrderID        uint64  `json:"order_id"`
+	DiscountAmount float64 `json:"discount_amount"`
+}
+
+type UnlockCouponReq {
+	UserCouponID uint64 `json:"user_coupon_id"`
+	OrderID      uint64 `json:"order_id"`
+}
+
+type RedeemCouponReq {
+	UserCouponID   uint64  `json:"user_coupon_id"`
+	OrderID        uint64  `json:"order_id"`
+	DiscountAmount float64 `json:"discount_amount"`
+}
+
+type ReturnCouponReq {
+	UserCouponID uint64 `json:"user_coupon_id"`
+	OrderID      uint64 `json:"order_id"`
+}
+
+type OrderGiftCouponReq {
+	UserID uint64 `json:"user_id"`
+	ShopID uint64 `json:"shop_id"`
+}
+
+
 // Route table SSOT for merchant-service.
 // group: <role>/<module> → internal/handler/<role>/<module>/
 // Keep in sync with internal/handler/routes.go; run: scripts/check-api-routes.sh merchant-service
@@ -54,7 +373,7 @@ service merchantapi {
 	get /api/v1/shops/list (PageReq) returns (PageListResp)
 
 	@handler PublicHomeSlots
-	get /api/v1/shops/home-slots returns (AnyResp)
+	get /api/v1/shops/home-slots (SlotTypeQueryReq) returns (AnyResp)
 
 	@handler PublicThemeTiles
 	get /api/v1/home/theme-tiles returns (AnyResp)
@@ -84,7 +403,7 @@ service merchantapi {
 )
 service merchantapi {
 	@handler PublicCouponCenter
-	get /api/v1/coupons/center returns (AnyResp)
+	get /api/v1/coupons/center (ShopIdQueryReq) returns (AnyResp)
 
 	@handler PublicCouponPopup
 	get /api/v1/coupons/popup returns (AnyResp)
@@ -96,10 +415,10 @@ service merchantapi {
 )
 service merchantapi {
 	@handler SeckillConsume
-	post /api/v1/seckill/consume (JSONBody) returns (AnyResp)
+	post /api/v1/seckill/consume (SeckillConsumeReq) returns (AnyResp)
 
 	@handler SeckillRestore
-	post /api/v1/seckill/restore (JSONBody) returns (AnyResp)
+	post /api/v1/seckill/restore (SeckillRestoreReq) returns (AnyResp)
 }
 
 @server (
@@ -108,22 +427,22 @@ service merchantapi {
 )
 service merchantapi {
 	@handler InternalMatchCoupons
-	post /api/v1/internal/coupons/match (JSONBody) returns (AnyResp)
+	post /api/v1/internal/coupons/match (MatchCouponsReq) returns (AnyResp)
 
 	@handler InternalLockCoupon
-	post /api/v1/internal/coupons/lock (JSONBody) returns (AnyResp)
+	post /api/v1/internal/coupons/lock (LockCouponReq) returns (AnyResp)
 
 	@handler InternalUnlockCoupon
-	post /api/v1/internal/coupons/unlock (JSONBody) returns (AnyResp)
+	post /api/v1/internal/coupons/unlock (UnlockCouponReq) returns (AnyResp)
 
 	@handler InternalRedeemCoupon
-	post /api/v1/internal/coupons/redeem (JSONBody) returns (AnyResp)
+	post /api/v1/internal/coupons/redeem (RedeemCouponReq) returns (AnyResp)
 
 	@handler InternalReturnCoupon
-	post /api/v1/internal/coupons/return (JSONBody) returns (AnyResp)
+	post /api/v1/internal/coupons/return (ReturnCouponReq) returns (AnyResp)
 
 	@handler InternalOrderGift
-	post /api/v1/internal/coupons/order-gift (JSONBody) returns (AnyResp)
+	post /api/v1/internal/coupons/order-gift (OrderGiftCouponReq) returns (AnyResp)
 }
 
 @server (
@@ -132,7 +451,7 @@ service merchantapi {
 )
 service merchantapi {
 	@handler ClaimCoupon
-	post /api/v1/coupons/:id/claim (IdPathReq) returns (AnyResp)
+	post /api/v1/coupons/:id/claim (ClaimCouponBodyReq) returns (AnyResp)
 
 	@handler ListMyCoupons
 	get /api/v1/user/coupons (PageReq) returns (PageListResp)
@@ -144,7 +463,7 @@ service merchantapi {
 )
 service merchantapi {
 	@handler Apply
-	post /api/v1/merchant/apply (JSONBody) returns (AnyResp)
+	post /api/v1/merchant/apply (ApplyReq) returns (AnyResp)
 
 	@handler MyShops
 	get /api/v1/merchant/shops returns (AnyResp)
@@ -156,7 +475,7 @@ service merchantapi {
 )
 service merchantapi {
 	@handler UpdateMyShop
-	put /api/v1/merchant/shops/:id (IdPathReq) returns (AnyResp)
+	put /api/v1/merchant/shops/:id (UpdateShopBodyReq) returns (AnyResp)
 }
 
 @server (
@@ -180,13 +499,13 @@ service merchantapi {
 	get /api/v1/merchant/seckill/sessions returns (AnyResp)
 
 	@handler MerchantApplySeckill
-	post /api/v1/merchant/seckill/entries (JSONBody) returns (AnyResp)
+	post /api/v1/merchant/seckill/entries (SeckillApplyReq) returns (AnyResp)
 
 	@handler MerchantListSeckillEntries
 	get /api/v1/merchant/seckill/entries (PageReq) returns (PageListResp)
 
 	@handler MerchantSetSeckillAutoRenew
-	put /api/v1/merchant/seckill/entries/:id/auto-renew (IdPathReq) returns (AnyResp)
+	put /api/v1/merchant/seckill/entries/:id/auto-renew (SeckillAutoRenewBodyReq) returns (AnyResp)
 }
 
 @server (
@@ -198,7 +517,7 @@ service merchantapi {
 	get /api/v1/merchant/homepage-packages (PageReq) returns (PageListResp)
 
 	@handler MerchantBuySlot
-	post /api/v1/merchant/homepage-orders (JSONBody) returns (AnyResp)
+	post /api/v1/merchant/homepage-orders (BuySlotReq) returns (AnyResp)
 
 	@handler MerchantListSlotOrders
 	get /api/v1/merchant/homepage-orders (PageReq) returns (PageListResp)
@@ -216,7 +535,7 @@ service merchantapi {
 	get /api/v1/merchant/theme-packages (PageReq) returns (PageListResp)
 
 	@handler MerchantBuyTheme
-	post /api/v1/merchant/theme-orders (JSONBody) returns (AnyResp)
+	post /api/v1/merchant/theme-orders (ThemeBuyReq) returns (AnyResp)
 
 	@handler MerchantListThemeOrders
 	get /api/v1/merchant/theme-orders (PageReq) returns (PageListResp)
@@ -231,10 +550,10 @@ service merchantapi {
 	get /api/v1/merchant/coupons (PageReq) returns (PageListResp)
 
 	@handler MerchantCreateCoupon
-	post /api/v1/merchant/coupons (JSONBody) returns (AnyResp)
+	post /api/v1/merchant/coupons (CouponSaveReq) returns (AnyResp)
 
 	@handler MerchantUpdateCoupon
-	put /api/v1/merchant/coupons/:id (IdPathReq) returns (AnyResp)
+	put /api/v1/merchant/coupons/:id (CouponUpdateBodyReq) returns (AnyResp)
 
 	@handler MerchantOffCoupon
 	put /api/v1/merchant/coupons/:id/off (IdPathReq) returns (AnyResp)
@@ -243,7 +562,7 @@ service merchantapi {
 	post /api/v1/merchant/coupons/:id/copy (IdPathReq) returns (AnyResp)
 
 	@handler MerchantGrantCoupon
-	post /api/v1/merchant/coupons/grant (JSONBody) returns (AnyResp)
+	post /api/v1/merchant/coupons/grant (GrantCouponReq) returns (AnyResp)
 
 	@handler MerchantCouponClaims
 	get /api/v1/merchant/coupons/:id/claims (IdPathReq) returns (AnyResp)
@@ -267,7 +586,7 @@ service merchantapi {
 	post /api/v1/admin/applications/:id/approve (IdPathReq) returns (AnyResp)
 
 	@handler AdminReject
-	post /api/v1/admin/applications/:id/reject (IdPathReq) returns (AnyResp)
+	post /api/v1/admin/applications/:id/reject (RejectBodyReq) returns (AnyResp)
 }
 
 @server (
@@ -279,19 +598,19 @@ service merchantapi {
 	get /api/v1/admin/shops (PageReq) returns (PageListResp)
 
 	@handler AdminCreateShop
-	post /api/v1/admin/shops (JSONBody) returns (AnyResp)
+	post /api/v1/admin/shops (AdminCreateShopReq) returns (AnyResp)
 
 	@handler AdminGetShop
 	get /api/v1/admin/shops/:id (IdPathReq) returns (AnyResp)
 
 	@handler AdminUpdateShop
-	put /api/v1/admin/shops/:id (IdPathReq) returns (AnyResp)
+	put /api/v1/admin/shops/:id (AdminUpdateShopBodyReq) returns (AnyResp)
 
 	@handler AdminResetOwnerPassword
-	put /api/v1/admin/shops/:id/owner-password (IdPathReq) returns (AnyResp)
+	put /api/v1/admin/shops/:id/owner-password (OwnerPasswordBodyReq) returns (AnyResp)
 
 	@handler AdminDisableShop
-	put /api/v1/admin/shops/:id/disable (IdPathReq) returns (AnyResp)
+	put /api/v1/admin/shops/:id/disable (RejectBodyReq) returns (AnyResp)
 
 	@handler AdminEnableShop
 	put /api/v1/admin/shops/:id/enable (IdPathReq) returns (AnyResp)
@@ -306,7 +625,7 @@ service merchantapi {
 	get /api/v1/admin/shops/:id/wallet (IdPathReq) returns (AnyResp)
 
 	@handler AdminAdjustWallet
-	post /api/v1/admin/shops/:id/wallet/adjust (IdPathReq) returns (AnyResp)
+	post /api/v1/admin/shops/:id/wallet/adjust (WalletAdjustBodyReq) returns (AnyResp)
 
 	@handler AdminWalletLogs
 	get /api/v1/admin/shops/:id/wallet/logs (IdPathReq) returns (PageListResp)
@@ -321,7 +640,7 @@ service merchantapi {
 	get /api/v1/admin/seckill/rule returns (AnyResp)
 
 	@handler AdminUpdateSeckillRule
-	put /api/v1/admin/seckill/rule (JSONBody) returns (AnyResp)
+	put /api/v1/admin/seckill/rule (SeckillRuleReq) returns (AnyResp)
 
 	@handler AdminListSeckillSessions
 	get /api/v1/admin/seckill/sessions (PageReq) returns (PageListResp)
@@ -339,22 +658,22 @@ service merchantapi {
 	get /api/v1/admin/homepage-packages (PageReq) returns (PageListResp)
 
 	@handler AdminCreateSlotPackage
-	post /api/v1/admin/homepage-packages (JSONBody) returns (AnyResp)
+	post /api/v1/admin/homepage-packages (SlotPackageSaveReq) returns (AnyResp)
 
 	@handler AdminUpdateSlotPackage
-	put /api/v1/admin/homepage-packages/:id (IdPathReq) returns (AnyResp)
+	put /api/v1/admin/homepage-packages/:id (SlotPackageUpdateBodyReq) returns (AnyResp)
 
 	@handler AdminListSlotSettings
 	get /api/v1/admin/homepage-settings (PageReq) returns (PageListResp)
 
 	@handler AdminUpdateSlotSettings
-	put /api/v1/admin/homepage-settings (JSONBody) returns (AnyResp)
+	put /api/v1/admin/homepage-settings (UpdateSlotSettingsReq) returns (AnyResp)
 
 	@handler AdminListSlotOrders
 	get /api/v1/admin/homepage-orders (PageReq) returns (PageListResp)
 
 	@handler AdminGrantSlot
-	post /api/v1/admin/homepage-orders/grant (JSONBody) returns (AnyResp)
+	post /api/v1/admin/homepage-orders/grant (GrantSlotReq) returns (AnyResp)
 }
 
 @server (
@@ -366,22 +685,22 @@ service merchantapi {
 	get /api/v1/admin/theme-slots (PageReq) returns (PageListResp)
 
 	@handler AdminUpdateThemeSlot
-	put /api/v1/admin/theme-slots/:id (IdPathReq) returns (AnyResp)
+	put /api/v1/admin/theme-slots/:id (ThemeSlotUpdateBodyReq) returns (AnyResp)
 
 	@handler AdminListThemePackages
 	get /api/v1/admin/theme-packages (PageReq) returns (PageListResp)
 
 	@handler AdminCreateThemePackage
-	post /api/v1/admin/theme-packages (JSONBody) returns (AnyResp)
+	post /api/v1/admin/theme-packages (ThemePackageSaveReq) returns (AnyResp)
 
 	@handler AdminUpdateThemePackage
-	put /api/v1/admin/theme-packages/:id (IdPathReq) returns (AnyResp)
+	put /api/v1/admin/theme-packages/:id (ThemePackageUpdateBodyReq) returns (AnyResp)
 
 	@handler AdminListThemeOrders
 	get /api/v1/admin/theme-orders (PageReq) returns (PageListResp)
 
 	@handler AdminGrantTheme
-	post /api/v1/admin/theme-orders/grant (JSONBody) returns (AnyResp)
+	post /api/v1/admin/theme-orders/grant (ThemeGrantReq) returns (AnyResp)
 }
 
 @server (
@@ -393,10 +712,10 @@ service merchantapi {
 	get /api/v1/admin/coupons (PageReq) returns (PageListResp)
 
 	@handler AdminCreateCoupon
-	post /api/v1/admin/coupons (JSONBody) returns (AnyResp)
+	post /api/v1/admin/coupons (CouponSaveReq) returns (AnyResp)
 
 	@handler AdminUpdateCoupon
-	put /api/v1/admin/coupons/:id (IdPathReq) returns (AnyResp)
+	put /api/v1/admin/coupons/:id (CouponUpdateBodyReq) returns (AnyResp)
 
 	@handler AdminOffCoupon
 	put /api/v1/admin/coupons/:id/off (IdPathReq) returns (AnyResp)
@@ -405,7 +724,7 @@ service merchantapi {
 	post /api/v1/admin/coupons/:id/copy (IdPathReq) returns (AnyResp)
 
 	@handler AdminGrantCoupon
-	post /api/v1/admin/coupons/grant (JSONBody) returns (AnyResp)
+	post /api/v1/admin/coupons/grant (GrantCouponReq) returns (AnyResp)
 
 	@handler AdminCouponClaims
 	get /api/v1/admin/coupons/:id/claims (IdPathReq) returns (AnyResp)

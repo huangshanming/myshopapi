@@ -25,7 +25,7 @@ func NewMerchantMarkAllNotificationsReadLogic(ctx context.Context, svcCtx *svc.S
 	}
 }
 
-func (l *MerchantMarkAllNotificationsReadLogic) MerchantMarkAllNotificationsRead(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
+func (l *MerchantMarkAllNotificationsReadLogic) MerchantMarkAllNotificationsRead(ctx context.Context) (resp *types.AnyResp, err error) {
 
 	shopID := middleware.GetShopID(ctx)
 	if shopID == 0 {

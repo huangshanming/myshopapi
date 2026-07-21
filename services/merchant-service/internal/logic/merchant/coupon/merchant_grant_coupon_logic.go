@@ -2,7 +2,6 @@ package coupon
 
 import (
 	"context"
-	"mymall/pkg/appinput"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	"mymall/services/merchant-service/internal/biz"
@@ -26,19 +25,10 @@ func NewMerchantGrantCouponLogic(ctx context.Context, svcCtx *svc.ServiceContext
 	}
 }
 
-func (l *MerchantGrantCouponLogic) MerchantGrantCoupon(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{Body: req}
-
+func (l *MerchantGrantCouponLogic) MerchantGrantCoupon(ctx context.Context, req *types.GrantCouponReq) (resp *types.AnyResp, err error) {
 	shopID := middleware.GetShopID(ctx)
 	userID, _ := middleware.GetUserID(ctx)
-	var body struct {
-		CouponID uint64   `json:"coupon_id"`
-		UserIDs  []uint64 `json:"user_ids"`
-	}
-	if err := appinput.BindBody(in, &body); err != nil {
-		return nil, xerr.New(http.StatusBadRequest, "参数错误")
-	}
-	g, err := biz.NewMerchantLogic(l.svcCtx).GrantCoupon(userID, body.CouponID, body.UserIDs, shopID, false)
+	g, err := biz.NewMerchantLogic(l.svcCtx).GrantCoupon(userID, req.CouponID, req.UserIDs, shopID, false)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}

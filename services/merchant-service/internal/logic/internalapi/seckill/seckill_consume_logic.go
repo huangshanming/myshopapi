@@ -2,7 +2,6 @@ package seckill
 
 import (
 	"context"
-	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	"mymall/services/merchant-service/internal/biz"
 	"net/http"
@@ -25,14 +24,8 @@ func NewSeckillConsumeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Se
 	}
 }
 
-func (l *SeckillConsumeLogic) SeckillConsume(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{Body: req}
-
-	var body types.SeckillConsumeReq
-	if err := appinput.BindBody(in, &body); err != nil {
-		return nil, xerr.New(http.StatusBadRequest, "参数错误")
-	}
-	data, err := biz.NewMerchantLogic(l.svcCtx).ConsumeSeckill(body.EntryID, body.ProductID, body.Quantity)
+func (l *SeckillConsumeLogic) SeckillConsume(ctx context.Context, req *types.SeckillConsumeReq) (resp *types.AnyResp, err error) {
+	data, err := biz.NewMerchantLogic(l.svcCtx).ConsumeSeckill(req.EntryID, req.ProductID, req.Quantity)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}

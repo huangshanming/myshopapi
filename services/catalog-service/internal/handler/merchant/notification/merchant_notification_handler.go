@@ -30,14 +30,8 @@ func MerchantListNotificationsHandler(svcCtx *svc.ServiceContext) http.HandlerFu
 
 func MerchantMarkAllNotificationsReadHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
-		if err := httpx.Parse(r, &req); err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
-			return
-		}
-
 		l := notification.NewMerchantMarkAllNotificationsReadLogic(r.Context(), svcCtx)
-		resp, err := l.MerchantMarkAllNotificationsRead(r.Context(), &req)
+		resp, err := l.MerchantMarkAllNotificationsRead(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {

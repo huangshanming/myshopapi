@@ -2,7 +2,6 @@ package homepage
 
 import (
 	"context"
-	"mymall/pkg/appinput"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	"mymall/services/merchant-service/internal/biz"
@@ -26,15 +25,9 @@ func NewAdminGrantSlotLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Ad
 	}
 }
 
-func (l *AdminGrantSlotLogic) AdminGrantSlot(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{Body: req}
-
+func (l *AdminGrantSlotLogic) AdminGrantSlot(ctx context.Context, req *types.GrantSlotReq) (resp *types.AnyResp, err error) {
 	adminID, _ := middleware.GetUserID(ctx)
-	var body biz.GrantSlotReq
-	if err := appinput.BindBody(in, &body); err != nil {
-		return nil, xerr.New(http.StatusBadRequest, "参数错误")
-	}
-	order, err := biz.NewMerchantLogic(l.svcCtx).GrantSlot(adminID, body)
+	order, err := biz.NewMerchantLogic(l.svcCtx).GrantSlot(adminID, *req)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}

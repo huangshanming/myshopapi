@@ -30,7 +30,7 @@ func AdminListBannersHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func CreateBannerHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
+		var req types.BannerSaveReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -84,7 +84,7 @@ func GetBannerHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func UpdateBannerHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.IdPathReq
+		var req types.BannerUpdateBodyReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return

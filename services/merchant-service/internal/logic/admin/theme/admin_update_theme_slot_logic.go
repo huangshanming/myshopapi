@@ -2,12 +2,9 @@ package theme
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	"mymall/services/merchant-service/internal/biz"
 	"net/http"
-	"strconv"
 
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
@@ -27,26 +24,35 @@ func NewAdminUpdateThemeSlotLogic(ctx context.Context, svcCtx *svc.ServiceContex
 	}
 }
 
-func (l *AdminUpdateThemeSlotLogic) AdminUpdateThemeSlot(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req}
-
-	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
-	if err != nil || id == 0 {
+func (l *AdminUpdateThemeSlotLogic) AdminUpdateThemeSlot(ctx context.Context, req *types.ThemeSlotUpdateBodyReq) (resp *types.AnyResp, err error) {
+	id := req.Id
+	if id == 0 {
 		return nil, xerr.New(http.StatusBadRequest, "ID无效")
 	}
-	var body map[string]interface{}
-	if err := appinput.BindBody(in, &body); err != nil {
-		return nil, xerr.New(http.StatusBadRequest, "参数错误")
+updates := map[string]interface{}{}
+	if req.Name != "" {
+		updates["name"] = req.Name
 	}
-	allowed := map[string]bool{
-		"name": true, "desc": true, "cover_url": true, "default_link_type": true,
-		"default_link_id": true, "status": true, "sort": true, "position": true,
+	if req.Desc != "" {
+		updates["desc"] = req.Desc
 	}
-	updates := map[string]interface{}{}
-	for k, v := range body {
-		if allowed[k] {
-			updates[k] = v
-		}
+	if req.CoverURL != "" {
+		updates["cover_url"] = req.CoverURL
+	}
+	if req.DefaultLinkType != "" {
+		updates["default_link_type"] = req.DefaultLinkType
+	}
+	if req.DefaultLinkID != 0 {
+		updates["default_link_id"] = req.DefaultLinkID
+	}
+	if req.Status != "" {
+		updates["status"] = req.Status
+	}
+	if req.Sort != 0 {
+		updates["sort"] = req.Sort
+	}
+	if req.Position != "" {
+		updates["position"] = req.Position
 	}
 	if len(updates) == 0 {
 		return nil, xerr.New(http.StatusBadRequest, "无更新字段")

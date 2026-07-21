@@ -2,7 +2,6 @@ package theme
 
 import (
 	"context"
-	"mymall/pkg/appinput"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	"mymall/services/merchant-service/internal/biz"
@@ -26,15 +25,9 @@ func NewAdminGrantThemeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *A
 	}
 }
 
-func (l *AdminGrantThemeLogic) AdminGrantTheme(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{Body: req}
-
+func (l *AdminGrantThemeLogic) AdminGrantTheme(ctx context.Context, req *types.ThemeGrantReq) (resp *types.AnyResp, err error) {
 	adminID, _ := middleware.GetUserID(ctx)
-	var body biz.ThemeGrantReq
-	if err := appinput.BindBody(in, &body); err != nil {
-		return nil, xerr.New(http.StatusBadRequest, "参数错误")
-	}
-	o, err := biz.NewMerchantLogic(l.svcCtx).GrantTheme(adminID, body)
+	o, err := biz.NewMerchantLogic(l.svcCtx).GrantTheme(adminID, *req)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}

@@ -2,12 +2,10 @@ package product
 
 import (
 	"context"
-	"mymall/pkg/appinput"
 	"mymall/pkg/jwt"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	plogic "mymall/services/catalog-service/internal/product/logic"
-	ptypes "mymall/services/catalog-service/internal/product/types"
 	"net/http"
 
 	"mymall/services/catalog-service/internal/svc"
@@ -28,9 +26,7 @@ func NewMerchantCreateProductLogic(ctx context.Context, svcCtx *svc.ServiceConte
 	}
 }
 
-func (l *MerchantCreateProductLogic) MerchantCreateProduct(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{Body: req}
-
+func (l *MerchantCreateProductLogic) MerchantCreateProduct(ctx context.Context, req *types.MerchantProductSaveReq) (resp *types.AnyResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -47,11 +43,7 @@ func (l *MerchantCreateProductLogic) MerchantCreateProduct(ctx context.Context, 
 	if !l.svcCtx.ShopRBAC.HasPerm(ctx, shopID, uid, "product:add") && !l.svcCtx.ShopRBAC.HasPerm(ctx, shopID, uid, "product:edit") {
 		return nil, xerr.New(http.StatusForbidden, "无权限: product:add")
 	}
-	var body ptypes.MerchantProductSaveReq
-	if err := appinput.BindBody(in, &body); err != nil {
-		return nil, xerr.New(http.StatusBadRequest, "参数错误")
-	}
-	p, err := plogic.NewProductAdminLogic(l.svcCtx).Save(ctx, shopID, uid, 0, body)
+	p, err := plogic.NewProductAdminLogic(l.svcCtx).Save(ctx, shopID, uid, 0, req.ToProduct())
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}

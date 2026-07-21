@@ -2,12 +2,9 @@ package product
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	plogic "mymall/services/catalog-service/internal/product/logic"
 	"net/http"
-	"strconv"
 
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -28,13 +25,10 @@ func NewCountLogic(ctx context.Context, svcCtx *svc.ServiceContext) *CountLogic 
 }
 
 func (l *CountLogic) Count(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}}
-
-	productID, err := strconv.ParseUint(in.Path("id"), 10, 64)
-	if err != nil || productID == 0 {
+	if req.Id == 0 {
 		return nil, xerr.New(http.StatusBadRequest, "商品ID无效")
 	}
-	n, err := plogic.NewFavoriteLogic(l.svcCtx).FavoriteCount(productID)
+	n, err := plogic.NewFavoriteLogic(l.svcCtx).FavoriteCount(req.Id)
 	if err != nil {
 		return nil, xerr.New(http.StatusNotFound, "商品不存在")
 	}

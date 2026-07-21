@@ -2,12 +2,9 @@ package shop
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	"mymall/services/merchant-service/internal/biz"
 	"net/http"
-	"strconv"
 
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
@@ -27,18 +24,9 @@ func NewAdminResetOwnerPasswordLogic(ctx context.Context, svcCtx *svc.ServiceCon
 	}
 }
 
-func (l *AdminResetOwnerPasswordLogic) AdminResetOwnerPassword(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req}
-
-	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
-	if err != nil {
-		return nil, xerr.New(http.StatusBadRequest, "店铺ID无效")
-	}
-	var body types.OwnerPasswordReq
-	if err := appinput.BindBody(in, &body); err != nil {
-		return nil, xerr.New(http.StatusBadRequest, "参数错误")
-	}
-	if err := biz.NewMerchantLogic(l.svcCtx).ResetOwnerPassword(ctx, id, body.Password); err != nil {
+func (l *AdminResetOwnerPasswordLogic) AdminResetOwnerPassword(ctx context.Context, req *types.OwnerPasswordBodyReq) (resp *types.AnyResp, err error) {
+	id := req.Id
+	if err := biz.NewMerchantLogic(l.svcCtx).ResetOwnerPassword(ctx, id, req.Password); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
 	return &types.AnyResp{}, nil

@@ -2,12 +2,9 @@ package article
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	clogic "mymall/services/catalog-service/internal/content/logic"
 	"net/http"
-	"strconv"
 
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -28,9 +25,7 @@ func NewAdminGetArticleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *A
 }
 
 func (l *AdminGetArticleLogic) AdminGetArticle(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}}
-
-	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
+	id := req.Id
 	data, err := clogic.NewArticleLogic(l.svcCtx).Detail(ctx, id, 0)
 	if err != nil {
 		return nil, xerr.New(http.StatusNotFound, err.Error())

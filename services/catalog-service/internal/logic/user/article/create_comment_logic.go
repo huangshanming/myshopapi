@@ -2,14 +2,10 @@ package article
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
-	"mymall/services/catalog-service/internal/content/logic"
 	clogic "mymall/services/catalog-service/internal/content/logic"
 	"net/http"
-	"strconv"
 
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -29,22 +25,12 @@ func NewCreateCommentLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Cre
 	}
 }
 
-func (l *CreateCommentLogic) CreateComment(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req}
-
+func (l *CreateCommentLogic) CreateComment(ctx context.Context, req *types.CreateCommentBodyReq) (resp *types.AnyResp, err error) {
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
 		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
-	if err != nil || id == 0 {
-		return nil, xerr.New(http.StatusBadRequest, "文章ID无效")
-	}
-	var body logic.CreateCommentReq
-	if err := appinput.BindBody(in, &body); err != nil {
-		return nil, xerr.New(http.StatusBadRequest, "参数错误")
-	}
-	c, err := clogic.NewArticleLogic(l.svcCtx).CreatePublicComment(ctx, userID, id, body)
+	c, err := clogic.NewArticleLogic(l.svcCtx).CreatePublicComment(ctx, userID, req.Id, clogic.CreateCommentReq{Content: req.Content, ParentID: req.ParentID})
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}

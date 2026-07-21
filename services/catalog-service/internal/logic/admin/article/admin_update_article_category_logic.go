@@ -2,13 +2,9 @@ package article
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	clogic "mymall/services/catalog-service/internal/content/logic"
-	ctypes "mymall/services/catalog-service/internal/content/types"
 	"net/http"
-	"strconv"
 
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -28,15 +24,9 @@ func NewAdminUpdateArticleCategoryLogic(ctx context.Context, svcCtx *svc.Service
 	}
 }
 
-func (l *AdminUpdateArticleCategoryLogic) AdminUpdateArticleCategory(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req}
-
-	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
-	var body ctypes.ArticleCategorySaveReq
-	if err := appinput.BindBody(in, &body); err != nil {
-		return nil, xerr.New(http.StatusBadRequest, "参数错误")
-	}
-	if err := clogic.NewArticleLogic(l.svcCtx).SaveCategory(ctx, id, body); err != nil {
+func (l *AdminUpdateArticleCategoryLogic) AdminUpdateArticleCategory(ctx context.Context, req *types.ArticleCategoryUpdateBodyReq) (resp *types.AnyResp, err error) {
+	id := req.Id
+	if err := clogic.NewArticleLogic(l.svcCtx).SaveCategory(ctx, id, req.ToContent()); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
 	return &types.AnyResp{Data: &types.AnyResp{}}, nil

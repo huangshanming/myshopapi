@@ -2,14 +2,10 @@ package product
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	plogic "mymall/services/catalog-service/internal/product/logic"
-	ptypes "mymall/services/catalog-service/internal/product/types"
 	"net/http"
-	"strconv"
 
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -29,9 +25,7 @@ func NewMerchantScheduleProductLogic(ctx context.Context, svcCtx *svc.ServiceCon
 	}
 }
 
-func (l *MerchantScheduleProductLogic) MerchantScheduleProduct(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req}
-
+func (l *MerchantScheduleProductLogic) MerchantScheduleProduct(ctx context.Context, req *types.ScheduleBodyReq) (resp *types.AnyResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -42,10 +36,8 @@ func (l *MerchantScheduleProductLogic) MerchantScheduleProduct(ctx context.Conte
 	if !ok {
 		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
-	var body ptypes.ScheduleReq
-	_ = appinput.BindBody(in, &body)
-	if err := plogic.NewProductAdminLogic(l.svcCtx).CreateSchedule(ctx, shopID, uid, id, body); err != nil {
+	id := req.Id
+	if err := plogic.NewProductAdminLogic(l.svcCtx).CreateSchedule(ctx, shopID, uid, id, req.ToProduct()); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
 	return &types.AnyResp{Data: &types.AnyResp{}}, nil

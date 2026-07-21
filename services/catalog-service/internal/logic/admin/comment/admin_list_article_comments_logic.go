@@ -2,13 +2,10 @@ package comment
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	clogic "mymall/services/catalog-service/internal/content/logic"
 	"mymall/services/catalog-service/internal/content/repository"
 	"net/http"
-	"net/url"
 	"strconv"
 
 	"mymall/services/catalog-service/internal/svc"
@@ -30,13 +27,11 @@ func NewAdminListArticleCommentsLogic(ctx context.Context, svcCtx *svc.ServiceCo
 }
 
 func (l *AdminListArticleCommentsLogic) AdminListArticleComments(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
-	in := appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}}
-
-	page, pageSize := in.Page()
-	articleID, _ := strconv.ParseUint(in.QueryGet("article_id"), 10, 64)
-	shopID, _ := strconv.ParseUint(in.QueryGet("shop_id"), 10, 64)
+	page, pageSize := req.Page, req.PageSize
+	articleID, _ := strconv.ParseUint("" /* was query:article_id */, 10, 64)
+	shopID, _ := strconv.ParseUint("" /* was query:shop_id */, 10, 64)
 	data, err := clogic.NewArticleLogic(l.svcCtx).ListComments(ctx, repository.CommentListFilter{
-		ShopID: shopID, ArticleID: articleID, Status: in.QueryGet("status"),
+		ShopID: shopID, ArticleID: articleID, Status: "" /* was query:status */,
 		Page: page, PageSize: pageSize,
 	})
 	if err != nil {

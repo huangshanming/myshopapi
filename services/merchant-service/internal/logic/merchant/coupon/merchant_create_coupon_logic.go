@@ -2,7 +2,6 @@ package coupon
 
 import (
 	"context"
-	"mymall/pkg/appinput"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	"mymall/services/merchant-service/internal/biz"
@@ -26,16 +25,10 @@ func NewMerchantCreateCouponLogic(ctx context.Context, svcCtx *svc.ServiceContex
 	}
 }
 
-func (l *MerchantCreateCouponLogic) MerchantCreateCoupon(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	in := appinput.CallInput{Body: req}
-
+func (l *MerchantCreateCouponLogic) MerchantCreateCoupon(ctx context.Context, req *types.CouponSaveReq) (resp *types.AnyResp, err error) {
 	shopID := middleware.GetShopID(ctx)
 	userID, _ := middleware.GetUserID(ctx)
-	var body biz.CouponSaveReq
-	if err := appinput.BindBody(in, &body); err != nil {
-		return nil, xerr.New(http.StatusBadRequest, "参数错误")
-	}
-	c, err := biz.NewMerchantLogic(l.svcCtx).MerchantCreateCoupon(shopID, userID, body)
+	c, err := biz.NewMerchantLogic(l.svcCtx).MerchantCreateCoupon(shopID, userID, *req)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}

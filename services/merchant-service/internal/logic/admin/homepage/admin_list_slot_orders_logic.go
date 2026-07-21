@@ -2,12 +2,9 @@ package homepage
 
 import (
 	"context"
-	"fmt"
-	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	"mymall/services/merchant-service/internal/biz"
 	"net/http"
-	"net/url"
 	"strconv"
 
 	"mymall/services/merchant-service/internal/svc"
@@ -29,11 +26,9 @@ func NewAdminListSlotOrdersLogic(ctx context.Context, svcCtx *svc.ServiceContext
 }
 
 func (l *AdminListSlotOrdersLogic) AdminListSlotOrders(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
-	in := appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}}
-
-	p, ps := in.Page()
-	shopID, _ := strconv.ParseUint(in.QueryGet("shop_id"), 10, 64)
-	list, total, err := biz.NewMerchantLogic(l.svcCtx).ListSlotOrders(shopID, in.QueryGet("slot_type"), in.QueryGet("status"), p, ps)
+	p, ps := req.Page, req.PageSize
+	shopID, _ := strconv.ParseUint("" /* was query:shop_id */, 10, 64)
+	list, total, err := biz.NewMerchantLogic(l.svcCtx).ListSlotOrders(shopID, "" /* was query:slot_type */, "" /* was query:status */, p, ps)
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}

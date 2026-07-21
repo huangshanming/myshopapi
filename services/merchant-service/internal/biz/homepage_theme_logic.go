@@ -6,28 +6,8 @@ import (
 	"strings"
 
 	"mymall/services/merchant-service/internal/model"
+	"mymall/services/merchant-service/internal/types"
 )
-
-type ThemeBuyReq struct {
-	ThemeSlotID uint64 `json:"theme_slot_id"`
-	PackageID   uint64 `json:"package_id"`
-	Title       string `json:"title"`
-	Subtitle    string `json:"subtitle"`
-	CoverURL    string `json:"cover_url"`
-	LinkType    string `json:"link_type"`
-	LinkID      uint64 `json:"link_id"`
-}
-
-type ThemeGrantReq struct {
-	ShopID      uint64 `json:"shop_id"`
-	ThemeSlotID uint64 `json:"theme_slot_id"`
-	PackageID   uint64 `json:"package_id"`
-	Title       string `json:"title"`
-	Subtitle    string `json:"subtitle"`
-	CoverURL    string `json:"cover_url"`
-	LinkType    string `json:"link_type"`
-	LinkID      uint64 `json:"link_id"`
-}
 
 func (l *MerchantLogic) validateThemeCreative(shopID uint64, title, cover, linkType string, linkID uint64) (string, uint64, error) {
 	title = strings.TrimSpace(title)
@@ -113,7 +93,7 @@ func (l *MerchantLogic) ListThemeOrders(shopID, themeSlotID uint64, page, pageSi
 	return list, total, nil
 }
 
-func (l *MerchantLogic) BuyTheme(shopID, userID uint64, req ThemeBuyReq) (*model.HomepageThemeOrder, error) {
+func (l *MerchantLogic) BuyTheme(shopID, userID uint64, req types.ThemeBuyReq) (*model.HomepageThemeOrder, error) {
 	slot, err := l.svcCtx.Repo.GetThemeSlot(context.Background(), req.ThemeSlotID)
 	if err != nil || slot.Status != model.ThemeSlotOn {
 		return nil, errors.New("坑位不存在或已下架")
@@ -161,7 +141,7 @@ func (l *MerchantLogic) BuyTheme(shopID, userID uint64, req ThemeBuyReq) (*model
 	return order, nil
 }
 
-func (l *MerchantLogic) GrantTheme(adminID uint64, req ThemeGrantReq) (*model.HomepageThemeOrder, error) {
+func (l *MerchantLogic) GrantTheme(adminID uint64, req types.ThemeGrantReq) (*model.HomepageThemeOrder, error) {
 	if req.ShopID == 0 {
 		return nil, errors.New("请选择店铺")
 	}
