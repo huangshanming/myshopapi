@@ -6,7 +6,6 @@ import (
 	clogic "mymall/services/catalog-service/internal/content/logic"
 	"mymall/services/catalog-service/internal/content/repository"
 	"net/http"
-	"strconv"
 	"time"
 
 	"mymall/services/catalog-service/internal/svc"
@@ -21,40 +20,32 @@ type AdminListArticleRecycleLogic struct {
 }
 
 func NewAdminListArticleRecycleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminListArticleRecycleLogic {
-	return &AdminListArticleRecycleLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &AdminListArticleRecycleLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *AdminListArticleRecycleLogic) AdminListArticleRecycle(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
-	page, pageSize := req.Page, req.PageSize
+func (l *AdminListArticleRecycleLogic) AdminListArticleRecycle(ctx context.Context, req *types.AdminArticleListReq) (resp *types.PageListResp, err error) {
 	f := repository.ArticleListFilter{
-		Title:       "" /* was query:title */,
-		AuditStatus: "" /* was query:audit_status */,
-		Status:      "" /* was query:status */,
-		Page:        page, PageSize: pageSize,
-		Recycle: true,
+		Title: req.Title, AuditStatus: req.AuditStatus, Status: req.Status,
+		Page: req.Page, PageSize: req.PageSize, Recycle: true,
 	}
-	if s := "" /* was query:shop_id */; s != "" {
-		shopID, _ := strconv.ParseUint(s, 10, 64)
-		f.ShopID = shopID
+	if req.ShopId > 0 {
+		f.ShopID = req.ShopId
 		f.FilterShop = true
 	}
-	if s := "" /* was query:has_schedule */; s == "1" {
+	if req.HasSchedule == "1" {
 		v := true
 		f.HasSchedule = &v
-	} else if s == "0" {
+	} else if req.HasSchedule == "0" {
 		v := false
 		f.HasSchedule = &v
 	}
-	if s := "" /* was query:created_from */; s != "" {
-		if t, err := time.ParseInLocation("2006-01-02", s, time.Local); err == nil {
+	if req.CreatedFrom != "" {
+		if t, err := time.ParseInLocation("2006-01-02", req.CreatedFrom, time.Local); err == nil {
 			f.CreatedFrom = &t
 		}
 	}
-	if s := "" /* was query:created_to */; s != "" {
-		if t, err := time.ParseInLocation("2006-01-02", s, time.Local); err == nil {
+	if req.CreatedTo != "" {
+		if t, err := time.ParseInLocation("2006-01-02", req.CreatedTo, time.Local); err == nil {
 			end := t.Add(24*time.Hour - time.Second)
 			f.CreatedTo = &end
 		}

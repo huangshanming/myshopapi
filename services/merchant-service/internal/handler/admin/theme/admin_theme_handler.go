@@ -48,7 +48,7 @@ func AdminGrantThemeHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func AdminListThemeOrdersHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.PageReq
+		var req types.ThemeOrderListReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -66,7 +66,7 @@ func AdminListThemeOrdersHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func AdminListThemePackagesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.PageReq
+		var req types.ThemePackageListReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return

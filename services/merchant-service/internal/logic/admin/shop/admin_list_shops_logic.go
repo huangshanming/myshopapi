@@ -24,9 +24,9 @@ func NewAdminListShopsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Ad
 	}
 }
 
-func (l *AdminListShopsLogic) AdminListShops(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
+func (l *AdminListShopsLogic) AdminListShops(ctx context.Context, req *types.ShopListReq) (resp *types.PageListResp, err error) {
 	p, ps := req.Page, req.PageSize
-	list, total, err := biz.NewMerchantLogic(l.svcCtx).ListShops(ctx, "" /* was query:status */, "" /* was query:name */, p, ps)
+	list, total, err := biz.NewMerchantLogic(l.svcCtx).ListShops(ctx, req.Status, req.Name, p, ps)
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}

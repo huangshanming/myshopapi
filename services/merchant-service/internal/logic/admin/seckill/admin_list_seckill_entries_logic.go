@@ -5,7 +5,6 @@ import (
 	"mymall/pkg/xerr"
 	"mymall/services/merchant-service/internal/biz"
 	"net/http"
-	"strconv"
 
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
@@ -25,9 +24,9 @@ func NewAdminListSeckillEntriesLogic(ctx context.Context, svcCtx *svc.ServiceCon
 	}
 }
 
-func (l *AdminListSeckillEntriesLogic) AdminListSeckillEntries(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
+func (l *AdminListSeckillEntriesLogic) AdminListSeckillEntries(ctx context.Context, req *types.SeckillEntryListReq) (resp *types.PageListResp, err error) {
 	p, ps := req.Page, req.PageSize
-	sid, _ := strconv.ParseUint("" /* was query:session_id */, 10, 64)
+	sid := req.SessionId
 	list, total, err := biz.NewMerchantLogic(l.svcCtx).ListAdminSeckillEntries(sid, p, ps)
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())

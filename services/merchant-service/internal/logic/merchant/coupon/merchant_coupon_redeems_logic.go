@@ -24,9 +24,9 @@ func NewMerchantCouponRedeemsLogic(ctx context.Context, svcCtx *svc.ServiceConte
 	}
 }
 
-func (l *MerchantCouponRedeemsLogic) MerchantCouponRedeems(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *MerchantCouponRedeemsLogic) MerchantCouponRedeems(ctx context.Context, req *types.IdPageReq) (resp *types.AnyResp, err error) {
 	id := req.Id
-	page, pageSize := 1, 10
+	page, pageSize := req.Page, req.PageSize
 	list, total, err := biz.NewMerchantLogic(l.svcCtx).CouponRedeems(id, page, pageSize)
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())

@@ -7,7 +7,6 @@ import (
 	clogic "mymall/services/catalog-service/internal/content/logic"
 	"mymall/services/catalog-service/internal/content/repository"
 	"net/http"
-	"strconv"
 
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -27,7 +26,7 @@ func NewMerchantListArticleCommentsLogic(ctx context.Context, svcCtx *svc.Servic
 	}
 }
 
-func (l *MerchantListArticleCommentsLogic) MerchantListArticleComments(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
+func (l *MerchantListArticleCommentsLogic) MerchantListArticleComments(ctx context.Context, req *types.ArticleCommentListReq) (resp *types.PageListResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -39,9 +38,9 @@ func (l *MerchantListArticleCommentsLogic) MerchantListArticleComments(ctx conte
 		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
 	page, pageSize := req.Page, req.PageSize
-	articleID, _ := strconv.ParseUint("" /* was query:article_id */, 10, 64)
+	articleID := req.ArticleId
 	data, err := clogic.NewArticleLogic(l.svcCtx).ListComments(ctx, repository.CommentListFilter{
-		ShopID: shopID, ArticleID: articleID, Status: "" /* was query:status */,
+		ShopID: shopID, ArticleID: articleID, Status: req.Status,
 		Page: page, PageSize: pageSize,
 	})
 	if err != nil {

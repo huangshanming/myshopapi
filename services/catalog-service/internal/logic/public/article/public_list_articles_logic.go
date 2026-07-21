@@ -18,16 +18,11 @@ type PublicListArticlesLogic struct {
 }
 
 func NewPublicListArticlesLogic(ctx context.Context, svcCtx *svc.ServiceContext) *PublicListArticlesLogic {
-	return &PublicListArticlesLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &PublicListArticlesLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *PublicListArticlesLogic) PublicListArticles(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
-	page, pageSize := int(req.Page), int(req.PageSize)
-	home := "" /* was query:home */ == "1"
-	data, err := clogic.NewArticleLogic(l.svcCtx).PublicList(ctx, page, pageSize, home)
+func (l *PublicListArticlesLogic) PublicListArticles(ctx context.Context, req *types.PublicArticleListReq) (resp *types.PageListResp, err error) {
+	data, err := clogic.NewArticleLogic(l.svcCtx).PublicList(ctx, req.Page, req.PageSize, req.Home == "1")
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}

@@ -30,7 +30,7 @@ func AdminDeleteArticleCommentHandler(svcCtx *svc.ServiceContext) http.HandlerFu
 
 func AdminListArticleCommentsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.PageReq
+		var req types.ArticleCommentListReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return

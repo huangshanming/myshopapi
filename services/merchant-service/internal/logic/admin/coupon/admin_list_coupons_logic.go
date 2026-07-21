@@ -24,9 +24,9 @@ func NewAdminListCouponsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 	}
 }
 
-func (l *AdminListCouponsLogic) AdminListCoupons(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
+func (l *AdminListCouponsLogic) AdminListCoupons(ctx context.Context, req *types.CouponListReq) (resp *types.PageListResp, err error) {
 	page, pageSize := int(req.Page), int(req.PageSize)
-	list, total, err := biz.NewMerchantLogic(l.svcCtx).ListCoupons("platform", 0, "" /* was query:status */, "" /* was query:keyword */, page, pageSize)
+	list, total, err := biz.NewMerchantLogic(l.svcCtx).ListCoupons("platform", 0, req.Status, req.Keyword, page, pageSize)
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}

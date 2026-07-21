@@ -24,8 +24,8 @@ func NewMerchantListSlotPackagesLogic(ctx context.Context, svcCtx *svc.ServiceCo
 	}
 }
 
-func (l *MerchantListSlotPackagesLogic) MerchantListSlotPackages(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
-	list, err := biz.NewMerchantLogic(l.svcCtx).ListSlotPackages("" /* was query:slot_type */, true)
+func (l *MerchantListSlotPackagesLogic) MerchantListSlotPackages(ctx context.Context, req *types.SlotTypePageReq) (resp *types.PageListResp, err error) {
+	list, err := biz.NewMerchantLogic(l.svcCtx).ListSlotPackages(req.SlotType, true)
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}

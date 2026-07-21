@@ -26,7 +26,7 @@ func NewMerchantListArticlesLogic(ctx context.Context, svcCtx *svc.ServiceContex
 	}
 }
 
-func (l *MerchantListArticlesLogic) MerchantListArticles(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
+func (l *MerchantListArticlesLogic) MerchantListArticles(ctx context.Context, req *types.MerchantArticleListReq) (resp *types.PageListResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -39,9 +39,9 @@ func (l *MerchantListArticlesLogic) MerchantListArticles(ctx context.Context, re
 	}
 	page, pageSize := req.Page, req.PageSize
 	data, err := clogic.NewArticleLogic(l.svcCtx).List(ctx, repository.ArticleListFilter{
-		ShopID: shopID, Title: "" /* was query:title */,
-		AuditStatus: "" /* was query:audit_status */,
-		Status:      "" /* was query:status */,
+		ShopID: shopID, Title: req.Title,
+		AuditStatus: req.AuditStatus,
+		Status:      req.Status,
 		Page:        page, PageSize: pageSize,
 	})
 	if err != nil {

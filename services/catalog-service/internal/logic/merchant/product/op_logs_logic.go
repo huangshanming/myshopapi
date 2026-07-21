@@ -6,7 +6,6 @@ import (
 	"mymall/pkg/xerr"
 	plogic "mymall/services/catalog-service/internal/product/logic"
 	"net/http"
-	"strconv"
 
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -26,7 +25,7 @@ func NewOpLogsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *OpLogsLogi
 	}
 }
 
-func (l *OpLogsLogic) OpLogs(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
+func (l *OpLogsLogic) OpLogs(ctx context.Context, req *types.OpLogsReq) (resp *types.PageListResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -37,7 +36,7 @@ func (l *OpLogsLogic) OpLogs(ctx context.Context, req *types.PageReq) (resp *typ
 	if !ok {
 		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	pid, _ := strconv.ParseUint("" /* was query:product_id */, 10, 64)
+	pid := req.ProductId
 	page, pageSize := req.Page, req.PageSize
 	data, err := plogic.NewProductAdminLogic(l.svcCtx).OpLogs(ctx, shopID, pid, page, pageSize)
 	if err != nil {

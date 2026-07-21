@@ -18,15 +18,11 @@ type ListCommentsLogic struct {
 }
 
 func NewListCommentsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListCommentsLogic {
-	return &ListCommentsLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &ListCommentsLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *ListCommentsLogic) ListComments(ctx context.Context, req *types.IdPathReq) (resp *types.PageListResp, err error) {
-	page, pageSize := 1, 10
-	data, err := clogic.NewArticleLogic(l.svcCtx).PublicListComments(ctx, req.Id, page, pageSize)
+func (l *ListCommentsLogic) ListComments(ctx context.Context, req *types.IdPageReq) (resp *types.PageListResp, err error) {
+	data, err := clogic.NewArticleLogic(l.svcCtx).PublicListComments(ctx, req.Id, req.Page, req.PageSize)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}

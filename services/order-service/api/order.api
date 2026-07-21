@@ -186,7 +186,7 @@ service orderapi {
 	get /api/v1/orders/:id/review (IdPathReq) returns (AnyResp)
 
 	@handler UserUploadReview
-	post /api/v1/user/review-uploads (JSONBody) returns (AnyResp)
+	post /api/v1/user/review-uploads returns (AnyResp)
 }
 
 @server (

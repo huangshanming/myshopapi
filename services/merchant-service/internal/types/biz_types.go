@@ -447,3 +447,64 @@ type SlotTypeQueryReq struct {
 type ShopIdQueryReq struct {
 	ShopId uint64 `form:"shop_id,optional"`
 }
+
+// ---- list / query (go-zero form tags) ----
+
+type IdPageReq struct {
+	Id       uint64 `path:"id"`
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+}
+
+type StatusPageReq struct {
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+	Status   string `form:"status,optional"`
+}
+
+type CouponListReq struct {
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+	Status   string `form:"status,optional"`
+	Keyword  string `form:"keyword,optional"`
+}
+
+type SlotTypePageReq struct {
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+	SlotType string `form:"slot_type,optional"`
+}
+
+type SlotOrderListReq struct {
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+	ShopId   uint64 `form:"shop_id,optional"`
+	SlotType string `form:"slot_type,optional"`
+	Status   string `form:"status,optional"`
+}
+
+type ThemePackageListReq struct {
+	Page        int    `form:"page,default=1"`
+	PageSize    int    `form:"page_size,default=10"`
+	ThemeSlotId uint64 `form:"theme_slot_id,optional"`
+}
+
+type ThemeOrderListReq struct {
+	Page        int    `form:"page,default=1"`
+	PageSize    int    `form:"page_size,default=10"`
+	ShopId      uint64 `form:"shop_id,optional"`
+	ThemeSlotId uint64 `form:"theme_slot_id,optional"`
+}
+
+type ShopListReq struct {
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+	Status   string `form:"status,optional"`
+	Name     string `form:"name,optional"`
+}
+
+type SeckillEntryListReq struct {
+	Page      int    `form:"page,default=1"`
+	PageSize  int    `form:"page_size,default=10"`
+	SessionId uint64 `form:"session_id,optional"`
+}

@@ -30,7 +30,7 @@ func MerchantCopyCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func MerchantCouponClaimsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.IdPathReq
+		var req types.IdPageReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -48,7 +48,7 @@ func MerchantCouponClaimsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func MerchantCouponRedeemsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.IdPathReq
+		var req types.IdPageReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -120,7 +120,7 @@ func MerchantGrantCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func MerchantListCouponsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.PageReq
+		var req types.CouponListReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return

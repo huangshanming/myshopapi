@@ -25,10 +25,10 @@ func NewMerchantListCouponsLogic(ctx context.Context, svcCtx *svc.ServiceContext
 	}
 }
 
-func (l *MerchantListCouponsLogic) MerchantListCoupons(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
+func (l *MerchantListCouponsLogic) MerchantListCoupons(ctx context.Context, req *types.CouponListReq) (resp *types.PageListResp, err error) {
 	shopID := middleware.GetShopID(ctx)
 	page, pageSize := int(req.Page), int(req.PageSize)
-	list, total, err := biz.NewMerchantLogic(l.svcCtx).ListCoupons("shop", shopID, "" /* was query:status */, "" /* was query:keyword */, page, pageSize)
+	list, total, err := biz.NewMerchantLogic(l.svcCtx).ListCoupons("shop", shopID, req.Status, req.Keyword, page, pageSize)
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}

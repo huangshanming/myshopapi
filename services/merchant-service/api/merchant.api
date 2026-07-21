@@ -30,6 +30,58 @@ type AnyResp {
 
 type JSONBody {}
 
+type IdPageReq {
+	Id       uint64 `path:"id"`
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+}
+type StatusPageReq {
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+	Status   string `form:"status,optional"`
+}
+type CouponListReq {
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+	Status   string `form:"status,optional"`
+	Keyword  string `form:"keyword,optional"`
+}
+type SlotTypePageReq {
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+	SlotType string `form:"slot_type,optional"`
+}
+type SlotOrderListReq {
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+	ShopId   uint64 `form:"shop_id,optional"`
+	SlotType string `form:"slot_type,optional"`
+	Status   string `form:"status,optional"`
+}
+type ThemePackageListReq {
+	Page        int    `form:"page,default=1"`
+	PageSize    int    `form:"page_size,default=10"`
+	ThemeSlotId uint64 `form:"theme_slot_id,optional"`
+}
+type ThemeOrderListReq {
+	Page        int    `form:"page,default=1"`
+	PageSize    int    `form:"page_size,default=10"`
+	ShopId      uint64 `form:"shop_id,optional"`
+	ThemeSlotId uint64 `form:"theme_slot_id,optional"`
+}
+type ShopListReq {
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+	Status   string `form:"status,optional"`
+	Name     string `form:"name,optional"`
+}
+type SeckillEntryListReq {
+	Page      int    `form:"page,default=1"`
+	PageSize  int    `form:"page_size,default=10"`
+	SessionId uint64 `form:"session_id,optional"`
+}
+
+
 type SlotTypeQueryReq {
 	SlotType string `form:"slot_type,optional"`
 }
@@ -454,7 +506,7 @@ service merchantapi {
 	post /api/v1/coupons/:id/claim (ClaimCouponBodyReq) returns (AnyResp)
 
 	@handler ListMyCoupons
-	get /api/v1/user/coupons (PageReq) returns (PageListResp)
+	get /api/v1/user/coupons (StatusPageReq) returns (PageListResp)
 }
 
 @server (
@@ -514,13 +566,13 @@ service merchantapi {
 )
 service merchantapi {
 	@handler MerchantListSlotPackages
-	get /api/v1/merchant/homepage-packages (PageReq) returns (PageListResp)
+	get /api/v1/merchant/homepage-packages (SlotTypePageReq) returns (PageListResp)
 
 	@handler MerchantBuySlot
 	post /api/v1/merchant/homepage-orders (BuySlotReq) returns (AnyResp)
 
 	@handler MerchantListSlotOrders
-	get /api/v1/merchant/homepage-orders (PageReq) returns (PageListResp)
+	get /api/v1/merchant/homepage-orders (SlotOrderListReq) returns (PageListResp)
 }
 
 @server (
@@ -532,7 +584,7 @@ service merchantapi {
 	get /api/v1/merchant/theme-slots (PageReq) returns (PageListResp)
 
 	@handler MerchantListThemePackages
-	get /api/v1/merchant/theme-packages (PageReq) returns (PageListResp)
+	get /api/v1/merchant/theme-packages (ThemePackageListReq) returns (PageListResp)
 
 	@handler MerchantBuyTheme
 	post /api/v1/merchant/theme-orders (ThemeBuyReq) returns (AnyResp)
@@ -547,7 +599,7 @@ service merchantapi {
 )
 service merchantapi {
 	@handler MerchantListCoupons
-	get /api/v1/merchant/coupons (PageReq) returns (PageListResp)
+	get /api/v1/merchant/coupons (CouponListReq) returns (PageListResp)
 
 	@handler MerchantCreateCoupon
 	post /api/v1/merchant/coupons (CouponSaveReq) returns (AnyResp)
@@ -565,10 +617,10 @@ service merchantapi {
 	post /api/v1/merchant/coupons/grant (GrantCouponReq) returns (AnyResp)
 
 	@handler MerchantCouponClaims
-	get /api/v1/merchant/coupons/:id/claims (IdPathReq) returns (AnyResp)
+	get /api/v1/merchant/coupons/:id/claims (IdPageReq) returns (AnyResp)
 
 	@handler MerchantCouponRedeems
-	get /api/v1/merchant/coupons/:id/redeems (IdPathReq) returns (AnyResp)
+	get /api/v1/merchant/coupons/:id/redeems (IdPageReq) returns (AnyResp)
 
 	@handler MerchantCouponStats
 	get /api/v1/merchant/coupons/:id/stats (IdPathReq) returns (AnyResp)
@@ -580,7 +632,7 @@ service merchantapi {
 )
 service merchantapi {
 	@handler AdminListApplications
-	get /api/v1/admin/applications (PageReq) returns (PageListResp)
+	get /api/v1/admin/applications (StatusPageReq) returns (PageListResp)
 
 	@handler AdminApprove
 	post /api/v1/admin/applications/:id/approve (IdPathReq) returns (AnyResp)
@@ -595,7 +647,7 @@ service merchantapi {
 )
 service merchantapi {
 	@handler AdminListShops
-	get /api/v1/admin/shops (PageReq) returns (PageListResp)
+	get /api/v1/admin/shops (ShopListReq) returns (PageListResp)
 
 	@handler AdminCreateShop
 	post /api/v1/admin/shops (AdminCreateShopReq) returns (AnyResp)
@@ -628,7 +680,7 @@ service merchantapi {
 	post /api/v1/admin/shops/:id/wallet/adjust (WalletAdjustBodyReq) returns (AnyResp)
 
 	@handler AdminWalletLogs
-	get /api/v1/admin/shops/:id/wallet/logs (IdPathReq) returns (PageListResp)
+	get /api/v1/admin/shops/:id/wallet/logs (IdPageReq) returns (PageListResp)
 }
 
 @server (
@@ -646,7 +698,7 @@ service merchantapi {
 	get /api/v1/admin/seckill/sessions (PageReq) returns (PageListResp)
 
 	@handler AdminListSeckillEntries
-	get /api/v1/admin/seckill/entries (PageReq) returns (PageListResp)
+	get /api/v1/admin/seckill/entries (SeckillEntryListReq) returns (PageListResp)
 }
 
 @server (
@@ -655,7 +707,7 @@ service merchantapi {
 )
 service merchantapi {
 	@handler AdminListSlotPackages
-	get /api/v1/admin/homepage-packages (PageReq) returns (PageListResp)
+	get /api/v1/admin/homepage-packages (SlotTypePageReq) returns (PageListResp)
 
 	@handler AdminCreateSlotPackage
 	post /api/v1/admin/homepage-packages (SlotPackageSaveReq) returns (AnyResp)
@@ -670,7 +722,7 @@ service merchantapi {
 	put /api/v1/admin/homepage-settings (UpdateSlotSettingsReq) returns (AnyResp)
 
 	@handler AdminListSlotOrders
-	get /api/v1/admin/homepage-orders (PageReq) returns (PageListResp)
+	get /api/v1/admin/homepage-orders (SlotOrderListReq) returns (PageListResp)
 
 	@handler AdminGrantSlot
 	post /api/v1/admin/homepage-orders/grant (GrantSlotReq) returns (AnyResp)
@@ -688,7 +740,7 @@ service merchantapi {
 	put /api/v1/admin/theme-slots/:id (ThemeSlotUpdateBodyReq) returns (AnyResp)
 
 	@handler AdminListThemePackages
-	get /api/v1/admin/theme-packages (PageReq) returns (PageListResp)
+	get /api/v1/admin/theme-packages (ThemePackageListReq) returns (PageListResp)
 
 	@handler AdminCreateThemePackage
 	post /api/v1/admin/theme-packages (ThemePackageSaveReq) returns (AnyResp)
@@ -697,7 +749,7 @@ service merchantapi {
 	put /api/v1/admin/theme-packages/:id (ThemePackageUpdateBodyReq) returns (AnyResp)
 
 	@handler AdminListThemeOrders
-	get /api/v1/admin/theme-orders (PageReq) returns (PageListResp)
+	get /api/v1/admin/theme-orders (ThemeOrderListReq) returns (PageListResp)
 
 	@handler AdminGrantTheme
 	post /api/v1/admin/theme-orders/grant (ThemeGrantReq) returns (AnyResp)
@@ -709,7 +761,7 @@ service merchantapi {
 )
 service merchantapi {
 	@handler AdminListCoupons
-	get /api/v1/admin/coupons (PageReq) returns (PageListResp)
+	get /api/v1/admin/coupons (CouponListReq) returns (PageListResp)
 
 	@handler AdminCreateCoupon
 	post /api/v1/admin/coupons (CouponSaveReq) returns (AnyResp)
@@ -727,10 +779,10 @@ service merchantapi {
 	post /api/v1/admin/coupons/grant (GrantCouponReq) returns (AnyResp)
 
 	@handler AdminCouponClaims
-	get /api/v1/admin/coupons/:id/claims (IdPathReq) returns (AnyResp)
+	get /api/v1/admin/coupons/:id/claims (IdPageReq) returns (AnyResp)
 
 	@handler AdminCouponRedeems
-	get /api/v1/admin/coupons/:id/redeems (IdPathReq) returns (AnyResp)
+	get /api/v1/admin/coupons/:id/redeems (IdPageReq) returns (AnyResp)
 
 	@handler AdminCouponStats
 	get /api/v1/admin/coupons/:id/stats (IdPathReq) returns (AnyResp)

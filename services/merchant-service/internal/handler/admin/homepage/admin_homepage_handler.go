@@ -48,7 +48,7 @@ func AdminGrantSlotHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func AdminListSlotOrdersHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.PageReq
+		var req types.SlotOrderListReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -66,7 +66,7 @@ func AdminListSlotOrdersHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func AdminListSlotPackagesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.PageReq
+		var req types.SlotTypePageReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return

@@ -319,3 +319,93 @@ type ProductIdPathReq struct {
 	ProductId uint64 `path:"product_id"`
 }
 
+// ---- list / query (go-zero form tags) ----
+
+type IdPageReq struct {
+	Id       uint64 `path:"id"`
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+}
+
+type PublicProductListReq struct {
+	Page       int    `form:"page,default=1"`
+	PageSize   int    `form:"page_size,default=10"`
+	ShopId     uint64 `form:"shop_id,optional"`
+	CategoryId uint64 `form:"category_id,optional"`
+	OrderBy    string `form:"order_by,optional"`
+}
+
+type PublicArticleListReq struct {
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+	Home     string `form:"home,optional"`
+}
+
+type MerchantProductListReq struct {
+	Page        int    `form:"page,default=1"`
+	PageSize    int    `form:"page_size,default=10"`
+	Name        string `form:"name,optional"`
+	ProductNo   string `form:"product_no,optional"`
+	CategoryId  uint64 `form:"category_id,optional"`
+	Status      string `form:"status,optional"`
+	ProductType string `form:"product_type,optional"`
+	StockWarn   string `form:"stock_warn,optional"`
+	OrderBy     string `form:"order_by,optional"`
+	Recycle     string `form:"recycle,optional"`
+}
+
+type AdminProductListReq struct {
+	Page         int    `form:"page,default=1"`
+	PageSize     int    `form:"page_size,default=10"`
+	ShopId       uint64 `form:"shop_id,optional"`
+	Name         string `form:"name,optional"`
+	ProductNo    string `form:"product_no,optional"`
+	CategoryId   uint64 `form:"category_id,optional"`
+	Status       string `form:"status,optional"`
+	ProductType  string `form:"product_type,optional"`
+	OrderBy      string `form:"order_by,optional"`
+	CreatedFrom  string `form:"created_from,optional"`
+	CreatedTo    string `form:"created_to,optional"`
+	PublishFrom  string `form:"publish_from,optional"`
+	PublishTo    string `form:"publish_to,optional"`
+}
+
+type MerchantArticleListReq struct {
+	Page        int    `form:"page,default=1"`
+	PageSize    int    `form:"page_size,default=10"`
+	Title       string `form:"title,optional"`
+	AuditStatus string `form:"audit_status,optional"`
+	Status      string `form:"status,optional"`
+}
+
+type AdminArticleListReq struct {
+	Page         int    `form:"page,default=1"`
+	PageSize     int    `form:"page_size,default=10"`
+	Title        string `form:"title,optional"`
+	AuditStatus  string `form:"audit_status,optional"`
+	Status       string `form:"status,optional"`
+	ShopId       uint64 `form:"shop_id,optional"`
+	HasSchedule  string `form:"has_schedule,optional"`
+	CreatedFrom  string `form:"created_from,optional"`
+	CreatedTo    string `form:"created_to,optional"`
+}
+
+type ArticleCommentListReq struct {
+	Page      int    `form:"page,default=1"`
+	PageSize  int    `form:"page_size,default=10"`
+	ArticleId uint64 `form:"article_id,optional"`
+	ShopId    uint64 `form:"shop_id,optional"`
+	Status    string `form:"status,optional"`
+}
+
+type NotificationListReq struct {
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+	IsRead   string `form:"is_read,optional"`
+}
+
+type OpLogsReq struct {
+	Page      int    `form:"page,default=1"`
+	PageSize  int    `form:"page_size,default=10"`
+	ProductId uint64 `form:"product_id,optional"`
+}

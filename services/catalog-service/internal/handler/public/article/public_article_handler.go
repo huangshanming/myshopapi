@@ -12,7 +12,7 @@ import (
 
 func ListCommentsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.IdPathReq
+		var req types.IdPageReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -66,7 +66,7 @@ func PublicGetArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func PublicListArticlesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.PageReq
+		var req types.PublicArticleListReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return

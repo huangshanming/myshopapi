@@ -6,7 +6,6 @@ import (
 	clogic "mymall/services/catalog-service/internal/content/logic"
 	"mymall/services/catalog-service/internal/content/repository"
 	"net/http"
-	"strconv"
 
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -26,12 +25,12 @@ func NewAdminListArticleCommentsLogic(ctx context.Context, svcCtx *svc.ServiceCo
 	}
 }
 
-func (l *AdminListArticleCommentsLogic) AdminListArticleComments(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
+func (l *AdminListArticleCommentsLogic) AdminListArticleComments(ctx context.Context, req *types.ArticleCommentListReq) (resp *types.PageListResp, err error) {
 	page, pageSize := req.Page, req.PageSize
-	articleID, _ := strconv.ParseUint("" /* was query:article_id */, 10, 64)
-	shopID, _ := strconv.ParseUint("" /* was query:shop_id */, 10, 64)
+	articleID := req.ArticleId
+	shopID := req.ShopId
 	data, err := clogic.NewArticleLogic(l.svcCtx).ListComments(ctx, repository.CommentListFilter{
-		ShopID: shopID, ArticleID: articleID, Status: "" /* was query:status */,
+		ShopID: shopID, ArticleID: articleID, Status: req.Status,
 		Page: page, PageSize: pageSize,
 	})
 	if err != nil {

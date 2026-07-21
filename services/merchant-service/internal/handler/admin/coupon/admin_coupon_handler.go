@@ -30,7 +30,7 @@ func AdminCopyCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func AdminCouponClaimsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.IdPathReq
+		var req types.IdPageReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -48,7 +48,7 @@ func AdminCouponClaimsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func AdminCouponRedeemsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.IdPathReq
+		var req types.IdPageReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -120,7 +120,7 @@ func AdminGrantCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func AdminListCouponsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.PageReq
+		var req types.CouponListReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return

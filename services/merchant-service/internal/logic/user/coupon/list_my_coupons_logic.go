@@ -25,13 +25,13 @@ func NewListMyCouponsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Lis
 	}
 }
 
-func (l *ListMyCouponsLogic) ListMyCoupons(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
+func (l *ListMyCouponsLogic) ListMyCoupons(ctx context.Context, req *types.StatusPageReq) (resp *types.PageListResp, err error) {
 	userID, _ := middleware.GetUserID(ctx)
 	if userID == 0 {
 		return nil, xerr.New(http.StatusUnauthorized, "请先登录")
 	}
 	page, pageSize := int(req.Page), int(req.PageSize)
-	list, total, err := biz.NewMerchantLogic(l.svcCtx).ListMyCoupons(userID, "" /* was query:status */, page, pageSize)
+	list, total, err := biz.NewMerchantLogic(l.svcCtx).ListMyCoupons(userID, req.Status, page, pageSize)
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}

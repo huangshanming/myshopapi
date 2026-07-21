@@ -6,7 +6,6 @@ import (
 	plogic "mymall/services/catalog-service/internal/product/logic"
 	"mymall/services/catalog-service/internal/product/repository"
 	"net/http"
-	"strconv"
 	"time"
 
 	"mymall/services/catalog-service/internal/svc"
@@ -21,40 +20,34 @@ type AdminListProductsLogic struct {
 }
 
 func NewAdminListProductsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminListProductsLogic {
-	return &AdminListProductsLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &AdminListProductsLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *AdminListProductsLogic) AdminListProducts(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
-	page, pageSize := req.Page, req.PageSize
-	shopID, _ := strconv.ParseUint("" /* was query:shop_id */, 10, 64)
-	catID, _ := strconv.ParseUint("" /* was query:category_id */, 10, 64)
+func (l *AdminListProductsLogic) AdminListProducts(ctx context.Context, req *types.AdminProductListReq) (resp *types.PageListResp, err error) {
 	f := repository.ProductListFilter{
-		ShopID: shopID, Name: "" /* was query:name */, ProductNo: "" /* was query:product_no */,
-		CategoryID: catID, Status: "" /* was query:status */, ProductType: "" /* was query:product_type */,
-		Page: page, PageSize: pageSize, OrderBy: "" /* was query:order_by */,
+		ShopID: req.ShopId, Name: req.Name, ProductNo: req.ProductNo,
+		CategoryID: req.CategoryId, Status: req.Status, ProductType: req.ProductType,
+		Page: req.Page, PageSize: req.PageSize, OrderBy: req.OrderBy,
 		PlatformScope: true,
 	}
-	if s := "" /* was query:created_from */; s != "" {
-		if t, err := time.ParseInLocation("2006-01-02", s, time.Local); err == nil {
+	if req.CreatedFrom != "" {
+		if t, err := time.ParseInLocation("2006-01-02", req.CreatedFrom, time.Local); err == nil {
 			f.CreatedFrom = &t
 		}
 	}
-	if s := "" /* was query:created_to */; s != "" {
-		if t, err := time.ParseInLocation("2006-01-02", s, time.Local); err == nil {
+	if req.CreatedTo != "" {
+		if t, err := time.ParseInLocation("2006-01-02", req.CreatedTo, time.Local); err == nil {
 			end := t.Add(24*time.Hour - time.Second)
 			f.CreatedTo = &end
 		}
 	}
-	if s := "" /* was query:publish_from */; s != "" {
-		if t, err := time.ParseInLocation("2006-01-02", s, time.Local); err == nil {
+	if req.PublishFrom != "" {
+		if t, err := time.ParseInLocation("2006-01-02", req.PublishFrom, time.Local); err == nil {
 			f.PublishFrom = &t
 		}
 	}
-	if s := "" /* was query:publish_to */; s != "" {
-		if t, err := time.ParseInLocation("2006-01-02", s, time.Local); err == nil {
+	if req.PublishTo != "" {
+		if t, err := time.ParseInLocation("2006-01-02", req.PublishTo, time.Local); err == nil {
 			end := t.Add(24*time.Hour - time.Second)
 			f.PublishTo = &end
 		}

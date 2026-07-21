@@ -48,7 +48,7 @@ func GetProductDetailHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func GetProductListHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.PageReq
+		var req types.PublicProductListReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return

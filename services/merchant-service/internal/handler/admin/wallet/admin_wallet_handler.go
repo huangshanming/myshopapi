@@ -48,7 +48,7 @@ func AdminGetWalletHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func AdminWalletLogsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.IdPathReq
+		var req types.IdPageReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return

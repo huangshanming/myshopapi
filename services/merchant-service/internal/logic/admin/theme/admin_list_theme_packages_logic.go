@@ -5,7 +5,6 @@ import (
 	"mymall/pkg/xerr"
 	"mymall/services/merchant-service/internal/biz"
 	"net/http"
-	"strconv"
 
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
@@ -25,8 +24,8 @@ func NewAdminListThemePackagesLogic(ctx context.Context, svcCtx *svc.ServiceCont
 	}
 }
 
-func (l *AdminListThemePackagesLogic) AdminListThemePackages(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
-	slotID, _ := strconv.ParseUint("" /* was query:theme_slot_id */, 10, 64)
+func (l *AdminListThemePackagesLogic) AdminListThemePackages(ctx context.Context, req *types.ThemePackageListReq) (resp *types.PageListResp, err error) {
+	slotID := req.ThemeSlotId
 	list, err := biz.NewMerchantLogic(l.svcCtx).ListThemePackages(slotID, false)
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())

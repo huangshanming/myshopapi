@@ -18,18 +18,18 @@ type AdminListUserFavoritesLogic struct {
 }
 
 func NewAdminListUserFavoritesLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminListUserFavoritesLogic {
-	return &AdminListUserFavoritesLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &AdminListUserFavoritesLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *AdminListUserFavoritesLogic) AdminListUserFavorites(ctx context.Context, req *types.IdPathReq) (resp *types.PageListResp, err error) {
+func (l *AdminListUserFavoritesLogic) AdminListUserFavorites(ctx context.Context, req *types.IdPageReq) (resp *types.PageListResp, err error) {
 	if req.Id == 0 {
 		return nil, xerr.New(http.StatusBadRequest, "用户ID无效")
 	}
-	page, pageSize := 1, 50
-	list, total, err := plogic.NewFavoriteLogic(l.svcCtx).List(ctx, req.Id, page, pageSize)
+	pageSize := req.PageSize
+	if pageSize <= 0 {
+		pageSize = 50
+	}
+	list, total, err := plogic.NewFavoriteLogic(l.svcCtx).List(ctx, req.Id, req.Page, pageSize)
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}

@@ -150,7 +150,7 @@ func AdminListArticleCategoriesHandler(svcCtx *svc.ServiceContext) http.HandlerF
 
 func AdminListArticleRecycleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.PageReq
+		var req types.AdminArticleListReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
@@ -168,7 +168,7 @@ func AdminListArticleRecycleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc
 
 func AdminListArticlesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.PageReq
+		var req types.AdminArticleListReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return

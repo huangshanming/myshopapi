@@ -20,22 +20,18 @@ type MerchantListNotificationsLogic struct {
 }
 
 func NewMerchantListNotificationsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantListNotificationsLogic {
-	return &MerchantListNotificationsLogic{
-		Logger: logx.WithContext(ctx),
-		svcCtx: svcCtx,
-	}
+	return &MerchantListNotificationsLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *MerchantListNotificationsLogic) MerchantListNotifications(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
+func (l *MerchantListNotificationsLogic) MerchantListNotifications(ctx context.Context, req *types.NotificationListReq) (resp *types.PageListResp, err error) {
 	shopID := middleware.GetShopID(ctx)
 	if shopID == 0 {
 		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	page, pageSize := req.Page, req.PageSize
-	f := repository.NotificationListFilter{ShopID: shopID, Page: page, PageSize: pageSize}
-	if s := "" /* was query:is_read */; s == "0" || s == "1" {
+	f := repository.NotificationListFilter{ShopID: shopID, Page: req.Page, PageSize: req.PageSize}
+	if req.IsRead == "0" || req.IsRead == "1" {
 		v := int8(0)
-		if s == "1" {
+		if req.IsRead == "1" {
 			v = 1
 		}
 		f.IsRead = &v

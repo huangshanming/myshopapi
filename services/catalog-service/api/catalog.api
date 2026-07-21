@@ -30,6 +30,87 @@ type AnyResp {
 
 type JSONBody {}
 
+type IdPageReq {
+	Id       uint64 `path:"id"`
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+}
+type PublicProductListReq {
+	Page       int    `form:"page,default=1"`
+	PageSize   int    `form:"page_size,default=10"`
+	ShopId     uint64 `form:"shop_id,optional"`
+	CategoryId uint64 `form:"category_id,optional"`
+	OrderBy    string `form:"order_by,optional"`
+}
+type PublicArticleListReq {
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+	Home     string `form:"home,optional"`
+}
+type MerchantProductListReq {
+	Page        int    `form:"page,default=1"`
+	PageSize    int    `form:"page_size,default=10"`
+	Name        string `form:"name,optional"`
+	ProductNo   string `form:"product_no,optional"`
+	CategoryId  uint64 `form:"category_id,optional"`
+	Status      string `form:"status,optional"`
+	ProductType string `form:"product_type,optional"`
+	StockWarn   string `form:"stock_warn,optional"`
+	OrderBy     string `form:"order_by,optional"`
+	Recycle     string `form:"recycle,optional"`
+}
+type AdminProductListReq {
+	Page        int    `form:"page,default=1"`
+	PageSize    int    `form:"page_size,default=10"`
+	ShopId      uint64 `form:"shop_id,optional"`
+	Name        string `form:"name,optional"`
+	ProductNo   string `form:"product_no,optional"`
+	CategoryId  uint64 `form:"category_id,optional"`
+	Status      string `form:"status,optional"`
+	ProductType string `form:"product_type,optional"`
+	OrderBy     string `form:"order_by,optional"`
+	CreatedFrom string `form:"created_from,optional"`
+	CreatedTo   string `form:"created_to,optional"`
+	PublishFrom string `form:"publish_from,optional"`
+	PublishTo   string `form:"publish_to,optional"`
+}
+type MerchantArticleListReq {
+	Page        int    `form:"page,default=1"`
+	PageSize    int    `form:"page_size,default=10"`
+	Title       string `form:"title,optional"`
+	AuditStatus string `form:"audit_status,optional"`
+	Status      string `form:"status,optional"`
+}
+type AdminArticleListReq {
+	Page        int    `form:"page,default=1"`
+	PageSize    int    `form:"page_size,default=10"`
+	Title       string `form:"title,optional"`
+	AuditStatus string `form:"audit_status,optional"`
+	Status      string `form:"status,optional"`
+	ShopId      uint64 `form:"shop_id,optional"`
+	HasSchedule string `form:"has_schedule,optional"`
+	CreatedFrom string `form:"created_from,optional"`
+	CreatedTo   string `form:"created_to,optional"`
+}
+type ArticleCommentListReq {
+	Page      int    `form:"page,default=1"`
+	PageSize  int    `form:"page_size,default=10"`
+	ArticleId uint64 `form:"article_id,optional"`
+	ShopId    uint64 `form:"shop_id,optional"`
+	Status    string `form:"status,optional"`
+}
+type NotificationListReq {
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+	IsRead   string `form:"is_read,optional"`
+}
+type OpLogsReq {
+	Page      int    `form:"page,default=1"`
+	PageSize  int    `form:"page_size,default=10"`
+	ProductId uint64 `form:"product_id,optional"`
+}
+
+
 type ProductUpdateBodyReq {
 	Id   uint64 `path:"id"`
 	Name string `json:"name"`
@@ -206,7 +287,7 @@ service catalogapi {
 )
 service catalogapi {
 	@handler GetProductList
-	get /api/v1/products/list (PageReq) returns (PageListResp)
+	get /api/v1/products/list (PublicProductListReq) returns (PageListResp)
 
 	@handler GetProductDetail
 	get /api/v1/products/detail (IdQueryReq) returns (AnyResp)
@@ -245,13 +326,13 @@ service catalogapi {
 )
 service catalogapi {
 	@handler PublicListArticles
-	get /api/v1/articles/list (PageReq) returns (PageListResp)
+	get /api/v1/articles/list (PublicArticleListReq) returns (PageListResp)
 
 	@handler PublicGetArticle
 	get /api/v1/articles/:id (IdPathReq) returns (AnyResp)
 
 	@handler ListComments
-	get /api/v1/articles/:id/comments (IdPathReq) returns (PageListResp)
+	get /api/v1/articles/:id/comments (IdPageReq) returns (PageListResp)
 
 	@handler ListEmojis
 	get /api/v1/comment-emojis (PageReq) returns (PageListResp)
@@ -332,7 +413,7 @@ service catalogapi {
 )
 service catalogapi {
 	@handler MerchantListProducts
-	get /api/v1/merchant/products (PageReq) returns (PageListResp)
+	get /api/v1/merchant/products (MerchantProductListReq) returns (PageListResp)
 
 	@handler MerchantCreateProduct
 	post /api/v1/merchant/products (MerchantProductSaveReq) returns (AnyResp)
@@ -356,7 +437,7 @@ service catalogapi {
 	post /api/v1/merchant/products/import returns (AnyResp)
 
 	@handler OpLogs
-	get /api/v1/merchant/products/op-logs (PageReq) returns (PageListResp)
+	get /api/v1/merchant/products/op-logs (OpLogsReq) returns (PageListResp)
 
 	@handler MerchantGetProduct
 	get /api/v1/merchant/products/:id (IdPathReq) returns (AnyResp)
@@ -449,7 +530,7 @@ service catalogapi {
 )
 service catalogapi {
 	@handler MerchantListArticles
-	get /api/v1/merchant/articles (PageReq) returns (PageListResp)
+	get /api/v1/merchant/articles (MerchantArticleListReq) returns (PageListResp)
 
 	@handler MerchantCreateArticle
 	post /api/v1/merchant/articles (ArticleSaveReq) returns (AnyResp)
@@ -467,7 +548,7 @@ service catalogapi {
 	get /api/v1/merchant/article-categories (PageReq) returns (PageListResp)
 
 	@handler MerchantListArticleComments
-	get /api/v1/merchant/article-comments (PageReq) returns (PageListResp)
+	get /api/v1/merchant/article-comments (ArticleCommentListReq) returns (PageListResp)
 
 	@handler MerchantPatchArticleComment
 	patch /api/v1/merchant/article-comments/:id (ArticleCommentPatchBodyReq) returns (AnyResp)
@@ -491,7 +572,7 @@ service catalogapi {
 	post /api/v1/merchant/notifications/read-all returns (AnyResp)
 
 	@handler MerchantListNotifications
-	get /api/v1/merchant/notifications (PageReq) returns (PageListResp)
+	get /api/v1/merchant/notifications (NotificationListReq) returns (PageListResp)
 
 	@handler MerchantMarkNotificationRead
 	post /api/v1/merchant/notifications/:id/read (IdPathReq) returns (AnyResp)
@@ -503,7 +584,7 @@ service catalogapi {
 )
 service catalogapi {
 	@handler AdminListUserFavorites
-	get /api/v1/admin/users/:id/favorites (IdPathReq) returns (PageListResp)
+	get /api/v1/admin/users/:id/favorites (IdPageReq) returns (PageListResp)
 }
 
 @server (
@@ -512,7 +593,7 @@ service catalogapi {
 )
 service catalogapi {
 	@handler AdminListProducts
-	get /api/v1/admin/products (PageReq) returns (PageListResp)
+	get /api/v1/admin/products (AdminProductListReq) returns (PageListResp)
 
 	@handler AdminOffSaleProduct
 	put /api/v1/admin/products/:id/off_sale (PlatformProductRemarkBodyReq) returns (AnyResp)
@@ -548,7 +629,7 @@ service catalogapi {
 	get /api/v1/admin/articles/stats returns (AnyResp)
 
 	@handler AdminListArticleRecycle
-	get /api/v1/admin/articles/recycle (PageReq) returns (PageListResp)
+	get /api/v1/admin/articles/recycle (AdminArticleListReq) returns (PageListResp)
 
 	@handler AdminRestoreArticleRecycle
 	post /api/v1/admin/articles/recycle/restore (ArticleIdListReq) returns (AnyResp)
@@ -560,7 +641,7 @@ service catalogapi {
 	post /api/v1/admin/articles/batch-audit (ArticleBatchAuditReq) returns (AnyResp)
 
 	@handler AdminListArticles
-	get /api/v1/admin/articles (PageReq) returns (PageListResp)
+	get /api/v1/admin/articles (AdminArticleListReq) returns (PageListResp)
 
 	@handler AdminCreateArticle
 	post /api/v1/admin/articles (ArticleSaveReq) returns (AnyResp)
@@ -605,7 +686,7 @@ service catalogapi {
 )
 service catalogapi {
 	@handler AdminListArticleComments
-	get /api/v1/admin/article-comments (PageReq) returns (PageListResp)
+	get /api/v1/admin/article-comments (ArticleCommentListReq) returns (PageListResp)
 
 	@handler AdminPatchArticleComment
 	patch /api/v1/admin/article-comments/:id (ArticleCommentPatchBodyReq) returns (AnyResp)

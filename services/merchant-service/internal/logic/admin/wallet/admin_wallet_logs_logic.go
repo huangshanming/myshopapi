@@ -24,9 +24,9 @@ func NewAdminWalletLogsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *A
 	}
 }
 
-func (l *AdminWalletLogsLogic) AdminWalletLogs(ctx context.Context, req *types.IdPathReq) (resp *types.PageListResp, err error) {
+func (l *AdminWalletLogsLogic) AdminWalletLogs(ctx context.Context, req *types.IdPageReq) (resp *types.PageListResp, err error) {
 	shopID := req.Id
-	p, ps := 1, 10
+	p, ps := req.Page, req.PageSize
 	list, total, err := biz.NewMerchantLogic(l.svcCtx).ListWalletLogs(shopID, p, ps)
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())

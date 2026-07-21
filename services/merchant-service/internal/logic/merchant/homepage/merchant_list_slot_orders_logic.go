@@ -25,13 +25,13 @@ func NewMerchantListSlotOrdersLogic(ctx context.Context, svcCtx *svc.ServiceCont
 	}
 }
 
-func (l *MerchantListSlotOrdersLogic) MerchantListSlotOrders(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
+func (l *MerchantListSlotOrdersLogic) MerchantListSlotOrders(ctx context.Context, req *types.SlotOrderListReq) (resp *types.PageListResp, err error) {
 	shopID := middleware.GetShopID(ctx)
 	if shopID == 0 {
 		return nil, xerr.New(http.StatusForbidden, "缺少店铺")
 	}
 	p, ps := req.Page, req.PageSize
-	list, total, err := biz.NewMerchantLogic(l.svcCtx).ListSlotOrders(shopID, "" /* was query:slot_type */, "" /* was query:status */, p, ps)
+	list, total, err := biz.NewMerchantLogic(l.svcCtx).ListSlotOrders(shopID, req.SlotType, req.Status, p, ps)
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
