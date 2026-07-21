@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -11,16 +12,16 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-func (r *MerchantRepository) ExpireDueThemeOrders() {
+func (r *MerchantRepository) ExpireDueThemeOrders(ctx context.Context) {
 	now := time.Now()
-	_ = r.db.Model(&model.HomepageThemeOrder{}).
+	_ = r.db.WithContext(ctx).Model(&model.HomepageThemeOrder{}).
 		Where("status = ? AND end_at < ?", model.ThemeOrderActive, now).
 		Update("status", model.ThemeOrderExpired)
 }
 
-func (r *MerchantRepository) ListThemeSlots(onlyOn bool) ([]model.HomepageThemeSlot, error) {
-	r.ExpireDueThemeOrders()
-	q := r.db.Model(&model.HomepageThemeSlot{})
+func (r *MerchantRepository) ListThemeSlots(ctx context.Context, onlyOn bool) ([]model.HomepageThemeSlot, error) {
+	r.ExpireDueThemeOrders(ctx)
+	q := r.db.WithContext(ctx).Model(&model.HomepageThemeSlot{})
 	if onlyOn {
 		q = q.Where("status = ?", model.ThemeSlotOn)
 	}
@@ -33,7 +34,7 @@ func (r *MerchantRepository) ListThemeSlots(onlyOn bool) ([]model.HomepageThemeS
 	for i := range list {
 		var o model.HomepageThemeOrder
 		// 含尚未生效的排队单：取该坑 active 中最晚 end_at
-		e := r.db.Where("theme_slot_id = ? AND status = ? AND end_at > ?",
+		e := r.db.WithContext(ctx).Where("theme_slot_id = ? AND status = ? AND end_at > ?",
 			list[i].ID, model.ThemeOrderActive, now).
 			Order("end_at DESC").First(&o).Error
 		if e == nil {
@@ -44,16 +45,16 @@ func (r *MerchantRepository) ListThemeSlots(onlyOn bool) ([]model.HomepageThemeS
 	return list, nil
 }
 
-func (r *MerchantRepository) GetThemeSlot(id uint64) (*model.HomepageThemeSlot, error) {
+func (r *MerchantRepository) GetThemeSlot(ctx context.Context, id uint64) (*model.HomepageThemeSlot, error) {
 	var s model.HomepageThemeSlot
-	if err := r.db.First(&s, id).Error; err != nil {
+	if err := r.db.WithContext(ctx).First(&s, id).Error; err != nil {
 		return nil, err
 	}
 	return &s, nil
 }
 
-func (r *MerchantRepository) UpdateThemeSlot(id uint64, updates map[string]interface{}) error {
-	res := r.db.Model(&model.HomepageThemeSlot{}).Where("id = ?", id).Updates(updates)
+func (r *MerchantRepository) UpdateThemeSlot(ctx context.Context, id uint64, updates map[string]interface{}) error {
+	res := r.db.WithContext(ctx).Model(&model.HomepageThemeSlot{}).Where("id = ?", id).Updates(updates)
 	if res.Error != nil {
 		return res.Error
 	}
@@ -63,8 +64,8 @@ func (r *MerchantRepository) UpdateThemeSlot(id uint64, updates map[string]inter
 	return nil
 }
 
-func (r *MerchantRepository) ListThemePackages(themeSlotID uint64, onlyOn bool) ([]model.HomepageThemePackage, error) {
-	q := r.db.Model(&model.HomepageThemePackage{})
+func (r *MerchantRepository) ListThemePackages(ctx context.Context, themeSlotID uint64, onlyOn bool) ([]model.HomepageThemePackage, error) {
+	q := r.db.WithContext(ctx).Model(&model.HomepageThemePackage{})
 	if onlyOn {
 		q = q.Where("status = ?", model.ThemeSlotOn)
 	}
@@ -76,20 +77,20 @@ func (r *MerchantRepository) ListThemePackages(themeSlotID uint64, onlyOn bool) 
 	return list, err
 }
 
-func (r *MerchantRepository) GetThemePackage(id uint64) (*model.HomepageThemePackage, error) {
+func (r *MerchantRepository) GetThemePackage(ctx context.Context, id uint64) (*model.HomepageThemePackage, error) {
 	var p model.HomepageThemePackage
-	if err := r.db.First(&p, id).Error; err != nil {
+	if err := r.db.WithContext(ctx).First(&p, id).Error; err != nil {
 		return nil, err
 	}
 	return &p, nil
 }
 
-func (r *MerchantRepository) CreateThemePackage(p *model.HomepageThemePackage) error {
-	return r.db.Create(p).Error
+func (r *MerchantRepository) CreateThemePackage(ctx context.Context, p *model.HomepageThemePackage) error {
+	return r.db.WithContext(ctx).Create(p).Error
 }
 
-func (r *MerchantRepository) UpdateThemePackage(id uint64, updates map[string]interface{}) error {
-	res := r.db.Model(&model.HomepageThemePackage{}).Where("id = ?", id).Updates(updates)
+func (r *MerchantRepository) UpdateThemePackage(ctx context.Context, id uint64, updates map[string]interface{}) error {
+	res := r.db.WithContext(ctx).Model(&model.HomepageThemePackage{}).Where("id = ?", id).Updates(updates)
 	if res.Error != nil {
 		return res.Error
 	}
@@ -99,15 +100,15 @@ func (r *MerchantRepository) UpdateThemePackage(id uint64, updates map[string]in
 	return nil
 }
 
-func (r *MerchantRepository) ListThemeOrders(shopID, themeSlotID uint64, page, pageSize int) ([]model.HomepageThemeOrder, int64, error) {
-	r.ExpireDueThemeOrders()
+func (r *MerchantRepository) ListThemeOrders(ctx context.Context, shopID, themeSlotID uint64, page, pageSize int) ([]model.HomepageThemeOrder, int64, error) {
+	r.ExpireDueThemeOrders(ctx)
 	if page < 1 {
 		page = 1
 	}
 	if pageSize < 1 {
 		pageSize = 20
 	}
-	q := r.db.Model(&model.HomepageThemeOrder{})
+	q := r.db.WithContext(ctx).Model(&model.HomepageThemeOrder{})
 	if shopID > 0 {
 		q = q.Where("shop_id = ?", shopID)
 	}
@@ -123,11 +124,11 @@ func (r *MerchantRepository) ListThemeOrders(shopID, themeSlotID uint64, page, p
 	return list, total, err
 }
 
-func (r *MerchantRepository) ActiveThemeOrderForSlot(themeSlotID uint64) (*model.HomepageThemeOrder, error) {
-	r.ExpireDueThemeOrders()
+func (r *MerchantRepository) ActiveThemeOrderForSlot(ctx context.Context, themeSlotID uint64) (*model.HomepageThemeOrder, error) {
+	r.ExpireDueThemeOrders(ctx)
 	now := time.Now()
 	var o model.HomepageThemeOrder
-	err := r.db.Where("theme_slot_id = ? AND status = ? AND start_at <= ? AND end_at > ?",
+	err := r.db.WithContext(ctx).Where("theme_slot_id = ? AND status = ? AND start_at <= ? AND end_at > ?",
 		themeSlotID, model.ThemeOrderActive, now, now).
 		Order("end_at DESC").First(&o).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -139,11 +140,11 @@ func (r *MerchantRepository) ActiveThemeOrderForSlot(themeSlotID uint64) (*model
 	return &o, nil
 }
 
-func (r *MerchantRepository) LatestThemeOrderQueueEnd(themeSlotID uint64) time.Time {
-	r.ExpireDueThemeOrders()
+func (r *MerchantRepository) LatestThemeOrderQueueEnd(ctx context.Context, themeSlotID uint64) time.Time {
+	r.ExpireDueThemeOrders(ctx)
 	now := time.Now()
 	var o model.HomepageThemeOrder
-	err := r.db.Where("theme_slot_id = ? AND status = ?", themeSlotID, model.ThemeOrderActive).
+	err := r.db.WithContext(ctx).Where("theme_slot_id = ? AND status = ?", themeSlotID, model.ThemeOrderActive).
 		Order("end_at DESC").First(&o).Error
 	if err != nil {
 		return now
@@ -156,8 +157,8 @@ func (r *MerchantRepository) LatestThemeOrderQueueEnd(themeSlotID uint64) time.T
 }
 
 // PurchaseThemeOrder 扣款或代开通；同坑位顺延排队
-func (r *MerchantRepository) PurchaseThemeOrder(order *model.HomepageThemeOrder, deductWallet bool, operatorID *uint64) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *MerchantRepository) PurchaseThemeOrder(ctx context.Context, order *model.HomepageThemeOrder, deductWallet bool, operatorID *uint64) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		now := time.Now()
 		_ = tx.Model(&model.HomepageThemeOrder{}).
 			Where("status = ? AND end_at < ?", model.ThemeOrderActive, now).
@@ -219,21 +220,21 @@ func (r *MerchantRepository) PurchaseThemeOrder(order *model.HomepageThemeOrder,
 	})
 }
 
-func (r *MerchantRepository) CategoryExistsShow(id uint64) bool {
+func (r *MerchantRepository) CategoryExistsShow(ctx context.Context, id uint64) bool {
 	var n int64
-	r.db.Table("product_categories").Where("id = ? AND is_show = 1", id).Count(&n)
+	r.db.WithContext(ctx).Table("product_categories").Where("id = ? AND is_show = 1", id).Count(&n)
 	return n > 0
 }
 
-func (r *MerchantRepository) ProductOnSaleOfShop(productID, shopID uint64) bool {
+func (r *MerchantRepository) ProductOnSaleOfShop(ctx context.Context, productID, shopID uint64) bool {
 	var n int64
-	r.db.Table("products").Where("id = ? AND shop_id = ? AND status = ?", productID, shopID, "on_sale").Count(&n)
+	r.db.WithContext(ctx).Table("products").Where("id = ? AND shop_id = ? AND status = ?", productID, shopID, "on_sale").Count(&n)
 	return n > 0
 }
 
-func (r *MerchantRepository) BuildThemeTiles() ([]model.ThemeTile, error) {
-	r.ExpireDueThemeOrders()
-	slots, err := r.ListThemeSlots(true)
+func (r *MerchantRepository) BuildThemeTiles(ctx context.Context) ([]model.ThemeTile, error) {
+	r.ExpireDueThemeOrders(ctx)
+	slots, err := r.ListThemeSlots(ctx, true)
 	if err != nil {
 		return nil, err
 	}
@@ -252,7 +253,7 @@ func (r *MerchantRepository) BuildThemeTiles() ([]model.ThemeTile, error) {
 			Paid:     false,
 		}
 		var o model.HomepageThemeOrder
-		e := r.db.Where("theme_slot_id = ? AND status = ? AND start_at <= ? AND end_at > ?",
+		e := r.db.WithContext(ctx).Where("theme_slot_id = ? AND status = ? AND start_at <= ? AND end_at > ?",
 			s.ID, model.ThemeOrderActive, now, now).
 			Order("end_at DESC").First(&o).Error
 		if e == nil {

@@ -21,7 +21,7 @@ func NewFavoriteLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Favorite
 }
 
 func (l *FavoriteLogic) Add(userID, productID uint64) error {
-	created, err := l.svcCtx.Favorites.Add(userID, productID)
+	created, err := l.svcCtx.Favorites.Add(l.ctx, userID, productID)
 	if err != nil {
 		return err
 	}
@@ -35,19 +35,19 @@ func (l *FavoriteLogic) Add(userID, productID uint64) error {
 }
 
 func (l *FavoriteLogic) Remove(userID, productID uint64) error {
-	return l.svcCtx.Favorites.Remove(userID, productID)
+	return l.svcCtx.Favorites.Remove(l.ctx, userID, productID)
 }
 
 func (l *FavoriteLogic) RemoveBatch(userID uint64, productIDs []uint64) error {
-	return l.svcCtx.Favorites.RemoveBatch(userID, productIDs)
+	return l.svcCtx.Favorites.RemoveBatch(l.ctx, userID, productIDs)
 }
 
 func (l *FavoriteLogic) List(userID uint64, page, pageSize int) ([]model.FavoriteListItem, int64, error) {
-	return l.svcCtx.Favorites.List(userID, page, pageSize)
+	return l.svcCtx.Favorites.List(l.ctx, userID, page, pageSize)
 }
 
 func (l *FavoriteLogic) IsFavorited(userID, productID uint64) (bool, error) {
-	return l.svcCtx.Favorites.IsFavorited(userID, productID)
+	return l.svcCtx.Favorites.IsFavorited(l.ctx, userID, productID)
 }
 
 func (l *FavoriteLogic) FavoriteCount(productID uint64) (int64, error) {

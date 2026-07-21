@@ -19,9 +19,9 @@ func NewRegionLogic(ctx context.Context, svcCtx *svc.ServiceContext) *RegionLogi
 }
 
 func (l *RegionLogic) ListChildren(parentCode string) ([]model.Region, error) {
-	return l.svcCtx.Repo.ListRegionsByParent(parentCode)
+	return l.svcCtx.Repo.ListRegionsByParent(l.ctx, parentCode)
 }
 
 func (l *RegionLogic) Tree() ([]model.RegionTreeNode, error) {
-	return l.svcCtx.Repo.BuildRegionTree()
+	return l.svcCtx.Repo.BuildRegionTree(l.ctx)
 }

@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"errors"
 
 	"mymall/services/user-service/internal/model"
@@ -8,23 +9,23 @@ import (
 	"gorm.io/gorm"
 )
 
-func (r *UserRepository) ListAddresses(userID uint64) ([]model.UserAddress, error) {
+func (r *UserRepository) ListAddresses(ctx context.Context, userID uint64) ([]model.UserAddress, error) {
 	var list []model.UserAddress
-	err := r.db.Where("user_id = ?", userID).Order("is_default DESC, id DESC").Find(&list).Error
+	err := r.db.WithContext(ctx).Where("user_id = ?", userID).Order("is_default DESC, id DESC").Find(&list).Error
 	return list, err
 }
 
-func (r *UserRepository) GetAddress(userID, id uint64) (*model.UserAddress, error) {
+func (r *UserRepository) GetAddress(ctx context.Context, userID, id uint64) (*model.UserAddress, error) {
 	var a model.UserAddress
-	err := r.db.Where("id = ? AND user_id = ?", id, userID).First(&a).Error
+	err := r.db.WithContext(ctx).Where("id = ? AND user_id = ?", id, userID).First(&a).Error
 	if err != nil {
 		return nil, err
 	}
 	return &a, nil
 }
 
-func (r *UserRepository) CreateAddress(a *model.UserAddress) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *UserRepository) CreateAddress(ctx context.Context, a *model.UserAddress) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if a.IsDefault == 1 {
 			if err := tx.Model(&model.UserAddress{}).Where("user_id = ?", a.UserID).Update("is_default", 0).Error; err != nil {
 				return err
@@ -42,8 +43,8 @@ func (r *UserRepository) CreateAddress(a *model.UserAddress) error {
 	})
 }
 
-func (r *UserRepository) UpdateAddress(userID, id uint64, a *model.UserAddress) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *UserRepository) UpdateAddress(ctx context.Context, userID, id uint64, a *model.UserAddress) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var existing model.UserAddress
 		if err := tx.Where("id = ? AND user_id = ?", id, userID).First(&existing).Error; err != nil {
 			return err
@@ -68,8 +69,8 @@ func (r *UserRepository) UpdateAddress(userID, id uint64, a *model.UserAddress) 
 	})
 }
 
-func (r *UserRepository) DeleteAddress(userID, id uint64) error {
-	res := r.db.Where("id = ? AND user_id = ?", id, userID).Delete(&model.UserAddress{})
+func (r *UserRepository) DeleteAddress(ctx context.Context, userID, id uint64) error {
+	res := r.db.WithContext(ctx).Where("id = ? AND user_id = ?", id, userID).Delete(&model.UserAddress{})
 	if res.Error != nil {
 		return res.Error
 	}
@@ -79,8 +80,8 @@ func (r *UserRepository) DeleteAddress(userID, id uint64) error {
 	return nil
 }
 
-func (r *UserRepository) SetDefaultAddress(userID, id uint64) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *UserRepository) SetDefaultAddress(ctx context.Context, userID, id uint64) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var existing model.UserAddress
 		if err := tx.Where("id = ? AND user_id = ?", id, userID).First(&existing).Error; err != nil {
 			return err
@@ -92,8 +93,8 @@ func (r *UserRepository) SetDefaultAddress(userID, id uint64) error {
 	})
 }
 
-func (r *UserRepository) GetAddressByID(userID, id uint64) (*model.UserAddress, error) {
-	a, err := r.GetAddress(userID, id)
+func (r *UserRepository) GetAddressByID(ctx context.Context, userID, id uint64) (*model.UserAddress, error) {
+	a, err := r.GetAddress(ctx, userID, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("收货地址不存在")

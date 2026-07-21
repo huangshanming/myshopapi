@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"errors"
 
 	"mymall/common/password"
@@ -17,21 +18,21 @@ func NewMerchantRepository(db *gorm.DB) *MerchantRepository {
 	return &MerchantRepository{db: db}
 }
 
-func (r *MerchantRepository) CreateApplication(app *model.ShopApplication) error {
-	return r.db.Create(app).Error
+func (r *MerchantRepository) CreateApplication(ctx context.Context, app *model.ShopApplication) error {
+	return r.db.WithContext(ctx).Create(app).Error
 }
 
-func (r *MerchantRepository) FindPendingAppByUser(userID uint64) (*model.ShopApplication, error) {
+func (r *MerchantRepository) FindPendingAppByUser(ctx context.Context, userID uint64) (*model.ShopApplication, error) {
 	var app model.ShopApplication
-	err := r.db.Where("user_id = ? AND status = ?", userID, model.AppPending).First(&app).Error
+	err := r.db.WithContext(ctx).Where("user_id = ? AND status = ?", userID, model.AppPending).First(&app).Error
 	if err != nil {
 		return nil, err
 	}
 	return &app, nil
 }
 
-func (r *MerchantRepository) ListApplications(status string, page, pageSize int) ([]model.ShopApplication, int64, error) {
-	q := r.db.Model(&model.ShopApplication{})
+func (r *MerchantRepository) ListApplications(ctx context.Context, status string, page, pageSize int) ([]model.ShopApplication, int64, error) {
+	q := r.db.WithContext(ctx).Model(&model.ShopApplication{})
 	if status != "" {
 		q = q.Where("status = ?", status)
 	}
@@ -45,17 +46,17 @@ func (r *MerchantRepository) ListApplications(status string, page, pageSize int)
 	return list, total, err
 }
 
-func (r *MerchantRepository) FindApplication(id uint64) (*model.ShopApplication, error) {
+func (r *MerchantRepository) FindApplication(ctx context.Context, id uint64) (*model.ShopApplication, error) {
 	var app model.ShopApplication
-	if err := r.db.First(&app, id).Error; err != nil {
+	if err := r.db.WithContext(ctx).First(&app, id).Error; err != nil {
 		return nil, err
 	}
 	return &app, nil
 }
 
-func (r *MerchantRepository) ApproveApplication(appID, adminID uint64) (*model.Shop, error) {
+func (r *MerchantRepository) ApproveApplication(ctx context.Context, appID, adminID uint64) (*model.Shop, error) {
 	var shop *model.Shop
-	err := r.db.Transaction(func(tx *gorm.DB) error {
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var app model.ShopApplication
 		if err := tx.First(&app, appID).Error; err != nil {
 			return err
@@ -105,8 +106,8 @@ func (r *MerchantRepository) ApproveApplication(appID, adminID uint64) (*model.S
 	return shop, err
 }
 
-func (r *MerchantRepository) RejectApplication(appID, adminID uint64, reason string) error {
-	return r.db.Model(&model.ShopApplication{}).Where("id = ? AND status = ?", appID, model.AppPending).
+func (r *MerchantRepository) RejectApplication(ctx context.Context, appID, adminID uint64, reason string) error {
+	return r.db.WithContext(ctx).Model(&model.ShopApplication{}).Where("id = ? AND status = ?", appID, model.AppPending).
 		Updates(map[string]interface{}{
 			"status":        model.AppRejected,
 			"reject_reason": reason,
@@ -115,8 +116,8 @@ func (r *MerchantRepository) RejectApplication(appID, adminID uint64, reason str
 		}).Error
 }
 
-func (r *MerchantRepository) ListShops(status, name string, page, pageSize int) ([]model.Shop, int64, error) {
-	q := r.db.Model(&model.Shop{})
+func (r *MerchantRepository) ListShops(ctx context.Context, status, name string, page, pageSize int) ([]model.Shop, int64, error) {
+	q := r.db.WithContext(ctx).Model(&model.Shop{})
 	if status != "" {
 		q = q.Where("status = ?", status)
 	}
@@ -134,8 +135,8 @@ func (r *MerchantRepository) ListShops(status, name string, page, pageSize int) 
 }
 
 // ListPublicShops C 端公开列表：仅已审核通过，按 id 升序
-func (r *MerchantRepository) ListPublicShops(page, pageSize int) ([]model.Shop, int64, error) {
-	q := r.db.Model(&model.Shop{}).Where("status = ?", model.ShopApproved)
+func (r *MerchantRepository) ListPublicShops(ctx context.Context, page, pageSize int) ([]model.Shop, int64, error) {
+	q := r.db.WithContext(ctx).Model(&model.Shop{}).Where("status = ?", model.ShopApproved)
 	var total int64
 	if err := q.Count(&total).Error; err != nil {
 		return nil, 0, err
@@ -146,24 +147,24 @@ func (r *MerchantRepository) ListPublicShops(page, pageSize int) ([]model.Shop, 
 	return list, total, err
 }
 
-func (r *MerchantRepository) FindShop(id uint64) (*model.Shop, error) {
+func (r *MerchantRepository) FindShop(ctx context.Context, id uint64) (*model.Shop, error) {
 	var shop model.Shop
-	if err := r.db.First(&shop, id).Error; err != nil {
+	if err := r.db.WithContext(ctx).First(&shop, id).Error; err != nil {
 		return nil, err
 	}
 	return &shop, nil
 }
 
-func (r *MerchantRepository) UpdateShopStatus(id uint64, status, reason string) error {
+func (r *MerchantRepository) UpdateShopStatus(ctx context.Context, id uint64, status, reason string) error {
 	updates := map[string]interface{}{"status": status}
 	if reason != "" {
 		updates["reject_reason"] = reason
 	}
-	return r.db.Model(&model.Shop{}).Where("id = ?", id).Updates(updates).Error
+	return r.db.WithContext(ctx).Model(&model.Shop{}).Where("id = ?", id).Updates(updates).Error
 }
 
-func (r *MerchantRepository) UpdateShop(shop *model.Shop) error {
-	return r.db.Model(shop).Updates(map[string]interface{}{
+func (r *MerchantRepository) UpdateShop(ctx context.Context, shop *model.Shop) error {
+	return r.db.WithContext(ctx).Model(shop).Updates(map[string]interface{}{
 		"name":                shop.Name,
 		"logo":                shop.Logo,
 		"contact_name":        shop.ContactName,
@@ -181,8 +182,8 @@ func (r *MerchantRepository) UpdateShop(shop *model.Shop) error {
 	}).Error
 }
 
-func (r *MerchantRepository) UpdateShopDisplay(shop *model.Shop) error {
-	return r.db.Model(shop).Updates(map[string]interface{}{
+func (r *MerchantRepository) UpdateShopDisplay(ctx context.Context, shop *model.Shop) error {
+	return r.db.WithContext(ctx).Model(shop).Updates(map[string]interface{}{
 		"name":             shop.Name,
 		"logo":             shop.Logo,
 		"contact_name":     shop.ContactName,
@@ -198,8 +199,8 @@ func (r *MerchantRepository) UpdateShopDisplay(shop *model.Shop) error {
 }
 
 // CreateShopWithOwner 平台开店：绑定或新建店主账号
-func (r *MerchantRepository) CreateShopWithOwner(shop *model.Shop, mobile, plainPwd, nickname string) (*model.Shop, error) {
-	err := r.db.Transaction(func(tx *gorm.DB) error {
+func (r *MerchantRepository) CreateShopWithOwner(ctx context.Context, shop *model.Shop, mobile, plainPwd, nickname string) (*model.Shop, error) {
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var ownerID uint64
 		var existing struct {
 			ID uint64 `gorm:"column:id"`
@@ -253,29 +254,29 @@ func (r *MerchantRepository) CreateShopWithOwner(shop *model.Shop, mobile, plain
 	return shop, nil
 }
 
-func (r *MerchantRepository) ResetOwnerPassword(shopID uint64, plainPwd string) error {
-	shop, err := r.FindShop(shopID)
+func (r *MerchantRepository) ResetOwnerPassword(ctx context.Context, shopID uint64, plainPwd string) error {
+	shop, err := r.FindShop(ctx, shopID)
 	if err != nil {
 		return err
 	}
 	if shop.OwnerUserID == 0 {
 		return errors.New("店铺无店主")
 	}
-	return r.db.Table("users").Where("id = ?", shop.OwnerUserID).
+	return r.db.WithContext(ctx).Table("users").Where("id = ?", shop.OwnerUserID).
 		Update("password", password.Hash(plainPwd)).Error
 }
 
-func (r *MerchantRepository) ListShopsByUser(userID uint64) ([]model.Shop, error) {
+func (r *MerchantRepository) ListShopsByUser(ctx context.Context, userID uint64) ([]model.Shop, error) {
 	var shops []model.Shop
-	err := r.db.Table("shops").
+	err := r.db.WithContext(ctx).Table("shops").
 		Joins("JOIN shop_members ON shop_members.shop_id = shops.id").
 		Where("shop_members.user_id = ?", userID).
 		Find(&shops).Error
 	return shops, err
 }
 
-func (r *MerchantRepository) IsShopMember(shopID, userID uint64) bool {
+func (r *MerchantRepository) IsShopMember(ctx context.Context, shopID, userID uint64) bool {
 	var count int64
-	r.db.Model(&model.ShopMember{}).Where("shop_id = ? AND user_id = ?", shopID, userID).Count(&count)
+	r.db.WithContext(ctx).Model(&model.ShopMember{}).Where("shop_id = ? AND user_id = ?", shopID, userID).Count(&count)
 	return count > 0
 }

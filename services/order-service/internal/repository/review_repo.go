@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"time"
 
 	"mymall/common"
@@ -17,8 +18,8 @@ func NewReviewRepository(db *gorm.DB) *ReviewRepository {
 	return &ReviewRepository{db: db}
 }
 
-func (r *ReviewRepository) Create(rev *model.ProductReview, images []string) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *ReviewRepository) Create(ctx context.Context, rev *model.ProductReview, images []string) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(rev).Error; err != nil {
 			return err
 		}
@@ -48,31 +49,31 @@ func (r *ReviewRepository) Create(rev *model.ProductReview, images []string) err
 	})
 }
 
-func (r *ReviewRepository) GetByOrderID(orderID uint64) (*model.ProductReview, error) {
+func (r *ReviewRepository) GetByOrderID(ctx context.Context, orderID uint64) (*model.ProductReview, error) {
 	var rev model.ProductReview
-	if err := r.db.Where("order_id = ?", orderID).First(&rev).Error; err != nil {
+	if err := r.db.WithContext(ctx).Where("order_id = ?", orderID).First(&rev).Error; err != nil {
 		return nil, err
 	}
 	var imgs []model.ProductReviewImage
-	_ = r.db.Where("review_id = ?", rev.ID).Order("sort ASC, id ASC").Find(&imgs).Error
+	_ = r.db.WithContext(ctx).Where("review_id = ?", rev.ID).Order("sort ASC, id ASC").Find(&imgs).Error
 	rev.Images = imgs
 	return &rev, nil
 }
 
-func (r *ReviewRepository) ExistsByOrderID(orderID uint64) (bool, error) {
+func (r *ReviewRepository) ExistsByOrderID(ctx context.Context, orderID uint64) (bool, error) {
 	var n int64
-	err := r.db.Model(&model.ProductReview{}).Where("order_id = ?", orderID).Count(&n).Error
+	err := r.db.WithContext(ctx).Model(&model.ProductReview{}).Where("order_id = ?", orderID).Count(&n).Error
 	return n > 0, err
 }
 
-func (r *ReviewRepository) ListByProduct(productID uint64, page, pageSize int) ([]model.ProductReview, int64, error) {
+func (r *ReviewRepository) ListByProduct(ctx context.Context, productID uint64, page, pageSize int) ([]model.ProductReview, int64, error) {
 	if page < 1 {
 		page = 1
 	}
 	if pageSize < 1 {
 		pageSize = 10
 	}
-	q := r.db.Model(&model.ProductReview{}).
+	q := r.db.WithContext(ctx).Model(&model.ProductReview{}).
 		Where("product_id = ? AND status = ?", productID, model.ReviewStatusVisible)
 	var total int64
 	if err := q.Count(&total).Error; err != nil {
@@ -83,26 +84,26 @@ func (r *ReviewRepository) ListByProduct(productID uint64, page, pageSize int) (
 		Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error; err != nil {
 		return nil, 0, err
 	}
-	r.attachImages(list)
+	r.attachImages(ctx, list)
 	return list, total, nil
 }
 
-func (r *ReviewRepository) ListMerchant(shopID uint64, ratingLevel string, page, pageSize int) ([]model.ProductReview, int64, error) {
-	return r.listFiltered(shopID, 0, ratingLevel, page, pageSize)
+func (r *ReviewRepository) ListMerchant(ctx context.Context, shopID uint64, ratingLevel string, page, pageSize int) ([]model.ProductReview, int64, error) {
+	return r.listFiltered(ctx, shopID, 0, ratingLevel, page, pageSize)
 }
 
-func (r *ReviewRepository) ListAdmin(shopID uint64, ratingLevel string, page, pageSize int) ([]model.ProductReview, int64, error) {
-	return r.listFiltered(shopID, 0, ratingLevel, page, pageSize)
+func (r *ReviewRepository) ListAdmin(ctx context.Context, shopID uint64, ratingLevel string, page, pageSize int) ([]model.ProductReview, int64, error) {
+	return r.listFiltered(ctx, shopID, 0, ratingLevel, page, pageSize)
 }
 
-func (r *ReviewRepository) listFiltered(shopID, productID uint64, ratingLevel string, page, pageSize int) ([]model.ProductReview, int64, error) {
+func (r *ReviewRepository) listFiltered(ctx context.Context, shopID, productID uint64, ratingLevel string, page, pageSize int) ([]model.ProductReview, int64, error) {
 	if page < 1 {
 		page = 1
 	}
 	if pageSize < 1 {
 		pageSize = 20
 	}
-	q := r.db.Model(&model.ProductReview{}).Where("status = ?", model.ReviewStatusVisible)
+	q := r.db.WithContext(ctx).Model(&model.ProductReview{}).Where("status = ?", model.ReviewStatusVisible)
 	if shopID > 0 {
 		q = q.Where("shop_id = ?", shopID)
 	}
@@ -126,11 +127,11 @@ func (r *ReviewRepository) listFiltered(shopID, productID uint64, ratingLevel st
 		Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error; err != nil {
 		return nil, 0, err
 	}
-	r.attachImages(list)
+	r.attachImages(ctx, list)
 	return list, total, nil
 }
 
-func (r *ReviewRepository) attachImages(list []model.ProductReview) {
+func (r *ReviewRepository) attachImages(ctx context.Context, list []model.ProductReview) {
 	if len(list) == 0 {
 		return
 	}
@@ -139,7 +140,7 @@ func (r *ReviewRepository) attachImages(list []model.ProductReview) {
 		ids[i] = v.ID
 	}
 	var imgs []model.ProductReviewImage
-	_ = r.db.Where("review_id IN ?", ids).Order("sort ASC, id ASC").Find(&imgs).Error
+	_ = r.db.WithContext(ctx).Where("review_id IN ?", ids).Order("sort ASC, id ASC").Find(&imgs).Error
 	m := map[uint64][]model.ProductReviewImage{}
 	for _, img := range imgs {
 		m[img.ReviewID] = append(m[img.ReviewID], img)
@@ -149,20 +150,20 @@ func (r *ReviewRepository) attachImages(list []model.ProductReview) {
 	}
 }
 
-func (r *ReviewRepository) GetByID(id uint64) (*model.ProductReview, error) {
+func (r *ReviewRepository) GetByID(ctx context.Context, id uint64) (*model.ProductReview, error) {
 	var rev model.ProductReview
-	if err := r.db.Where("id = ?", id).First(&rev).Error; err != nil {
+	if err := r.db.WithContext(ctx).Where("id = ?", id).First(&rev).Error; err != nil {
 		return nil, err
 	}
 	var imgs []model.ProductReviewImage
-	_ = r.db.Where("review_id = ?", rev.ID).Order("sort ASC, id ASC").Find(&imgs).Error
+	_ = r.db.WithContext(ctx).Where("review_id = ?", rev.ID).Order("sort ASC, id ASC").Find(&imgs).Error
 	rev.Images = imgs
 	return &rev, nil
 }
 
-func (r *ReviewRepository) Reply(id, shopID uint64, reply string) error {
+func (r *ReviewRepository) Reply(ctx context.Context, id, shopID uint64, reply string) error {
 	now := common.LocalTime(time.Now())
-	res := r.db.Model(&model.ProductReview{}).
+	res := r.db.WithContext(ctx).Model(&model.ProductReview{}).
 		Where("id = ? AND shop_id = ? AND status = ?", id, shopID, model.ReviewStatusVisible).
 		Updates(map[string]interface{}{
 			"merchant_reply": reply,
@@ -177,8 +178,8 @@ func (r *ReviewRepository) Reply(id, shopID uint64, reply string) error {
 	return nil
 }
 
-func (r *ReviewRepository) SoftDelete(id uint64, shopID uint64) error {
-	q := r.db.Model(&model.ProductReview{}).Where("id = ? AND status = ?", id, model.ReviewStatusVisible)
+func (r *ReviewRepository) SoftDelete(ctx context.Context, id uint64, shopID uint64) error {
+	q := r.db.WithContext(ctx).Model(&model.ProductReview{}).Where("id = ? AND status = ?", id, model.ReviewStatusVisible)
 	if shopID > 0 {
 		q = q.Where("shop_id = ?", shopID)
 	}
@@ -192,14 +193,14 @@ func (r *ReviewRepository) SoftDelete(id uint64, shopID uint64) error {
 	return nil
 }
 
-func (r *ReviewRepository) ProductStats(productID uint64) (avg float64, count int64, goodRate float64, err error) {
+func (r *ReviewRepository) ProductStats(ctx context.Context, productID uint64) (avg float64, count int64, goodRate float64, err error) {
 	type row struct {
 		Cnt  int64
 		Avg  float64
 		Good int64
 	}
 	var s row
-	err = r.db.Model(&model.ProductReview{}).
+	err = r.db.WithContext(ctx).Model(&model.ProductReview{}).
 		Select("COUNT(*) AS cnt, COALESCE(AVG(rating),0) AS avg, SUM(CASE WHEN rating >= 4 THEN 1 ELSE 0 END) AS good").
 		Where("product_id = ? AND status = ?", productID, model.ReviewStatusVisible).
 		Scan(&s).Error
@@ -214,8 +215,8 @@ func (r *ReviewRepository) ProductStats(productID uint64) (avg float64, count in
 	return avg, count, goodRate, nil
 }
 
-func (r *ReviewRepository) UpdateProductStats(productID uint64, avg float64, count int64, goodRate float64) error {
-	return r.db.Exec(
+func (r *ReviewRepository) UpdateProductStats(ctx context.Context, productID uint64, avg float64, count int64, goodRate float64) error {
+	return r.db.WithContext(ctx).Exec(
 		"UPDATE products SET avg_rating = ?, review_count = ?, good_rate = ? WHERE id = ?",
 		avg, count, goodRate, productID,
 	).Error

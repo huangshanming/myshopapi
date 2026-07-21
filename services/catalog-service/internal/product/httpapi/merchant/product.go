@@ -30,9 +30,9 @@ func (h *ProductHandler) requirePerm(w http.ResponseWriter, r *http.Request, cod
 	}
 	// JWT 店主首次访问时自动建店主角色
 	if middleware.GetUserRole(r.Context()) == jwt.RoleMerchantOwner {
-		_ = h.svcCtx.ShopRBAC.EnsureOwnerRole(shopID, uid)
+		_ = h.svcCtx.ShopRBAC.EnsureOwnerRole(r.Context(), shopID, uid)
 	}
-	if !h.svcCtx.ShopRBAC.HasPerm(shopID, uid, code) {
+	if !h.svcCtx.ShopRBAC.HasPerm(r.Context(), shopID, uid, code) {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "无权限: "+code))
 		return false
 	}
@@ -84,9 +84,9 @@ func (h *ProductHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if middleware.GetUserRole(r.Context()) == jwt.RoleMerchantOwner {
-		_ = h.svcCtx.ShopRBAC.EnsureOwnerRole(shopID, uid)
+		_ = h.svcCtx.ShopRBAC.EnsureOwnerRole(r.Context(), shopID, uid)
 	}
-	if !h.svcCtx.ShopRBAC.HasPerm(shopID, uid, "product:add") && !h.svcCtx.ShopRBAC.HasPerm(shopID, uid, "product:edit") {
+	if !h.svcCtx.ShopRBAC.HasPerm(r.Context(), shopID, uid, "product:add") && !h.svcCtx.ShopRBAC.HasPerm(r.Context(), shopID, uid, "product:edit") {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "无权限: product:add"))
 		return
 	}
@@ -329,7 +329,7 @@ func (h *ProductHandler) CancelSchedule(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
-	_ = h.svcCtx.ProductAdmin.CancelSchedule(id, shopID)
+	_ = h.svcCtx.ProductAdmin.CancelSchedule(r.Context(), id, shopID)
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
@@ -391,7 +391,7 @@ func (h *ProductHandler) ListTags(w http.ResponseWriter, r *http.Request) {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
 		return
 	}
-	list, err := h.svcCtx.ProductAdmin.ListTags(shopID)
+	list, err := h.svcCtx.ProductAdmin.ListTags(r.Context(), shopID)
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
 		return
@@ -409,7 +409,7 @@ func (h *ProductHandler) SaveTag(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewDecoder(r.Body).Decode(&req)
 	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	tag := &model.ProductTag{ID: id, ShopID: shopID, Name: req.Name, Color: req.Color, Status: 1}
-	if err := h.svcCtx.ProductAdmin.SaveTag(tag); err != nil {
+	if err := h.svcCtx.ProductAdmin.SaveTag(r.Context(), tag); err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
 		return
 	}
@@ -423,7 +423,7 @@ func (h *ProductHandler) DeleteTag(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
-	_ = h.svcCtx.ProductAdmin.DeleteTag(id, shopID)
+	_ = h.svcCtx.ProductAdmin.DeleteTag(r.Context(), id, shopID)
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }
 
@@ -433,7 +433,7 @@ func (h *ProductHandler) ListAttrTemplates(w http.ResponseWriter, r *http.Reques
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
 		return
 	}
-	list, err := h.svcCtx.ProductAdmin.ListAttrTemplates(shopID)
+	list, err := h.svcCtx.ProductAdmin.ListAttrTemplates(r.Context(), shopID)
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
 		return
@@ -451,7 +451,7 @@ func (h *ProductHandler) SaveAttrTemplate(w http.ResponseWriter, r *http.Request
 	_ = json.NewDecoder(r.Body).Decode(&req)
 	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
 	t := &model.ProductAttrTemplate{ID: id, ShopID: shopID, Name: req.Name, AttrsJSON: req.AttrsJSON, Status: 1}
-	if err := h.svcCtx.ProductAdmin.SaveAttrTemplate(t); err != nil {
+	if err := h.svcCtx.ProductAdmin.SaveAttrTemplate(r.Context(), t); err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
 		return
 	}
@@ -465,6 +465,6 @@ func (h *ProductHandler) DeleteAttrTemplate(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
-	_ = h.svcCtx.ProductAdmin.DeleteAttrTemplate(id, shopID)
+	_ = h.svcCtx.ProductAdmin.DeleteAttrTemplate(r.Context(), id, shopID)
 	httpx.OkJsonCtx(r.Context(), w, nil)
 }

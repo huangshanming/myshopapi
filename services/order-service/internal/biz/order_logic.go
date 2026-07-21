@@ -283,7 +283,7 @@ func (l *OrderLogic) CreateOrder(ctx context.Context, userID uint64, addressID u
 		ReceiverAddress: addr.FullAddress(),
 		Status:          model.OrderStatusPending,
 	}
-	if err := l.svcCtx.Repo.Create(order, orderItems); err != nil {
+	if err := l.svcCtx.Repo.Create(ctx, order, orderItems); err != nil {
 		for _, h := range seckillHolds {
 			_ = l.svcCtx.MerchantHTTP.Restore(context.Background(), h.entryID, h.qty)
 		}
@@ -293,7 +293,7 @@ func (l *OrderLogic) CreateOrder(ctx context.Context, userID uint64, addressID u
 	couponLocked := false
 	if userCouponID > 0 {
 		if err := l.svcCtx.MerchantHTTP.LockCoupon(ctx, userCouponID, userID, order.ID, discountAmount); err != nil {
-			_ = l.svcCtx.Repo.UpdateStatus(orderNo, model.OrderStatusFailed)
+			_ = l.svcCtx.Repo.UpdateStatus(ctx, orderNo, model.OrderStatusFailed)
 			for _, h := range seckillHolds {
 				_ = l.svcCtx.MerchantHTTP.Restore(context.Background(), h.entryID, h.qty)
 			}
@@ -308,14 +308,14 @@ func (l *OrderLogic) CreateOrder(ctx context.Context, userID uint64, addressID u
 	}()
 
 	if l.svcCtx.UserHTTP == nil {
-		_ = l.svcCtx.Repo.UpdateStatus(orderNo, model.OrderStatusFailed)
+		_ = l.svcCtx.Repo.UpdateStatus(ctx, orderNo, model.OrderStatusFailed)
 		for _, h := range seckillHolds {
 			_ = l.svcCtx.MerchantHTTP.Restore(context.Background(), h.entryID, h.qty)
 		}
 		return nil, errors.New("钱包服务不可用")
 	}
 	if err := l.svcCtx.UserHTTP.Freeze(ctx, userID, payAmount, order.ID, orderNo); err != nil {
-		_ = l.svcCtx.Repo.UpdateStatus(orderNo, model.OrderStatusFailed)
+		_ = l.svcCtx.Repo.UpdateStatus(ctx, orderNo, model.OrderStatusFailed)
 		for _, h := range seckillHolds {
 			_ = l.svcCtx.MerchantHTTP.Restore(context.Background(), h.entryID, h.qty)
 		}
@@ -329,7 +329,7 @@ func (l *OrderLogic) CreateOrder(ctx context.Context, userID uint64, addressID u
 	}()
 
 	if err := cache.StockDeduct(ctx, l.svcCtx.Redis, redisItems); err != nil {
-		_ = l.svcCtx.Repo.UpdateStatus(orderNo, model.OrderStatusFailed)
+		_ = l.svcCtx.Repo.UpdateStatus(ctx, orderNo, model.OrderStatusFailed)
 		for _, h := range seckillHolds {
 			_ = l.svcCtx.MerchantHTTP.Restore(context.Background(), h.entryID, h.qty)
 		}
@@ -349,11 +349,11 @@ func (l *OrderLogic) CreateOrder(ctx context.Context, userID uint64, addressID u
 	}()
 
 	if l.svcCtx.MQ == nil {
-		_ = l.svcCtx.Repo.UpdateStatus(orderNo, model.OrderStatusFailed)
+		_ = l.svcCtx.Repo.UpdateStatus(ctx, orderNo, model.OrderStatusFailed)
 		return nil, errors.New("消息队列不可用")
 	}
 	if err := l.svcCtx.MQ.PublishOrderCreated(ctx, orderNo, stockItems); err != nil {
-		_ = l.svcCtx.Repo.UpdateStatus(orderNo, model.OrderStatusFailed)
+		_ = l.svcCtx.Repo.UpdateStatus(ctx, orderNo, model.OrderStatusFailed)
 		return nil, fmt.Errorf("发布订单事件失败: %w", err)
 	}
 
@@ -365,18 +365,18 @@ func (l *OrderLogic) CreateOrder(ctx context.Context, userID uint64, addressID u
 }
 
 func (l *OrderLogic) ListOrders(userID uint64, page, pageSize int, status string) ([]model.Order, int64, error) {
-	orders, total, err := l.svcCtx.Repo.List(repository.OrderListFilter{
+	orders, total, err := l.svcCtx.Repo.List(l.ctx, repository.OrderListFilter{
 		UserID: userID, Page: page, PageSize: pageSize, Status: status,
 	})
 	if err != nil {
 		return nil, 0, err
 	}
-	l.svcCtx.Repo.EnrichOrders(orders)
+	l.svcCtx.Repo.EnrichOrders(l.ctx, orders)
 	return orders, total, nil
 }
 
 func (l *OrderLogic) UserOrderStatusCounts(userID uint64) (map[string]int64, error) {
-	rows, err := l.svcCtx.Repo.CountByUserStatus(userID)
+	rows, err := l.svcCtx.Repo.CountByUserStatus(l.ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -393,7 +393,7 @@ func (l *OrderLogic) UserOrderStatusCounts(userID uint64) (map[string]int64, err
 	for _, row := range rows {
 		out[row.Status] = row.Count
 	}
-	n, err := l.svcCtx.Repo.CountOpenAfterSalesByUser(userID)
+	n, err := l.svcCtx.Repo.CountOpenAfterSalesByUser(l.ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -402,17 +402,17 @@ func (l *OrderLogic) UserOrderStatusCounts(userID uint64) (map[string]int64, err
 }
 
 func (l *OrderLogic) ListUserAfterSales(userID uint64, page, pageSize int) ([]model.OrderAfterSale, int64, error) {
-	return l.svcCtx.Repo.ListAfterSales(repository.AfterSaleListFilter{
+	return l.svcCtx.Repo.ListAfterSales(l.ctx, repository.AfterSaleListFilter{
 		UserID: userID, Page: page, PageSize: pageSize,
 	})
 }
 
 func (l *OrderLogic) GetOrder(userID, orderID uint64) (*model.Order, error) {
-	order, err := l.svcCtx.Repo.FindByID(orderID, userID)
+	order, err := l.svcCtx.Repo.FindByID(l.ctx, orderID, userID)
 	if err != nil {
 		return nil, err
 	}
-	l.svcCtx.Repo.EnrichOrder(order)
+	l.svcCtx.Repo.EnrichOrder(l.ctx, order)
 	return order, nil
 }
 
@@ -428,14 +428,14 @@ func (l *OrderLogic) notifyOrder(ctx context.Context, order *model.Order, title,
 }
 
 func (l *OrderLogic) CancelOrder(ctx context.Context, userID, orderID uint64) error {
-	order, err := l.svcCtx.Repo.FindByID(orderID, userID)
+	order, err := l.svcCtx.Repo.FindByID(ctx, orderID, userID)
 	if err != nil {
 		return errors.New("订单不存在")
 	}
 	if order.Status != model.OrderStatusPending && order.Status != model.OrderStatusConfirmed {
 		return errors.New("当前状态不可取消，请走售后")
 	}
-	if err := l.svcCtx.Repo.Cancel(orderID, userID); err != nil {
+	if err := l.svcCtx.Repo.Cancel(ctx, orderID, userID); err != nil {
 		return err
 	}
 	err = l.releaseStock(ctx, order)
@@ -472,11 +472,11 @@ func (l *OrderLogic) releaseStock(ctx context.Context, order *model.Order) error
 }
 
 func (l *OrderLogic) ListFiltered(f repository.OrderListFilter) ([]model.Order, int64, error) {
-	orders, total, err := l.svcCtx.Repo.List(f)
+	orders, total, err := l.svcCtx.Repo.List(l.ctx, f)
 	if err != nil {
 		return nil, 0, err
 	}
-	l.svcCtx.Repo.EnrichOrders(orders)
+	l.svcCtx.Repo.EnrichOrders(l.ctx, orders)
 	return orders, total, nil
 }
 
@@ -493,20 +493,20 @@ func (l *OrderLogic) ListAll(shopID uint64, page, pageSize int, status, orderNo 
 }
 
 func (l *OrderLogic) GetOrderByShop(shopID, orderID uint64) (*model.Order, error) {
-	order, err := l.svcCtx.Repo.FindByIDAndShop(orderID, shopID)
+	order, err := l.svcCtx.Repo.FindByIDAndShop(l.ctx, orderID, shopID)
 	if err != nil {
 		return nil, err
 	}
-	l.svcCtx.Repo.EnrichOrder(order)
+	l.svcCtx.Repo.EnrichOrder(l.ctx, order)
 	return order, nil
 }
 
 func (l *OrderLogic) GetOrderAdmin(orderID uint64) (*model.Order, error) {
-	order, err := l.svcCtx.Repo.FindByIDAdmin(orderID)
+	order, err := l.svcCtx.Repo.FindByIDAdmin(l.ctx, orderID)
 	if err != nil {
 		return nil, err
 	}
-	l.svcCtx.Repo.EnrichOrder(order)
+	l.svcCtx.Repo.EnrichOrder(l.ctx, order)
 	return order, nil
 }
 
@@ -517,14 +517,14 @@ func (l *OrderLogic) Ship(ctx context.Context, id, shopID uint64, company, shipN
 	var order *model.Order
 	var err error
 	if shopID > 0 {
-		order, err = l.svcCtx.Repo.FindByIDAndShop(id, shopID)
+		order, err = l.svcCtx.Repo.FindByIDAndShop(ctx, id, shopID)
 	} else {
-		order, err = l.svcCtx.Repo.FindByIDAdmin(id)
+		order, err = l.svcCtx.Repo.FindByIDAdmin(ctx, id)
 	}
 	if err != nil {
 		return errors.New("订单不存在或状态不是待发货(confirmed)")
 	}
-	if err := l.svcCtx.Repo.Ship(id, shopID, company, shipNo); err != nil {
+	if err := l.svcCtx.Repo.Ship(ctx, id, shopID, company, shipNo); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("订单不存在或状态不是待发货(confirmed)")
 		}
@@ -538,14 +538,14 @@ func (l *OrderLogic) Complete(ctx context.Context, id, shopID uint64) error {
 	var order *model.Order
 	var err error
 	if shopID > 0 {
-		order, err = l.svcCtx.Repo.FindByIDAndShop(id, shopID)
+		order, err = l.svcCtx.Repo.FindByIDAndShop(ctx, id, shopID)
 	} else {
-		order, err = l.svcCtx.Repo.FindByIDAdmin(id)
+		order, err = l.svcCtx.Repo.FindByIDAdmin(ctx, id)
 	}
 	if err != nil {
 		return errors.New("订单不存在或状态不是已发货")
 	}
-	if err := l.svcCtx.Repo.Complete(id, shopID); err != nil {
+	if err := l.svcCtx.Repo.Complete(ctx, id, shopID); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("订单不存在或状态不是已发货")
 		}
@@ -557,11 +557,11 @@ func (l *OrderLogic) Complete(ctx context.Context, id, shopID uint64) error {
 }
 
 func (l *OrderLogic) ConfirmReceive(ctx context.Context, userID, orderID uint64) error {
-	order, err := l.svcCtx.Repo.FindByID(orderID, userID)
+	order, err := l.svcCtx.Repo.FindByID(ctx, orderID, userID)
 	if err != nil {
 		return errors.New("订单不存在或状态不是已发货")
 	}
-	if err := l.svcCtx.Repo.ConfirmReceive(orderID, userID); err != nil {
+	if err := l.svcCtx.Repo.ConfirmReceive(ctx, orderID, userID); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("订单不存在或状态不是已发货")
 		}
@@ -580,7 +580,7 @@ func (l *OrderLogic) redeemCoupon(ctx context.Context, order *model.Order) {
 }
 
 func (l *OrderLogic) UpdateRemark(id, shopID uint64, remark string) error {
-	if err := l.svcCtx.Repo.UpdateRemark(id, shopID, remark); err != nil {
+	if err := l.svcCtx.Repo.UpdateRemark(l.ctx, id, shopID, remark); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("订单不存在")
 		}
@@ -590,7 +590,7 @@ func (l *OrderLogic) UpdateRemark(id, shopID uint64, remark string) error {
 }
 
 func (l *OrderLogic) CreateAfterSale(userID, orderID uint64, req types.CreateAfterSaleReq) (*model.OrderAfterSale, error) {
-	order, err := l.svcCtx.Repo.FindByID(orderID, userID)
+	order, err := l.svcCtx.Repo.FindByID(l.ctx, orderID, userID)
 	if err != nil {
 		return nil, errors.New("订单不存在")
 	}
@@ -599,7 +599,7 @@ func (l *OrderLogic) CreateAfterSale(userID, orderID uint64, req types.CreateAft
 	default:
 		return nil, errors.New("当前订单状态不可申请售后")
 	}
-	n, _ := l.svcCtx.Repo.CountOpenAfterSales(orderID)
+	n, _ := l.svcCtx.Repo.CountOpenAfterSales(l.ctx, orderID)
 	if n > 0 {
 		return nil, errors.New("已有进行中的售后单")
 	}
@@ -628,22 +628,22 @@ func (l *OrderLogic) CreateAfterSale(userID, orderID uint64, req types.CreateAft
 		Amount:  amount,
 		Status:  model.AfterSalePending,
 	}
-	if err := l.svcCtx.Repo.CreateAfterSale(as); err != nil {
+	if err := l.svcCtx.Repo.CreateAfterSale(l.ctx, as); err != nil {
 		return nil, err
 	}
 	return as, nil
 }
 
 func (l *OrderLogic) ListAfterSales(f repository.AfterSaleListFilter) ([]model.OrderAfterSale, int64, error) {
-	return l.svcCtx.Repo.ListAfterSales(f)
+	return l.svcCtx.Repo.ListAfterSales(l.ctx, f)
 }
 
 func (l *OrderLogic) ListAfterSalesByOrder(orderID uint64) ([]model.OrderAfterSale, error) {
-	return l.svcCtx.Repo.ListAfterSalesByOrder(orderID)
+	return l.svcCtx.Repo.ListAfterSalesByOrder(l.ctx, orderID)
 }
 
 func (l *OrderLogic) HandleAfterSale(ctx context.Context, id, shopID, handledBy uint64, action, adminRemark string) error {
-	as, err := l.svcCtx.Repo.FindAfterSale(id)
+	as, err := l.svcCtx.Repo.FindAfterSale(ctx, id)
 	if err != nil {
 		return errors.New("售后单不存在")
 	}
@@ -672,14 +672,14 @@ func (l *OrderLogic) HandleAfterSale(ctx context.Context, id, shopID, handledBy 
 	default:
 		return errors.New("无效操作")
 	}
-	if err := l.svcCtx.Repo.HandleAfterSale(id, shopID, handledBy, status, adminRemark); err != nil {
+	if err := l.svcCtx.Repo.HandleAfterSale(ctx, id, shopID, handledBy, status, adminRemark); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("售后单不存在或无权处理")
 		}
 		return err
 	}
 	if status == model.AfterSaleRefunded {
-		order, err := l.svcCtx.Repo.FindByIDAdmin(as.OrderID)
+		order, err := l.svcCtx.Repo.FindByIDAdmin(ctx, as.OrderID)
 		if err != nil {
 			return nil
 		}
@@ -701,7 +701,7 @@ func (l *OrderLogic) HandleAfterSale(ctx context.Context, id, shopID, handledBy 
 				order.UserCouponID = 0 // 已 Return，避免再 Unlock
 				_ = l.releaseStock(ctx, order)
 			}
-			_ = l.svcCtx.Repo.UpdateStatus(order.OrderNo, model.OrderStatusCancelled)
+			_ = l.svcCtx.Repo.UpdateStatus(ctx, order.OrderNo, model.OrderStatusCancelled)
 		}
 		l.notifyOrder(ctx, order, "退款已完成", fmt.Sprintf("订单 %s 退款已完成，金额 ¥%.2f", order.OrderNo, as.Amount))
 	}

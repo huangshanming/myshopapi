@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -33,8 +34,8 @@ type ArticleListFilter struct {
 	PageSize    int
 }
 
-func (r *ArticleRepository) List(f ArticleListFilter) ([]model.CommunityArticle, int64, error) {
-	q := r.db.Model(&model.CommunityArticle{})
+func (r *ArticleRepository) List(ctx context.Context, f ArticleListFilter) ([]model.CommunityArticle, int64, error) {
+	q := r.db.WithContext(ctx).Model(&model.CommunityArticle{})
 	if f.Recycle {
 		q = q.Where("status = ?", model.ArticleDeleted)
 	} else {
@@ -84,35 +85,35 @@ func (r *ArticleRepository) List(f ArticleListFilter) ([]model.CommunityArticle,
 	return list, total, err
 }
 
-func (r *ArticleRepository) GetByID(id uint64) (*model.CommunityArticle, error) {
+func (r *ArticleRepository) GetByID(ctx context.Context, id uint64) (*model.CommunityArticle, error) {
 	var a model.CommunityArticle
-	err := r.db.Where("id = ?", id).First(&a).Error
+	err := r.db.WithContext(ctx).Where("id = ?", id).First(&a).Error
 	if err != nil {
 		return nil, err
 	}
 	return &a, nil
 }
 
-func (r *ArticleRepository) GetByIDShop(id, shopID uint64) (*model.CommunityArticle, error) {
+func (r *ArticleRepository) GetByIDShop(ctx context.Context, id, shopID uint64) (*model.CommunityArticle, error) {
 	var a model.CommunityArticle
-	err := r.db.Where("id = ? AND shop_id = ?", id, shopID).First(&a).Error
+	err := r.db.WithContext(ctx).Where("id = ? AND shop_id = ?", id, shopID).First(&a).Error
 	if err != nil {
 		return nil, err
 	}
 	return &a, nil
 }
 
-func (r *ArticleRepository) GetByIDAuthor(id, userID uint64) (*model.CommunityArticle, error) {
+func (r *ArticleRepository) GetByIDAuthor(ctx context.Context, id, userID uint64) (*model.CommunityArticle, error) {
 	var a model.CommunityArticle
-	err := r.db.Where("id = ? AND author_user_id = ? AND shop_id = 0", id, userID).First(&a).Error
+	err := r.db.WithContext(ctx).Where("id = ? AND author_user_id = ? AND shop_id = 0", id, userID).First(&a).Error
 	if err != nil {
 		return nil, err
 	}
 	return &a, nil
 }
 
-func (r *ArticleRepository) ListByAuthor(userID uint64, page, pageSize int) ([]model.CommunityArticle, int64, error) {
-	q := r.db.Model(&model.CommunityArticle{}).
+func (r *ArticleRepository) ListByAuthor(ctx context.Context, userID uint64, page, pageSize int) ([]model.CommunityArticle, int64, error) {
+	q := r.db.WithContext(ctx).Model(&model.CommunityArticle{}).
 		Where("author_user_id = ? AND shop_id = 0 AND status <> ?", userID, model.ArticleDeleted)
 	var total int64
 	if err := q.Count(&total).Error; err != nil {
@@ -129,8 +130,8 @@ func (r *ArticleRepository) ListByAuthor(userID uint64, page, pageSize int) ([]m
 	return list, total, err
 }
 
-func (r *ArticleRepository) UpdateAuthor(id, userID uint64, updates map[string]interface{}) error {
-	res := r.db.Model(&model.CommunityArticle{}).
+func (r *ArticleRepository) UpdateAuthor(ctx context.Context, id, userID uint64, updates map[string]interface{}) error {
+	res := r.db.WithContext(ctx).Model(&model.CommunityArticle{}).
 		Where("id = ? AND author_user_id = ? AND shop_id = 0", id, userID).Updates(updates)
 	if res.RowsAffected == 0 {
 		return errors.New("文章不存在或无权操作")
@@ -138,55 +139,55 @@ func (r *ArticleRepository) UpdateAuthor(id, userID uint64, updates map[string]i
 	return res.Error
 }
 
-func (r *ArticleRepository) SoftDeleteAuthor(id, userID uint64) error {
+func (r *ArticleRepository) SoftDeleteAuthor(ctx context.Context, id, userID uint64) error {
 	now := common.LocalTime(time.Now())
-	return r.UpdateAuthor(id, userID, map[string]interface{}{
+	return r.UpdateAuthor(ctx, id, userID, map[string]interface{}{
 		"status": model.ArticleDeleted, "deleted_at": now,
 	})
 }
 
-func (r *ArticleRepository) Create(a *model.CommunityArticle) error {
-	return r.db.Create(a).Error
+func (r *ArticleRepository) Create(ctx context.Context, a *model.CommunityArticle) error {
+	return r.db.WithContext(ctx).Create(a).Error
 }
 
-func (r *ArticleRepository) Update(id uint64, updates map[string]interface{}) error {
-	res := r.db.Model(&model.CommunityArticle{}).Where("id = ?", id).Updates(updates)
+func (r *ArticleRepository) Update(ctx context.Context, id uint64, updates map[string]interface{}) error {
+	res := r.db.WithContext(ctx).Model(&model.CommunityArticle{}).Where("id = ?", id).Updates(updates)
 	if res.RowsAffected == 0 {
 		return errors.New("文章不存在")
 	}
 	return res.Error
 }
 
-func (r *ArticleRepository) UpdateShop(id, shopID uint64, updates map[string]interface{}) error {
-	res := r.db.Model(&model.CommunityArticle{}).Where("id = ? AND shop_id = ?", id, shopID).Updates(updates)
+func (r *ArticleRepository) UpdateShop(ctx context.Context, id, shopID uint64, updates map[string]interface{}) error {
+	res := r.db.WithContext(ctx).Model(&model.CommunityArticle{}).Where("id = ? AND shop_id = ?", id, shopID).Updates(updates)
 	if res.RowsAffected == 0 {
 		return errors.New("文章不存在或无权操作")
 	}
 	return res.Error
 }
 
-func (r *ArticleRepository) SoftDelete(id uint64) error {
+func (r *ArticleRepository) SoftDelete(ctx context.Context, id uint64) error {
 	now := common.LocalTime(time.Now())
-	return r.Update(id, map[string]interface{}{
+	return r.Update(ctx, id, map[string]interface{}{
 		"status": model.ArticleDeleted, "deleted_at": now,
 	})
 }
 
-func (r *ArticleRepository) SoftDeleteShop(id, shopID uint64) error {
+func (r *ArticleRepository) SoftDeleteShop(ctx context.Context, id, shopID uint64) error {
 	now := common.LocalTime(time.Now())
-	return r.UpdateShop(id, shopID, map[string]interface{}{
+	return r.UpdateShop(ctx, id, shopID, map[string]interface{}{
 		"status": model.ArticleDeleted, "deleted_at": now,
 	})
 }
 
-func (r *ArticleRepository) Restore(id uint64) error {
-	return r.Update(id, map[string]interface{}{
+func (r *ArticleRepository) Restore(ctx context.Context, id uint64) error {
+	return r.Update(ctx, id, map[string]interface{}{
 		"status": model.ArticleOffline, "deleted_at": nil,
 	})
 }
 
-func (r *ArticleRepository) PermanentDelete(id uint64) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *ArticleRepository) PermanentDelete(ctx context.Context, id uint64) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("article_id = ?", id).Delete(&model.CommunityArticleComment{}).Error; err != nil {
 			return err
 		}
@@ -197,8 +198,8 @@ func (r *ArticleRepository) PermanentDelete(id uint64) error {
 	})
 }
 
-func (r *ArticleRepository) ReplaceImages(articleID, shopID uint64, urls []string) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *ArticleRepository) ReplaceImages(ctx context.Context, articleID, shopID uint64, urls []string) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("article_id = ?", articleID).Delete(&model.CommunityArticleImg{}).Error; err != nil {
 			return err
 		}
@@ -215,16 +216,16 @@ func (r *ArticleRepository) ReplaceImages(articleID, shopID uint64, urls []strin
 	})
 }
 
-func (r *ArticleRepository) ListImages(articleID uint64) ([]model.CommunityArticleImg, error) {
+func (r *ArticleRepository) ListImages(ctx context.Context, articleID uint64) ([]model.CommunityArticleImg, error) {
 	var list []model.CommunityArticleImg
-	err := r.db.Where("article_id = ?", articleID).Order("sort ASC, id ASC").Find(&list).Error
+	err := r.db.WithContext(ctx).Where("article_id = ?", articleID).Order("sort ASC, id ASC").Find(&list).Error
 	return list, err
 }
 
-func (r *ArticleRepository) ClaimDuePublish(limit int) ([]model.CommunityArticle, error) {
+func (r *ArticleRepository) ClaimDuePublish(ctx context.Context, limit int) ([]model.CommunityArticle, error) {
 	var list []model.CommunityArticle
 	now := time.Now()
-	err := r.db.Where("status = ? AND audit_status = ? AND schedule_publish_at IS NOT NULL AND schedule_publish_at <= ?",
+	err := r.db.WithContext(ctx).Where("status = ? AND audit_status = ? AND schedule_publish_at IS NOT NULL AND schedule_publish_at <= ?",
 		model.ArticleScheduled, model.ArticleAuditApproved, now).
 		Limit(limit).Find(&list).Error
 	if err != nil {
@@ -233,7 +234,7 @@ func (r *ArticleRepository) ClaimDuePublish(limit int) ([]model.CommunityArticle
 	out := make([]model.CommunityArticle, 0, len(list))
 	pub := common.LocalTime(now)
 	for _, a := range list {
-		res := r.db.Model(&model.CommunityArticle{}).
+		res := r.db.WithContext(ctx).Model(&model.CommunityArticle{}).
 			Where("id = ? AND status = ?", a.ID, model.ArticleScheduled).
 			Updates(map[string]interface{}{
 				"status": model.ArticlePublished, "published_at": pub,
@@ -245,7 +246,7 @@ func (r *ArticleRepository) ClaimDuePublish(limit int) ([]model.CommunityArticle
 	return out, nil
 }
 
-func (r *ArticleRepository) Stats() (map[string]interface{}, error) {
+func (r *ArticleRepository) Stats(ctx context.Context) (map[string]interface{}, error) {
 	type row struct {
 		Status string
 		Cnt    int64
@@ -295,37 +296,37 @@ func (r *ArticleRepository) Stats() (map[string]interface{}, error) {
 
 // ---- categories ----
 
-func (r *ArticleRepository) ListCategories() ([]model.CommunityArticleCategory, error) {
+func (r *ArticleRepository) ListCategories(ctx context.Context) ([]model.CommunityArticleCategory, error) {
 	var list []model.CommunityArticleCategory
-	err := r.db.Order("sort ASC, id ASC").Find(&list).Error
+	err := r.db.WithContext(ctx).Order("sort ASC, id ASC").Find(&list).Error
 	return list, err
 }
 
-func (r *ArticleRepository) CreateCategory(c *model.CommunityArticleCategory) error {
-	return r.db.Create(c).Error
+func (r *ArticleRepository) CreateCategory(ctx context.Context, c *model.CommunityArticleCategory) error {
+	return r.db.WithContext(ctx).Create(c).Error
 }
 
-func (r *ArticleRepository) UpdateCategory(id uint64, updates map[string]interface{}) error {
-	res := r.db.Model(&model.CommunityArticleCategory{}).Where("id = ?", id).Updates(updates)
+func (r *ArticleRepository) UpdateCategory(ctx context.Context, id uint64, updates map[string]interface{}) error {
+	res := r.db.WithContext(ctx).Model(&model.CommunityArticleCategory{}).Where("id = ?", id).Updates(updates)
 	if res.RowsAffected == 0 {
 		return errors.New("分类不存在")
 	}
 	return res.Error
 }
 
-func (r *ArticleRepository) DeleteCategory(id uint64) error {
+func (r *ArticleRepository) DeleteCategory(ctx context.Context, id uint64) error {
 	var child int64
-	_ = r.db.Model(&model.CommunityArticleCategory{}).Where("parent_id = ?", id).Count(&child).Error
+	_ = r.db.WithContext(ctx).Model(&model.CommunityArticleCategory{}).Where("parent_id = ?", id).Count(&child).Error
 	if child > 0 {
 		return errors.New("请先删除子分类")
 	}
 	var used int64
-	_ = r.db.Model(&model.CommunityArticle{}).
+	_ = r.db.WithContext(ctx).Model(&model.CommunityArticle{}).
 		Where("category_id = ? AND status <> ?", id, model.ArticleDeleted).Count(&used).Error
 	if used > 0 {
 		return errors.New("分类下仍有文章")
 	}
-	return r.db.Where("id = ?", id).Delete(&model.CommunityArticleCategory{}).Error
+	return r.db.WithContext(ctx).Where("id = ?", id).Delete(&model.CommunityArticleCategory{}).Error
 }
 
 // ---- comments ----
@@ -338,8 +339,8 @@ type CommentListFilter struct {
 	PageSize  int
 }
 
-func (r *ArticleRepository) ListComments(f CommentListFilter) ([]model.CommunityArticleComment, int64, error) {
-	q := r.db.Model(&model.CommunityArticleComment{}).Where("status <> ?", model.CommentDeleted)
+func (r *ArticleRepository) ListComments(ctx context.Context, f CommentListFilter) ([]model.CommunityArticleComment, int64, error) {
+	q := r.db.WithContext(ctx).Model(&model.CommunityArticleComment{}).Where("status <> ?", model.CommentDeleted)
 	if f.ShopID > 0 {
 		q = q.Where("shop_id = ?", f.ShopID)
 	}
@@ -364,8 +365,8 @@ func (r *ArticleRepository) ListComments(f CommentListFilter) ([]model.Community
 	return list, total, err
 }
 
-func (r *ArticleRepository) PatchComment(id uint64, shopID uint64, status string) error {
-	q := r.db.Model(&model.CommunityArticleComment{}).Where("id = ?", id)
+func (r *ArticleRepository) PatchComment(ctx context.Context, id uint64, shopID uint64, status string) error {
+	q := r.db.WithContext(ctx).Model(&model.CommunityArticleComment{}).Where("id = ?", id)
 	if shopID > 0 {
 		q = q.Where("shop_id = ?", shopID)
 	}
@@ -376,20 +377,20 @@ func (r *ArticleRepository) PatchComment(id uint64, shopID uint64, status string
 	return res.Error
 }
 
-func (r *ArticleRepository) DeleteComment(id uint64, shopID uint64) error {
-	return r.PatchComment(id, shopID, model.CommentDeleted)
+func (r *ArticleRepository) DeleteComment(ctx context.Context, id uint64, shopID uint64) error {
+	return r.PatchComment(ctx, id, shopID, model.CommentDeleted)
 }
 
-func (r *ArticleRepository) GetComment(id uint64) (*model.CommunityArticleComment, error) {
+func (r *ArticleRepository) GetComment(ctx context.Context, id uint64) (*model.CommunityArticleComment, error) {
 	var c model.CommunityArticleComment
-	if err := r.db.Where("id = ? AND status = ?", id, model.CommentVisible).First(&c).Error; err != nil {
+	if err := r.db.WithContext(ctx).Where("id = ? AND status = ?", id, model.CommentVisible).First(&c).Error; err != nil {
 		return nil, err
 	}
 	return &c, nil
 }
 
-func (r *ArticleRepository) CreateComment(c *model.CommunityArticleComment) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *ArticleRepository) CreateComment(ctx context.Context, c *model.CommunityArticleComment) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(c).Error; err != nil {
 			return err
 		}
@@ -411,13 +412,13 @@ type CommentUserBrief struct {
 	Mobile   string `json:"mobile"`
 }
 
-func (r *ArticleRepository) MapUserBriefs(ids []uint64) map[uint64]CommentUserBrief {
+func (r *ArticleRepository) MapUserBriefs(ctx context.Context, ids []uint64) map[uint64]CommentUserBrief {
 	out := map[uint64]CommentUserBrief{}
 	if len(ids) == 0 {
 		return out
 	}
 	var rows []CommentUserBrief
-	_ = r.db.Table("users").Select("id, nickname, COALESCE(avatar,'') AS avatar, mobile").Where("id IN ?", ids).Scan(&rows).Error
+	_ = r.db.WithContext(ctx).Table("users").Select("id, nickname, COALESCE(avatar,'') AS avatar, mobile").Where("id IN ?", ids).Scan(&rows).Error
 	for _, u := range rows {
 		out[u.ID] = u
 	}
@@ -430,27 +431,27 @@ type ShopBrief struct {
 	Logo string `json:"logo"`
 }
 
-func (r *ArticleRepository) MapShopBriefs(ids []uint64) map[uint64]ShopBrief {
+func (r *ArticleRepository) MapShopBriefs(ctx context.Context, ids []uint64) map[uint64]ShopBrief {
 	out := map[uint64]ShopBrief{}
 	if len(ids) == 0 {
 		return out
 	}
 	var rows []ShopBrief
-	_ = r.db.Table("shops").Select("id, name, COALESCE(logo,'') AS logo").Where("id IN ?", ids).Scan(&rows).Error
+	_ = r.db.WithContext(ctx).Table("shops").Select("id, name, COALESCE(logo,'') AS logo").Where("id IN ?", ids).Scan(&rows).Error
 	for _, s := range rows {
 		out[s.ID] = s
 	}
 	return out
 }
 
-func (r *ArticleRepository) ListPublicCommentRoots(articleID uint64, page, pageSize int) ([]model.CommunityArticleComment, int64, error) {
+func (r *ArticleRepository) ListPublicCommentRoots(ctx context.Context, articleID uint64, page, pageSize int) ([]model.CommunityArticleComment, int64, error) {
 	if page < 1 {
 		page = 1
 	}
 	if pageSize < 1 {
 		pageSize = 20
 	}
-	q := r.db.Model(&model.CommunityArticleComment{}).
+	q := r.db.WithContext(ctx).Model(&model.CommunityArticleComment{}).
 		Where("article_id = ? AND parent_id = 0 AND status = ?", articleID, model.CommentVisible)
 	var total int64
 	if err := q.Count(&total).Error; err != nil {
@@ -461,12 +462,12 @@ func (r *ArticleRepository) ListPublicCommentRoots(articleID uint64, page, pageS
 	return list, total, err
 }
 
-func (r *ArticleRepository) ListPublicCommentChildren(articleID uint64, rootIDs []uint64) ([]model.CommunityArticleComment, error) {
+func (r *ArticleRepository) ListPublicCommentChildren(ctx context.Context, articleID uint64, rootIDs []uint64) ([]model.CommunityArticleComment, error) {
 	if len(rootIDs) == 0 {
 		return nil, nil
 	}
 	var list []model.CommunityArticleComment
-	err := r.db.Where("article_id = ? AND root_id IN ? AND parent_id > 0 AND status = ?",
+	err := r.db.WithContext(ctx).Where("article_id = ? AND root_id IN ? AND parent_id > 0 AND status = ?",
 		articleID, rootIDs, model.CommentVisible).
 		Order("id ASC").Find(&list).Error
 	return list, err
@@ -474,14 +475,14 @@ func (r *ArticleRepository) ListPublicCommentChildren(articleID uint64, rootIDs 
 
 // ---- emojis ----
 
-func (r *ArticleRepository) ListEmojisAdmin(page, pageSize int) ([]model.CommunityCommentEmoji, int64, error) {
+func (r *ArticleRepository) ListEmojisAdmin(ctx context.Context, page, pageSize int) ([]model.CommunityCommentEmoji, int64, error) {
 	if page < 1 {
 		page = 1
 	}
 	if pageSize < 1 {
 		pageSize = 50
 	}
-	q := r.db.Model(&model.CommunityCommentEmoji{})
+	q := r.db.WithContext(ctx).Model(&model.CommunityCommentEmoji{})
 	var total int64
 	if err := q.Count(&total).Error; err != nil {
 		return nil, 0, err
@@ -491,33 +492,33 @@ func (r *ArticleRepository) ListEmojisAdmin(page, pageSize int) ([]model.Communi
 	return list, total, err
 }
 
-func (r *ArticleRepository) ListEmojisPublic() ([]model.CommunityCommentEmoji, error) {
+func (r *ArticleRepository) ListEmojisPublic(ctx context.Context) ([]model.CommunityCommentEmoji, error) {
 	var list []model.CommunityCommentEmoji
-	err := r.db.Where("status = 1").Order("sort ASC, id ASC").Find(&list).Error
+	err := r.db.WithContext(ctx).Where("status = 1").Order("sort ASC, id ASC").Find(&list).Error
 	return list, err
 }
 
-func (r *ArticleRepository) GetEmoji(id uint64) (*model.CommunityCommentEmoji, error) {
+func (r *ArticleRepository) GetEmoji(ctx context.Context, id uint64) (*model.CommunityCommentEmoji, error) {
 	var e model.CommunityCommentEmoji
-	if err := r.db.First(&e, id).Error; err != nil {
+	if err := r.db.WithContext(ctx).First(&e, id).Error; err != nil {
 		return nil, err
 	}
 	return &e, nil
 }
 
-func (r *ArticleRepository) CreateEmoji(e *model.CommunityCommentEmoji) error {
-	return r.db.Create(e).Error
+func (r *ArticleRepository) CreateEmoji(ctx context.Context, e *model.CommunityCommentEmoji) error {
+	return r.db.WithContext(ctx).Create(e).Error
 }
 
-func (r *ArticleRepository) UpdateEmoji(id uint64, updates map[string]interface{}) error {
-	return r.db.Model(&model.CommunityCommentEmoji{}).Where("id = ?", id).Updates(updates).Error
+func (r *ArticleRepository) UpdateEmoji(ctx context.Context, id uint64, updates map[string]interface{}) error {
+	return r.db.WithContext(ctx).Model(&model.CommunityCommentEmoji{}).Where("id = ?", id).Updates(updates).Error
 }
 
-func (r *ArticleRepository) DeleteEmoji(id uint64) error {
-	return r.db.Where("id = ?", id).Delete(&model.CommunityCommentEmoji{}).Error
+func (r *ArticleRepository) DeleteEmoji(ctx context.Context, id uint64) error {
+	return r.db.WithContext(ctx).Where("id = ?", id).Delete(&model.CommunityCommentEmoji{}).Error
 }
 
-func (r *ArticleRepository) ListPublic(page, pageSize, homeLimit int) ([]model.CommunityArticle, int64, error) {
+func (r *ArticleRepository) ListPublic(ctx context.Context, page, pageSize, homeLimit int) ([]model.CommunityArticle, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -525,7 +526,7 @@ func (r *ArticleRepository) ListPublic(page, pageSize, homeLimit int) ([]model.C
 		pageSize = 20
 	}
 	now := time.Now()
-	_ = r.db.Exec(`UPDATE homepage_slot_orders SET status='expired' WHERE slot_type='article' AND status='active' AND end_at < ?`, now)
+	_ = r.db.WithContext(ctx).Exec(`UPDATE homepage_slot_orders SET status='expired' WHERE slot_type='article' AND status='active' AND end_at < ?`, now)
 
 	type row struct {
 		model.CommunityArticle
@@ -540,7 +541,7 @@ LEFT JOIN (
 WHERE a.status=? AND a.audit_status=? AND a.deleted_at IS NULL`
 
 	var total int64
-	if err := r.db.Raw("SELECT COUNT(*) "+base, now, now, model.ArticlePublished, model.ArticleAuditApproved).Scan(&total).Error; err != nil {
+	if err := r.db.WithContext(ctx).Raw("SELECT COUNT(*) "+base, now, now, model.ArticlePublished, model.ArticleAuditApproved).Scan(&total).Error; err != nil {
 		return nil, 0, err
 	}
 	limit, offset := pageSize, (page-1)*pageSize
@@ -553,7 +554,7 @@ WHERE a.status=? AND a.audit_status=? AND a.deleted_at IS NULL`
 	var rows []row
 	sql := `SELECT a.*, CASE WHEN o.target_id IS NULL THEN 0 ELSE 1 END AS boost ` + base + `
 ORDER BY boost DESC, a.is_top DESC, a.id DESC LIMIT ? OFFSET ?`
-	if err := r.db.Raw(sql, now, now, model.ArticlePublished, model.ArticleAuditApproved, limit, offset).Scan(&rows).Error; err != nil {
+	if err := r.db.WithContext(ctx).Raw(sql, now, now, model.ArticlePublished, model.ArticleAuditApproved, limit, offset).Scan(&rows).Error; err != nil {
 		return nil, 0, err
 	}
 	out := make([]model.CommunityArticle, 0, len(rows))
@@ -563,17 +564,17 @@ ORDER BY boost DESC, a.is_top DESC, a.id DESC LIMIT ? OFFSET ?`
 	return out, total, nil
 }
 
-func (r *ArticleRepository) GetPublished(id uint64) (*model.CommunityArticle, error) {
+func (r *ArticleRepository) GetPublished(ctx context.Context, id uint64) (*model.CommunityArticle, error) {
 	var a model.CommunityArticle
-	err := r.db.Where("id = ? AND status = ? AND audit_status = ?", id, model.ArticlePublished, model.ArticleAuditApproved).First(&a).Error
+	err := r.db.WithContext(ctx).Where("id = ? AND status = ? AND audit_status = ?", id, model.ArticlePublished, model.ArticleAuditApproved).First(&a).Error
 	if err != nil {
 		return nil, err
 	}
 	return &a, nil
 }
 
-func (r *ArticleRepository) RecordRead(articleID, userID uint64) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *ArticleRepository) RecordRead(ctx context.Context, articleID, userID uint64) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(&model.CommunityArticle{}).Where("id = ?", articleID).
 			Updates(map[string]interface{}{
 				"read_count": gorm.Expr("read_count + 1"),
@@ -598,8 +599,8 @@ func (r *ArticleRepository) RecordRead(articleID, userID uint64) error {
 	})
 }
 
-func (r *ArticleRepository) ToggleLike(userID, articleID uint64, like bool) (changed bool, err error) {
-	err = r.db.Transaction(func(tx *gorm.DB) error {
+func (r *ArticleRepository) ToggleLike(ctx context.Context, userID, articleID uint64, like bool) (changed bool, err error) {
+	err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if like {
 			res := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&model.ArticleLike{UserID: userID, ArticleID: articleID})
 			if res.Error != nil {
@@ -626,8 +627,8 @@ func (r *ArticleRepository) ToggleLike(userID, articleID uint64, like bool) (cha
 	return changed, err
 }
 
-func (r *ArticleRepository) ToggleFavorite(userID, articleID uint64, fav bool) (changed bool, err error) {
-	err = r.db.Transaction(func(tx *gorm.DB) error {
+func (r *ArticleRepository) ToggleFavorite(ctx context.Context, userID, articleID uint64, fav bool) (changed bool, err error) {
+	err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if fav {
 			res := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&model.ArticleFavorite{UserID: userID, ArticleID: articleID})
 			if res.Error != nil {
@@ -654,11 +655,11 @@ func (r *ArticleRepository) ToggleFavorite(userID, articleID uint64, fav bool) (
 	return changed, err
 }
 
-func (r *ArticleRepository) EngagementStatus(userID, articleID uint64) (liked, favorited bool) {
+func (r *ArticleRepository) EngagementStatus(ctx context.Context, userID, articleID uint64) (liked, favorited bool) {
 	var n int64
-	r.db.Model(&model.ArticleLike{}).Where("user_id = ? AND article_id = ?", userID, articleID).Count(&n)
+	r.db.WithContext(ctx).Model(&model.ArticleLike{}).Where("user_id = ? AND article_id = ?", userID, articleID).Count(&n)
 	liked = n > 0
-	r.db.Model(&model.ArticleFavorite{}).Where("user_id = ? AND article_id = ?", userID, articleID).Count(&n)
+	r.db.WithContext(ctx).Model(&model.ArticleFavorite{}).Where("user_id = ? AND article_id = ?", userID, articleID).Count(&n)
 	favorited = n > 0
 	return
 }
@@ -678,7 +679,7 @@ type UserArticleItem struct {
 	EngagedAt    string `json:"engaged_at,omitempty"`
 }
 
-func (r *ArticleRepository) listUserArticles(userID uint64, table string, page, pageSize int) ([]UserArticleItem, int64, error) {
+func (r *ArticleRepository) listUserArticles(ctx context.Context, userID uint64, table string, page, pageSize int) ([]UserArticleItem, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -686,7 +687,7 @@ func (r *ArticleRepository) listUserArticles(userID uint64, table string, page, 
 		pageSize = 20
 	}
 	var total int64
-	if err := r.db.Table(table).Where("user_id = ?", userID).Count(&total).Error; err != nil {
+	if err := r.db.WithContext(ctx).Table(table).Where("user_id = ?", userID).Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 	type row struct {
@@ -703,7 +704,7 @@ func (r *ArticleRepository) listUserArticles(userID uint64, table string, page, 
 		AuditStatus  string `gorm:"column:audit_status"`
 	}
 	var rows []row
-	err := r.db.Raw(`
+	err := r.db.WithContext(ctx).Raw(`
 SELECT e.article_id, DATE_FORMAT(e.created_at, '%Y-%m-%d %H:%i:%s') AS engaged_at,
        a.id, a.shop_id, COALESCE(a.title,'') AS title, COALESCE(a.cover_url,'') AS cover_url,
        COALESCE(a.like_count,0) AS like_count, COALESCE(a.read_count,0) AS read_count,
@@ -735,26 +736,26 @@ LIMIT ? OFFSET ?`, userID, pageSize, (page-1)*pageSize).Scan(&rows).Error
 	return out, total, nil
 }
 
-func (r *ArticleRepository) ListUserFavorites(userID uint64, page, pageSize int) ([]UserArticleItem, int64, error) {
-	return r.listUserArticles(userID, "article_favorites", page, pageSize)
+func (r *ArticleRepository) ListUserFavorites(ctx context.Context, userID uint64, page, pageSize int) ([]UserArticleItem, int64, error) {
+	return r.listUserArticles(ctx, userID, "article_favorites", page, pageSize)
 }
 
-func (r *ArticleRepository) ListUserLikes(userID uint64, page, pageSize int) ([]UserArticleItem, int64, error) {
-	return r.listUserArticles(userID, "article_likes", page, pageSize)
+func (r *ArticleRepository) ListUserLikes(ctx context.Context, userID uint64, page, pageSize int) ([]UserArticleItem, int64, error) {
+	return r.listUserArticles(ctx, userID, "article_likes", page, pageSize)
 }
 
-func (r *ArticleRepository) IsArticleBoosted(articleID uint64) bool {
+func (r *ArticleRepository) IsArticleBoosted(ctx context.Context, articleID uint64) bool {
 	now := time.Now()
 	var n int64
-	r.db.Table("homepage_slot_orders").
+	r.db.WithContext(ctx).Table("homepage_slot_orders").
 		Where("slot_type='article' AND status='active' AND target_id=? AND start_at<=? AND end_at>?", articleID, now, now).
 		Count(&n)
 	return n > 0
 }
 
-func (r *ArticleRepository) GetHomeArticleLimit() int {
+func (r *ArticleRepository) GetHomeArticleLimit(ctx context.Context) int {
 	var lim int
-	_ = r.db.Table("homepage_slot_settings").Select("home_limit").Where("slot_type=?", "article").Scan(&lim).Error
+	_ = r.db.WithContext(ctx).Table("homepage_slot_settings").Select("home_limit").Where("slot_type=?", "article").Scan(&lim).Error
 	if lim < 1 {
 		return 6
 	}

@@ -1,6 +1,7 @@
 package svc
 
 import (
+	"context"
 	"mymall/pkg/cache"
 	"mymall/pkg/config"
 	"mymall/pkg/health"
@@ -66,7 +67,7 @@ func NewServiceContext(cfg *config.Config, db *gorm.DB) (*ServiceContext, error)
 	}
 
 	logisticsRepo := repository.NewLogisticsRepository(db)
-	_ = logisticsRepo.SeedDefaults()
+	_ = logisticsRepo.SeedDefaults(context.Background())
 
 	return &ServiceContext{
 		Config:                    cfg,

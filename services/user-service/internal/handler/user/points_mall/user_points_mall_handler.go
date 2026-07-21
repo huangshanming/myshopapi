@@ -27,3 +27,10 @@ func ListUserPointsOrdersHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		l.ListUserPointsOrders(w, r)
 	}
 }
+
+func ListPointsGoodsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		l := points_mall.NewPointProductLogic(r.Context(), svcCtx)
+		l.ListPointsProduct(w, r)
+	}
+}

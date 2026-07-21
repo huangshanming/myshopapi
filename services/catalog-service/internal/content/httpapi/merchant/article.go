@@ -28,9 +28,9 @@ func (h *ArticleHandler) requirePerm(w http.ResponseWriter, r *http.Request, cod
 		return false
 	}
 	if middleware.GetUserRole(r.Context()) == jwt.RoleMerchantOwner {
-		_ = h.svcCtx.ShopRBAC.EnsureOwnerRole(shopID, uid)
+		_ = h.svcCtx.ShopRBAC.EnsureOwnerRole(r.Context(), shopID, uid)
 	}
-	if !h.svcCtx.ShopRBAC.HasPerm(shopID, uid, code) {
+	if !h.svcCtx.ShopRBAC.HasPerm(r.Context(), shopID, uid, code) {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "无权限: "+code))
 		return false
 	}
@@ -191,10 +191,10 @@ func (h *ArticleHandler) Upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if middleware.GetUserRole(r.Context()) == jwt.RoleMerchantOwner {
-		_ = h.svcCtx.ShopRBAC.EnsureOwnerRole(shopID, uid)
+		_ = h.svcCtx.ShopRBAC.EnsureOwnerRole(r.Context(), shopID, uid)
 	}
-	if !h.svcCtx.ShopRBAC.HasPerm(shopID, uid, "article:edit") &&
-		!h.svcCtx.ShopRBAC.HasPerm(shopID, uid, "article:add") {
+	if !h.svcCtx.ShopRBAC.HasPerm(r.Context(), shopID, uid, "article:edit") &&
+		!h.svcCtx.ShopRBAC.HasPerm(r.Context(), shopID, uid, "article:add") {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "无权限: article:edit"))
 		return
 	}

@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -20,9 +21,9 @@ func NewTaskRepository(db *gorm.DB) *TaskRepository {
 	return &TaskRepository{db: db}
 }
 
-func (r *TaskRepository) SeedIfEmpty() error {
+func (r *TaskRepository) SeedIfEmpty(ctx context.Context) error {
 	var n int64
-	if err := r.db.Model(&model.TaskDefinition{}).Count(&n).Error; err != nil {
+	if err := r.db.WithContext(ctx).Model(&model.TaskDefinition{}).Count(&n).Error; err != nil {
 		return err
 	}
 	if n > 0 {
@@ -40,11 +41,11 @@ func (r *TaskRepository) SeedIfEmpty() error {
 		{Code: "first_favorite_product", Title: "首次收藏商品", Description: "完成第一次商品收藏", Icon: "favorite", Period: model.TaskPeriodOnce, Enabled: 1, RewardPoints: 20, TargetCount: 1, DailyLimit: 0, Sort: 90, RulesJSON: "{}"},
 		{Code: "invite_placeholder", Title: "邀请好友", Description: "邀请好友注册（即将开放）", Icon: "invite", Period: model.TaskPeriodDaily, Enabled: 0, RewardPoints: 100, TargetCount: 1, DailyLimit: 1, Sort: 100, RulesJSON: "{}"},
 	}
-	return r.db.Create(&seeds).Error
+	return r.db.WithContext(ctx).Create(&seeds).Error
 }
 
-func (r *TaskRepository) ListDefinitions(all bool) ([]model.TaskDefinition, error) {
-	q := r.db.Model(&model.TaskDefinition{}).Order("sort ASC, id ASC")
+func (r *TaskRepository) ListDefinitions(ctx context.Context, all bool) ([]model.TaskDefinition, error) {
+	q := r.db.WithContext(ctx).Model(&model.TaskDefinition{}).Order("sort ASC, id ASC")
 	if !all {
 		q = q.Where("enabled = 1")
 	}
@@ -53,26 +54,26 @@ func (r *TaskRepository) ListDefinitions(all bool) ([]model.TaskDefinition, erro
 	return list, err
 }
 
-func (r *TaskRepository) GetDefinition(code string) (*model.TaskDefinition, error) {
+func (r *TaskRepository) GetDefinition(ctx context.Context, code string) (*model.TaskDefinition, error) {
 	var t model.TaskDefinition
-	err := r.db.Where("code = ?", code).First(&t).Error
+	err := r.db.WithContext(ctx).Where("code = ?", code).First(&t).Error
 	if err != nil {
 		return nil, err
 	}
 	return &t, nil
 }
 
-func (r *TaskRepository) GetDefinitionByID(id uint64) (*model.TaskDefinition, error) {
+func (r *TaskRepository) GetDefinitionByID(ctx context.Context, id uint64) (*model.TaskDefinition, error) {
 	var t model.TaskDefinition
-	err := r.db.Where("id = ?", id).First(&t).Error
+	err := r.db.WithContext(ctx).Where("id = ?", id).First(&t).Error
 	if err != nil {
 		return nil, err
 	}
 	return &t, nil
 }
 
-func (r *TaskRepository) UpdateDefinition(id uint64, updates map[string]interface{}) error {
-	return r.db.Model(&model.TaskDefinition{}).Where("id = ?", id).Updates(updates).Error
+func (r *TaskRepository) UpdateDefinition(ctx context.Context, id uint64, updates map[string]interface{}) error {
+	return r.db.WithContext(ctx).Model(&model.TaskDefinition{}).Where("id = ?", id).Updates(updates).Error
 }
 
 func TodayBizDate() string {
@@ -86,10 +87,10 @@ func BizDateFor(def *model.TaskDefinition) string {
 	return TodayBizDate()
 }
 
-func (r *TaskRepository) GetOrCreateProgress(userID uint64, def *model.TaskDefinition) (*model.UserTaskProgress, error) {
+func (r *TaskRepository) GetOrCreateProgress(ctx context.Context, userID uint64, def *model.TaskDefinition) (*model.UserTaskProgress, error) {
 	biz := BizDateFor(def)
 	var p model.UserTaskProgress
-	err := r.db.Where("user_id = ? AND task_code = ? AND biz_date = ?", userID, def.Code, biz).First(&p).Error
+	err := r.db.WithContext(ctx).Where("user_id = ? AND task_code = ? AND biz_date = ?", userID, def.Code, biz).First(&p).Error
 	if err == nil {
 		return &p, nil
 	}
@@ -100,26 +101,26 @@ func (r *TaskRepository) GetOrCreateProgress(userID uint64, def *model.TaskDefin
 		UserID: userID, TaskCode: def.Code, BizDate: biz,
 		Progress: 0, ClaimCount: 0, Status: model.TaskStatusOngoing,
 	}
-	if err := r.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&p).Error; err != nil {
+	if err := r.db.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&p).Error; err != nil {
 		return nil, err
 	}
-	err = r.db.Where("user_id = ? AND task_code = ? AND biz_date = ?", userID, def.Code, biz).First(&p).Error
+	err = r.db.WithContext(ctx).Where("user_id = ? AND task_code = ? AND biz_date = ?", userID, def.Code, biz).First(&p).Error
 	return &p, err
 }
 
-func (r *TaskRepository) TryDedupe(userID uint64, taskCode, bizDate, refKey string) (bool, error) {
+func (r *TaskRepository) TryDedupe(ctx context.Context, userID uint64, taskCode, bizDate, refKey string) (bool, error) {
 	if refKey == "" {
 		return true, nil
 	}
 	row := model.UserTaskDedupe{UserID: userID, TaskCode: taskCode, BizDate: bizDate, RefKey: refKey}
-	res := r.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&row)
+	res := r.db.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&row)
 	if res.Error != nil {
 		return false, res.Error
 	}
 	return res.RowsAffected > 0, nil
 }
 
-func (r *TaskRepository) ApplyEvent(userID uint64, def *model.TaskDefinition, delta int, refKey string) (*model.UserTaskProgress, error) {
+func (r *TaskRepository) ApplyEvent(ctx context.Context, userID uint64, def *model.TaskDefinition, delta int, refKey string) (*model.UserTaskProgress, error) {
 	if def.Enabled != 1 {
 		return nil, nil
 	}
@@ -127,16 +128,16 @@ func (r *TaskRepository) ApplyEvent(userID uint64, def *model.TaskDefinition, de
 		delta = 1
 	}
 	biz := BizDateFor(def)
-	ok, err := r.TryDedupe(userID, def.Code, biz, refKey)
+	ok, err := r.TryDedupe(ctx, userID, def.Code, biz, refKey)
 	if err != nil {
 		return nil, err
 	}
 	if !ok {
-		return r.GetOrCreateProgress(userID, def)
+		return r.GetOrCreateProgress(ctx, userID, def)
 	}
 
 	var out *model.UserTaskProgress
-	err = r.db.Transaction(func(tx *gorm.DB) error {
+	err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var p model.UserTaskProgress
 		e := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("user_id = ? AND task_code = ? AND biz_date = ?", userID, def.Code, biz).
@@ -198,10 +199,10 @@ func (r *TaskRepository) ApplyEvent(userID uint64, def *model.TaskDefinition, de
 	return out, err
 }
 
-func (r *TaskRepository) Claim(userID uint64, def *model.TaskDefinition) (*model.UserPoints, error) {
+func (r *TaskRepository) Claim(ctx context.Context, userID uint64, def *model.TaskDefinition) (*model.UserPoints, error) {
 	biz := BizDateFor(def)
 	var points *model.UserPoints
-	err := r.db.Transaction(func(tx *gorm.DB) error {
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var p model.UserTaskProgress
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("user_id = ? AND task_code = ? AND biz_date = ?", userID, def.Code, biz).
@@ -296,7 +297,7 @@ func (r *TaskRepository) addPointsTx(tx *gorm.DB, userID uint64, delta int, chan
 }
 
 // DeductPoints 扣减积分（幂等：同 ref_type+ref_id+change_type 已存在则直接成功）
-func (r *TaskRepository) DeductPoints(userID uint64, points int, changeType, remark, refType string, refID uint64) (*model.UserPoints, error) {
+func (r *TaskRepository) DeductPoints(ctx context.Context, userID uint64, points int, changeType, remark, refType string, refID uint64) (*model.UserPoints, error) {
 	if userID == 0 || points <= 0 {
 		return nil, errors.New("参数无效")
 	}
@@ -304,7 +305,7 @@ func (r *TaskRepository) DeductPoints(userID uint64, points int, changeType, rem
 		changeType = model.PointChangeMallExchange
 	}
 	var out *model.UserPoints
-	err := r.db.Transaction(func(tx *gorm.DB) error {
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var n int64
 		if err := tx.Model(&model.UserPointLog{}).
 			Where("ref_type = ? AND ref_id = ? AND change_type = ?", refType, refID, changeType).
@@ -330,7 +331,7 @@ func (r *TaskRepository) DeductPoints(userID uint64, points int, changeType, rem
 }
 
 // RefundPoints 退回积分（幂等）
-func (r *TaskRepository) RefundPoints(userID uint64, points int, changeType, remark, refType string, refID uint64) (*model.UserPoints, error) {
+func (r *TaskRepository) RefundPoints(ctx context.Context, userID uint64, points int, changeType, remark, refType string, refID uint64) (*model.UserPoints, error) {
 	if userID == 0 || points <= 0 {
 		return nil, errors.New("参数无效")
 	}
@@ -338,7 +339,7 @@ func (r *TaskRepository) RefundPoints(userID uint64, points int, changeType, rem
 		changeType = model.PointChangeMallRefund
 	}
 	var out *model.UserPoints
-	err := r.db.Transaction(func(tx *gorm.DB) error {
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var n int64
 		if err := tx.Model(&model.UserPointLog{}).
 			Where("ref_type = ? AND ref_id = ? AND change_type = ?", refType, refID, changeType).
@@ -363,12 +364,12 @@ func (r *TaskRepository) RefundPoints(userID uint64, points int, changeType, rem
 	return out, err
 }
 
-func (r *TaskRepository) GetPoints(userID uint64) (*model.UserPoints, error) {
+func (r *TaskRepository) GetPoints(ctx context.Context, userID uint64) (*model.UserPoints, error) {
 	var up model.UserPoints
-	err := r.db.Where("user_id = ?", userID).First(&up).Error
+	err := r.db.WithContext(ctx).Where("user_id = ?", userID).First(&up).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		up = model.UserPoints{UserID: userID, Points: 0}
-		_ = r.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&up).Error
+		_ = r.db.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&up).Error
 		return &up, nil
 	}
 	if err != nil {
@@ -377,9 +378,9 @@ func (r *TaskRepository) GetPoints(userID uint64) (*model.UserPoints, error) {
 	return &up, nil
 }
 
-func (r *TaskRepository) ListPointLogs(userID uint64, page, pageSize int) ([]model.UserPointLog, int64, error) {
+func (r *TaskRepository) ListPointLogs(ctx context.Context, userID uint64, page, pageSize int) ([]model.UserPointLog, int64, error) {
 	var total int64
-	q := r.db.Model(&model.UserPointLog{}).Where("user_id = ?", userID)
+	q := r.db.WithContext(ctx).Model(&model.UserPointLog{}).Where("user_id = ?", userID)
 	if err := q.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
@@ -388,9 +389,9 @@ func (r *TaskRepository) ListPointLogs(userID uint64, page, pageSize int) ([]mod
 	return list, total, err
 }
 
-func (r *TaskRepository) GetUserBrief(userID uint64) (nickname, avatar string, err error) {
+func (r *TaskRepository) GetUserBrief(ctx context.Context, userID uint64) (nickname, avatar string, err error) {
 	var u model.User
-	err = r.db.Select("id", "nickname", "avatar").Where("id = ?", userID).First(&u).Error
+	err = r.db.WithContext(ctx).Select("id", "nickname", "avatar").Where("id = ?", userID).First(&u).Error
 	if err != nil {
 		return "", "", err
 	}

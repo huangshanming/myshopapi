@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"errors"
 	"sort"
 
@@ -18,13 +19,13 @@ func NewShopRBACRepository(db *gorm.DB) *ShopRBACRepository {
 	return &ShopRBACRepository{db: db}
 }
 
-func (r *ShopRBACRepository) EnsureOwnerRole(shopID, userID uint64) error {
-	_ = r.EnsureShopMenus()
+func (r *ShopRBACRepository) EnsureOwnerRole(ctx context.Context, shopID, userID uint64) error {
+	_ = r.EnsureShopMenus(ctx)
 	var role model.ShopRole
-	err := r.db.Where("shop_id = ? AND code = ?", shopID, "shop_owner").First(&role).Error
+	err := r.db.WithContext(ctx).Where("shop_id = ? AND code = ?", shopID, "shop_owner").First(&role).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		role = model.ShopRole{ShopID: shopID, Code: "shop_owner", Name: "店主", Status: 1}
-		if err := r.db.Create(&role).Error; err != nil {
+		if err := r.db.WithContext(ctx).Create(&role).Error; err != nil {
 			return err
 		}
 	} else if err != nil {
@@ -32,24 +33,24 @@ func (r *ShopRBACRepository) EnsureOwnerRole(shopID, userID uint64) error {
 	}
 	// 店主始终挂全量菜单（含后续新增的目录/页面）
 	var menus []model.ShopMenu
-	_ = r.db.Where("status = 1").Find(&menus).Error
+	_ = r.db.WithContext(ctx).Where("status = 1").Find(&menus).Error
 	for _, m := range menus {
 		var cnt int64
-		r.db.Model(&model.ShopRoleMenu{}).Where("role_id = ? AND menu_id = ?", role.ID, m.ID).Count(&cnt)
+		r.db.WithContext(ctx).Model(&model.ShopRoleMenu{}).Where("role_id = ? AND menu_id = ?", role.ID, m.ID).Count(&cnt)
 		if cnt == 0 {
-			_ = r.db.Create(&model.ShopRoleMenu{RoleID: role.ID, MenuID: m.ID}).Error
+			_ = r.db.WithContext(ctx).Create(&model.ShopRoleMenu{RoleID: role.ID, MenuID: m.ID}).Error
 		}
 	}
 	var ur model.ShopUserRole
-	err = r.db.Where("shop_id = ? AND user_id = ? AND role_id = ?", shopID, userID, role.ID).First(&ur).Error
+	err = r.db.WithContext(ctx).Where("shop_id = ? AND user_id = ? AND role_id = ?", shopID, userID, role.ID).First(&ur).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return r.db.Create(&model.ShopUserRole{ShopID: shopID, UserID: userID, RoleID: role.ID}).Error
+		return r.db.WithContext(ctx).Create(&model.ShopUserRole{ShopID: shopID, UserID: userID, RoleID: role.ID}).Error
 	}
 	return err
 }
 
 // EnsureShopMenus 幂等写入分层商家菜单（目录 → 页面 → 按钮）
-func (r *ShopRBACRepository) EnsureShopMenus() error {
+func (r *ShopRBACRepository) EnsureShopMenus(ctx context.Context) error {
 	seed := []model.ShopMenu{
 		{ID: 100, ParentID: 0, Name: "商品中心", Type: "dir", Path: "", Icon: "Goods", Perms: "", Sort: 10, Visible: 1, Status: 1},
 		{ID: 101, ParentID: 0, Name: "库存管理", Type: "dir", Path: "", Icon: "Box", Perms: "", Sort: 20, Visible: 1, Status: 1},
@@ -99,9 +100,9 @@ func (r *ShopRBACRepository) EnsureShopMenus() error {
 	}
 	for _, m := range seed {
 		var exists model.ShopMenu
-		err := r.db.Where("id = ?", m.ID).First(&exists).Error
+		err := r.db.WithContext(ctx).Where("id = ?", m.ID).First(&exists).Error
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			if err := r.db.Create(&m).Error; err != nil {
+			if err := r.db.WithContext(ctx).Create(&m).Error; err != nil {
 				return err
 			}
 			continue
@@ -109,7 +110,7 @@ func (r *ShopRBACRepository) EnsureShopMenus() error {
 		if err != nil {
 			return err
 		}
-		_ = r.db.Model(&model.ShopMenu{}).Where("id = ?", m.ID).Updates(map[string]interface{}{
+		_ = r.db.WithContext(ctx).Model(&model.ShopMenu{}).Where("id = ?", m.ID).Updates(map[string]interface{}{
 			"parent_id": m.ParentID, "name": m.Name, "type": m.Type, "path": m.Path,
 			"component": m.Component, "icon": m.Icon, "perms": m.Perms,
 			"sort": m.Sort, "visible": m.Visible, "status": m.Status,
@@ -118,27 +119,27 @@ func (r *ShopRBACRepository) EnsureShopMenus() error {
 	return nil
 }
 
-func (r *ShopRBACRepository) ListRoleMenuIDs(roleID uint64) ([]uint64, error) {
+func (r *ShopRBACRepository) ListRoleMenuIDs(ctx context.Context, roleID uint64) ([]uint64, error) {
 	var ids []uint64
-	err := r.db.Model(&model.ShopRoleMenu{}).Where("role_id = ?", roleID).Pluck("menu_id", &ids).Error
+	err := r.db.WithContext(ctx).Model(&model.ShopRoleMenu{}).Where("role_id = ?", roleID).Pluck("menu_id", &ids).Error
 	return ids, err
 }
 
-func (r *ShopRBACRepository) IsOwner(shopID, userID uint64) bool {
+func (r *ShopRBACRepository) IsOwner(ctx context.Context, shopID, userID uint64) bool {
 	var count int64
-	r.db.Table("shop_user_roles").
+	r.db.WithContext(ctx).Table("shop_user_roles").
 		Joins("JOIN shop_roles ON shop_roles.id = shop_user_roles.role_id").
 		Where("shop_user_roles.shop_id = ? AND shop_user_roles.user_id = ? AND shop_roles.code = ?", shopID, userID, "shop_owner").
 		Count(&count)
 	return count > 0
 }
 
-func (r *ShopRBACRepository) HasPerm(shopID, userID uint64, code string) bool {
-	if r.IsOwner(shopID, userID) {
+func (r *ShopRBACRepository) HasPerm(ctx context.Context, shopID, userID uint64, code string) bool {
+	if r.IsOwner(ctx, shopID, userID) {
 		return true
 	}
 	var count int64
-	r.db.Table("shop_user_roles ur").
+	r.db.WithContext(ctx).Table("shop_user_roles ur").
 		Joins("JOIN shop_role_menus rm ON rm.role_id = ur.role_id").
 		Joins("JOIN shop_menus m ON m.id = rm.menu_id").
 		Where("ur.shop_id = ? AND ur.user_id = ? AND m.perms = ? AND m.status = 1", shopID, userID, code).
@@ -146,14 +147,14 @@ func (r *ShopRBACRepository) HasPerm(shopID, userID uint64, code string) bool {
 	return count > 0
 }
 
-func (r *ShopRBACRepository) ListPerms(shopID, userID uint64) ([]string, error) {
-	if r.IsOwner(shopID, userID) {
+func (r *ShopRBACRepository) ListPerms(ctx context.Context, shopID, userID uint64) ([]string, error) {
+	if r.IsOwner(ctx, shopID, userID) {
 		var all []string
-		err := r.db.Model(&model.ShopMenu{}).Where("status = 1 AND perms <> ''").Pluck("perms", &all).Error
+		err := r.db.WithContext(ctx).Model(&model.ShopMenu{}).Where("status = 1 AND perms <> ''").Pluck("perms", &all).Error
 		return all, err
 	}
 	var perms []string
-	err := r.db.Table("shop_user_roles ur").
+	err := r.db.WithContext(ctx).Table("shop_user_roles ur").
 		Select("DISTINCT m.perms").
 		Joins("JOIN shop_role_menus rm ON rm.role_id = ur.role_id").
 		Joins("JOIN shop_menus m ON m.id = rm.menu_id").
@@ -162,18 +163,18 @@ func (r *ShopRBACRepository) ListPerms(shopID, userID uint64) ([]string, error) 
 	return perms, err
 }
 
-func (r *ShopRBACRepository) MenuTree() ([]model.ShopMenu, error) {
+func (r *ShopRBACRepository) MenuTree(ctx context.Context) ([]model.ShopMenu, error) {
 	var list []model.ShopMenu
-	err := r.db.Where("status = 1").Order("sort ASC, id ASC").Find(&list).Error
+	err := r.db.WithContext(ctx).Where("status = 1").Order("sort ASC, id ASC").Find(&list).Error
 	return list, err
 }
 
-func (r *ShopRBACRepository) ListMenusForUser(shopID, userID uint64) ([]model.ShopMenu, error) {
-	if r.IsOwner(shopID, userID) {
-		return r.MenuTree()
+func (r *ShopRBACRepository) ListMenusForUser(ctx context.Context, shopID, userID uint64) ([]model.ShopMenu, error) {
+	if r.IsOwner(ctx, shopID, userID) {
+		return r.MenuTree(ctx)
 	}
 	var list []model.ShopMenu
-	err := r.db.Table("shop_menus m").
+	err := r.db.WithContext(ctx).Table("shop_menus m").
 		Select("DISTINCT m.*").
 		Joins("JOIN shop_role_menus rm ON rm.menu_id = m.id").
 		Joins("JOIN shop_user_roles ur ON ur.role_id = rm.role_id").
@@ -184,10 +185,10 @@ func (r *ShopRBACRepository) ListMenusForUser(shopID, userID uint64) ([]model.Sh
 		return nil, err
 	}
 	// 补全父级目录，否则树根挂不住
-	return r.withAncestors(list)
+	return r.withAncestors(ctx, list)
 }
 
-func (r *ShopRBACRepository) withAncestors(list []model.ShopMenu) ([]model.ShopMenu, error) {
+func (r *ShopRBACRepository) withAncestors(ctx context.Context, list []model.ShopMenu) ([]model.ShopMenu, error) {
 	byID := map[uint64]model.ShopMenu{}
 	for _, m := range list {
 		byID[m.ID] = m
@@ -201,7 +202,7 @@ func (r *ShopRBACRepository) withAncestors(list []model.ShopMenu) ([]model.ShopM
 			}
 			need = append(need, pid)
 			var p model.ShopMenu
-			if err := r.db.Where("id = ? AND status = 1", pid).First(&p).Error; err != nil {
+			if err := r.db.WithContext(ctx).Where("id = ? AND status = 1", pid).First(&p).Error; err != nil {
 				break
 			}
 			byID[p.ID] = p
@@ -247,14 +248,14 @@ func BuildShopMenuTree(menus []model.ShopMenu) []map[string]interface{} {
 	return walk(0)
 }
 
-func (r *ShopRBACRepository) ListRoles(shopID uint64) ([]model.ShopRole, error) {
+func (r *ShopRBACRepository) ListRoles(ctx context.Context, shopID uint64) ([]model.ShopRole, error) {
 	var list []model.ShopRole
-	err := r.db.Where("shop_id = ?", shopID).Order("id ASC").Find(&list).Error
+	err := r.db.WithContext(ctx).Where("shop_id = ?", shopID).Order("id ASC").Find(&list).Error
 	return list, err
 }
 
-func (r *ShopRBACRepository) SaveRole(role *model.ShopRole, menuIDs []uint64) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *ShopRBACRepository) SaveRole(ctx context.Context, role *model.ShopRole, menuIDs []uint64) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if role.ID == 0 {
 			if err := tx.Create(role).Error; err != nil {
 				return err
@@ -276,20 +277,20 @@ func (r *ShopRBACRepository) SaveRole(role *model.ShopRole, menuIDs []uint64) er
 	})
 }
 
-func (r *ShopRBACRepository) BindStaff(shopID, userID, roleID uint64) error {
-	_ = r.db.Where("shop_id = ? AND user_id = ?", shopID, userID).Delete(&model.ShopUserRole{}).Error
-	if err := r.db.Create(&model.ShopUserRole{ShopID: shopID, UserID: userID, RoleID: roleID}).Error; err != nil {
+func (r *ShopRBACRepository) BindStaff(ctx context.Context, shopID, userID, roleID uint64) error {
+	_ = r.db.WithContext(ctx).Where("shop_id = ? AND user_id = ?", shopID, userID).Delete(&model.ShopUserRole{}).Error
+	if err := r.db.WithContext(ctx).Create(&model.ShopUserRole{ShopID: shopID, UserID: userID, RoleID: roleID}).Error; err != nil {
 		return err
 	}
 	// 普通用户绑到店铺后，登录角色需为商家，否则进不了商家后台
-	_ = r.db.Table("users").Where("id = ? AND role IN ('user','')", userID).
+	_ = r.db.WithContext(ctx).Table("users").Where("id = ? AND role IN ('user','')", userID).
 		Update("role", "merchant_staff").Error
 	// 登录 JWT 依赖 shop_members 解析 shop_id，创建/绑定时必须同步写入
-	return r.EnsureShopMember(shopID, userID, "staff")
+	return r.EnsureShopMember(ctx, shopID, userID, "staff")
 }
 
 // EnsureShopMember 写入店铺成员关系（登录取 shop_id 用）
-func (r *ShopRBACRepository) EnsureShopMember(shopID, userID uint64, memberRole string) error {
+func (r *ShopRBACRepository) EnsureShopMember(ctx context.Context, shopID, userID uint64, memberRole string) error {
 	if shopID == 0 || userID == 0 {
 		return errors.New("店铺或用户无效")
 	}
@@ -297,22 +298,22 @@ func (r *ShopRBACRepository) EnsureShopMember(shopID, userID uint64, memberRole 
 		memberRole = "staff"
 	}
 	var cnt int64
-	r.db.Table("shop_members").Where("shop_id = ? AND user_id = ?", shopID, userID).Count(&cnt)
+	r.db.WithContext(ctx).Table("shop_members").Where("shop_id = ? AND user_id = ?", shopID, userID).Count(&cnt)
 	if cnt > 0 {
-		return r.db.Table("shop_members").
+		return r.db.WithContext(ctx).Table("shop_members").
 			Where("shop_id = ? AND user_id = ?", shopID, userID).
 			Update("member_role", memberRole).Error
 	}
-	return r.db.Table("shop_members").Create(map[string]interface{}{
+	return r.db.WithContext(ctx).Table("shop_members").Create(map[string]interface{}{
 		"shop_id":     shopID,
 		"user_id":     userID,
 		"member_role": memberRole,
 	}).Error
 }
 
-func (r *ShopRBACRepository) FindUserIDByMobile(mobile string) (uint64, error) {
+func (r *ShopRBACRepository) FindUserIDByMobile(ctx context.Context, mobile string) (uint64, error) {
 	var id uint64
-	err := r.db.Table("users").Select("id").Where("mobile = ? AND (deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00')", mobile).Scan(&id).Error
+	err := r.db.WithContext(ctx).Table("users").Select("id").Where("mobile = ? AND (deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00')", mobile).Scan(&id).Error
 	if err != nil || id == 0 {
 		return 0, errors.New("用户不存在，请先创建账号或改用「新建店员」")
 	}
@@ -320,7 +321,7 @@ func (r *ShopRBACRepository) FindUserIDByMobile(mobile string) (uint64, error) {
 }
 
 // CreateStaffUser 商家新建店员账号；手机号已存在时返回明确提示
-func (r *ShopRBACRepository) CreateStaffUser(mobile, plainPwd, nickname string) (uint64, error) {
+func (r *ShopRBACRepository) CreateStaffUser(ctx context.Context, mobile, plainPwd, nickname string) (uint64, error) {
 	if mobile == "" || len(mobile) != 11 {
 		return 0, errors.New("请输入 11 位手机号")
 	}
@@ -328,7 +329,7 @@ func (r *ShopRBACRepository) CreateStaffUser(mobile, plainPwd, nickname string) 
 		return 0, errors.New("密码至少 6 位")
 	}
 	var id uint64
-	_ = r.db.Table("users").Select("id").Where("mobile = ?", mobile).Scan(&id).Error
+	_ = r.db.WithContext(ctx).Table("users").Select("id").Where("mobile = ?", mobile).Scan(&id).Error
 	if id > 0 {
 		return id, errors.New("该手机号已注册，请改用「绑定已有账号」")
 	}
@@ -344,17 +345,17 @@ func (r *ShopRBACRepository) CreateStaffUser(mobile, plainPwd, nickname string) 
 		"avatar":   "",
 		"gender":   0,
 	}
-	if err := r.db.Table("users").Create(row).Error; err != nil {
+	if err := r.db.WithContext(ctx).Table("users").Create(row).Error; err != nil {
 		return 0, err
 	}
-	_ = r.db.Table("users").Select("id").Where("mobile = ?", mobile).Scan(&id).Error
+	_ = r.db.WithContext(ctx).Table("users").Select("id").Where("mobile = ?", mobile).Scan(&id).Error
 	if id == 0 {
 		return 0, errors.New("创建用户失败")
 	}
 	return id, nil
 }
 
-func (r *ShopRBACRepository) ListStaff(shopID uint64) ([]map[string]interface{}, error) {
+func (r *ShopRBACRepository) ListStaff(ctx context.Context, shopID uint64) ([]map[string]interface{}, error) {
 	rows := []map[string]interface{}{}
 	err := r.db.Table("shop_user_roles ur").
 		Select("ur.user_id, ur.role_id, r.name as role_name, u.mobile, u.nickname").

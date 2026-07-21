@@ -45,14 +45,14 @@ func (l *AddressLogic) List(userID uint64) ([]model.UserAddress, error) {
 	if userID == 0 {
 		return nil, errors.New("用户无效")
 	}
-	return l.svcCtx.Repo.ListAddresses(userID)
+	return l.svcCtx.Repo.ListAddresses(l.ctx, userID)
 }
 
 func (l *AddressLogic) Get(userID, id uint64) (*model.UserAddress, error) {
 	if userID == 0 || id == 0 {
 		return nil, errors.New("参数无效")
 	}
-	return l.svcCtx.Repo.GetAddressByID(userID, id)
+	return l.svcCtx.Repo.GetAddressByID(l.ctx, userID, id)
 }
 
 func (l *AddressLogic) Create(userID uint64, req types.AddressReq) (*model.UserAddress, error) {
@@ -78,7 +78,7 @@ func (l *AddressLogic) Create(userID uint64, req types.AddressReq) (*model.UserA
 	if a.IsDefault != 1 {
 		a.IsDefault = 0
 	}
-	if err := l.svcCtx.Repo.CreateAddress(a); err != nil {
+	if err := l.svcCtx.Repo.CreateAddress(l.ctx, a); err != nil {
 		return nil, err
 	}
 	return a, nil
@@ -103,13 +103,13 @@ func (l *AddressLogic) Update(userID, id uint64, req types.AddressReq) error {
 	if a.IsDefault != 1 {
 		a.IsDefault = 0
 	}
-	return l.svcCtx.Repo.UpdateAddress(userID, id, a)
+	return l.svcCtx.Repo.UpdateAddress(l.ctx, userID, id, a)
 }
 
 func (l *AddressLogic) Delete(userID, id uint64) error {
-	return l.svcCtx.Repo.DeleteAddress(userID, id)
+	return l.svcCtx.Repo.DeleteAddress(l.ctx, userID, id)
 }
 
 func (l *AddressLogic) SetDefault(userID, id uint64) error {
-	return l.svcCtx.Repo.SetDefaultAddress(userID, id)
+	return l.svcCtx.Repo.SetDefaultAddress(l.ctx, userID, id)
 }

@@ -41,11 +41,11 @@ func (l *PointsProductLogic) List(page, pageSize int, status, keyword string) ([
 	if pageSize < 1 || pageSize > 100 {
 		pageSize = 20
 	}
-	return l.svcCtx.PointsProducts.List(page, pageSize, status, keyword)
+	return l.svcCtx.PointsProducts.List(l.ctx, page, pageSize, status, keyword)
 }
 
 func (l *PointsProductLogic) Get(id uint64) (*model.PointsProduct, error) {
-	p, err := l.svcCtx.PointsProducts.GetByID(id)
+	p, err := l.svcCtx.PointsProducts.GetByID(l.ctx, id)
 	if err != nil {
 		return nil, errors.New("商品不存在")
 	}
@@ -88,14 +88,14 @@ func (l *PointsProductLogic) Create(req PointsProductSaveReq) (*model.PointsProd
 		}
 		p.Status = s
 	}
-	if err := l.svcCtx.PointsProducts.Create(p); err != nil {
+	if err := l.svcCtx.PointsProducts.Create(l.ctx, p); err != nil {
 		return nil, err
 	}
 	return p, nil
 }
 
 func (l *PointsProductLogic) Update(id uint64, req PointsProductSaveReq) (*model.PointsProduct, error) {
-	if _, err := l.svcCtx.PointsProducts.GetByID(id); err != nil {
+	if _, err := l.svcCtx.PointsProducts.GetByID(l.ctx, id); err != nil {
 		return nil, errors.New("商品不存在")
 	}
 	name := strings.TrimSpace(req.Name)
@@ -132,10 +132,10 @@ func (l *PointsProductLogic) Update(id uint64, req PointsProductSaveReq) (*model
 		}
 		updates["status"] = s
 	}
-	if err := l.svcCtx.PointsProducts.Update(id, updates); err != nil {
+	if err := l.svcCtx.PointsProducts.Update(l.ctx, id, updates); err != nil {
 		return nil, err
 	}
-	return l.svcCtx.PointsProducts.GetByID(id)
+	return l.svcCtx.PointsProducts.GetByID(l.ctx, id)
 }
 
 func (l *PointsProductLogic) SetStatus(id uint64, status string) (*model.PointsProduct, error) {
@@ -143,20 +143,20 @@ func (l *PointsProductLogic) SetStatus(id uint64, status string) (*model.PointsP
 	if status != model.PointsProductStatusOn && status != model.PointsProductStatusOff {
 		return nil, errors.New("状态无效")
 	}
-	if _, err := l.svcCtx.PointsProducts.GetByID(id); err != nil {
+	if _, err := l.svcCtx.PointsProducts.GetByID(l.ctx, id); err != nil {
 		return nil, errors.New("商品不存在")
 	}
-	if err := l.svcCtx.PointsProducts.Update(id, map[string]interface{}{"status": status}); err != nil {
+	if err := l.svcCtx.PointsProducts.Update(l.ctx, id, map[string]interface{}{"status": status}); err != nil {
 		return nil, err
 	}
-	return l.svcCtx.PointsProducts.GetByID(id)
+	return l.svcCtx.PointsProducts.GetByID(l.ctx, id)
 }
 
 func (l *PointsProductLogic) Delete(id uint64) error {
-	if _, err := l.svcCtx.PointsProducts.GetByID(id); err != nil {
+	if _, err := l.svcCtx.PointsProducts.GetByID(l.ctx, id); err != nil {
 		return errors.New("商品不存在")
 	}
-	return l.svcCtx.PointsProducts.Delete(id)
+	return l.svcCtx.PointsProducts.Delete(l.ctx, id)
 }
 
 func (l *PointsProductLogic) SaveUpload(filename string, data []byte) (string, error) {

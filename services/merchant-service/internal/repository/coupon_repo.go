@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -12,8 +13,8 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-func (r *MerchantRepository) CreateCoupon(c *model.Coupon, scopes []model.CouponScope) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *MerchantRepository) CreateCoupon(ctx context.Context, c *model.Coupon, scopes []model.CouponScope) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(c).Error; err != nil {
 			return err
 		}
@@ -30,8 +31,8 @@ func (r *MerchantRepository) CreateCoupon(c *model.Coupon, scopes []model.Coupon
 	})
 }
 
-func (r *MerchantRepository) UpdateCoupon(id uint64, updates map[string]interface{}, scopes *[]model.CouponScope) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *MerchantRepository) UpdateCoupon(ctx context.Context, id uint64, updates map[string]interface{}, scopes *[]model.CouponScope) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		res := tx.Model(&model.Coupon{}).Where("id = ?", id).Updates(updates)
 		if res.Error != nil {
 			return res.Error
@@ -57,30 +58,30 @@ func (r *MerchantRepository) UpdateCoupon(id uint64, updates map[string]interfac
 	})
 }
 
-func (r *MerchantRepository) GetCoupon(id uint64) (*model.Coupon, error) {
+func (r *MerchantRepository) GetCoupon(ctx context.Context, id uint64) (*model.Coupon, error) {
 	var c model.Coupon
-	if err := r.db.First(&c, id).Error; err != nil {
+	if err := r.db.WithContext(ctx).First(&c, id).Error; err != nil {
 		return nil, err
 	}
-	scopes, _ := r.ListCouponScopes(id)
+	scopes, _ := r.ListCouponScopes(ctx, id)
 	c.Scopes = scopes
 	return &c, nil
 }
 
-func (r *MerchantRepository) ListCouponScopes(couponID uint64) ([]model.CouponScope, error) {
+func (r *MerchantRepository) ListCouponScopes(ctx context.Context, couponID uint64) ([]model.CouponScope, error) {
 	var list []model.CouponScope
-	err := r.db.Where("coupon_id = ?", couponID).Find(&list).Error
+	err := r.db.WithContext(ctx).Where("coupon_id = ?", couponID).Find(&list).Error
 	return list, err
 }
 
-func (r *MerchantRepository) ListCoupons(issuerType string, shopID uint64, status, keyword string, page, pageSize int) ([]model.Coupon, int64, error) {
+func (r *MerchantRepository) ListCoupons(ctx context.Context, issuerType string, shopID uint64, status, keyword string, page, pageSize int) ([]model.Coupon, int64, error) {
 	if page < 1 {
 		page = 1
 	}
 	if pageSize < 1 {
 		pageSize = 20
 	}
-	q := r.db.Model(&model.Coupon{})
+	q := r.db.WithContext(ctx).Model(&model.Coupon{})
 	if issuerType != "" {
 		q = q.Where("issuer_type = ?", issuerType)
 	}
@@ -106,7 +107,7 @@ func (r *MerchantRepository) ListCoupons(issuerType string, shopID uint64, statu
 	}
 	now := time.Now()
 	for i := range list {
-		scopes, _ := r.ListCouponScopes(list[i].ID)
+		scopes, _ := r.ListCouponScopes(ctx, list[i].ID)
 		list[i].Scopes = scopes
 		list[i].DisplayStatus = couponDisplayStatus(&list[i], now)
 		if list[i].TotalCount > 0 {
@@ -145,15 +146,15 @@ func couponDisplayStatus(c *model.Coupon, now time.Time) string {
 	return c.Status
 }
 
-func (r *MerchantRepository) CountUserClaims(couponID, userID uint64) (int64, error) {
+func (r *MerchantRepository) CountUserClaims(ctx context.Context, couponID, userID uint64) (int64, error) {
 	var n int64
-	err := r.db.Model(&model.UserCoupon{}).Where("coupon_id = ? AND user_id = ?", couponID, userID).Count(&n).Error
+	err := r.db.WithContext(ctx).Model(&model.UserCoupon{}).Where("coupon_id = ? AND user_id = ?", couponID, userID).Count(&n).Error
 	return n, err
 }
 
-func (r *MerchantRepository) UserCreatedAt(userID uint64) (time.Time, error) {
+func (r *MerchantRepository) UserCreatedAt(ctx context.Context, userID uint64) (time.Time, error) {
 	var createdAt time.Time
-	err := r.db.Table("users").Select("created_at").Where("id = ?", userID).Scan(&createdAt).Error
+	err := r.db.WithContext(ctx).Table("users").Select("created_at").Where("id = ?", userID).Scan(&createdAt).Error
 	return createdAt, err
 }
 
@@ -164,7 +165,7 @@ type productLite struct {
 	Status     string
 }
 
-func (r *MerchantRepository) GetProductsLite(ids []uint64) (map[uint64]productLite, error) {
+func (r *MerchantRepository) GetProductsLite(ctx context.Context, ids []uint64) (map[uint64]productLite, error) {
 	out := map[uint64]productLite{}
 	if len(ids) == 0 {
 		return out, nil
@@ -175,7 +176,7 @@ func (r *MerchantRepository) GetProductsLite(ids []uint64) (map[uint64]productLi
 		CategoryID uint64 `gorm:"column:category_id"`
 		Status     string `gorm:"column:status"`
 	}
-	if err := r.db.Table("products").Select("id, shop_id, category_id, status").Where("id IN ?", ids).Find(&rows).Error; err != nil {
+	if err := r.db.WithContext(ctx).Table("products").Select("id, shop_id, category_id, status").Where("id IN ?", ids).Find(&rows).Error; err != nil {
 		return nil, err
 	}
 	for _, row := range rows {
@@ -184,9 +185,9 @@ func (r *MerchantRepository) GetProductsLite(ids []uint64) (map[uint64]productLi
 	return out, nil
 }
 
-func (r *MerchantRepository) ClaimCoupon(userID uint64, c *model.Coupon, source, batchNo string) (*model.UserCoupon, error) {
+func (r *MerchantRepository) ClaimCoupon(ctx context.Context, userID uint64, c *model.Coupon, source, batchNo string) (*model.UserCoupon, error) {
 	var uc model.UserCoupon
-	err := r.db.Transaction(func(tx *gorm.DB) error {
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var locked model.Coupon
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&locked, c.ID).Error; err != nil {
 			return errors.New("优惠券不存在")
@@ -263,15 +264,15 @@ func calcUserCouponValid(c *model.Coupon, now time.Time) (time.Time, time.Time, 
 	return start, end, nil
 }
 
-func (r *MerchantRepository) ListUserCoupons(userID uint64, status string, page, pageSize int) ([]model.UserCoupon, int64, error) {
-	r.ExpireUserCoupons(userID)
+func (r *MerchantRepository) ListUserCoupons(ctx context.Context, userID uint64, status string, page, pageSize int) ([]model.UserCoupon, int64, error) {
+	r.ExpireUserCoupons(ctx, userID)
 	if page < 1 {
 		page = 1
 	}
 	if pageSize < 1 {
 		pageSize = 20
 	}
-	q := r.db.Model(&model.UserCoupon{}).Where("user_id = ?", userID)
+	q := r.db.WithContext(ctx).Model(&model.UserCoupon{}).Where("user_id = ?", userID)
 	if status != "" {
 		q = q.Where("status = ?", status)
 	}
@@ -285,7 +286,7 @@ func (r *MerchantRepository) ListUserCoupons(userID uint64, status string, page,
 		return nil, 0, err
 	}
 	for i := range list {
-		if c, e := r.GetCoupon(list[i].CouponID); e == nil {
+		if c, e := r.GetCoupon(ctx, list[i].CouponID); e == nil {
 			list[i].Coupon = c
 			list[i].CouponName = c.Name
 		}
@@ -293,9 +294,9 @@ func (r *MerchantRepository) ListUserCoupons(userID uint64, status string, page,
 	return list, total, nil
 }
 
-func (r *MerchantRepository) ExpireUserCoupons(userID uint64) {
+func (r *MerchantRepository) ExpireUserCoupons(ctx context.Context, userID uint64) {
 	now := time.Now()
-	q := r.db.Model(&model.UserCoupon{}).
+	q := r.db.WithContext(ctx).Model(&model.UserCoupon{}).
 		Where("status = ? AND valid_end < ?", model.UserCouponUnused, now)
 	if userID > 0 {
 		q = q.Where("user_id = ?", userID)
@@ -303,20 +304,20 @@ func (r *MerchantRepository) ExpireUserCoupons(userID uint64) {
 	_ = q.Update("status", model.UserCouponExpired)
 }
 
-func (r *MerchantRepository) GetUserCoupon(id uint64) (*model.UserCoupon, error) {
+func (r *MerchantRepository) GetUserCoupon(ctx context.Context, id uint64) (*model.UserCoupon, error) {
 	var uc model.UserCoupon
-	if err := r.db.First(&uc, id).Error; err != nil {
+	if err := r.db.WithContext(ctx).First(&uc, id).Error; err != nil {
 		return nil, err
 	}
-	if c, e := r.GetCoupon(uc.CouponID); e == nil {
+	if c, e := r.GetCoupon(ctx, uc.CouponID); e == nil {
 		uc.Coupon = c
 		uc.CouponName = c.Name
 	}
 	return &uc, nil
 }
 
-func (r *MerchantRepository) LockUserCoupon(userCouponID, userID, orderID uint64, discount float64) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *MerchantRepository) LockUserCoupon(ctx context.Context, userCouponID, userID, orderID uint64, discount float64) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var uc model.UserCoupon
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&uc, userCouponID).Error; err != nil {
 			return errors.New("优惠券不存在")
@@ -342,8 +343,8 @@ func (r *MerchantRepository) LockUserCoupon(userCouponID, userID, orderID uint64
 	})
 }
 
-func (r *MerchantRepository) UnlockUserCoupon(userCouponID, orderID uint64, action string) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *MerchantRepository) UnlockUserCoupon(ctx context.Context, userCouponID, orderID uint64, action string) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var uc model.UserCoupon
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&uc, userCouponID).Error; err != nil {
 			return errors.New("优惠券不存在")
@@ -381,8 +382,8 @@ func (r *MerchantRepository) UnlockUserCoupon(userCouponID, orderID uint64, acti
 	})
 }
 
-func (r *MerchantRepository) RedeemUserCoupon(userCouponID, orderID uint64, discount float64) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *MerchantRepository) RedeemUserCoupon(ctx context.Context, userCouponID, orderID uint64, discount float64) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var uc model.UserCoupon
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&uc, userCouponID).Error; err != nil {
 			return errors.New("优惠券不存在")
@@ -414,14 +415,14 @@ func (r *MerchantRepository) RedeemUserCoupon(userCouponID, orderID uint64, disc
 	})
 }
 
-func (r *MerchantRepository) ListClaims(couponID uint64, page, pageSize int) ([]model.UserCoupon, int64, error) {
+func (r *MerchantRepository) ListClaims(ctx context.Context, couponID uint64, page, pageSize int) ([]model.UserCoupon, int64, error) {
 	if page < 1 {
 		page = 1
 	}
 	if pageSize < 1 {
 		pageSize = 20
 	}
-	q := r.db.Model(&model.UserCoupon{}).Where("coupon_id = ?", couponID)
+	q := r.db.WithContext(ctx).Model(&model.UserCoupon{}).Where("coupon_id = ?", couponID)
 	var total int64
 	if err := q.Count(&total).Error; err != nil {
 		return nil, 0, err
@@ -431,14 +432,14 @@ func (r *MerchantRepository) ListClaims(couponID uint64, page, pageSize int) ([]
 	return list, total, err
 }
 
-func (r *MerchantRepository) ListRedeems(couponID uint64, page, pageSize int) ([]model.CouponRedeemLog, int64, error) {
+func (r *MerchantRepository) ListRedeems(ctx context.Context, couponID uint64, page, pageSize int) ([]model.CouponRedeemLog, int64, error) {
 	if page < 1 {
 		page = 1
 	}
 	if pageSize < 1 {
 		pageSize = 20
 	}
-	q := r.db.Model(&model.CouponRedeemLog{}).Where("coupon_id = ? AND action = ?", couponID, model.CouponActionRedeem)
+	q := r.db.WithContext(ctx).Model(&model.CouponRedeemLog{}).Where("coupon_id = ? AND action = ?", couponID, model.CouponActionRedeem)
 	var total int64
 	if err := q.Count(&total).Error; err != nil {
 		return nil, 0, err
@@ -448,7 +449,7 @@ func (r *MerchantRepository) ListRedeems(couponID uint64, page, pageSize int) ([
 	return list, total, err
 }
 
-func (r *MerchantRepository) CouponStats(couponID uint64) (map[string]interface{}, error) {
+func (r *MerchantRepository) CouponStats(ctx context.Context, couponID uint64) (map[string]interface{}, error) {
 	var claimed int64
 	_ = r.db.Model(&model.UserCoupon{}).Where("coupon_id = ?", couponID).Count(&claimed)
 	var redeemed int64
@@ -463,21 +464,21 @@ func (r *MerchantRepository) CouponStats(couponID uint64) (map[string]interface{
 		rate = float64(redeemed) / float64(claimed) * 100
 	}
 	return map[string]interface{}{
-		"claimed_count":   claimed,
-		"redeemed_count":  redeemed,
-		"redeem_rate":     fmt.Sprintf("%.2f", rate),
-		"discount_total":  sum,
+		"claimed_count":  claimed,
+		"redeemed_count": redeemed,
+		"redeem_rate":    fmt.Sprintf("%.2f", rate),
+		"discount_total": sum,
 	}, nil
 }
 
-func (r *MerchantRepository) CreateGrant(g *model.CouponGrant) error {
-	return r.db.Create(g).Error
+func (r *MerchantRepository) CreateGrant(ctx context.Context, g *model.CouponGrant) error {
+	return r.db.WithContext(ctx).Create(g).Error
 }
 
-func (r *MerchantRepository) ListCenterCoupons(shopID uint64) ([]model.Coupon, error) {
+func (r *MerchantRepository) ListCenterCoupons(ctx context.Context, shopID uint64) ([]model.Coupon, error) {
 	now := time.Now()
 	var list []model.Coupon
-	q := r.db.Where("status = ?", model.CouponStatusOn)
+	q := r.db.WithContext(ctx).Where("status = ?", model.CouponStatusOn)
 	// 平台券 + 可选店铺券
 	if shopID > 0 {
 		q = q.Where("(issuer_type = ? AND shop_id = 0) OR (issuer_type = ? AND shop_id = ?)",
@@ -510,7 +511,7 @@ func (r *MerchantRepository) ListCenterCoupons(shopID uint64) ([]model.Coupon, e
 			continue
 		}
 		list[i].DisplayStatus = ds
-		scopes, _ := r.ListCouponScopes(list[i].ID)
+		scopes, _ := r.ListCouponScopes(ctx, list[i].ID)
 		list[i].Scopes = scopes
 		if list[i].TotalCount > 0 {
 			rem := list[i].TotalCount - list[i].ClaimedCount
@@ -524,8 +525,8 @@ func (r *MerchantRepository) ListCenterCoupons(shopID uint64) ([]model.Coupon, e
 	return out, nil
 }
 
-func (r *MerchantRepository) ListPopupCoupons() ([]model.Coupon, error) {
-	list, err := r.ListCenterCoupons(0)
+func (r *MerchantRepository) ListPopupCoupons(ctx context.Context) ([]model.Coupon, error) {
+	list, err := r.ListCenterCoupons(ctx, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -541,16 +542,16 @@ func (r *MerchantRepository) ListPopupCoupons() ([]model.Coupon, error) {
 	return out, nil
 }
 
-func (r *MerchantRepository) ListUserUnusedCoupons(userID uint64) ([]model.UserCoupon, error) {
-	r.ExpireUserCoupons(userID)
+func (r *MerchantRepository) ListUserUnusedCoupons(ctx context.Context, userID uint64) ([]model.UserCoupon, error) {
+	r.ExpireUserCoupons(ctx, userID)
 	var list []model.UserCoupon
-	err := r.db.Where("user_id = ? AND status = ?", userID, model.UserCouponUnused).
+	err := r.db.WithContext(ctx).Where("user_id = ? AND status = ?", userID, model.UserCouponUnused).
 		Order("valid_end ASC").Find(&list).Error
 	if err != nil {
 		return nil, err
 	}
 	for i := range list {
-		if c, e := r.GetCoupon(list[i].CouponID); e == nil {
+		if c, e := r.GetCoupon(ctx, list[i].CouponID); e == nil {
 			list[i].Coupon = c
 			list[i].CouponName = c.Name
 		}
@@ -558,10 +559,10 @@ func (r *MerchantRepository) ListUserUnusedCoupons(userID uint64) ([]model.UserC
 	return list, nil
 }
 
-func (r *MerchantRepository) ListOrderGiftCoupons(shopID uint64) ([]model.Coupon, error) {
+func (r *MerchantRepository) ListOrderGiftCoupons(ctx context.Context, shopID uint64) ([]model.Coupon, error) {
 	now := time.Now()
 	var list []model.Coupon
-	err := r.db.Where("status = ?", model.CouponStatusOn).
+	err := r.db.WithContext(ctx).Where("status = ?", model.CouponStatusOn).
 		Where("(issuer_type = ? AND shop_id = 0) OR (issuer_type = ? AND shop_id = ?)",
 			model.CouponIssuerPlatform, model.CouponIssuerShop, shopID).
 		Find(&list).Error
@@ -575,7 +576,7 @@ func (r *MerchantRepository) ListOrderGiftCoupons(shopID uint64) ([]model.Coupon
 		}
 		for _, ch := range list[i].Channels {
 			if ch == model.CouponChannelOrderGift {
-				scopes, _ := r.ListCouponScopes(list[i].ID)
+				scopes, _ := r.ListCouponScopes(ctx, list[i].ID)
 				list[i].Scopes = scopes
 				out = append(out, list[i])
 				break

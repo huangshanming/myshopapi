@@ -79,11 +79,11 @@ func main() {
 	}
 
 	svcCtx := svc.NewServiceContext(cfg, db)
-	if err := svcCtx.Tasks.SeedIfEmpty(); err != nil {
+	if err := svcCtx.Tasks.SeedIfEmpty(context.Background()); err != nil {
 		logger.Warn(fmt.Sprintf("seed tasks failed: %v", err))
 	}
-	if n, err := svcCtx.Repo.CountRegions(); err == nil && n == 0 {
-		if err := svcCtx.Repo.SeedRegionsFromPCA(data.PCACodeJSON); err != nil {
+	if n, err := svcCtx.Repo.CountRegions(context.Background()); err == nil && n == 0 {
+		if err := svcCtx.Repo.SeedRegionsFromPCA(context.Background(), data.PCACodeJSON); err != nil {
 			logger.Warn(fmt.Sprintf("seed regions failed: %v", err))
 		} else {
 			logger.Info("regions seeded from pca-code.json")

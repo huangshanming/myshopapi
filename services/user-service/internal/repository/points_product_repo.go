@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"strings"
 
 	"mymall/services/user-service/internal/model"
@@ -16,8 +17,8 @@ func NewPointsProductRepository(db *gorm.DB) *PointsProductRepository {
 	return &PointsProductRepository{db: db}
 }
 
-func (r *PointsProductRepository) List(page, pageSize int, status, keyword string) ([]model.PointsProduct, int64, error) {
-	q := r.db.Model(&model.PointsProduct{})
+func (r *PointsProductRepository) List(ctx context.Context, page, pageSize int, status, keyword string) ([]model.PointsProduct, int64, error) {
+	q := r.db.WithContext(ctx).Model(&model.PointsProduct{})
 	if status != "" {
 		q = q.Where("status = ?", status)
 	}
@@ -36,22 +37,22 @@ func (r *PointsProductRepository) List(page, pageSize int, status, keyword strin
 	return list, total, err
 }
 
-func (r *PointsProductRepository) GetByID(id uint64) (*model.PointsProduct, error) {
+func (r *PointsProductRepository) GetByID(ctx context.Context, id uint64) (*model.PointsProduct, error) {
 	var p model.PointsProduct
-	if err := r.db.First(&p, id).Error; err != nil {
+	if err := r.db.WithContext(ctx).First(&p, id).Error; err != nil {
 		return nil, err
 	}
 	return &p, nil
 }
 
-func (r *PointsProductRepository) Create(p *model.PointsProduct) error {
-	return r.db.Create(p).Error
+func (r *PointsProductRepository) Create(ctx context.Context, p *model.PointsProduct) error {
+	return r.db.WithContext(ctx).Create(p).Error
 }
 
-func (r *PointsProductRepository) Update(id uint64, updates map[string]interface{}) error {
-	return r.db.Model(&model.PointsProduct{}).Where("id = ?", id).Updates(updates).Error
+func (r *PointsProductRepository) Update(ctx context.Context, id uint64, updates map[string]interface{}) error {
+	return r.db.WithContext(ctx).Model(&model.PointsProduct{}).Where("id = ?", id).Updates(updates).Error
 }
 
-func (r *PointsProductRepository) Delete(id uint64) error {
-	return r.db.Delete(&model.PointsProduct{}, id).Error
+func (r *PointsProductRepository) Delete(ctx context.Context, id uint64) error {
+	return r.db.WithContext(ctx).Delete(&model.PointsProduct{}, id).Error
 }

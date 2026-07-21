@@ -26,11 +26,11 @@ func NewLogisticsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Logisti
 }
 
 func (l *LogisticsLogic) List(f repository.LogisticsListFilter) ([]model.LogisticsCompany, int64, error) {
-	return l.svcCtx.LogisticsRepo.List(f)
+	return l.svcCtx.LogisticsRepo.List(l.ctx, f)
 }
 
 func (l *LogisticsLogic) Options(keyword string) ([]model.LogisticsCompany, error) {
-	return l.svcCtx.LogisticsRepo.Options(keyword, 50)
+	return l.svcCtx.LogisticsRepo.Options(l.ctx, keyword, 50)
 }
 
 func (l *LogisticsLogic) Create(req types.LogisticsSaveReq) (*model.LogisticsCompany, error) {
@@ -48,7 +48,7 @@ func (l *LogisticsLogic) Create(req types.LogisticsSaveReq) (*model.LogisticsCom
 	if req.Status != nil {
 		c.Status = *req.Status
 	}
-	if err := l.svcCtx.LogisticsRepo.Create(c); err != nil {
+	if err := l.svcCtx.LogisticsRepo.Create(l.ctx, c); err != nil {
 		if isDuplicate(err) {
 			return nil, errors.New("编码已存在")
 		}
@@ -63,7 +63,7 @@ func (l *LogisticsLogic) Update(id uint64, req types.LogisticsSaveReq) error {
 	if name == "" || code == "" {
 		return errors.New("名称与编码必填")
 	}
-	if err := l.svcCtx.LogisticsRepo.Update(id, name, code, req.Sort); err != nil {
+	if err := l.svcCtx.LogisticsRepo.Update(l.ctx, id, name, code, req.Sort); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("记录不存在")
 		}
@@ -79,7 +79,7 @@ func (l *LogisticsLogic) UpdateStatus(id uint64, status int8) error {
 	if status != 0 && status != 1 {
 		return errors.New("状态无效")
 	}
-	if err := l.svcCtx.LogisticsRepo.UpdateStatus(id, status); err != nil {
+	if err := l.svcCtx.LogisticsRepo.UpdateStatus(l.ctx, id, status); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("记录不存在")
 		}
@@ -89,7 +89,7 @@ func (l *LogisticsLogic) UpdateStatus(id uint64, status int8) error {
 }
 
 func (l *LogisticsLogic) Delete(id uint64) error {
-	if err := l.svcCtx.LogisticsRepo.Delete(id); err != nil {
+	if err := l.svcCtx.LogisticsRepo.Delete(l.ctx, id); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("记录不存在")
 		}

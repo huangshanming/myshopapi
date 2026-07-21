@@ -1,6 +1,7 @@
 package biz
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
@@ -170,14 +171,14 @@ func (l *MerchantLogic) validateCouponSave(req CouponSaveReq, issuerType string,
 		}
 		if scopeType == model.CouponScopeCategory {
 			rt = model.CouponScopeCategory
-			if !l.svcCtx.Repo.CategoryExistsShow(s.RefID) {
+			if !l.svcCtx.Repo.CategoryExistsShow(context.Background(), s.RefID) {
 				return nil, nil, fmt.Errorf("分类 %d 无效", s.RefID)
 			}
 		}
 		if scopeType == model.CouponScopeProduct {
 			rt = model.CouponScopeProduct
 			if issuerType == model.CouponIssuerShop {
-				if !l.svcCtx.Repo.ProductOnSaleOfShop(s.RefID, shopID) {
+				if !l.svcCtx.Repo.ProductOnSaleOfShop(context.Background(), s.RefID, shopID) {
 					return nil, nil, fmt.Errorf("商品 %d 非本店在售", s.RefID)
 				}
 			}
@@ -218,7 +219,7 @@ func (l *MerchantLogic) AdminCreateCoupon(adminID uint64, req CouponSaveReq) (*m
 		return nil, err
 	}
 	c.CreatedBy = adminID
-	if err := l.svcCtx.Repo.CreateCoupon(c, scopes); err != nil {
+	if err := l.svcCtx.Repo.CreateCoupon(context.Background(), c, scopes); err != nil {
 		return nil, err
 	}
 	c.Scopes = scopes
@@ -234,7 +235,7 @@ func (l *MerchantLogic) MerchantCreateCoupon(shopID, userID uint64, req CouponSa
 		return nil, err
 	}
 	c.CreatedBy = userID
-	if err := l.svcCtx.Repo.CreateCoupon(c, scopes); err != nil {
+	if err := l.svcCtx.Repo.CreateCoupon(context.Background(), c, scopes); err != nil {
 		return nil, err
 	}
 	c.Scopes = scopes
@@ -242,7 +243,7 @@ func (l *MerchantLogic) MerchantCreateCoupon(shopID, userID uint64, req CouponSa
 }
 
 func (l *MerchantLogic) UpdateCoupon(id, shopID uint64, platform bool, req CouponSaveReq) error {
-	old, err := l.svcCtx.Repo.GetCoupon(id)
+	old, err := l.svcCtx.Repo.GetCoupon(context.Background(), id)
 	if err != nil {
 		return errors.New("优惠券不存在")
 	}
@@ -272,7 +273,7 @@ func (l *MerchantLogic) UpdateCoupon(id, shopID uint64, platform bool, req Coupo
 		if c.TotalCount > 0 && c.TotalCount < old.ClaimedCount {
 			return errors.New("发放总量不能小于已领数量")
 		}
-		return l.svcCtx.Repo.UpdateCoupon(id, updates, nil)
+		return l.svcCtx.Repo.UpdateCoupon(context.Background(), id, updates, nil)
 	}
 	updates := map[string]interface{}{
 		"name": c.Name, "coupon_type": c.CouponType, "threshold_amount": c.ThresholdAmount,
@@ -283,11 +284,11 @@ func (l *MerchantLogic) UpdateCoupon(id, shopID uint64, platform bool, req Coupo
 		"valid_days": c.ValidDays, "stackable": c.Stackable, "user_identity": c.UserIdentity,
 		"channels": c.Channels, "status": c.Status, "remark": c.Remark,
 	}
-	return l.svcCtx.Repo.UpdateCoupon(id, updates, &scopes)
+	return l.svcCtx.Repo.UpdateCoupon(context.Background(), id, updates, &scopes)
 }
 
 func (l *MerchantLogic) OffCoupon(id, shopID uint64, platform bool) error {
-	old, err := l.svcCtx.Repo.GetCoupon(id)
+	old, err := l.svcCtx.Repo.GetCoupon(context.Background(), id)
 	if err != nil {
 		return errors.New("优惠券不存在")
 	}
@@ -298,11 +299,11 @@ func (l *MerchantLogic) OffCoupon(id, shopID uint64, platform bool) error {
 	} else if old.ShopID != shopID {
 		return errors.New("无权操作")
 	}
-	return l.svcCtx.Repo.UpdateCoupon(id, map[string]interface{}{"status": model.CouponStatusOff}, nil)
+	return l.svcCtx.Repo.UpdateCoupon(context.Background(), id, map[string]interface{}{"status": model.CouponStatusOff}, nil)
 }
 
 func (l *MerchantLogic) CopyCoupon(id, shopID, operatorID uint64, platform bool) (*model.Coupon, error) {
-	old, err := l.svcCtx.Repo.GetCoupon(id)
+	old, err := l.svcCtx.Repo.GetCoupon(context.Background(), id)
 	if err != nil {
 		return nil, errors.New("优惠券不存在")
 	}
@@ -320,7 +321,7 @@ func (l *MerchantLogic) CopyCoupon(id, shopID, operatorID uint64, platform bool)
 	nc.Status = model.CouponStatusDraft
 	nc.CreatedBy = operatorID
 	scopes := append([]model.CouponScope{}, old.Scopes...)
-	if err := l.svcCtx.Repo.CreateCoupon(&nc, scopes); err != nil {
+	if err := l.svcCtx.Repo.CreateCoupon(context.Background(), &nc, scopes); err != nil {
 		return nil, err
 	}
 	nc.Scopes = scopes
@@ -328,11 +329,11 @@ func (l *MerchantLogic) CopyCoupon(id, shopID, operatorID uint64, platform bool)
 }
 
 func (l *MerchantLogic) ListCoupons(issuerType string, shopID uint64, status, keyword string, page, pageSize int) ([]model.Coupon, int64, error) {
-	return l.svcCtx.Repo.ListCoupons(issuerType, shopID, status, keyword, page, pageSize)
+	return l.svcCtx.Repo.ListCoupons(context.Background(), issuerType, shopID, status, keyword, page, pageSize)
 }
 
 func (l *MerchantLogic) GetCoupon(id uint64) (*model.Coupon, error) {
-	return l.svcCtx.Repo.GetCoupon(id)
+	return l.svcCtx.Repo.GetCoupon(context.Background(), id)
 }
 
 func channelAllowed(channels model.StringSlice, source string) bool {
@@ -354,7 +355,7 @@ func (l *MerchantLogic) checkIdentity(userID uint64, identity string) error {
 	if identity == "" || identity == model.CouponIdentityAll {
 		return nil
 	}
-	created, err := l.svcCtx.Repo.UserCreatedAt(userID)
+	created, err := l.svcCtx.Repo.UserCreatedAt(context.Background(), userID)
 	if err != nil || created.IsZero() {
 		return errors.New("用户无效")
 	}
@@ -375,7 +376,7 @@ func (l *MerchantLogic) ClaimCoupon(userID, couponID uint64, source string) (*mo
 	if source == "" {
 		source = model.CouponSourceDirect
 	}
-	c, err := l.svcCtx.Repo.GetCoupon(couponID)
+	c, err := l.svcCtx.Repo.GetCoupon(context.Background(), couponID)
 	if err != nil {
 		return nil, errors.New("优惠券不存在")
 	}
@@ -388,11 +389,11 @@ func (l *MerchantLogic) ClaimCoupon(userID, couponID uint64, source string) (*mo
 	if err := l.checkIdentity(userID, c.UserIdentity); err != nil {
 		return nil, err
 	}
-	return l.svcCtx.Repo.ClaimCoupon(userID, c, source, "")
+	return l.svcCtx.Repo.ClaimCoupon(context.Background(), userID, c, source, "")
 }
 
 func (l *MerchantLogic) GrantCoupon(operatorID uint64, couponID uint64, userIDs []uint64, shopID uint64, platform bool) (*model.CouponGrant, error) {
-	c, err := l.svcCtx.Repo.GetCoupon(couponID)
+	c, err := l.svcCtx.Repo.GetCoupon(context.Background(), couponID)
 	if err != nil {
 		return nil, errors.New("优惠券不存在")
 	}
@@ -412,7 +413,7 @@ func (l *MerchantLogic) GrantCoupon(operatorID uint64, couponID uint64, userIDs 
 		if uid == 0 {
 			continue
 		}
-		if _, err := l.svcCtx.Repo.ClaimCoupon(uid, c, model.CouponSourceTargeted, batch); err == nil {
+		if _, err := l.svcCtx.Repo.ClaimCoupon(context.Background(), uid, c, model.CouponSourceTargeted, batch); err == nil {
 			ok++
 		}
 	}
@@ -425,18 +426,18 @@ func (l *MerchantLogic) GrantCoupon(operatorID uint64, couponID uint64, userIDs 
 		SuccessCount: ok,
 		BatchNo:      batch,
 	}
-	_ = l.svcCtx.Repo.CreateGrant(g)
+	_ = l.svcCtx.Repo.CreateGrant(context.Background(), g)
 	return g, nil
 }
 
 func (l *MerchantLogic) ListCenter(userID, shopID uint64) ([]model.Coupon, error) {
-	list, err := l.svcCtx.Repo.ListCenterCoupons(shopID)
+	list, err := l.svcCtx.Repo.ListCenterCoupons(context.Background(), shopID)
 	if err != nil {
 		return nil, err
 	}
 	if userID > 0 {
 		for i := range list {
-			n, _ := l.svcCtx.Repo.CountUserClaims(list[i].ID, userID)
+			n, _ := l.svcCtx.Repo.CountUserClaims(context.Background(), list[i].ID, userID)
 			list[i].ClaimedByMe = n > 0 && int(n) >= list[i].PerUserLimit
 		}
 	}
@@ -444,13 +445,13 @@ func (l *MerchantLogic) ListCenter(userID, shopID uint64) ([]model.Coupon, error
 }
 
 func (l *MerchantLogic) ListPopup(userID uint64) ([]model.Coupon, error) {
-	list, err := l.svcCtx.Repo.ListPopupCoupons()
+	list, err := l.svcCtx.Repo.ListPopupCoupons(context.Background())
 	if err != nil {
 		return nil, err
 	}
 	if userID > 0 {
 		for i := range list {
-			n, _ := l.svcCtx.Repo.CountUserClaims(list[i].ID, userID)
+			n, _ := l.svcCtx.Repo.CountUserClaims(context.Background(), list[i].ID, userID)
 			list[i].ClaimedByMe = int(n) >= list[i].PerUserLimit
 		}
 	}
@@ -458,19 +459,19 @@ func (l *MerchantLogic) ListPopup(userID uint64) ([]model.Coupon, error) {
 }
 
 func (l *MerchantLogic) ListMyCoupons(userID uint64, status string, page, pageSize int) ([]model.UserCoupon, int64, error) {
-	return l.svcCtx.Repo.ListUserCoupons(userID, status, page, pageSize)
+	return l.svcCtx.Repo.ListUserCoupons(context.Background(), userID, status, page, pageSize)
 }
 
 func (l *MerchantLogic) CouponClaims(couponID uint64, page, pageSize int) ([]model.UserCoupon, int64, error) {
-	return l.svcCtx.Repo.ListClaims(couponID, page, pageSize)
+	return l.svcCtx.Repo.ListClaims(context.Background(), couponID, page, pageSize)
 }
 
 func (l *MerchantLogic) CouponRedeems(couponID uint64, page, pageSize int) ([]model.CouponRedeemLog, int64, error) {
-	return l.svcCtx.Repo.ListRedeems(couponID, page, pageSize)
+	return l.svcCtx.Repo.ListRedeems(context.Background(), couponID, page, pageSize)
 }
 
 func (l *MerchantLogic) CouponStats(couponID uint64) (map[string]interface{}, error) {
-	return l.svcCtx.Repo.CouponStats(couponID)
+	return l.svcCtx.Repo.CouponStats(context.Background(), couponID)
 }
 
 func round2(v float64) float64 {
@@ -544,7 +545,7 @@ func (l *MerchantLogic) MatchCoupons(req MatchReq) (*MatchResp, error) {
 	for _, it := range req.Items {
 		ids = append(ids, it.ProductID)
 	}
-	lite, _ := l.svcCtx.Repo.GetProductsLite(ids)
+	lite, _ := l.svcCtx.Repo.GetProductsLite(context.Background(), ids)
 	for i := range req.Items {
 		if req.Items[i].CategoryID == 0 {
 			if p, ok := lite[req.Items[i].ProductID]; ok {
@@ -552,7 +553,7 @@ func (l *MerchantLogic) MatchCoupons(req MatchReq) (*MatchResp, error) {
 			}
 		}
 	}
-	list, err := l.svcCtx.Repo.ListUserUnusedCoupons(req.UserID)
+	list, err := l.svcCtx.Repo.ListUserUnusedCoupons(context.Background(), req.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -646,29 +647,29 @@ func (l *MerchantLogic) MatchCoupons(req MatchReq) (*MatchResp, error) {
 }
 
 func (l *MerchantLogic) LockCoupon(userCouponID, userID, orderID uint64, discount float64) error {
-	return l.svcCtx.Repo.LockUserCoupon(userCouponID, userID, orderID, discount)
+	return l.svcCtx.Repo.LockUserCoupon(context.Background(), userCouponID, userID, orderID, discount)
 }
 
 func (l *MerchantLogic) UnlockCoupon(userCouponID, orderID uint64) error {
-	return l.svcCtx.Repo.UnlockUserCoupon(userCouponID, orderID, model.CouponActionUnlock)
+	return l.svcCtx.Repo.UnlockUserCoupon(context.Background(), userCouponID, orderID, model.CouponActionUnlock)
 }
 
 func (l *MerchantLogic) RedeemCoupon(userCouponID, orderID uint64, discount float64) error {
-	return l.svcCtx.Repo.RedeemUserCoupon(userCouponID, orderID, discount)
+	return l.svcCtx.Repo.RedeemUserCoupon(context.Background(), userCouponID, orderID, discount)
 }
 
 func (l *MerchantLogic) ReturnCoupon(userCouponID, orderID uint64) error {
-	return l.svcCtx.Repo.UnlockUserCoupon(userCouponID, orderID, model.CouponActionReturn)
+	return l.svcCtx.Repo.UnlockUserCoupon(context.Background(), userCouponID, orderID, model.CouponActionReturn)
 }
 
 func (l *MerchantLogic) OrderGiftCoupons(userID, shopID uint64) (int, error) {
-	list, err := l.svcCtx.Repo.ListOrderGiftCoupons(shopID)
+	list, err := l.svcCtx.Repo.ListOrderGiftCoupons(context.Background(), shopID)
 	if err != nil {
 		return 0, err
 	}
 	n := 0
 	for i := range list {
-		if _, err := l.svcCtx.Repo.ClaimCoupon(userID, &list[i], model.CouponSourceOrderGift, ""); err == nil {
+		if _, err := l.svcCtx.Repo.ClaimCoupon(context.Background(), userID, &list[i], model.CouponSourceOrderGift, ""); err == nil {
 			n++
 		}
 	}

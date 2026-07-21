@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -28,8 +29,8 @@ type PointsOrderListFilter struct {
 	Keyword string
 }
 
-func (r *PointsOrderRepository) List(page, pageSize int, f PointsOrderListFilter) ([]model.PointsExchangeOrder, int64, error) {
-	q := r.db.Model(&model.PointsExchangeOrder{})
+func (r *PointsOrderRepository) List(ctx context.Context, page, pageSize int, f PointsOrderListFilter) ([]model.PointsExchangeOrder, int64, error) {
+	q := r.db.WithContext(ctx).Model(&model.PointsExchangeOrder{})
 	if f.Status != "" {
 		q = q.Where("status = ?", f.Status)
 	}
@@ -51,9 +52,9 @@ func (r *PointsOrderRepository) List(page, pageSize int, f PointsOrderListFilter
 	return list, total, err
 }
 
-func (r *PointsOrderRepository) GetByID(id uint64) (*model.PointsExchangeOrder, error) {
+func (r *PointsOrderRepository) GetByID(ctx context.Context, id uint64) (*model.PointsExchangeOrder, error) {
 	var o model.PointsExchangeOrder
-	if err := r.db.First(&o, id).Error; err != nil {
+	if err := r.db.WithContext(ctx).First(&o, id).Error; err != nil {
 		return nil, err
 	}
 	return &o, nil
@@ -64,12 +65,12 @@ func genOrderNo() string {
 }
 
 // CreateExchangeLocal 本地事务：校验商品、扣库存、创建兑换单（积分扣减由调用方走本服务 TaskLogic）
-func (r *PointsOrderRepository) CreateExchangeLocal(userID, productID uint64, quantity int, receiverName, receiverPhone, receiverAddress string) (*model.PointsExchangeOrder, error) {
+func (r *PointsOrderRepository) CreateExchangeLocal(ctx context.Context, userID, productID uint64, quantity int, receiverName, receiverPhone, receiverAddress string) (*model.PointsExchangeOrder, error) {
 	if quantity < 1 {
 		quantity = 1
 	}
 	var out *model.PointsExchangeOrder
-	err := r.db.Transaction(func(tx *gorm.DB) error {
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var p model.PointsProduct
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&p, productID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -124,8 +125,8 @@ func (r *PointsOrderRepository) CreateExchangeLocal(userID, productID uint64, qu
 }
 
 // AbortExchange 扣积分失败时回滚：删单并退库存
-func (r *PointsOrderRepository) AbortExchange(id uint64) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *PointsOrderRepository) AbortExchange(ctx context.Context, id uint64) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var o model.PointsExchangeOrder
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&o, id).Error; err != nil {
 			return err
@@ -141,8 +142,8 @@ func (r *PointsOrderRepository) AbortExchange(id uint64) error {
 	})
 }
 
-func (r *PointsOrderRepository) Ship(id uint64, company, shipNo string) (*model.PointsExchangeOrder, error) {
-	o, err := r.GetByID(id)
+func (r *PointsOrderRepository) Ship(ctx context.Context, id uint64, company, shipNo string) (*model.PointsExchangeOrder, error) {
+	o, err := r.GetByID(ctx, id)
 	if err != nil {
 		return nil, errors.New("订单不存在")
 	}
@@ -150,17 +151,17 @@ func (r *PointsOrderRepository) Ship(id uint64, company, shipNo string) (*model.
 		return nil, errors.New("当前状态不可发货")
 	}
 	now := common.LocalTime(time.Now())
-	if err := r.db.Model(o).Updates(map[string]interface{}{
+	if err := r.db.WithContext(ctx).Model(o).Updates(map[string]interface{}{
 		"status": model.PointsOrderShipped, "ship_company": strings.TrimSpace(company),
 		"ship_no": strings.TrimSpace(shipNo), "shipped_at": &now,
 	}).Error; err != nil {
 		return nil, err
 	}
-	return r.GetByID(id)
+	return r.GetByID(ctx, id)
 }
 
-func (r *PointsOrderRepository) Complete(id uint64) (*model.PointsExchangeOrder, error) {
-	o, err := r.GetByID(id)
+func (r *PointsOrderRepository) Complete(ctx context.Context, id uint64) (*model.PointsExchangeOrder, error) {
+	o, err := r.GetByID(ctx, id)
 	if err != nil {
 		return nil, errors.New("订单不存在")
 	}
@@ -168,18 +169,18 @@ func (r *PointsOrderRepository) Complete(id uint64) (*model.PointsExchangeOrder,
 		return nil, errors.New("当前状态不可完成")
 	}
 	now := common.LocalTime(time.Now())
-	if err := r.db.Model(o).Updates(map[string]interface{}{
+	if err := r.db.WithContext(ctx).Model(o).Updates(map[string]interface{}{
 		"status": model.PointsOrderCompleted, "completed_at": &now,
 	}).Error; err != nil {
 		return nil, err
 	}
-	return r.GetByID(id)
+	return r.GetByID(ctx, id)
 }
 
 // CancelLocal 取消订单并退库存（积分退回由调用方走 user-service）
-func (r *PointsOrderRepository) CancelLocal(id uint64, remark string) (*model.PointsExchangeOrder, error) {
+func (r *PointsOrderRepository) CancelLocal(ctx context.Context, id uint64, remark string) (*model.PointsExchangeOrder, error) {
 	var out *model.PointsExchangeOrder
-	err := r.db.Transaction(func(tx *gorm.DB) error {
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var o model.PointsExchangeOrder
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&o, id).Error; err != nil {
 			return errors.New("订单不存在")
@@ -208,21 +209,21 @@ func (r *PointsOrderRepository) CancelLocal(id uint64, remark string) (*model.Po
 	if err != nil {
 		return nil, err
 	}
-	return r.GetByID(id)
+	return r.GetByID(ctx, id)
 }
 
-func (r *PointsOrderRepository) Remark(id uint64, remark string) (*model.PointsExchangeOrder, error) {
-	if _, err := r.GetByID(id); err != nil {
+func (r *PointsOrderRepository) Remark(ctx context.Context, id uint64, remark string) (*model.PointsExchangeOrder, error) {
+	if _, err := r.GetByID(ctx, id); err != nil {
 		return nil, errors.New("订单不存在")
 	}
-	if err := r.db.Model(&model.PointsExchangeOrder{}).Where("id = ?", id).
+	if err := r.db.WithContext(ctx).Model(&model.PointsExchangeOrder{}).Where("id = ?", id).
 		Update("admin_remark", strings.TrimSpace(remark)).Error; err != nil {
 		return nil, err
 	}
-	return r.GetByID(id)
+	return r.GetByID(ctx, id)
 }
 
-func (r *PointsOrderRepository) MapUserBriefs(ids []uint64) map[uint64][2]string {
+func (r *PointsOrderRepository) MapUserBriefs(ctx context.Context, ids []uint64) map[uint64][2]string {
 	out := map[uint64][2]string{}
 	if len(ids) == 0 {
 		return out
@@ -233,7 +234,7 @@ func (r *PointsOrderRepository) MapUserBriefs(ids []uint64) map[uint64][2]string
 		Mobile   string `gorm:"column:mobile"`
 	}
 	var rows []row
-	if err := r.db.Table("users").Select("id, nickname, mobile").Where("id IN ?", ids).Find(&rows).Error; err != nil {
+	if err := r.db.WithContext(ctx).Table("users").Select("id, nickname, mobile").Where("id IN ?", ids).Find(&rows).Error; err != nil {
 		return out
 	}
 	for _, u := range rows {

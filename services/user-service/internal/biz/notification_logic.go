@@ -1,6 +1,7 @@
 package biz
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"strings"
@@ -60,26 +61,26 @@ func (l *UserLogic) CreateNotification(req NotifyCreateReq) (*model.UserNotifica
 		SenderType: model.SenderSystem,
 		SenderID:   0,
 	}
-	if err := l.svcCtx.Repo.CreateNotification(n); err != nil {
+	if err := l.svcCtx.Repo.CreateNotification(context.Background(), n); err != nil {
 		return nil, err
 	}
 	return n, nil
 }
 
 func (l *UserLogic) ListMyNotifications(userID uint64, page, pageSize int) ([]model.UserNotification, int64, error) {
-	return l.svcCtx.Repo.ListNotifications(userID, page, pageSize)
+	return l.svcCtx.Repo.ListNotifications(context.Background(), userID, page, pageSize)
 }
 
 func (l *UserLogic) UnreadCount(userID uint64) (int64, error) {
-	return l.svcCtx.Repo.UnreadNotificationCount(userID)
+	return l.svcCtx.Repo.UnreadNotificationCount(context.Background(), userID)
 }
 
 func (l *UserLogic) MarkRead(userID, id uint64) error {
-	return l.svcCtx.Repo.MarkNotificationRead(userID, id)
+	return l.svcCtx.Repo.MarkNotificationRead(context.Background(), userID, id)
 }
 
 func (l *UserLogic) MarkAllRead(userID uint64) error {
-	return l.svcCtx.Repo.MarkAllNotificationsRead(userID)
+	return l.svcCtx.Repo.MarkAllNotificationsRead(context.Background(), userID)
 }
 
 func (l *UserLogic) AdminSend(adminID uint64, req AdminSendReq) (*model.UserNotificationBatch, error) {
@@ -100,7 +101,7 @@ func (l *UserLogic) AdminSend(adminID uint64, req AdminSendReq) (*model.UserNoti
 		const batchSize = 500
 		offset := 0
 		for {
-			ids, err := l.svcCtx.Repo.ListActiveUserIDs(offset, batchSize)
+			ids, err := l.svcCtx.Repo.ListActiveUserIDs(context.Background(), offset, batchSize)
 			if err != nil {
 				return nil, err
 			}
@@ -140,7 +141,7 @@ func (l *UserLogic) AdminSend(adminID uint64, req AdminSendReq) (*model.UserNoti
 		Title: title, Content: strings.TrimSpace(req.Content), Target: target,
 		UserCount: len(userIDs), LinkType: linkType, LinkID: req.LinkID, SenderID: adminID,
 	}
-	if err := l.svcCtx.Repo.CreateNotificationBatch(batch); err != nil {
+	if err := l.svcCtx.Repo.CreateNotificationBatch(context.Background(), batch); err != nil {
 		return nil, err
 	}
 	list := make([]model.UserNotification, 0, len(userIDs))
@@ -152,24 +153,24 @@ func (l *UserLogic) AdminSend(adminID uint64, req AdminSendReq) (*model.UserNoti
 			SenderType: model.SenderAdmin, SenderID: adminID, BatchID: batch.ID,
 		})
 	}
-	if err := l.svcCtx.Repo.CreateNotifications(list); err != nil {
+	if err := l.svcCtx.Repo.CreateNotifications(context.Background(), list); err != nil {
 		return nil, err
 	}
 	batch.SuccessCount = len(list)
-	_ = l.svcCtx.Repo.UpdateNotificationBatchSuccess(batch.ID, batch.SuccessCount)
+	_ = l.svcCtx.Repo.UpdateNotificationBatchSuccess(context.Background(), batch.ID, batch.SuccessCount)
 	return batch, nil
 }
 
 func (l *UserLogic) ListSendBatches(page, pageSize int) ([]model.UserNotificationBatch, int64, error) {
-	return l.svcCtx.Repo.ListNotificationBatches(page, pageSize)
+	return l.svcCtx.Repo.ListNotificationBatches(context.Background(), page, pageSize)
 }
 
 func (l *UserLogic) GetSendBatch(id uint64) (*model.UserNotificationBatch, error) {
-	return l.svcCtx.Repo.GetNotificationBatch(id)
+	return l.svcCtx.Repo.GetNotificationBatch(context.Background(), id)
 }
 
 func (l *UserLogic) ListBatchRecipients(batchID uint64, page, pageSize int) ([]repository.BatchRecipientRow, int64, error) {
-	return l.svcCtx.Repo.ListBatchRecipients(batchID, page, pageSize)
+	return l.svcCtx.Repo.ListBatchRecipients(context.Background(), batchID, page, pageSize)
 }
 
 // ExtraJSON helper for order service callers via internal API

@@ -44,7 +44,7 @@ type RemarkReq struct {
 
 func (l *PointsOrderLogic) enrich(o *model.PointsExchangeOrder) PointsOrderVO {
 	vo := PointsOrderVO{PointsExchangeOrder: *o}
-	briefs := l.svcCtx.PointsOrders.MapUserBriefs([]uint64{o.UserID})
+	briefs := l.svcCtx.PointsOrders.MapUserBriefs(l.ctx, []uint64{o.UserID})
 	if b, ok := briefs[o.UserID]; ok {
 		vo.UserName = b[0]
 		vo.UserMobile = b[1]
@@ -59,7 +59,7 @@ func (l *PointsOrderLogic) AdminList(page, pageSize int, status, orderNo, keywor
 	if pageSize < 1 || pageSize > 100 {
 		pageSize = 20
 	}
-	list, total, err := l.svcCtx.PointsOrders.List(page, pageSize, repository.PointsOrderListFilter{
+	list, total, err := l.svcCtx.PointsOrders.List(l.ctx, page, pageSize, repository.PointsOrderListFilter{
 		Status: status, OrderNo: orderNo, Keyword: keyword, UserID: userID,
 	})
 	if err != nil {
@@ -73,7 +73,7 @@ func (l *PointsOrderLogic) AdminList(page, pageSize int, status, orderNo, keywor
 			ids = append(ids, o.UserID)
 		}
 	}
-	briefs := l.svcCtx.PointsOrders.MapUserBriefs(ids)
+	briefs := l.svcCtx.PointsOrders.MapUserBriefs(l.ctx, ids)
 	out := make([]PointsOrderVO, 0, len(list))
 	for i := range list {
 		vo := PointsOrderVO{PointsExchangeOrder: list[i]}
@@ -86,7 +86,7 @@ func (l *PointsOrderLogic) AdminList(page, pageSize int, status, orderNo, keywor
 }
 
 func (l *PointsOrderLogic) AdminGet(id uint64) (*PointsOrderVO, error) {
-	o, err := l.svcCtx.PointsOrders.GetByID(id)
+	o, err := l.svcCtx.PointsOrders.GetByID(l.ctx, id)
 	if err != nil {
 		return nil, errors.New("订单不存在")
 	}
@@ -98,7 +98,7 @@ func (l *PointsOrderLogic) AdminShip(id uint64, req ShipReq) (*PointsOrderVO, er
 	if strings.TrimSpace(req.ShipNo) == "" {
 		return nil, errors.New("请填写物流单号")
 	}
-	o, err := l.svcCtx.PointsOrders.Ship(id, req.ShipCompany, req.ShipNo)
+	o, err := l.svcCtx.PointsOrders.Ship(l.ctx, id, req.ShipCompany, req.ShipNo)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +107,7 @@ func (l *PointsOrderLogic) AdminShip(id uint64, req ShipReq) (*PointsOrderVO, er
 }
 
 func (l *PointsOrderLogic) AdminComplete(id uint64) (*PointsOrderVO, error) {
-	o, err := l.svcCtx.PointsOrders.Complete(id)
+	o, err := l.svcCtx.PointsOrders.Complete(l.ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +116,7 @@ func (l *PointsOrderLogic) AdminComplete(id uint64) (*PointsOrderVO, error) {
 }
 
 func (l *PointsOrderLogic) AdminCancel(id uint64, remark string) (*PointsOrderVO, error) {
-	o, err := l.svcCtx.PointsOrders.GetByID(id)
+	o, err := l.svcCtx.PointsOrders.GetByID(l.ctx, id)
 	if err != nil {
 		return nil, errors.New("订单不存在")
 	}
@@ -130,7 +130,7 @@ func (l *PointsOrderLogic) AdminCancel(id uint64, remark string) (*PointsOrderVO
 	}); err != nil {
 		return nil, err
 	}
-	o, err = l.svcCtx.PointsOrders.CancelLocal(id, remark)
+	o, err = l.svcCtx.PointsOrders.CancelLocal(l.ctx, id, remark)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func (l *PointsOrderLogic) AdminCancel(id uint64, remark string) (*PointsOrderVO
 }
 
 func (l *PointsOrderLogic) AdminRemark(id uint64, remark string) (*PointsOrderVO, error) {
-	o, err := l.svcCtx.PointsOrders.Remark(id, remark)
+	o, err := l.svcCtx.PointsOrders.Remark(l.ctx, id, remark)
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +155,7 @@ func (l *PointsOrderLogic) UserExchange(userID uint64, req ExchangeReq) (*model.
 	if qty < 1 {
 		qty = 1
 	}
-	o, err := l.svcCtx.PointsOrders.CreateExchangeLocal(userID, req.ProductID, qty, req.ReceiverName, req.ReceiverPhone, req.ReceiverAddress)
+	o, err := l.svcCtx.PointsOrders.CreateExchangeLocal(l.ctx, userID, req.ProductID, qty, req.ReceiverName, req.ReceiverPhone, req.ReceiverAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +164,7 @@ func (l *PointsOrderLogic) UserExchange(userID uint64, req ExchangeReq) (*model.
 		UserID: userID, Points: o.PointsCost, ChangeType: model.PointChangeMallExchange,
 		Remark: "积分兑换：" + o.ProductName, RefType: model.PointsOrderRefType, RefID: o.ID,
 	}); err != nil {
-		_ = l.svcCtx.PointsOrders.AbortExchange(o.ID)
+		_ = l.svcCtx.PointsOrders.AbortExchange(l.ctx, o.ID)
 		return nil, err
 	}
 	return o, nil
@@ -177,11 +177,11 @@ func (l *PointsOrderLogic) UserList(userID uint64, page, pageSize int) ([]model.
 	if pageSize < 1 || pageSize > 50 {
 		pageSize = 20
 	}
-	return l.svcCtx.PointsOrders.List(page, pageSize, repository.PointsOrderListFilter{UserID: userID})
+	return l.svcCtx.PointsOrders.List(l.ctx, page, pageSize, repository.PointsOrderListFilter{UserID: userID})
 }
 
 func (l *PointsOrderLogic) UserGet(userID, id uint64) (*model.PointsExchangeOrder, error) {
-	o, err := l.svcCtx.PointsOrders.GetByID(id)
+	o, err := l.svcCtx.PointsOrders.GetByID(l.ctx, id)
 	if err != nil || o.UserID != userID {
 		return nil, errors.New("订单不存在")
 	}

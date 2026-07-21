@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"mymall/services/user-service/internal/model"
 
 	"gorm.io/gorm"
@@ -14,26 +15,26 @@ func NewRBACRepository(db *gorm.DB) *RBACRepository {
 	return &RBACRepository{db: db}
 }
 
-func (r *RBACRepository) DB() *gorm.DB { return r.db }
+func (r *RBACRepository) DB(ctx context.Context) *gorm.DB { return r.db.WithContext(ctx) }
 
-func (r *RBACRepository) HasPlatformRole(userID uint64) bool {
+func (r *RBACRepository) HasPlatformRole(ctx context.Context, userID uint64) bool {
 	var n int64
-	_ = r.db.Model(&model.SysUserRole{}).Where("user_id = ?", userID).Count(&n).Error
+	_ = r.db.WithContext(ctx).Model(&model.SysUserRole{}).Where("user_id = ?", userID).Count(&n).Error
 	return n > 0
 }
 
-func (r *RBACRepository) IsSuperAdmin(userID uint64) bool {
+func (r *RBACRepository) IsSuperAdmin(ctx context.Context, userID uint64) bool {
 	var n int64
-	err := r.db.Table("sys_user_role ur").
+	err := r.db.WithContext(ctx).Table("sys_user_role ur").
 		Joins("JOIN sys_role r ON r.id = ur.role_id").
 		Where("ur.user_id = ? AND r.code = ? AND r.status = 1", userID, model.RoleCodeSuperAdmin).
 		Count(&n).Error
 	return err == nil && n > 0
 }
 
-func (r *RBACRepository) ListRoleCodes(userID uint64) ([]string, error) {
+func (r *RBACRepository) ListRoleCodes(ctx context.Context, userID uint64) ([]string, error) {
 	var codes []string
-	err := r.db.Table("sys_user_role ur").
+	err := r.db.WithContext(ctx).Table("sys_user_role ur").
 		Select("r.code").
 		Joins("JOIN sys_role r ON r.id = ur.role_id").
 		Where("ur.user_id = ? AND r.status = 1", userID).
@@ -41,16 +42,16 @@ func (r *RBACRepository) ListRoleCodes(userID uint64) ([]string, error) {
 	return codes, err
 }
 
-func (r *RBACRepository) ListUserPerms(userID uint64) ([]string, error) {
-	if r.IsSuperAdmin(userID) {
+func (r *RBACRepository) ListUserPerms(ctx context.Context, userID uint64) ([]string, error) {
+	if r.IsSuperAdmin(ctx, userID) {
 		var all []string
-		err := r.db.Model(&model.SysMenu{}).
+		err := r.db.WithContext(ctx).Model(&model.SysMenu{}).
 			Where("status = 1 AND perms <> ''").
 			Pluck("perms", &all).Error
 		return all, err
 	}
 	var perms []string
-	err := r.db.Table("sys_user_role ur").
+	err := r.db.WithContext(ctx).Table("sys_user_role ur").
 		Select("DISTINCT m.perms").
 		Joins("JOIN sys_role_menu rm ON rm.role_id = ur.role_id").
 		Joins("JOIN sys_menu m ON m.id = rm.menu_id").
@@ -59,11 +60,11 @@ func (r *RBACRepository) ListUserPerms(userID uint64) ([]string, error) {
 	return perms, err
 }
 
-func (r *RBACRepository) ListUserMenus(userID uint64) ([]model.SysMenu, error) {
+func (r *RBACRepository) ListUserMenus(ctx context.Context, userID uint64) ([]model.SysMenu, error) {
 	var menus []model.SysMenu
-	q := r.db.Model(&model.SysMenu{}).Where("status = 1 AND type IN ?", []string{model.MenuTypeDir, model.MenuTypeMenu})
-	if !r.IsSuperAdmin(userID) {
-		q = r.db.Table("sys_menu m").
+	q := r.db.WithContext(ctx).Model(&model.SysMenu{}).Where("status = 1 AND type IN ?", []string{model.MenuTypeDir, model.MenuTypeMenu})
+	if !r.IsSuperAdmin(ctx, userID) {
+		q = r.db.WithContext(ctx).Table("sys_menu m").
 			Select("DISTINCT m.*").
 			Joins("JOIN sys_role_menu rm ON rm.menu_id = m.id").
 			Joins("JOIN sys_user_role ur ON ur.role_id = rm.role_id").
@@ -73,35 +74,35 @@ func (r *RBACRepository) ListUserMenus(userID uint64) ([]model.SysMenu, error) {
 	return menus, err
 }
 
-func (r *RBACRepository) ListAllMenus() ([]model.SysMenu, error) {
+func (r *RBACRepository) ListAllMenus(ctx context.Context) ([]model.SysMenu, error) {
 	var menus []model.SysMenu
-	err := r.db.Order("sort ASC, id ASC").Find(&menus).Error
+	err := r.db.WithContext(ctx).Order("sort ASC, id ASC").Find(&menus).Error
 	return menus, err
 }
 
-func (r *RBACRepository) GetMenu(id uint64) (*model.SysMenu, error) {
+func (r *RBACRepository) GetMenu(ctx context.Context, id uint64) (*model.SysMenu, error) {
 	var m model.SysMenu
-	if err := r.db.First(&m, id).Error; err != nil {
+	if err := r.db.WithContext(ctx).First(&m, id).Error; err != nil {
 		return nil, err
 	}
 	return &m, nil
 }
 
-func (r *RBACRepository) CreateMenu(m *model.SysMenu) error {
-	return r.db.Create(m).Error
+func (r *RBACRepository) CreateMenu(ctx context.Context, m *model.SysMenu) error {
+	return r.db.WithContext(ctx).Create(m).Error
 }
 
-func (r *RBACRepository) UpdateMenu(m *model.SysMenu) error {
-	return r.db.Save(m).Error
+func (r *RBACRepository) UpdateMenu(ctx context.Context, m *model.SysMenu) error {
+	return r.db.WithContext(ctx).Save(m).Error
 }
 
-func (r *RBACRepository) DeleteMenu(id uint64) error {
+func (r *RBACRepository) DeleteMenu(ctx context.Context, id uint64) error {
 	var child int64
-	_ = r.db.Model(&model.SysMenu{}).Where("parent_id = ?", id).Count(&child).Error
+	_ = r.db.WithContext(ctx).Model(&model.SysMenu{}).Where("parent_id = ?", id).Count(&child).Error
 	if child > 0 {
 		return gorm.ErrForeignKeyViolated
 	}
-	return r.db.Transaction(func(tx *gorm.DB) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("menu_id = ?", id).Delete(&model.SysRoleMenu{}).Error; err != nil {
 			return err
 		}
@@ -109,30 +110,30 @@ func (r *RBACRepository) DeleteMenu(id uint64) error {
 	})
 }
 
-func (r *RBACRepository) ListRoles() ([]model.SysRole, error) {
+func (r *RBACRepository) ListRoles(ctx context.Context) ([]model.SysRole, error) {
 	var roles []model.SysRole
-	err := r.db.Order("id ASC").Find(&roles).Error
+	err := r.db.WithContext(ctx).Order("id ASC").Find(&roles).Error
 	return roles, err
 }
 
-func (r *RBACRepository) GetRole(id uint64) (*model.SysRole, error) {
+func (r *RBACRepository) GetRole(ctx context.Context, id uint64) (*model.SysRole, error) {
 	var role model.SysRole
-	if err := r.db.First(&role, id).Error; err != nil {
+	if err := r.db.WithContext(ctx).First(&role, id).Error; err != nil {
 		return nil, err
 	}
 	return &role, nil
 }
 
-func (r *RBACRepository) CreateRole(role *model.SysRole) error {
-	return r.db.Create(role).Error
+func (r *RBACRepository) CreateRole(ctx context.Context, role *model.SysRole) error {
+	return r.db.WithContext(ctx).Create(role).Error
 }
 
-func (r *RBACRepository) UpdateRole(role *model.SysRole) error {
-	return r.db.Save(role).Error
+func (r *RBACRepository) UpdateRole(ctx context.Context, role *model.SysRole) error {
+	return r.db.WithContext(ctx).Save(role).Error
 }
 
-func (r *RBACRepository) DeleteRole(id uint64) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *RBACRepository) DeleteRole(ctx context.Context, id uint64) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("role_id = ?", id).Delete(&model.SysRoleMenu{}).Error; err != nil {
 			return err
 		}
@@ -143,14 +144,14 @@ func (r *RBACRepository) DeleteRole(id uint64) error {
 	})
 }
 
-func (r *RBACRepository) ListRoleMenuIDs(roleID uint64) ([]uint64, error) {
+func (r *RBACRepository) ListRoleMenuIDs(ctx context.Context, roleID uint64) ([]uint64, error) {
 	var ids []uint64
-	err := r.db.Model(&model.SysRoleMenu{}).Where("role_id = ?", roleID).Pluck("menu_id", &ids).Error
+	err := r.db.WithContext(ctx).Model(&model.SysRoleMenu{}).Where("role_id = ?", roleID).Pluck("menu_id", &ids).Error
 	return ids, err
 }
 
-func (r *RBACRepository) ReplaceRoleMenus(roleID uint64, menuIDs []uint64) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *RBACRepository) ReplaceRoleMenus(ctx context.Context, roleID uint64, menuIDs []uint64) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("role_id = ?", roleID).Delete(&model.SysRoleMenu{}).Error; err != nil {
 			return err
 		}
@@ -163,8 +164,8 @@ func (r *RBACRepository) ReplaceRoleMenus(roleID uint64, menuIDs []uint64) error
 	})
 }
 
-func (r *RBACRepository) ListUsers(page, pageSize int, mobile string) ([]model.User, int64, error) {
-	q := r.db.Model(&model.User{})
+func (r *RBACRepository) ListUsers(ctx context.Context, page, pageSize int, mobile string) ([]model.User, int64, error) {
+	q := r.db.WithContext(ctx).Model(&model.User{})
 	if mobile != "" {
 		q = q.Where("mobile LIKE ?", "%"+mobile+"%")
 	}
@@ -177,13 +178,13 @@ func (r *RBACRepository) ListUsers(page, pageSize int, mobile string) ([]model.U
 	return list, total, err
 }
 
-func (r *RBACRepository) UpdateUserStatus(id uint64, status int) error {
-	return r.db.Model(&model.User{}).Where("id = ?", id).Update("status", status).Error
+func (r *RBACRepository) UpdateUserStatus(ctx context.Context, id uint64, status int) error {
+	return r.db.WithContext(ctx).Model(&model.User{}).Where("id = ?", id).Update("status", status).Error
 }
 
-func (r *RBACRepository) ListAdmins(page, pageSize int) ([]model.User, int64, error) {
-	sub := r.db.Model(&model.SysUserRole{}).Select("DISTINCT user_id")
-	q := r.db.Model(&model.User{}).Where("id IN (?) OR role = ?", sub, "platform_admin")
+func (r *RBACRepository) ListAdmins(ctx context.Context, page, pageSize int) ([]model.User, int64, error) {
+	sub := r.db.WithContext(ctx).Model(&model.SysUserRole{}).Select("DISTINCT user_id")
+	q := r.db.WithContext(ctx).Model(&model.User{}).Where("id IN (?) OR role = ?", sub, "platform_admin")
 	var total int64
 	if err := q.Count(&total).Error; err != nil {
 		return nil, 0, err
@@ -193,14 +194,14 @@ func (r *RBACRepository) ListAdmins(page, pageSize int) ([]model.User, int64, er
 	return list, total, err
 }
 
-func (r *RBACRepository) ListUserRoleIDs(userID uint64) ([]uint64, error) {
+func (r *RBACRepository) ListUserRoleIDs(ctx context.Context, userID uint64) ([]uint64, error) {
 	var ids []uint64
-	err := r.db.Model(&model.SysUserRole{}).Where("user_id = ?", userID).Pluck("role_id", &ids).Error
+	err := r.db.WithContext(ctx).Model(&model.SysUserRole{}).Where("user_id = ?", userID).Pluck("role_id", &ids).Error
 	return ids, err
 }
 
-func (r *RBACRepository) ReplaceUserRoles(userID uint64, roleIDs []uint64) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *RBACRepository) ReplaceUserRoles(ctx context.Context, userID uint64, roleIDs []uint64) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("user_id = ?", userID).Delete(&model.SysUserRole{}).Error; err != nil {
 			return err
 		}
@@ -217,17 +218,17 @@ func (r *RBACRepository) ReplaceUserRoles(userID uint64, roleIDs []uint64) error
 	})
 }
 
-func (r *RBACRepository) ListConfigs() ([]model.SysConfig, error) {
+func (r *RBACRepository) ListConfigs(ctx context.Context) ([]model.SysConfig, error) {
 	var list []model.SysConfig
-	err := r.db.Order("id ASC").Find(&list).Error
+	err := r.db.WithContext(ctx).Order("id ASC").Find(&list).Error
 	return list, err
 }
 
-func (r *RBACRepository) UpsertConfig(key, value, remark string) error {
+func (r *RBACRepository) UpsertConfig(ctx context.Context, key, value, remark string) error {
 	var c model.SysConfig
-	err := r.db.Where("config_key = ?", key).First(&c).Error
+	err := r.db.WithContext(ctx).Where("config_key = ?", key).First(&c).Error
 	if err == gorm.ErrRecordNotFound {
-		return r.db.Create(&model.SysConfig{ConfigKey: key, ConfigValue: value, Remark: remark}).Error
+		return r.db.WithContext(ctx).Create(&model.SysConfig{ConfigKey: key, ConfigValue: value, Remark: remark}).Error
 	}
 	if err != nil {
 		return err
@@ -236,5 +237,5 @@ func (r *RBACRepository) UpsertConfig(key, value, remark string) error {
 	if remark != "" {
 		c.Remark = remark
 	}
-	return r.db.Save(&c).Error
+	return r.db.WithContext(ctx).Save(&c).Error
 }

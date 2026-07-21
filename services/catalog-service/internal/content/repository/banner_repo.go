@@ -1,20 +1,21 @@
 package repository
 
 import (
+	"context"
 	"errors"
 	"time"
 
 	"mymall/services/catalog-service/internal/content/model"
 )
 
-func (r *ArticleRepository) ListBannersAdmin(page, pageSize int) ([]model.HomepageBanner, int64, error) {
+func (r *ArticleRepository) ListBannersAdmin(ctx context.Context, page, pageSize int) ([]model.HomepageBanner, int64, error) {
 	if page < 1 {
 		page = 1
 	}
 	if pageSize < 1 {
 		pageSize = 20
 	}
-	q := r.db.Model(&model.HomepageBanner{})
+	q := r.db.WithContext(ctx).Model(&model.HomepageBanner{})
 	var total int64
 	if err := q.Count(&total).Error; err != nil {
 		return nil, 0, err
@@ -24,10 +25,10 @@ func (r *ArticleRepository) ListBannersAdmin(page, pageSize int) ([]model.Homepa
 	return list, total, err
 }
 
-func (r *ArticleRepository) ListBannersPublic() ([]model.HomepageBanner, error) {
+func (r *ArticleRepository) ListBannersPublic(ctx context.Context) ([]model.HomepageBanner, error) {
 	now := time.Now()
 	var list []model.HomepageBanner
-	err := r.db.Model(&model.HomepageBanner{}).
+	err := r.db.WithContext(ctx).Model(&model.HomepageBanner{}).
 		Where("status = ?", model.BannerOn).
 		Where("(start_at IS NULL OR start_at <= ?)", now).
 		Where("(end_at IS NULL OR end_at > ?)", now).
@@ -36,20 +37,20 @@ func (r *ArticleRepository) ListBannersPublic() ([]model.HomepageBanner, error) 
 	return list, err
 }
 
-func (r *ArticleRepository) GetBanner(id uint64) (*model.HomepageBanner, error) {
+func (r *ArticleRepository) GetBanner(ctx context.Context, id uint64) (*model.HomepageBanner, error) {
 	var b model.HomepageBanner
-	if err := r.db.First(&b, id).Error; err != nil {
+	if err := r.db.WithContext(ctx).First(&b, id).Error; err != nil {
 		return nil, err
 	}
 	return &b, nil
 }
 
-func (r *ArticleRepository) CreateBanner(b *model.HomepageBanner) error {
-	return r.db.Create(b).Error
+func (r *ArticleRepository) CreateBanner(ctx context.Context, b *model.HomepageBanner) error {
+	return r.db.WithContext(ctx).Create(b).Error
 }
 
-func (r *ArticleRepository) UpdateBanner(id uint64, updates map[string]interface{}) error {
-	res := r.db.Model(&model.HomepageBanner{}).Where("id = ?", id).Updates(updates)
+func (r *ArticleRepository) UpdateBanner(ctx context.Context, id uint64, updates map[string]interface{}) error {
+	res := r.db.WithContext(ctx).Model(&model.HomepageBanner{}).Where("id = ?", id).Updates(updates)
 	if res.Error != nil {
 		return res.Error
 	}
@@ -59,8 +60,8 @@ func (r *ArticleRepository) UpdateBanner(id uint64, updates map[string]interface
 	return nil
 }
 
-func (r *ArticleRepository) DeleteBanner(id uint64) error {
-	res := r.db.Delete(&model.HomepageBanner{}, id)
+func (r *ArticleRepository) DeleteBanner(ctx context.Context, id uint64) error {
+	res := r.db.WithContext(ctx).Delete(&model.HomepageBanner{}, id)
 	if res.Error != nil {
 		return res.Error
 	}
@@ -70,7 +71,7 @@ func (r *ArticleRepository) DeleteBanner(id uint64) error {
 	return nil
 }
 
-func (r *ArticleRepository) FillBannerLinkNames(list []model.HomepageBanner) {
+func (r *ArticleRepository) FillBannerLinkNames(ctx context.Context, list []model.HomepageBanner) {
 	for i := range list {
 		switch list[i].LinkType {
 		case model.BannerLinkProduct:
@@ -78,28 +79,28 @@ func (r *ArticleRepository) FillBannerLinkNames(list []model.HomepageBanner) {
 				continue
 			}
 			var name string
-			_ = r.db.Table("products").Select("name").Where("id = ?", list[i].LinkID).Scan(&name).Error
+			_ = r.db.WithContext(ctx).Table("products").Select("name").Where("id = ?", list[i].LinkID).Scan(&name).Error
 			list[i].LinkName = name
 		case model.BannerLinkArticle:
 			if list[i].LinkID == 0 {
 				continue
 			}
 			var title string
-			_ = r.db.Table("community_article").Select("title").Where("id = ?", list[i].LinkID).Scan(&title).Error
+			_ = r.db.WithContext(ctx).Table("community_article").Select("title").Where("id = ?", list[i].LinkID).Scan(&title).Error
 			list[i].LinkName = title
 		}
 	}
 }
 
-func (r *ArticleRepository) ProductExistsOnSale(id uint64) bool {
+func (r *ArticleRepository) ProductExistsOnSale(ctx context.Context, id uint64) bool {
 	var n int64
-	r.db.Table("products").Where("id = ? AND status = ?", id, "on_sale").Count(&n)
+	r.db.WithContext(ctx).Table("products").Where("id = ? AND status = ?", id, "on_sale").Count(&n)
 	return n > 0
 }
 
-func (r *ArticleRepository) ArticleExistsPublished(id uint64) bool {
+func (r *ArticleRepository) ArticleExistsPublished(ctx context.Context, id uint64) bool {
 	var n int64
-	r.db.Model(&model.CommunityArticle{}).
+	r.db.WithContext(ctx).Model(&model.CommunityArticle{}).
 		Where("id = ? AND status = ? AND audit_status = ?", id, model.ArticlePublished, model.ArticleAuditApproved).
 		Count(&n)
 	return n > 0

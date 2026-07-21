@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"errors"
 
 	"mymall/services/user-service/internal/model"
@@ -9,12 +10,12 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-func (r *UserRepository) EnsureWallet(userID uint64) (*model.UserWallet, error) {
+func (r *UserRepository) EnsureWallet(ctx context.Context, userID uint64) (*model.UserWallet, error) {
 	var w model.UserWallet
-	err := r.db.Where("user_id = ?", userID).First(&w).Error
+	err := r.db.WithContext(ctx).Where("user_id = ?", userID).First(&w).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		w = model.UserWallet{UserID: userID}
-		if err := r.db.Create(&w).Error; err != nil {
+		if err := r.db.WithContext(ctx).Create(&w).Error; err != nil {
 			return nil, err
 		}
 		return &w, nil
@@ -25,8 +26,8 @@ func (r *UserRepository) EnsureWallet(userID uint64) (*model.UserWallet, error) 
 	return &w, nil
 }
 
-func (r *UserRepository) GetWallet(userID uint64) (*model.UserWallet, error) {
-	return r.EnsureWallet(userID)
+func (r *UserRepository) GetWallet(ctx context.Context, userID uint64) (*model.UserWallet, error) {
+	return r.EnsureWallet(ctx, userID)
 }
 
 func (r *UserRepository) lockWallet(tx *gorm.DB, userID uint64) (*model.UserWallet, error) {
@@ -59,20 +60,20 @@ func (r *UserRepository) writeLog(tx *gorm.DB, w *model.UserWallet, changeType s
 	}).Error
 }
 
-func (r *UserRepository) HasWalletLog(userID uint64, changeType, refType string, refID uint64) (bool, error) {
+func (r *UserRepository) HasWalletLog(ctx context.Context, userID uint64, changeType, refType string, refID uint64) (bool, error) {
 	var n int64
-	err := r.db.Model(&model.UserWalletLog{}).
+	err := r.db.WithContext(ctx).Model(&model.UserWalletLog{}).
 		Where("user_id = ? AND change_type = ? AND ref_type = ? AND ref_id = ?", userID, changeType, refType, refID).
 		Count(&n).Error
 	return n > 0, err
 }
 
-func (r *UserRepository) AdjustWallet(userID uint64, field string, amount float64, remark string, operatorID *uint64) (*model.UserWallet, error) {
+func (r *UserRepository) AdjustWallet(ctx context.Context, userID uint64, field string, amount float64, remark string, operatorID *uint64) (*model.UserWallet, error) {
 	if field == "" {
 		field = model.UserWalletFieldBalance
 	}
 	var out *model.UserWallet
-	err := r.db.Transaction(func(tx *gorm.DB) error {
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		w, err := r.lockWallet(tx, userID)
 		if err != nil {
 			return err
@@ -114,8 +115,8 @@ func (r *UserRepository) AdjustWallet(userID uint64, field string, amount float6
 	return out, err
 }
 
-func (r *UserRepository) ListWalletLogs(userID uint64, page, pageSize int) ([]model.UserWalletLog, int64, error) {
-	q := r.db.Model(&model.UserWalletLog{}).Where("user_id = ?", userID)
+func (r *UserRepository) ListWalletLogs(ctx context.Context, userID uint64, page, pageSize int) ([]model.UserWalletLog, int64, error) {
+	q := r.db.WithContext(ctx).Model(&model.UserWalletLog{}).Where("user_id = ?", userID)
 	var total int64
 	if err := q.Count(&total).Error; err != nil {
 		return nil, 0, err
@@ -125,18 +126,18 @@ func (r *UserRepository) ListWalletLogs(userID uint64, page, pageSize int) ([]mo
 	return list, total, err
 }
 
-func (r *UserRepository) FreezeForOrder(userID uint64, amount float64, orderID uint64, orderNo string) error {
+func (r *UserRepository) FreezeForOrder(ctx context.Context, userID uint64, amount float64, orderID uint64, orderNo string) error {
 	if amount <= 0 {
 		return errors.New("冻结金额无效")
 	}
-	exists, err := r.HasWalletLog(userID, model.UserWalletLogOrderFreeze, "order", orderID)
+	exists, err := r.HasWalletLog(ctx, userID, model.UserWalletLogOrderFreeze, "order", orderID)
 	if err != nil {
 		return err
 	}
 	if exists {
 		return nil
 	}
-	return r.db.Transaction(func(tx *gorm.DB) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		w, err := r.lockWallet(tx, userID)
 		if err != nil {
 			return err
@@ -157,32 +158,32 @@ func (r *UserRepository) FreezeForOrder(userID uint64, amount float64, orderID u
 	})
 }
 
-func (r *UserRepository) UnfreezeOrder(userID uint64, amount float64, orderID uint64, orderNo string) error {
+func (r *UserRepository) UnfreezeOrder(ctx context.Context, userID uint64, amount float64, orderID uint64, orderNo string) error {
 	if amount <= 0 {
 		return nil
 	}
-	settled, err := r.HasWalletLog(userID, model.UserWalletLogOrderSettle, "order", orderID)
+	settled, err := r.HasWalletLog(ctx, userID, model.UserWalletLogOrderSettle, "order", orderID)
 	if err != nil {
 		return err
 	}
 	if settled {
 		return nil
 	}
-	exists, err := r.HasWalletLog(userID, model.UserWalletLogOrderUnfreeze, "order", orderID)
+	exists, err := r.HasWalletLog(ctx, userID, model.UserWalletLogOrderUnfreeze, "order", orderID)
 	if err != nil {
 		return err
 	}
 	if exists {
 		return nil
 	}
-	frozen, err := r.HasWalletLog(userID, model.UserWalletLogOrderFreeze, "order", orderID)
+	frozen, err := r.HasWalletLog(ctx, userID, model.UserWalletLogOrderFreeze, "order", orderID)
 	if err != nil {
 		return err
 	}
 	if !frozen {
 		return nil
 	}
-	return r.db.Transaction(func(tx *gorm.DB) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		w, err := r.lockWallet(tx, userID)
 		if err != nil {
 			return err
@@ -203,25 +204,25 @@ func (r *UserRepository) UnfreezeOrder(userID uint64, amount float64, orderID ui
 	})
 }
 
-func (r *UserRepository) SettleOrder(userID uint64, amount float64, orderID uint64, orderNo string) error {
+func (r *UserRepository) SettleOrder(ctx context.Context, userID uint64, amount float64, orderID uint64, orderNo string) error {
 	if amount <= 0 {
 		return nil
 	}
-	exists, err := r.HasWalletLog(userID, model.UserWalletLogOrderSettle, "order", orderID)
+	exists, err := r.HasWalletLog(ctx, userID, model.UserWalletLogOrderSettle, "order", orderID)
 	if err != nil {
 		return err
 	}
 	if exists {
 		return nil
 	}
-	unfrozen, err := r.HasWalletLog(userID, model.UserWalletLogOrderUnfreeze, "order", orderID)
+	unfrozen, err := r.HasWalletLog(ctx, userID, model.UserWalletLogOrderUnfreeze, "order", orderID)
 	if err != nil {
 		return err
 	}
 	if unfrozen {
 		return nil
 	}
-	return r.db.Transaction(func(tx *gorm.DB) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		w, err := r.lockWallet(tx, userID)
 		if err != nil {
 			return err

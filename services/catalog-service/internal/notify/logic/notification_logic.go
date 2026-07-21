@@ -19,7 +19,7 @@ func NewNotificationLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Noti
 }
 
 func (l *NotificationLogic) List(f repository.NotificationListFilter) (map[string]interface{}, error) {
-	list, total, err := l.svcCtx.Notifications.List(f)
+	list, total, err := l.svcCtx.Notifications.List(l.ctx, f)
 	if err != nil {
 		return nil, err
 	}
@@ -27,7 +27,7 @@ func (l *NotificationLogic) List(f repository.NotificationListFilter) (map[strin
 }
 
 func (l *NotificationLogic) UnreadCount(shopID uint64) (map[string]interface{}, error) {
-	cnt, err := l.svcCtx.Notifications.UnreadCount(shopID)
+	cnt, err := l.svcCtx.Notifications.UnreadCount(l.ctx, shopID)
 	if err != nil {
 		return nil, err
 	}
@@ -35,9 +35,9 @@ func (l *NotificationLogic) UnreadCount(shopID uint64) (map[string]interface{}, 
 }
 
 func (l *NotificationLogic) MarkRead(id, shopID uint64) error {
-	return l.svcCtx.Notifications.MarkRead(id, shopID)
+	return l.svcCtx.Notifications.MarkRead(l.ctx, id, shopID)
 }
 
 func (l *NotificationLogic) MarkAllRead(shopID uint64) error {
-	return l.svcCtx.Notifications.MarkAllRead(shopID)
+	return l.svcCtx.Notifications.MarkAllRead(l.ctx, shopID)
 }

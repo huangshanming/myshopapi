@@ -1,6 +1,7 @@
 package biz
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -12,7 +13,7 @@ func (l *MerchantLogic) GetWallet(shopID uint64) (*model.ShopWallet, error) {
 	if shopID == 0 {
 		return nil, errors.New("缺少店铺")
 	}
-	return l.svcCtx.Repo.GetWallet(shopID)
+	return l.svcCtx.Repo.GetWallet(context.Background(), shopID)
 }
 
 func (l *MerchantLogic) AdjustWallet(shopID uint64, field string, amount float64, remark string, operatorID uint64) (*model.ShopWallet, error) {
@@ -41,7 +42,7 @@ func (l *MerchantLogic) AdjustWallet(shopID uint64, field string, amount float64
 		}
 	}
 	op := operatorID
-	return l.svcCtx.Repo.AdjustWallet(shopID, field, amount, model.WalletLogAdminAdjust, remark, &op, field, 0)
+	return l.svcCtx.Repo.AdjustWallet(context.Background(), shopID, field, amount, model.WalletLogAdminAdjust, remark, &op, field, 0)
 }
 
 func (l *MerchantLogic) ListWalletLogs(shopID uint64, page, pageSize int) ([]model.ShopWalletLog, int64, error) {
@@ -51,15 +52,15 @@ func (l *MerchantLogic) ListWalletLogs(shopID uint64, page, pageSize int) ([]mod
 	if pageSize < 1 {
 		pageSize = 20
 	}
-	return l.svcCtx.Repo.ListWalletLogs(shopID, page, pageSize)
+	return l.svcCtx.Repo.ListWalletLogs(context.Background(), shopID, page, pageSize)
 }
 
 func (l *MerchantLogic) GetSeckillRule() (*model.SeckillRule, error) {
-	return l.svcCtx.Repo.GetActiveSeckillRule()
+	return l.svcCtx.Repo.GetActiveSeckillRule(context.Background())
 }
 
 func (l *MerchantLogic) UpdateSeckillRule(req types.SeckillRuleReq) (*model.SeckillRule, error) {
-	rule, err := l.svcCtx.Repo.GetActiveSeckillRule()
+	rule, err := l.svcCtx.Repo.GetActiveSeckillRule(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -80,33 +81,33 @@ func (l *MerchantLogic) UpdateSeckillRule(req types.SeckillRuleReq) (*model.Seck
 	} else {
 		rule.Status = model.SeckillRuleOn
 	}
-	if err := l.svcCtx.Repo.SaveSeckillRule(rule); err != nil {
+	if err := l.svcCtx.Repo.SaveSeckillRule(context.Background(), rule); err != nil {
 		return nil, err
 	}
 	return rule, nil
 }
 
 func (l *MerchantLogic) EnsureActiveSession() (*model.SeckillSession, *model.SeckillRule, error) {
-	rule, err := l.svcCtx.Repo.GetActiveSeckillRule()
+	rule, err := l.svcCtx.Repo.GetActiveSeckillRule(context.Background())
 	if err != nil {
 		return nil, nil, err
 	}
-	s, err := l.svcCtx.Repo.GetActiveSession()
+	s, err := l.svcCtx.Repo.GetActiveSession(context.Background())
 	if err == nil {
 		return s, rule, nil
 	}
 	now := time.Now()
 	end := now.Add(time.Duration(rule.DurationHours) * time.Hour)
-	s, err = l.svcCtx.Repo.CreateSession(rule.ID, now, end)
+	s, err = l.svcCtx.Repo.CreateSession(context.Background(), rule.ID, now, end)
 	return s, rule, err
 }
 
 func (l *MerchantLogic) RotateSeckillSessions() {
-	rule, err := l.svcCtx.Repo.GetActiveSeckillRule()
+	rule, err := l.svcCtx.Repo.GetActiveSeckillRule(context.Background())
 	if err != nil || rule.Status != model.SeckillRuleOn {
 		return
 	}
-	s, err := l.svcCtx.Repo.GetActiveSession()
+	s, err := l.svcCtx.Repo.GetActiveSession(context.Background())
 	if err != nil {
 		_, _, _ = l.EnsureActiveSession()
 		return
@@ -116,19 +117,19 @@ func (l *MerchantLogic) RotateSeckillSessions() {
 		return
 	}
 	oldID := s.ID
-	_ = l.svcCtx.Repo.EndSession(oldID)
+	_ = l.svcCtx.Repo.EndSession(context.Background(), oldID)
 	now := time.Now()
-	next, err := l.svcCtx.Repo.CreateSession(rule.ID, now, now.Add(time.Duration(rule.DurationHours)*time.Hour))
+	next, err := l.svcCtx.Repo.CreateSession(context.Background(), rule.ID, now, now.Add(time.Duration(rule.DurationHours)*time.Hour))
 	if err != nil || next == nil {
 		return
 	}
 	// 到期优先：对本场开启自动续费的报名，按报名先后尝试续到下一场（余额不足则跳过）
-	entries, err := l.svcCtx.Repo.ListAutoRenewEntries(oldID)
+	entries, err := l.svcCtx.Repo.ListAutoRenewEntries(context.Background(), oldID)
 	if err != nil {
 		return
 	}
 	for _, e := range entries {
-		_ = l.svcCtx.Repo.RenewSeckillEntry(&e, next.ID, rule.ApplyFee, rule.MaxEntriesPerShop)
+		_ = l.svcCtx.Repo.RenewSeckillEntry(context.Background(), &e, next.ID, rule.ApplyFee, rule.MaxEntriesPerShop)
 	}
 }
 
@@ -136,12 +137,12 @@ func (l *MerchantLogic) SetSeckillAutoRenew(shopID, entryID uint64, autoRenew in
 	if shopID == 0 || entryID == 0 {
 		return nil, errors.New("参数无效")
 	}
-	e, err := l.svcCtx.Repo.FindShopEntry(shopID, entryID)
+	e, err := l.svcCtx.Repo.FindShopEntry(context.Background(), shopID, entryID)
 	if err != nil {
 		return nil, errors.New("报名记录不存在")
 	}
 	// 仅进行中场次的报名可改开关；已结束场次改开关无意义，但仍允许关掉
-	if err := l.svcCtx.Repo.SetSeckillAutoRenew(shopID, entryID, autoRenew); err != nil {
+	if err := l.svcCtx.Repo.SetSeckillAutoRenew(context.Background(), shopID, entryID, autoRenew); err != nil {
 		return nil, err
 	}
 	e.AutoRenew = 0
@@ -158,7 +159,7 @@ func (l *MerchantLogic) ListSeckillSessions(page, pageSize int) ([]model.Seckill
 	if pageSize < 1 {
 		pageSize = 20
 	}
-	return l.svcCtx.Repo.ListSessions(page, pageSize)
+	return l.svcCtx.Repo.ListSessions(context.Background(), page, pageSize)
 }
 
 func (l *MerchantLogic) ListAdminSeckillEntries(sessionID uint64, page, pageSize int) ([]model.SeckillEntry, int64, error) {
@@ -168,7 +169,7 @@ func (l *MerchantLogic) ListAdminSeckillEntries(sessionID uint64, page, pageSize
 	if pageSize < 1 {
 		pageSize = 20
 	}
-	return l.svcCtx.Repo.ListAdminEntries(sessionID, page, pageSize)
+	return l.svcCtx.Repo.ListAdminEntries(context.Background(), sessionID, page, pageSize)
 }
 
 func (l *MerchantLogic) MerchantSeckillSessions() (map[string]interface{}, error) {
@@ -199,7 +200,7 @@ func (l *MerchantLogic) ApplySeckill(shopID, userID uint64, req types.SeckillApp
 	if req.SeckillStock < 1 {
 		return nil, errors.New("秒杀库存至少为1")
 	}
-	s, err := l.svcCtx.Repo.FindSession(req.SessionID)
+	s, err := l.svcCtx.Repo.FindSession(context.Background(), req.SessionID)
 	if err != nil {
 		return nil, errors.New("场次不存在")
 	}
@@ -209,11 +210,11 @@ func (l *MerchantLogic) ApplySeckill(shopID, userID uint64, req types.SeckillApp
 	if !time.Now().Before(time.Time(s.EndAt)) {
 		return nil, errors.New("场次已结束")
 	}
-	rule, err := l.svcCtx.Repo.GetActiveSeckillRule()
+	rule, err := l.svcCtx.Repo.GetActiveSeckillRule(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	cnt, err := l.svcCtx.Repo.CountShopEntries(s.ID, shopID)
+	cnt, err := l.svcCtx.Repo.CountShopEntries(context.Background(), s.ID, shopID)
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +235,7 @@ func (l *MerchantLogic) ApplySeckill(shopID, userID uint64, req types.SeckillApp
 		entry.AutoRenew = 1
 	}
 	op := userID
-	if err := l.svcCtx.Repo.ApplySeckillEntry(entry, rule.ApplyFee, &op); err != nil {
+	if err := l.svcCtx.Repo.ApplySeckillEntry(context.Background(), entry, rule.ApplyFee, &op); err != nil {
 		return nil, err
 	}
 	return entry, nil
@@ -247,7 +248,7 @@ func (l *MerchantLogic) ListShopSeckillEntries(shopID uint64, page, pageSize int
 	if pageSize < 1 {
 		pageSize = 20
 	}
-	return l.svcCtx.Repo.ListShopEntries(shopID, page, pageSize)
+	return l.svcCtx.Repo.ListShopEntries(context.Background(), shopID, page, pageSize)
 }
 
 func mapSeckillItem(e model.SeckillEntry) map[string]interface{} {
@@ -268,7 +269,7 @@ func (l *MerchantLogic) PublicSeckillCurrent() (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	entries, err := l.svcCtx.Repo.ListActiveEntries(s.ID, 50)
+	entries, err := l.svcCtx.Repo.ListActiveEntries(context.Background(), s.ID, 50)
 	if err != nil {
 		return nil, err
 	}
@@ -298,7 +299,7 @@ func (l *MerchantLogic) PublicSeckillList(page, pageSize int) (map[string]interf
 	if err != nil {
 		return nil, err
 	}
-	entries, total, err := l.svcCtx.Repo.ListActiveEntriesPage(s.ID, page, pageSize)
+	entries, total, err := l.svcCtx.Repo.ListActiveEntriesPage(context.Background(), s.ID, page, pageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -316,11 +317,11 @@ func (l *MerchantLogic) PublicSeckillList(page, pageSize int) (map[string]interf
 }
 
 func (l *MerchantLogic) PublicSeckillEntry(id uint64) (map[string]interface{}, error) {
-	e, err := l.svcCtx.Repo.FindSeckillEntry(id)
+	e, err := l.svcCtx.Repo.FindSeckillEntry(context.Background(), id)
 	if err != nil {
 		return nil, errors.New("秒杀商品不存在")
 	}
-	s, err := l.svcCtx.Repo.FindSession(e.SessionID)
+	s, err := l.svcCtx.Repo.FindSession(context.Background(), e.SessionID)
 	sessionActive := err == nil && s.Status == model.SeckillSessionActive && time.Now().Before(time.Time(s.EndAt))
 	available := sessionActive && e.Status == model.SeckillEntryActive && e.SeckillStock > 0
 	out := map[string]interface{}{
@@ -349,7 +350,7 @@ func (l *MerchantLogic) ConsumeSeckill(entryID, productID uint64, qty int) (map[
 	if entryID == 0 || productID == 0 || qty < 1 {
 		return nil, errors.New("参数无效")
 	}
-	e, err := l.svcCtx.Repo.FindSeckillEntry(entryID)
+	e, err := l.svcCtx.Repo.FindSeckillEntry(context.Background(), entryID)
 	if err != nil {
 		return nil, errors.New("秒杀商品不存在")
 	}
@@ -359,11 +360,11 @@ func (l *MerchantLogic) ConsumeSeckill(entryID, productID uint64, qty int) (map[
 	if e.Status != model.SeckillEntryActive {
 		return nil, errors.New("秒杀报名已失效")
 	}
-	s, err := l.svcCtx.Repo.FindSession(e.SessionID)
+	s, err := l.svcCtx.Repo.FindSession(context.Background(), e.SessionID)
 	if err != nil || s.Status != model.SeckillSessionActive || !time.Now().Before(time.Time(s.EndAt)) {
 		return nil, errors.New("秒杀场次已结束")
 	}
-	if err := l.svcCtx.Repo.DecrSeckillStock(entryID, qty); err != nil {
+	if err := l.svcCtx.Repo.DecrSeckillStock(context.Background(), entryID, qty); err != nil {
 		return nil, err
 	}
 	return map[string]interface{}{
@@ -378,5 +379,5 @@ func (l *MerchantLogic) RestoreSeckill(entryID uint64, qty int) error {
 	if entryID == 0 || qty < 1 {
 		return nil
 	}
-	return l.svcCtx.Repo.IncrSeckillStock(entryID, qty)
+	return l.svcCtx.Repo.IncrSeckillStock(context.Background(), entryID, qty)
 }

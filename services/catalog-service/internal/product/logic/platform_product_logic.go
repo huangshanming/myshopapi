@@ -27,7 +27,7 @@ func NewPlatformProductLogic(ctx context.Context, svcCtx *svc.ServiceContext) *P
 
 func (l *PlatformProductLogic) List(f repository.ProductListFilter) (map[string]interface{}, error) {
 	f.PlatformScope = true
-	list, total, err := l.svcCtx.ProductAdmin.List(f)
+	list, total, err := l.svcCtx.ProductAdmin.List(l.ctx, f)
 	if err != nil {
 		return nil, err
 	}
@@ -39,19 +39,19 @@ func (l *PlatformProductLogic) ForceOffSale(id, operatorID uint64, remark string
 	if remark == "" {
 		return errors.New("请填写备注，将通知商家")
 	}
-	p, err := l.svcCtx.ProductAdmin.GetByID(id)
+	p, err := l.svcCtx.ProductAdmin.GetByID(l.ctx, id)
 	if err != nil {
 		return errors.New("商品不存在")
 	}
 	if p.Status == model.ProductDeleted {
 		return errors.New("商品已删除")
 	}
-	if err := l.svcCtx.ProductAdmin.SetStatus(id, p.ShopID, model.ProductOffSale); err != nil {
+	if err := l.svcCtx.ProductAdmin.SetStatus(l.ctx, id, p.ShopID, model.ProductOffSale); err != nil {
 		return err
 	}
 	after, _ := json.Marshal(map[string]string{"status": model.ProductOffSale, "remark": remark})
-	_ = l.svcCtx.ProductAdmin.AddOpLog(p.ShopID, &id, operatorID, "platform_off_sale", "", string(after))
-	_ = l.svcCtx.Notifications.Create(&notifymodel.ShopNotification{
+	_ = l.svcCtx.ProductAdmin.AddOpLog(l.ctx, p.ShopID, &id, operatorID, "platform_off_sale", "", string(after))
+	_ = l.svcCtx.Notifications.Create(l.ctx, &notifymodel.ShopNotification{
 		ShopID:  p.ShopID,
 		Type:    notifymodel.NotifProductOffSale,
 		Title:   "商品被平台强制下架",
@@ -68,19 +68,19 @@ func (l *PlatformProductLogic) SoftDelete(id, operatorID uint64, remark string) 
 	if remark == "" {
 		return errors.New("请填写备注，将通知商家")
 	}
-	p, err := l.svcCtx.ProductAdmin.GetByID(id)
+	p, err := l.svcCtx.ProductAdmin.GetByID(l.ctx, id)
 	if err != nil {
 		return errors.New("商品不存在")
 	}
 	if p.Status == model.ProductDeleted {
 		return errors.New("商品已在回收站")
 	}
-	if err := l.svcCtx.ProductAdmin.SetStatus(id, p.ShopID, model.ProductDeleted); err != nil {
+	if err := l.svcCtx.ProductAdmin.SetStatus(l.ctx, id, p.ShopID, model.ProductDeleted); err != nil {
 		return err
 	}
 	after, _ := json.Marshal(map[string]string{"status": model.ProductDeleted, "remark": remark})
-	_ = l.svcCtx.ProductAdmin.AddOpLog(p.ShopID, &id, operatorID, "platform_delete", "", string(after))
-	_ = l.svcCtx.Notifications.Create(&notifymodel.ShopNotification{
+	_ = l.svcCtx.ProductAdmin.AddOpLog(l.ctx, p.ShopID, &id, operatorID, "platform_delete", "", string(after))
+	_ = l.svcCtx.Notifications.Create(l.ctx, &notifymodel.ShopNotification{
 		ShopID:  p.ShopID,
 		Type:    notifymodel.NotifProductDeleted,
 		Title:   "商品被平台删除",

@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -16,13 +17,13 @@ type pcaNode struct {
 	Children []pcaNode `json:"children"`
 }
 
-func (r *UserRepository) CountRegions() (int64, error) {
+func (r *UserRepository) CountRegions(ctx context.Context) (int64, error) {
 	var n int64
-	err := r.db.Model(&model.Region{}).Count(&n).Error
+	err := r.db.WithContext(ctx).Model(&model.Region{}).Count(&n).Error
 	return n, err
 }
 
-func (r *UserRepository) SeedRegionsFromPCA(raw []byte) error {
+func (r *UserRepository) SeedRegionsFromPCA(ctx context.Context, raw []byte) error {
 	var roots []pcaNode
 	if err := json.Unmarshal(raw, &roots); err != nil {
 		return fmt.Errorf("parse pca json: %w", err)
@@ -50,7 +51,7 @@ func (r *UserRepository) SeedRegionsFromPCA(raw []byte) error {
 	if len(rows) == 0 {
 		return fmt.Errorf("pca data empty")
 	}
-	return r.db.Transaction(func(tx *gorm.DB) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		const batch = 500
 		for i := 0; i < len(rows); i += batch {
 			end := i + batch
@@ -68,30 +69,30 @@ func (r *UserRepository) SeedRegionsFromPCA(raw []byte) error {
 	})
 }
 
-func (r *UserRepository) ListRegionsByParent(parentCode string) ([]model.Region, error) {
+func (r *UserRepository) ListRegionsByParent(ctx context.Context, parentCode string) ([]model.Region, error) {
 	var list []model.Region
-	err := r.db.Where("parent_code = ?", parentCode).Order("sort ASC, code ASC").Find(&list).Error
+	err := r.db.WithContext(ctx).Where("parent_code = ?", parentCode).Order("sort ASC, code ASC").Find(&list).Error
 	return list, err
 }
 
-func (r *UserRepository) ListRegionsByLevel(level int) ([]model.Region, error) {
+func (r *UserRepository) ListRegionsByLevel(ctx context.Context, level int) ([]model.Region, error) {
 	var list []model.Region
-	err := r.db.Where("level = ?", level).Order("sort ASC, code ASC").Find(&list).Error
+	err := r.db.WithContext(ctx).Where("level = ?", level).Order("sort ASC, code ASC").Find(&list).Error
 	return list, err
 }
 
-func (r *UserRepository) GetRegionByCode(code string) (*model.Region, error) {
+func (r *UserRepository) GetRegionByCode(ctx context.Context, code string) (*model.Region, error) {
 	var reg model.Region
-	err := r.db.Where("code = ?", code).First(&reg).Error
+	err := r.db.WithContext(ctx).Where("code = ?", code).First(&reg).Error
 	if err != nil {
 		return nil, err
 	}
 	return &reg, nil
 }
 
-func (r *UserRepository) BuildRegionTree() ([]model.RegionTreeNode, error) {
+func (r *UserRepository) BuildRegionTree(ctx context.Context) ([]model.RegionTreeNode, error) {
 	var all []model.Region
-	if err := r.db.Order("level ASC, sort ASC, code ASC").Find(&all).Error; err != nil {
+	if err := r.db.WithContext(ctx).Order("level ASC, sort ASC, code ASC").Find(&all).Error; err != nil {
 		return nil, err
 	}
 	byParent := map[string][]model.Region{}

@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"errors"
 
 	"mymall/services/catalog-service/internal/product/model"
@@ -17,8 +18,8 @@ func NewFavoriteRepository(db *gorm.DB) *FavoriteRepository {
 	return &FavoriteRepository{db: db}
 }
 
-func (r *FavoriteRepository) Add(userID, productID uint64) (created bool, err error) {
-	err = r.db.Transaction(func(tx *gorm.DB) error {
+func (r *FavoriteRepository) Add(ctx context.Context, userID, productID uint64) (created bool, err error) {
+	err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var p model.Product
 		if err := tx.Select("id").Where("id = ?", productID).First(&p).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -41,8 +42,8 @@ func (r *FavoriteRepository) Add(userID, productID uint64) (created bool, err er
 	return created, err
 }
 
-func (r *FavoriteRepository) Remove(userID, productID uint64) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *FavoriteRepository) Remove(ctx context.Context, userID, productID uint64) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		res := tx.Where("user_id = ? AND product_id = ?", userID, productID).Delete(&model.ProductFavorite{})
 		if res.Error != nil {
 			return res.Error
@@ -55,11 +56,11 @@ func (r *FavoriteRepository) Remove(userID, productID uint64) error {
 	})
 }
 
-func (r *FavoriteRepository) RemoveBatch(userID uint64, productIDs []uint64) error {
+func (r *FavoriteRepository) RemoveBatch(ctx context.Context, userID uint64, productIDs []uint64) error {
 	if len(productIDs) == 0 {
 		return nil
 	}
-	return r.db.Transaction(func(tx *gorm.DB) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		for _, pid := range productIDs {
 			res := tx.Where("user_id = ? AND product_id = ?", userID, pid).Delete(&model.ProductFavorite{})
 			if res.Error != nil {
@@ -76,20 +77,20 @@ func (r *FavoriteRepository) RemoveBatch(userID uint64, productIDs []uint64) err
 	})
 }
 
-func (r *FavoriteRepository) IsFavorited(userID, productID uint64) (bool, error) {
+func (r *FavoriteRepository) IsFavorited(ctx context.Context, userID, productID uint64) (bool, error) {
 	var n int64
-	err := r.db.Model(&model.ProductFavorite{}).
+	err := r.db.WithContext(ctx).Model(&model.ProductFavorite{}).
 		Where("user_id = ? AND product_id = ?", userID, productID).Count(&n).Error
 	return n > 0, err
 }
 
-func (r *FavoriteRepository) CountByProduct(productID uint64) (int64, error) {
+func (r *FavoriteRepository) CountByProduct(ctx context.Context, productID uint64) (int64, error) {
 	var n int64
-	err := r.db.Model(&model.ProductFavorite{}).Where("product_id = ?", productID).Count(&n).Error
+	err := r.db.WithContext(ctx).Model(&model.ProductFavorite{}).Where("product_id = ?", productID).Count(&n).Error
 	return n, err
 }
 
-func (r *FavoriteRepository) List(userID uint64, page, pageSize int) ([]model.FavoriteListItem, int64, error) {
+func (r *FavoriteRepository) List(ctx context.Context, userID uint64, page, pageSize int) ([]model.FavoriteListItem, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -97,11 +98,11 @@ func (r *FavoriteRepository) List(userID uint64, page, pageSize int) ([]model.Fa
 		pageSize = 20
 	}
 	var total int64
-	if err := r.db.Model(&model.ProductFavorite{}).Where("user_id = ?", userID).Count(&total).Error; err != nil {
+	if err := r.db.WithContext(ctx).Model(&model.ProductFavorite{}).Where("user_id = ?", userID).Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 	var favs []model.ProductFavorite
-	if err := r.db.Where("user_id = ?", userID).
+	if err := r.db.WithContext(ctx).Where("user_id = ?", userID).
 		Order("created_at DESC, id DESC").
 		Offset((page - 1) * pageSize).Limit(pageSize).
 		Find(&favs).Error; err != nil {
@@ -115,7 +116,7 @@ func (r *FavoriteRepository) List(userID uint64, page, pageSize int) ([]model.Fa
 		ids[i] = f.ProductID
 	}
 	var products []model.Product
-	_ = r.db.Select("id, name, main_image, sale_price, status, collect_count").
+	_ = r.db.WithContext(ctx).Select("id, name, main_image, sale_price, status, collect_count").
 		Where("id IN ?", ids).Find(&products).Error
 	pmap := make(map[uint64]model.Product, len(products))
 	for _, p := range products {
@@ -143,8 +144,8 @@ func (r *FavoriteRepository) List(userID uint64, page, pageSize int) ([]model.Fa
 	return out, total, nil
 }
 
-func (r *FavoriteRepository) UpdateReviewStats(productID uint64, avg float64, count int, goodRate float64) error {
-	return r.db.Model(&model.Product{}).Where("id = ?", productID).Updates(map[string]interface{}{
+func (r *FavoriteRepository) UpdateReviewStats(ctx context.Context, productID uint64, avg float64, count int, goodRate float64) error {
+	return r.db.WithContext(ctx).Model(&model.Product{}).Where("id = ?", productID).Updates(map[string]interface{}{
 		"avg_rating":   avg,
 		"review_count": count,
 		"good_rate":    goodRate,

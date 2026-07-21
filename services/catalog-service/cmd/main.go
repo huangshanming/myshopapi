@@ -119,7 +119,7 @@ func main() {
 	}
 
 	svcCtx := svc.NewServiceContext(cfg, db, redisClient, mqClient)
-	if err := svcCtx.ShopRBAC.EnsureShopMenus(); err != nil {
+	if err := svcCtx.ShopRBAC.EnsureShopMenus(context.Background()); err != nil {
 		logger.Warn(fmt.Sprintf("seed shop menus: %v", err))
 	} else {
 		logger.Info("shop menus seeded (layered)")

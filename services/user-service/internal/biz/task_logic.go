@@ -35,13 +35,13 @@ type TaskItemVO struct {
 }
 
 func (l *TaskLogic) ListUserTasks(userID uint64) ([]TaskItemVO, error) {
-	defs, err := l.svcCtx.Tasks.ListDefinitions(false)
+	defs, err := l.svcCtx.Tasks.ListDefinitions(l.ctx, false)
 	if err != nil {
 		return nil, err
 	}
 	out := make([]TaskItemVO, 0, len(defs))
 	for _, d := range defs {
-		p, err := l.svcCtx.Tasks.GetOrCreateProgress(userID, &d)
+		p, err := l.svcCtx.Tasks.GetOrCreateProgress(l.ctx, userID, &d)
 		if err != nil {
 			return nil, err
 		}
@@ -56,7 +56,7 @@ func (l *TaskLogic) ListUserTasks(userID uint64) ([]TaskItemVO, error) {
 }
 
 func (l *TaskLogic) AdminListTasks() ([]model.TaskDefinition, error) {
-	return l.svcCtx.Tasks.ListDefinitions(true)
+	return l.svcCtx.Tasks.ListDefinitions(l.ctx, true)
 }
 
 type UpdateTaskReq struct {
@@ -72,7 +72,7 @@ type UpdateTaskReq struct {
 }
 
 func (l *TaskLogic) AdminUpdateTask(id uint64, req UpdateTaskReq) (*model.TaskDefinition, error) {
-	if _, err := l.svcCtx.Tasks.GetDefinitionByID(id); err != nil {
+	if _, err := l.svcCtx.Tasks.GetDefinitionByID(l.ctx, id); err != nil {
 		return nil, errors.New("任务不存在")
 	}
 	updates := map[string]interface{}{}
@@ -113,12 +113,12 @@ func (l *TaskLogic) AdminUpdateTask(id uint64, req UpdateTaskReq) (*model.TaskDe
 		updates["rules_json"] = *req.RulesJSON
 	}
 	if len(updates) == 0 {
-		return l.svcCtx.Tasks.GetDefinitionByID(id)
+		return l.svcCtx.Tasks.GetDefinitionByID(l.ctx, id)
 	}
-	if err := l.svcCtx.Tasks.UpdateDefinition(id, updates); err != nil {
+	if err := l.svcCtx.Tasks.UpdateDefinition(l.ctx, id, updates); err != nil {
 		return nil, err
 	}
-	return l.svcCtx.Tasks.GetDefinitionByID(id)
+	return l.svcCtx.Tasks.GetDefinitionByID(l.ctx, id)
 }
 
 type TaskEventReq struct {
@@ -133,7 +133,7 @@ func (l *TaskLogic) HandleEvent(req TaskEventReq) error {
 	if req.UserID == 0 || strings.TrimSpace(req.TaskCode) == "" {
 		return errors.New("参数无效")
 	}
-	def, err := l.svcCtx.Tasks.GetDefinition(req.TaskCode)
+	def, err := l.svcCtx.Tasks.GetDefinition(l.ctx, req.TaskCode)
 	if err != nil {
 		return nil // 未知任务忽略
 	}
@@ -142,7 +142,7 @@ func (l *TaskLogic) HandleEvent(req TaskEventReq) error {
 	}
 	// 特殊：完善资料需校验
 	if req.TaskCode == "first_profile" {
-		nick, avatar, err := l.svcCtx.Tasks.GetUserBrief(req.UserID)
+		nick, avatar, err := l.svcCtx.Tasks.GetUserBrief(l.ctx, req.UserID)
 		if err != nil || strings.TrimSpace(nick) == "" || strings.TrimSpace(avatar) == "" {
 			return nil
 		}
@@ -151,19 +151,19 @@ func (l *TaskLogic) HandleEvent(req TaskEventReq) error {
 	if refKey == "" && req.RefType != "" {
 		refKey = req.RefType
 	}
-	_, err = l.svcCtx.Tasks.ApplyEvent(req.UserID, def, req.Delta, refKey)
+	_, err = l.svcCtx.Tasks.ApplyEvent(l.ctx, req.UserID, def, req.Delta, refKey)
 	return err
 }
 
 func (l *TaskLogic) Checkin(userID uint64) (*model.UserTaskProgress, error) {
-	def, err := l.svcCtx.Tasks.GetDefinition("daily_checkin")
+	def, err := l.svcCtx.Tasks.GetDefinition(l.ctx, "daily_checkin")
 	if err != nil {
 		return nil, errors.New("签到任务未配置")
 	}
 	if def.Enabled != 1 {
 		return nil, errors.New("签到任务已关闭")
 	}
-	p, err := l.svcCtx.Tasks.GetOrCreateProgress(userID, def)
+	p, err := l.svcCtx.Tasks.GetOrCreateProgress(l.ctx, userID, def)
 	if err != nil {
 		return nil, err
 	}
@@ -173,22 +173,22 @@ func (l *TaskLogic) Checkin(userID uint64) (*model.UserTaskProgress, error) {
 	if p.Status == model.TaskStatusClaimed && def.DailyLimit > 0 && p.ClaimCount >= def.DailyLimit {
 		return nil, errors.New("今日已签到")
 	}
-	return l.svcCtx.Tasks.ApplyEvent(userID, def, 1, "checkin:"+repository.TodayBizDate())
+	return l.svcCtx.Tasks.ApplyEvent(l.ctx, userID, def, 1, "checkin:"+repository.TodayBizDate())
 }
 
 func (l *TaskLogic) Claim(userID uint64, code string) (*model.UserPoints, error) {
-	def, err := l.svcCtx.Tasks.GetDefinition(code)
+	def, err := l.svcCtx.Tasks.GetDefinition(l.ctx, code)
 	if err != nil {
 		return nil, errors.New("任务不存在")
 	}
 	if def.Enabled != 1 {
 		return nil, errors.New("任务已关闭")
 	}
-	return l.svcCtx.Tasks.Claim(userID, def)
+	return l.svcCtx.Tasks.Claim(l.ctx, userID, def)
 }
 
 func (l *TaskLogic) GetPoints(userID uint64) (*model.UserPoints, error) {
-	return l.svcCtx.Tasks.GetPoints(userID)
+	return l.svcCtx.Tasks.GetPoints(l.ctx, userID)
 }
 
 type PointsLedgerReq struct {
@@ -207,7 +207,7 @@ func (l *TaskLogic) DeductPoints(req PointsLedgerReq) (*model.UserPoints, error)
 	if strings.TrimSpace(req.RefType) == "" || req.RefID == 0 {
 		return nil, errors.New("缺少业务单号")
 	}
-	return l.svcCtx.Tasks.DeductPoints(req.UserID, req.Points, req.ChangeType, req.Remark, req.RefType, req.RefID)
+	return l.svcCtx.Tasks.DeductPoints(l.ctx, req.UserID, req.Points, req.ChangeType, req.Remark, req.RefType, req.RefID)
 }
 
 func (l *TaskLogic) RefundPoints(req PointsLedgerReq) (*model.UserPoints, error) {
@@ -217,7 +217,7 @@ func (l *TaskLogic) RefundPoints(req PointsLedgerReq) (*model.UserPoints, error)
 	if strings.TrimSpace(req.RefType) == "" || req.RefID == 0 {
 		return nil, errors.New("缺少业务单号")
 	}
-	return l.svcCtx.Tasks.RefundPoints(req.UserID, req.Points, req.ChangeType, req.Remark, req.RefType, req.RefID)
+	return l.svcCtx.Tasks.RefundPoints(l.ctx, req.UserID, req.Points, req.ChangeType, req.Remark, req.RefType, req.RefID)
 }
 
 func (l *TaskLogic) ListPointLogs(userID uint64, page, pageSize int) ([]model.UserPointLog, int64, error) {
@@ -227,5 +227,5 @@ func (l *TaskLogic) ListPointLogs(userID uint64, page, pageSize int) ([]model.Us
 	if pageSize < 1 || pageSize > 100 {
 		pageSize = 20
 	}
-	return l.svcCtx.Tasks.ListPointLogs(userID, page, pageSize)
+	return l.svcCtx.Tasks.ListPointLogs(l.ctx, userID, page, pageSize)
 }

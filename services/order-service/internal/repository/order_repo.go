@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"time"
 
 	"mymall/common"
@@ -18,16 +19,16 @@ func NewOrderRepository(db *gorm.DB) *OrderRepository {
 }
 
 type OrderListFilter struct {
-	ShopID  uint64
-	UserID  uint64
-	Status  string
-	OrderNo string
-	Page    int
+	ShopID   uint64
+	UserID   uint64
+	Status   string
+	OrderNo  string
+	Page     int
 	PageSize int
 }
 
-func (r *OrderRepository) Create(order *model.Order, items []model.OrderItem) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *OrderRepository) Create(ctx context.Context, order *model.Order, items []model.OrderItem) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(order).Error; err != nil {
 			return err
 		}
@@ -38,54 +39,54 @@ func (r *OrderRepository) Create(order *model.Order, items []model.OrderItem) er
 	})
 }
 
-func (r *OrderRepository) FindByID(id, userID uint64) (*model.Order, error) {
+func (r *OrderRepository) FindByID(ctx context.Context, id, userID uint64) (*model.Order, error) {
 	var order model.Order
-	err := r.db.Preload("Items").Where("id = ? AND user_id = ?", id, userID).First(&order).Error
+	err := r.db.WithContext(ctx).Preload("Items").Where("id = ? AND user_id = ?", id, userID).First(&order).Error
 	if err != nil {
 		return nil, err
 	}
 	return &order, nil
 }
 
-func (r *OrderRepository) ListByUser(userID uint64, page, pageSize int) ([]model.Order, int64, error) {
-	return r.List(OrderListFilter{UserID: userID, Page: page, PageSize: pageSize})
+func (r *OrderRepository) ListByUser(ctx context.Context, userID uint64, page, pageSize int) ([]model.Order, int64, error) {
+	return r.List(ctx, OrderListFilter{UserID: userID, Page: page, PageSize: pageSize})
 }
 
-func (r *OrderRepository) UpdateStatus(orderNo, status string) error {
-	return r.db.Model(&model.Order{}).Where("order_no = ?", orderNo).Update("status", status).Error
+func (r *OrderRepository) UpdateStatus(ctx context.Context, orderNo, status string) error {
+	return r.db.WithContext(ctx).Model(&model.Order{}).Where("order_no = ?", orderNo).Update("status", status).Error
 }
 
-func (r *OrderRepository) FindByOrderNo(orderNo string) (*model.Order, error) {
+func (r *OrderRepository) FindByOrderNo(ctx context.Context, orderNo string) (*model.Order, error) {
 	var order model.Order
-	err := r.db.Preload("Items").Where("order_no = ?", orderNo).First(&order).Error
+	err := r.db.WithContext(ctx).Preload("Items").Where("order_no = ?", orderNo).First(&order).Error
 	if err != nil {
 		return nil, err
 	}
 	return &order, nil
 }
 
-func (r *OrderRepository) Cancel(orderID, userID uint64) error {
-	return r.db.Model(&model.Order{}).
+func (r *OrderRepository) Cancel(ctx context.Context, orderID, userID uint64) error {
+	return r.db.WithContext(ctx).Model(&model.Order{}).
 		Where("id = ? AND user_id = ? AND status IN ?", orderID, userID, []string{model.OrderStatusPending, model.OrderStatusConfirmed}).
 		Update("status", model.OrderStatusCancelled).Error
 }
 
-func (r *OrderRepository) ListByShop(shopID uint64, page, pageSize int) ([]model.Order, int64, error) {
-	return r.List(OrderListFilter{ShopID: shopID, Page: page, PageSize: pageSize})
+func (r *OrderRepository) ListByShop(ctx context.Context, shopID uint64, page, pageSize int) ([]model.Order, int64, error) {
+	return r.List(ctx, OrderListFilter{ShopID: shopID, Page: page, PageSize: pageSize})
 }
 
-func (r *OrderRepository) ListAll(shopID uint64, page, pageSize int) ([]model.Order, int64, error) {
-	return r.List(OrderListFilter{ShopID: shopID, Page: page, PageSize: pageSize})
+func (r *OrderRepository) ListAll(ctx context.Context, shopID uint64, page, pageSize int) ([]model.Order, int64, error) {
+	return r.List(ctx, OrderListFilter{ShopID: shopID, Page: page, PageSize: pageSize})
 }
 
-func (r *OrderRepository) List(f OrderListFilter) ([]model.Order, int64, error) {
+func (r *OrderRepository) List(ctx context.Context, f OrderListFilter) ([]model.Order, int64, error) {
 	if f.Page < 1 {
 		f.Page = 1
 	}
 	if f.PageSize < 1 {
 		f.PageSize = 20
 	}
-	q := r.db.Model(&model.Order{})
+	q := r.db.WithContext(ctx).Model(&model.Order{})
 	if f.ShopID > 0 {
 		q = q.Where("shop_id = ?", f.ShopID)
 	}
@@ -113,9 +114,9 @@ type StatusCountRow struct {
 	Count  int64  `json:"count"`
 }
 
-func (r *OrderRepository) CountByUserStatus(userID uint64) ([]StatusCountRow, error) {
+func (r *OrderRepository) CountByUserStatus(ctx context.Context, userID uint64) ([]StatusCountRow, error) {
 	var rows []StatusCountRow
-	err := r.db.Model(&model.Order{}).
+	err := r.db.WithContext(ctx).Model(&model.Order{}).
 		Select("status, COUNT(*) AS count").
 		Where("user_id = ?", userID).
 		Group("status").
@@ -123,35 +124,35 @@ func (r *OrderRepository) CountByUserStatus(userID uint64) ([]StatusCountRow, er
 	return rows, err
 }
 
-func (r *OrderRepository) CountOpenAfterSalesByUser(userID uint64) (int64, error) {
+func (r *OrderRepository) CountOpenAfterSalesByUser(ctx context.Context, userID uint64) (int64, error) {
 	var n int64
-	err := r.db.Model(&model.OrderAfterSale{}).
+	err := r.db.WithContext(ctx).Model(&model.OrderAfterSale{}).
 		Where("user_id = ? AND status IN ?", userID, []string{model.AfterSalePending, model.AfterSaleApproved}).
 		Count(&n).Error
 	return n, err
 }
 
-func (r *OrderRepository) FindByIDAndShop(id, shopID uint64) (*model.Order, error) {
+func (r *OrderRepository) FindByIDAndShop(ctx context.Context, id, shopID uint64) (*model.Order, error) {
 	var order model.Order
-	err := r.db.Preload("Items").Where("id = ? AND shop_id = ?", id, shopID).First(&order).Error
+	err := r.db.WithContext(ctx).Preload("Items").Where("id = ? AND shop_id = ?", id, shopID).First(&order).Error
 	if err != nil {
 		return nil, err
 	}
 	return &order, nil
 }
 
-func (r *OrderRepository) FindByIDAdmin(id uint64) (*model.Order, error) {
+func (r *OrderRepository) FindByIDAdmin(ctx context.Context, id uint64) (*model.Order, error) {
 	var order model.Order
-	err := r.db.Preload("Items").Where("id = ?", id).First(&order).Error
+	err := r.db.WithContext(ctx).Preload("Items").Where("id = ?", id).First(&order).Error
 	if err != nil {
 		return nil, err
 	}
 	return &order, nil
 }
 
-func (r *OrderRepository) Ship(id uint64, shopID uint64, company, shipNo string) error {
+func (r *OrderRepository) Ship(ctx context.Context, id uint64, shopID uint64, company, shipNo string) error {
 	now := common.LocalTime(time.Now())
-	q := r.db.Model(&model.Order{}).Where("id = ? AND status = ?", id, model.OrderStatusConfirmed)
+	q := r.db.WithContext(ctx).Model(&model.Order{}).Where("id = ? AND status = ?", id, model.OrderStatusConfirmed)
 	if shopID > 0 {
 		q = q.Where("shop_id = ?", shopID)
 	}
@@ -170,9 +171,9 @@ func (r *OrderRepository) Ship(id uint64, shopID uint64, company, shipNo string)
 	return nil
 }
 
-func (r *OrderRepository) Complete(id uint64, shopID uint64) error {
+func (r *OrderRepository) Complete(ctx context.Context, id uint64, shopID uint64) error {
 	now := common.LocalTime(time.Now())
-	q := r.db.Model(&model.Order{}).Where("id = ? AND status = ?", id, model.OrderStatusShipped)
+	q := r.db.WithContext(ctx).Model(&model.Order{}).Where("id = ? AND status = ?", id, model.OrderStatusShipped)
 	if shopID > 0 {
 		q = q.Where("shop_id = ?", shopID)
 	}
@@ -189,9 +190,9 @@ func (r *OrderRepository) Complete(id uint64, shopID uint64) error {
 	return nil
 }
 
-func (r *OrderRepository) ConfirmReceive(id, userID uint64) error {
+func (r *OrderRepository) ConfirmReceive(ctx context.Context, id, userID uint64) error {
 	now := common.LocalTime(time.Now())
-	res := r.db.Model(&model.Order{}).
+	res := r.db.WithContext(ctx).Model(&model.Order{}).
 		Where("id = ? AND user_id = ? AND status = ?", id, userID, model.OrderStatusShipped).
 		Updates(map[string]interface{}{
 			"status":       model.OrderStatusCompleted,
@@ -206,9 +207,9 @@ func (r *OrderRepository) ConfirmReceive(id, userID uint64) error {
 	return nil
 }
 
-func (r *OrderRepository) MarkReviewed(id, userID uint64) error {
+func (r *OrderRepository) MarkReviewed(ctx context.Context, id, userID uint64) error {
 	now := common.LocalTime(time.Now())
-	res := r.db.Model(&model.Order{}).
+	res := r.db.WithContext(ctx).Model(&model.Order{}).
 		Where("id = ? AND user_id = ? AND status = ?", id, userID, model.OrderStatusCompleted).
 		Updates(map[string]interface{}{
 			"status":      model.OrderStatusReviewed,
@@ -223,8 +224,8 @@ func (r *OrderRepository) MarkReviewed(id, userID uint64) error {
 	return nil
 }
 
-func (r *OrderRepository) UpdateRemark(id uint64, shopID uint64, remark string) error {
-	q := r.db.Model(&model.Order{}).Where("id = ?", id)
+func (r *OrderRepository) UpdateRemark(ctx context.Context, id uint64, shopID uint64, remark string) error {
+	q := r.db.WithContext(ctx).Model(&model.Order{}).Where("id = ?", id)
 	if shopID > 0 {
 		q = q.Where("shop_id = ?", shopID)
 	}
@@ -238,7 +239,7 @@ func (r *OrderRepository) UpdateRemark(id uint64, shopID uint64, remark string) 
 	return nil
 }
 
-func (r *OrderRepository) EnrichOrders(orders []model.Order) {
+func (r *OrderRepository) EnrichOrders(ctx context.Context, orders []model.Order) {
 	if len(orders) == 0 {
 		return
 	}
@@ -255,27 +256,27 @@ func (r *OrderRepository) EnrichOrders(orders []model.Order) {
 			shopIDs = append(shopIDs, o.ShopID)
 		}
 	}
-	userNames := r.loadUserNames(userIDs)
-	shopNames := r.loadShopNames(shopIDs)
+	userNames := r.loadUserNames(ctx, userIDs)
+	shopNames := r.loadShopNames(ctx, shopIDs)
 	for i := range orders {
 		orders[i].UserName = userNames[orders[i].UserID]
 		orders[i].ShopName = shopNames[orders[i].ShopID]
 	}
 }
 
-func (r *OrderRepository) EnrichOrder(order *model.Order) {
+func (r *OrderRepository) EnrichOrder(ctx context.Context, order *model.Order) {
 	if order == nil {
 		return
 	}
-	r.EnrichOrders([]model.Order{*order})
+	r.EnrichOrders(ctx, []model.Order{*order})
 	// EnrichOrders works on copy — fix by direct load
-	names := r.loadUserNames([]uint64{order.UserID})
-	shops := r.loadShopNames([]uint64{order.ShopID})
+	names := r.loadUserNames(ctx, []uint64{order.UserID})
+	shops := r.loadShopNames(ctx, []uint64{order.ShopID})
 	order.UserName = names[order.UserID]
 	order.ShopName = shops[order.ShopID]
 }
 
-func (r *OrderRepository) loadUserNames(ids []uint64) map[uint64]string {
+func (r *OrderRepository) loadUserNames(ctx context.Context, ids []uint64) map[uint64]string {
 	out := map[uint64]string{}
 	if len(ids) == 0 {
 		return out
@@ -286,7 +287,7 @@ func (r *OrderRepository) loadUserNames(ids []uint64) map[uint64]string {
 		Mobile   string `gorm:"column:mobile"`
 	}
 	var rows []row
-	if err := r.db.Table("users").Select("id, nickname, mobile").Where("id IN ?", ids).Find(&rows).Error; err != nil {
+	if err := r.db.WithContext(ctx).Table("users").Select("id, nickname, mobile").Where("id IN ?", ids).Find(&rows).Error; err != nil {
 		return out
 	}
 	for _, u := range rows {
@@ -299,7 +300,7 @@ func (r *OrderRepository) loadUserNames(ids []uint64) map[uint64]string {
 	return out
 }
 
-func (r *OrderRepository) loadShopNames(ids []uint64) map[uint64]string {
+func (r *OrderRepository) loadShopNames(ctx context.Context, ids []uint64) map[uint64]string {
 	out := map[uint64]string{}
 	if len(ids) == 0 {
 		return out
@@ -310,7 +311,7 @@ func (r *OrderRepository) loadShopNames(ids []uint64) map[uint64]string {
 		Name string `gorm:"column:name"`
 	}
 	var rows []row
-	if err := r.db.Table("shops").Select("id, name").Where("id IN ?", ids).Find(&rows).Error; err != nil {
+	if err := r.db.WithContext(ctx).Table("shops").Select("id, name").Where("id IN ?", ids).Find(&rows).Error; err != nil {
 		return out
 	}
 	for _, s := range rows {
@@ -330,26 +331,26 @@ type AfterSaleListFilter struct {
 	PageSize int
 }
 
-func (r *OrderRepository) CreateAfterSale(as *model.OrderAfterSale) error {
-	return r.db.Create(as).Error
+func (r *OrderRepository) CreateAfterSale(ctx context.Context, as *model.OrderAfterSale) error {
+	return r.db.WithContext(ctx).Create(as).Error
 }
 
-func (r *OrderRepository) FindAfterSale(id uint64) (*model.OrderAfterSale, error) {
+func (r *OrderRepository) FindAfterSale(ctx context.Context, id uint64) (*model.OrderAfterSale, error) {
 	var as model.OrderAfterSale
-	if err := r.db.Where("id = ?", id).First(&as).Error; err != nil {
+	if err := r.db.WithContext(ctx).Where("id = ?", id).First(&as).Error; err != nil {
 		return nil, err
 	}
 	return &as, nil
 }
 
-func (r *OrderRepository) ListAfterSales(f AfterSaleListFilter) ([]model.OrderAfterSale, int64, error) {
+func (r *OrderRepository) ListAfterSales(ctx context.Context, f AfterSaleListFilter) ([]model.OrderAfterSale, int64, error) {
 	if f.Page < 1 {
 		f.Page = 1
 	}
 	if f.PageSize < 1 {
 		f.PageSize = 20
 	}
-	q := r.db.Model(&model.OrderAfterSale{})
+	q := r.db.WithContext(ctx).Model(&model.OrderAfterSale{})
 	if f.ShopID > 0 {
 		q = q.Where("shop_id = ?", f.ShopID)
 	}
@@ -371,22 +372,22 @@ func (r *OrderRepository) ListAfterSales(f AfterSaleListFilter) ([]model.OrderAf
 	if err != nil {
 		return nil, 0, err
 	}
-	r.enrichAfterSales(list)
+	r.enrichAfterSales(ctx, list)
 	return list, total, nil
 }
 
-func (r *OrderRepository) ListAfterSalesByOrder(orderID uint64) ([]model.OrderAfterSale, error) {
+func (r *OrderRepository) ListAfterSalesByOrder(ctx context.Context, orderID uint64) ([]model.OrderAfterSale, error) {
 	var list []model.OrderAfterSale
-	err := r.db.Where("order_id = ?", orderID).Order("id DESC").Find(&list).Error
+	err := r.db.WithContext(ctx).Where("order_id = ?", orderID).Order("id DESC").Find(&list).Error
 	if err != nil {
 		return nil, err
 	}
-	r.enrichAfterSales(list)
+	r.enrichAfterSales(ctx, list)
 	return list, nil
 }
 
-func (r *OrderRepository) HandleAfterSale(id, shopID, handledBy uint64, status, adminRemark string) error {
-	q := r.db.Model(&model.OrderAfterSale{}).Where("id = ?", id)
+func (r *OrderRepository) HandleAfterSale(ctx context.Context, id, shopID, handledBy uint64, status, adminRemark string) error {
+	q := r.db.WithContext(ctx).Model(&model.OrderAfterSale{}).Where("id = ?", id)
 	if shopID > 0 {
 		q = q.Where("shop_id = ?", shopID)
 	}
@@ -404,15 +405,15 @@ func (r *OrderRepository) HandleAfterSale(id, shopID, handledBy uint64, status, 
 	return nil
 }
 
-func (r *OrderRepository) CountOpenAfterSales(orderID uint64) (int64, error) {
+func (r *OrderRepository) CountOpenAfterSales(ctx context.Context, orderID uint64) (int64, error) {
 	var n int64
-	err := r.db.Model(&model.OrderAfterSale{}).
+	err := r.db.WithContext(ctx).Model(&model.OrderAfterSale{}).
 		Where("order_id = ? AND status IN ?", orderID, []string{model.AfterSalePending, model.AfterSaleApproved}).
 		Count(&n).Error
 	return n, err
 }
 
-func (r *OrderRepository) enrichAfterSales(list []model.OrderAfterSale) {
+func (r *OrderRepository) enrichAfterSales(ctx context.Context, list []model.OrderAfterSale) {
 	if len(list) == 0 {
 		return
 	}
@@ -428,8 +429,8 @@ func (r *OrderRepository) enrichAfterSales(list []model.OrderAfterSale) {
 			shopIDs = append(shopIDs, a.ShopID)
 		}
 	}
-	un := r.loadUserNames(userIDs)
-	sn := r.loadShopNames(shopIDs)
+	un := r.loadUserNames(ctx, userIDs)
+	sn := r.loadShopNames(ctx, shopIDs)
 	for i := range list {
 		list[i].UserName = un[list[i].UserID]
 		list[i].ShopName = sn[list[i].ShopID]

@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -11,15 +12,15 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-func (r *MerchantRepository) ExpireDueSlotOrders() {
+func (r *MerchantRepository) ExpireDueSlotOrders(ctx context.Context) {
 	now := time.Now()
-	_ = r.db.Model(&model.HomepageSlotOrder{}).
+	_ = r.db.WithContext(ctx).Model(&model.HomepageSlotOrder{}).
 		Where("status = ? AND end_at < ?", model.SlotOrderActive, now).
 		Update("status", model.SlotOrderExpired)
 }
 
-func (r *MerchantRepository) ListSlotPackages(slotType string, onlyOn bool) ([]model.HomepageSlotPackage, error) {
-	q := r.db.Model(&model.HomepageSlotPackage{})
+func (r *MerchantRepository) ListSlotPackages(ctx context.Context, slotType string, onlyOn bool) ([]model.HomepageSlotPackage, error) {
+	q := r.db.WithContext(ctx).Model(&model.HomepageSlotPackage{})
 	if slotType != "" {
 		q = q.Where("slot_type = ?", slotType)
 	}
@@ -31,37 +32,37 @@ func (r *MerchantRepository) ListSlotPackages(slotType string, onlyOn bool) ([]m
 	return list, err
 }
 
-func (r *MerchantRepository) GetSlotPackage(id uint64) (*model.HomepageSlotPackage, error) {
+func (r *MerchantRepository) GetSlotPackage(ctx context.Context, id uint64) (*model.HomepageSlotPackage, error) {
 	var p model.HomepageSlotPackage
-	if err := r.db.First(&p, id).Error; err != nil {
+	if err := r.db.WithContext(ctx).First(&p, id).Error; err != nil {
 		return nil, err
 	}
 	return &p, nil
 }
 
-func (r *MerchantRepository) CreateSlotPackage(p *model.HomepageSlotPackage) error {
-	return r.db.Create(p).Error
+func (r *MerchantRepository) CreateSlotPackage(ctx context.Context, p *model.HomepageSlotPackage) error {
+	return r.db.WithContext(ctx).Create(p).Error
 }
 
-func (r *MerchantRepository) UpdateSlotPackage(p *model.HomepageSlotPackage) error {
-	return r.db.Model(p).Updates(map[string]interface{}{
+func (r *MerchantRepository) UpdateSlotPackage(ctx context.Context, p *model.HomepageSlotPackage) error {
+	return r.db.WithContext(ctx).Model(p).Updates(map[string]interface{}{
 		"slot_type": p.SlotType, "name": p.Name, "price": p.Price,
 		"duration_days": p.DurationDays, "status": p.Status, "sort": p.Sort, "remark": p.Remark,
 	}).Error
 }
 
-func (r *MerchantRepository) ListSlotSettings() ([]model.HomepageSlotSetting, error) {
+func (r *MerchantRepository) ListSlotSettings(ctx context.Context) ([]model.HomepageSlotSetting, error) {
 	var list []model.HomepageSlotSetting
-	err := r.db.Find(&list).Error
+	err := r.db.WithContext(ctx).Find(&list).Error
 	return list, err
 }
 
-func (r *MerchantRepository) GetSlotSetting(slotType string) (*model.HomepageSlotSetting, error) {
+func (r *MerchantRepository) GetSlotSetting(ctx context.Context, slotType string) (*model.HomepageSlotSetting, error) {
 	var s model.HomepageSlotSetting
-	err := r.db.Where("slot_type = ?", slotType).First(&s).Error
+	err := r.db.WithContext(ctx).Where("slot_type = ?", slotType).First(&s).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		s = model.HomepageSlotSetting{SlotType: slotType, HomeLimit: 8}
-		_ = r.db.Create(&s).Error
+		_ = r.db.WithContext(ctx).Create(&s).Error
 		return &s, nil
 	}
 	if err != nil {
@@ -70,26 +71,26 @@ func (r *MerchantRepository) GetSlotSetting(slotType string) (*model.HomepageSlo
 	return &s, nil
 }
 
-func (r *MerchantRepository) UpsertSlotSetting(slotType string, homeLimit int) error {
+func (r *MerchantRepository) UpsertSlotSetting(ctx context.Context, slotType string, homeLimit int) error {
 	var s model.HomepageSlotSetting
-	err := r.db.Where("slot_type = ?", slotType).First(&s).Error
+	err := r.db.WithContext(ctx).Where("slot_type = ?", slotType).First(&s).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return r.db.Create(&model.HomepageSlotSetting{SlotType: slotType, HomeLimit: homeLimit}).Error
+		return r.db.WithContext(ctx).Create(&model.HomepageSlotSetting{SlotType: slotType, HomeLimit: homeLimit}).Error
 	}
 	if err != nil {
 		return err
 	}
-	return r.db.Model(&s).Update("home_limit", homeLimit).Error
+	return r.db.WithContext(ctx).Model(&s).Update("home_limit", homeLimit).Error
 }
 
-func (r *MerchantRepository) ListSlotOrders(shopID uint64, slotType, status string, page, pageSize int) ([]model.HomepageSlotOrder, int64, error) {
+func (r *MerchantRepository) ListSlotOrders(ctx context.Context, shopID uint64, slotType, status string, page, pageSize int) ([]model.HomepageSlotOrder, int64, error) {
 	if page < 1 {
 		page = 1
 	}
 	if pageSize < 1 {
 		pageSize = 20
 	}
-	q := r.db.Model(&model.HomepageSlotOrder{})
+	q := r.db.WithContext(ctx).Model(&model.HomepageSlotOrder{})
 	if shopID > 0 {
 		q = q.Where("shop_id = ?", shopID)
 	}
@@ -108,9 +109,9 @@ func (r *MerchantRepository) ListSlotOrders(shopID uint64, slotType, status stri
 	return list, total, err
 }
 
-func (r *MerchantRepository) LatestActiveSlotOrder(shopID uint64, slotType string, targetID uint64) (*model.HomepageSlotOrder, error) {
-	r.ExpireDueSlotOrders()
-	q := r.db.Where("shop_id = ? AND slot_type = ? AND status = ?", shopID, slotType, model.SlotOrderActive)
+func (r *MerchantRepository) LatestActiveSlotOrder(ctx context.Context, shopID uint64, slotType string, targetID uint64) (*model.HomepageSlotOrder, error) {
+	r.ExpireDueSlotOrders(ctx)
+	q := r.db.WithContext(ctx).Where("shop_id = ? AND slot_type = ? AND status = ?", shopID, slotType, model.SlotOrderActive)
 	if slotType == model.SlotArticle {
 		q = q.Where("target_id = ?", targetID)
 	} else {
@@ -128,8 +129,8 @@ func (r *MerchantRepository) LatestActiveSlotOrder(shopID uint64, slotType strin
 }
 
 // PurchaseSlotOrder 钱包扣款或超管开通，立即生效（可顺延）
-func (r *MerchantRepository) PurchaseSlotOrder(order *model.HomepageSlotOrder, deductWallet bool, operatorID *uint64) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *MerchantRepository) PurchaseSlotOrder(ctx context.Context, order *model.HomepageSlotOrder, deductWallet bool, operatorID *uint64) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		now := time.Now()
 		_ = tx.Model(&model.HomepageSlotOrder{}).
 			Where("status = ? AND end_at < ?", model.SlotOrderActive, now).
@@ -202,8 +203,8 @@ func (r *MerchantRepository) PurchaseSlotOrder(order *model.HomepageSlotOrder, d
 	})
 }
 
-func (r *MerchantRepository) ListPublicShopsWithSlot(slotType string, page, pageSize, homeLimit int) ([]model.Shop, int64, error) {
-	r.ExpireDueSlotOrders()
+func (r *MerchantRepository) ListPublicShopsWithSlot(ctx context.Context, slotType string, page, pageSize, homeLimit int) ([]model.Shop, int64, error) {
+	r.ExpireDueSlotOrders(ctx)
 	if page < 1 {
 		page = 1
 	}
@@ -228,7 +229,7 @@ WHERE s.status = ?`
 
 	countSQL := "SELECT COUNT(*) " + baseFrom
 	var total int64
-	if err := r.db.Raw(countSQL, slotType, model.SlotOrderActive, now, now, model.ShopApproved).Scan(&total).Error; err != nil {
+	if err := r.db.WithContext(ctx).Raw(countSQL, slotType, model.SlotOrderActive, now, now, model.ShopApproved).Scan(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
@@ -249,7 +250,7 @@ ORDER BY boost DESC, s.id DESC
 LIMIT ? OFFSET ?`
 
 	var rows []row
-	if err := r.db.Raw(listSQL, slotType, model.SlotOrderActive, now, now, model.ShopApproved, limit, offset).Scan(&rows).Error; err != nil {
+	if err := r.db.WithContext(ctx).Raw(listSQL, slotType, model.SlotOrderActive, now, now, model.ShopApproved, limit, offset).Scan(&rows).Error; err != nil {
 		return nil, 0, err
 	}
 	out := make([]model.Shop, 0, len(rows))
@@ -260,9 +261,9 @@ LIMIT ? OFFSET ?`
 }
 
 // GetArticleTitle 同库查文章标题（catalog 表 community_article）
-func (r *MerchantRepository) GetArticleTitle(id uint64) (string, error) {
+func (r *MerchantRepository) GetArticleTitle(ctx context.Context, id uint64) (string, error) {
 	var title string
-	err := r.db.Table("community_article").Select("title").Where("id = ?", id).Scan(&title).Error
+	err := r.db.WithContext(ctx).Table("community_article").Select("title").Where("id = ?", id).Scan(&title).Error
 	if err != nil {
 		return "", err
 	}
@@ -273,11 +274,11 @@ func (r *MerchantRepository) GetArticleTitle(id uint64) (string, error) {
 }
 
 // ActivePaidTargetIDs 返回当前生效的 target_id 集合（用于标记 paid）
-func (r *MerchantRepository) ActivePaidTargetIDs(slotType string) (map[uint64]bool, error) {
-	r.ExpireDueSlotOrders()
+func (r *MerchantRepository) ActivePaidTargetIDs(ctx context.Context, slotType string) (map[uint64]bool, error) {
+	r.ExpireDueSlotOrders(ctx)
 	now := time.Now()
 	var ids []uint64
-	err := r.db.Model(&model.HomepageSlotOrder{}).
+	err := r.db.WithContext(ctx).Model(&model.HomepageSlotOrder{}).
 		Where("slot_type = ? AND status = ? AND start_at <= ? AND end_at > ?", slotType, model.SlotOrderActive, now, now).
 		Distinct("target_id").Pluck("target_id", &ids).Error
 	m := make(map[uint64]bool, len(ids))

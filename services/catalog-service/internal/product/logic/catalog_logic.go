@@ -48,7 +48,7 @@ func (l *CatalogLogic) GetProductListFiltered(page *pagination.PageReq, shopID u
 		}
 	}
 
-	res, err := l.svcCtx.Products.GetListFiltered(page, shopID, status, categoryID, orderBy)
+	res, err := l.svcCtx.Products.GetListFiltered(l.ctx, page, shopID, status, categoryID, orderBy)
 	if err != nil {
 		return res, err
 	}
@@ -83,7 +83,7 @@ func (l *CatalogLogic) CreateProduct(shopID uint64, req types.MerchantProductReq
 		PetType:    pet,
 		Discount:   100,
 	}
-	if err := l.svcCtx.Products.Create(p); err != nil {
+	if err := l.svcCtx.Products.Create(l.ctx, p); err != nil {
 		return nil, err
 	}
 	return p, nil
@@ -107,15 +107,15 @@ func (l *CatalogLogic) UpdateProductByShop(id, shopID uint64, req types.Merchant
 	if req.PetType != "" {
 		updates["pet_type"] = req.PetType
 	}
-	return l.svcCtx.Products.UpdateByShop(id, shopID, updates)
+	return l.svcCtx.Products.UpdateByShop(l.ctx, id, shopID, updates)
 }
 
 func (l *CatalogLogic) SetProductStatus(id, shopID uint64, status string) error {
-	return l.svcCtx.Products.UpdateByShop(id, shopID, map[string]interface{}{"status": status})
+	return l.svcCtx.Products.UpdateByShop(l.ctx, id, shopID, map[string]interface{}{"status": status})
 }
 
 func (l *CatalogLogic) ForceOffSale(id uint64) error {
-	return l.svcCtx.Products.ForceOffSale(id)
+	return l.svcCtx.Products.ForceOffSale(l.ctx, id)
 }
 
 func (l *CatalogLogic) CreateCategory(req types.CategoryReq) (*model.ProductCategory, error) {
@@ -136,7 +136,7 @@ func (l *CatalogLogic) CreateCategory(req types.CategoryReq) (*model.ProductCate
 		Level:       level,
 		IsShow:      show,
 	}
-	if err := l.svcCtx.Categories.Create(cat); err != nil {
+	if err := l.svcCtx.Categories.Create(l.ctx, cat); err != nil {
 		return nil, err
 	}
 	return cat, nil
@@ -156,19 +156,19 @@ func (l *CatalogLogic) UpdateCategory(id uint64, req types.CategoryReq) error {
 	if req.IsShow != nil {
 		updates["is_show"] = *req.IsShow
 	}
-	return l.svcCtx.Categories.Update(id, updates)
+	return l.svcCtx.Categories.Update(l.ctx, id, updates)
 }
 
 func (l *CatalogLogic) DeleteCategory(id uint64) error {
-	return l.svcCtx.Categories.Delete(id)
+	return l.svcCtx.Categories.Delete(l.ctx, id)
 }
 
 func (l *CatalogLogic) GetProductDetail(id uint64) (*model.Product, error) {
-	return l.svcCtx.Products.GetDetail(id)
+	return l.svcCtx.Products.GetDetail(l.ctx, id)
 }
 
 func (l *CatalogLogic) GetSalesRank(page, pageSize int) (map[string]interface{}, error) {
-	list, total, err := l.svcCtx.Products.ListSalesRank(page, pageSize)
+	list, total, err := l.svcCtx.Products.ListSalesRank(l.ctx, page, pageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -176,33 +176,33 @@ func (l *CatalogLogic) GetSalesRank(page, pageSize int) (map[string]interface{},
 }
 
 func (l *CatalogLogic) GetCategoryList(page *pagination.PageReq) (*pagination.PageRes[model.ProductCategory], error) {
-	return l.svcCtx.Categories.GetList(page)
+	return l.svcCtx.Categories.GetList(l.ctx, page)
 }
 
 func (l *CatalogLogic) ListAllCategories() ([]model.ProductCategory, error) {
-	return l.svcCtx.Categories.ListAll()
+	return l.svcCtx.Categories.ListAll(l.ctx)
 }
 
 func (l *CatalogLogic) GetCategoryDetail(id uint64) (*model.ProductCategory, error) {
-	return l.svcCtx.Categories.GetDetail(id)
+	return l.svcCtx.Categories.GetDetail(l.ctx, id)
 }
 
 func (l *CatalogLogic) BatchGetProducts(ids []uint64) ([]model.Product, error) {
-	return l.svcCtx.Products.BatchGetByIDs(ids)
+	return l.svcCtx.Products.BatchGetByIDs(l.ctx, ids)
 }
 
 func (l *CatalogLogic) DefaultSkuID(productID uint64) uint64 {
 	if l.svcCtx.ProductAdmin == nil {
 		return 0
 	}
-	return l.svcCtx.ProductAdmin.FirstSkuID(productID)
+	return l.svcCtx.ProductAdmin.FirstSkuID(l.ctx, productID)
 }
 
 func (l *CatalogLogic) GetSkuSpecSnapshot(skuID uint64) string {
 	if skuID == 0 || l.svcCtx.ProductAdmin == nil {
 		return "{}"
 	}
-	sku, err := l.svcCtx.ProductAdmin.GetSku(skuID)
+	sku, err := l.svcCtx.ProductAdmin.GetSku(l.ctx, skuID)
 	if err != nil || sku == nil {
 		return "{}"
 	}
@@ -213,9 +213,9 @@ func (l *CatalogLogic) GetSkuSpecSnapshot(skuID uint64) string {
 }
 
 func (l *CatalogLogic) ReserveStock(items []repository.StockItem) error {
-	return l.svcCtx.Products.ReserveStock(items)
+	return l.svcCtx.Products.ReserveStock(l.ctx, items)
 }
 
 func (l *CatalogLogic) ReleaseStock(items []repository.StockItem) error {
-	return l.svcCtx.Products.ReleaseStock(items)
+	return l.svcCtx.Products.ReleaseStock(l.ctx, items)
 }

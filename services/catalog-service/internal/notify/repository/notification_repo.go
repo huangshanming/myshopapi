@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"errors"
 
 	"mymall/services/catalog-service/internal/notify/model"
@@ -16,8 +17,8 @@ func NewNotificationRepository(db *gorm.DB) *NotificationRepository {
 	return &NotificationRepository{db: db}
 }
 
-func (r *NotificationRepository) Create(n *model.ShopNotification) error {
-	return r.db.Create(n).Error
+func (r *NotificationRepository) Create(ctx context.Context, n *model.ShopNotification) error {
+	return r.db.WithContext(ctx).Create(n).Error
 }
 
 type NotificationListFilter struct {
@@ -27,8 +28,8 @@ type NotificationListFilter struct {
 	PageSize int
 }
 
-func (r *NotificationRepository) List(f NotificationListFilter) ([]model.ShopNotification, int64, error) {
-	q := r.db.Model(&model.ShopNotification{}).Where("shop_id = ?", f.ShopID)
+func (r *NotificationRepository) List(ctx context.Context, f NotificationListFilter) ([]model.ShopNotification, int64, error) {
+	q := r.db.WithContext(ctx).Model(&model.ShopNotification{}).Where("shop_id = ?", f.ShopID)
 	if f.IsRead != nil {
 		q = q.Where("is_read = ?", *f.IsRead)
 	}
@@ -47,15 +48,15 @@ func (r *NotificationRepository) List(f NotificationListFilter) ([]model.ShopNot
 	return list, total, err
 }
 
-func (r *NotificationRepository) UnreadCount(shopID uint64) (int64, error) {
+func (r *NotificationRepository) UnreadCount(ctx context.Context, shopID uint64) (int64, error) {
 	var cnt int64
-	err := r.db.Model(&model.ShopNotification{}).
+	err := r.db.WithContext(ctx).Model(&model.ShopNotification{}).
 		Where("shop_id = ? AND is_read = 0", shopID).Count(&cnt).Error
 	return cnt, err
 }
 
-func (r *NotificationRepository) MarkRead(id, shopID uint64) error {
-	res := r.db.Model(&model.ShopNotification{}).
+func (r *NotificationRepository) MarkRead(ctx context.Context, id, shopID uint64) error {
+	res := r.db.WithContext(ctx).Model(&model.ShopNotification{}).
 		Where("id = ? AND shop_id = ?", id, shopID).
 		Update("is_read", 1)
 	if res.RowsAffected == 0 {
@@ -64,8 +65,8 @@ func (r *NotificationRepository) MarkRead(id, shopID uint64) error {
 	return res.Error
 }
 
-func (r *NotificationRepository) MarkAllRead(shopID uint64) error {
-	return r.db.Model(&model.ShopNotification{}).
+func (r *NotificationRepository) MarkAllRead(ctx context.Context, shopID uint64) error {
+	return r.db.WithContext(ctx).Model(&model.ShopNotification{}).
 		Where("shop_id = ? AND is_read = 0", shopID).
 		Update("is_read", 1).Error
 }

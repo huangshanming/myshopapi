@@ -30,7 +30,7 @@ func NewProductAdminLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Prod
 }
 
 func (l *ProductAdminLogic) List(f repository.ProductListFilter) (map[string]interface{}, error) {
-	list, total, err := l.svcCtx.ProductAdmin.List(f)
+	list, total, err := l.svcCtx.ProductAdmin.List(l.ctx, f)
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +38,7 @@ func (l *ProductAdminLogic) List(f repository.ProductListFilter) (map[string]int
 }
 
 func (l *ProductAdminLogic) Detail(id, shopID uint64) (map[string]interface{}, error) {
-	p, skus, imgs, attrs, err := l.svcCtx.ProductAdmin.GetDetail(id, shopID)
+	p, skus, imgs, attrs, err := l.svcCtx.ProductAdmin.GetDetail(l.ctx, id, shopID)
 	if err != nil {
 		return nil, errors.New("商品不存在")
 	}
@@ -51,7 +51,7 @@ func (l *ProductAdminLogic) Save(shopID, operatorID, id uint64, req types.Mercha
 	if req.Name == "" || req.CategoryID == 0 {
 		return nil, errors.New("名称与分类必填")
 	}
-	return l.svcCtx.ProductAdmin.SaveProduct(shopID, operatorID, id, req)
+	return l.svcCtx.ProductAdmin.SaveProduct(l.ctx, shopID, operatorID, id, req)
 }
 
 func (l *ProductAdminLogic) SetStatus(shopID, operatorID, id uint64, status string) error {
@@ -65,22 +65,22 @@ func (l *ProductAdminLogic) SetStatus(shopID, operatorID, id uint64, status stri
 			return errors.New("商品参与活动中，不可下架/删除")
 		}
 	}
-	if err := l.svcCtx.ProductAdmin.SetStatus(id, shopID, status); err != nil {
+	if err := l.svcCtx.ProductAdmin.SetStatus(l.ctx, id, shopID, status); err != nil {
 		return err
 	}
 	pid := id
 	after, _ := json.Marshal(map[string]interface{}{"status": status})
-	_ = l.svcCtx.ProductAdmin.AddOpLog(shopID, &pid, operatorID, "status:"+status, "", string(after))
+	_ = l.svcCtx.ProductAdmin.AddOpLog(l.ctx, shopID, &pid, operatorID, "status:"+status, "", string(after))
 	return nil
 }
 
 func (l *ProductAdminLogic) Copy(shopID, operatorID, id uint64) (*model.Product, error) {
-	p, err := l.svcCtx.ProductAdmin.CopyProduct(id, shopID, operatorID)
+	p, err := l.svcCtx.ProductAdmin.CopyProduct(l.ctx, id, shopID, operatorID)
 	if err != nil {
 		return nil, err
 	}
 	after, _ := json.Marshal(map[string]interface{}{"copy_from": id, "new_id": p.ID, "name": p.Name})
-	_ = l.svcCtx.ProductAdmin.AddOpLog(shopID, &p.ID, operatorID, "copy", "", string(after))
+	_ = l.svcCtx.ProductAdmin.AddOpLog(l.ctx, shopID, &p.ID, operatorID, "copy", "", string(after))
 	return p, nil
 }
 
@@ -93,7 +93,7 @@ func (l *ProductAdminLogic) Batch(shopID, operatorID uint64, req types.BatchProd
 		ShopID: shopID, JobType: req.Action, PayloadJSON: string(payload),
 		Total: len(req.ProductIDs), Status: "pending", OperatorID: operatorID,
 	}
-	if err := l.svcCtx.ProductAdmin.CreateBatchJob(job); err != nil {
+	if err := l.svcCtx.ProductAdmin.CreateBatchJob(l.ctx, job); err != nil {
 		return nil, err
 	}
 	go l.runBatchJob(job.ID, shopID, operatorID, req)
@@ -165,7 +165,7 @@ func (l *ProductAdminLogic) batchPrice(id, shopID uint64, req types.BatchProduct
 		}
 		_ = l.svcCtx.DB.Model(&s).Update("sale_price", price).Error
 	}
-	return l.svcCtx.ProductAdmin.AggregatePublic(id)
+	return l.svcCtx.ProductAdmin.AggregatePublic(l.ctx, id)
 }
 
 func (l *ProductAdminLogic) Restore(shopID, operatorID uint64, ids []uint64) error {
@@ -183,21 +183,21 @@ func (l *ProductAdminLogic) PermanentDelete(shopID, operatorID uint64, ids []uin
 			return fmt.Errorf("商品 %d 参与活动不可删除", id)
 		}
 	}
-	if err := l.svcCtx.ProductAdmin.PermanentDelete(shopID, ids); err != nil {
+	if err := l.svcCtx.ProductAdmin.PermanentDelete(l.ctx, shopID, ids); err != nil {
 		return err
 	}
 	after, _ := json.Marshal(map[string]interface{}{"deleted_ids": ids})
-	_ = l.svcCtx.ProductAdmin.AddOpLog(shopID, nil, operatorID, "permanent_delete", "", string(after))
+	_ = l.svcCtx.ProductAdmin.AddOpLog(l.ctx, shopID, nil, operatorID, "permanent_delete", "", string(after))
 	return nil
 }
 
 func (l *ProductAdminLogic) AdjustStock(shopID uint64, req types.StockAdjustReq) error {
-	return l.svcCtx.ProductAdmin.AdjustSkuStock(shopID, req)
+	return l.svcCtx.ProductAdmin.AdjustSkuStock(l.ctx, shopID, req)
 }
 
 func (l *ProductAdminLogic) BatchStock(shopID uint64, req types.BatchStockReq) error {
 	for _, it := range req.Items {
-		if err := l.svcCtx.ProductAdmin.AdjustSkuStock(shopID, it); err != nil {
+		if err := l.svcCtx.ProductAdmin.AdjustSkuStock(l.ctx, shopID, it); err != nil {
 			return err
 		}
 	}
@@ -205,7 +205,7 @@ func (l *ProductAdminLogic) BatchStock(shopID uint64, req types.BatchStockReq) e
 }
 
 func (l *ProductAdminLogic) StockWarnings(shopID uint64, page, pageSize int) (map[string]interface{}, error) {
-	list, total, err := l.svcCtx.ProductAdmin.ListStockWarnings(shopID, page, pageSize)
+	list, total, err := l.svcCtx.ProductAdmin.ListStockWarnings(l.ctx, shopID, page, pageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -246,27 +246,27 @@ func (l *ProductAdminLogic) CreateSchedule(shopID, operatorID, productID uint64,
 		ProductID: productID, ShopID: shopID, Action: req.Action,
 		RunAt: common.LocalTime(t), Status: "pending",
 	}
-	if err := l.svcCtx.ProductAdmin.CreateSchedule(s); err != nil {
+	if err := l.svcCtx.ProductAdmin.CreateSchedule(l.ctx, s); err != nil {
 		return err
 	}
 	after, _ := json.Marshal(map[string]interface{}{"action": req.Action, "run_at": req.RunAt})
-	_ = l.svcCtx.ProductAdmin.AddOpLog(shopID, &productID, operatorID, "schedule", "", string(after))
+	_ = l.svcCtx.ProductAdmin.AddOpLog(l.ctx, shopID, &productID, operatorID, "schedule", "", string(after))
 	return nil
 }
 
 func (l *ProductAdminLogic) RunSchedules() {
-	list, err := l.svcCtx.ProductAdmin.ClaimDueSchedules(20)
+	list, err := l.svcCtx.ProductAdmin.ClaimDueSchedules(l.ctx, 20)
 	if err != nil {
 		return
 	}
 	for _, s := range list {
-		err := l.svcCtx.ProductAdmin.SetStatus(s.ProductID, s.ShopID, s.Action)
-		_ = l.svcCtx.ProductAdmin.FinishSchedule(s.ID, err == nil)
+		err := l.svcCtx.ProductAdmin.SetStatus(l.ctx, s.ProductID, s.ShopID, s.Action)
+		_ = l.svcCtx.ProductAdmin.FinishSchedule(l.ctx, s.ID, err == nil)
 	}
 }
 
 func (l *ProductAdminLogic) OpLogs(shopID, productID uint64, page, pageSize int) (map[string]interface{}, error) {
-	list, total, err := l.svcCtx.ProductAdmin.ListOpLogs(shopID, productID, page, pageSize)
+	list, total, err := l.svcCtx.ProductAdmin.ListOpLogs(l.ctx, shopID, productID, page, pageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -274,12 +274,12 @@ func (l *ProductAdminLogic) OpLogs(shopID, productID uint64, page, pageSize int)
 }
 
 func (l *ProductAdminLogic) Job(shopID, id uint64) (*model.ProductBatchJob, error) {
-	return l.svcCtx.ProductAdmin.GetBatchJob(id, shopID)
+	return l.svcCtx.ProductAdmin.GetBatchJob(l.ctx, id, shopID)
 }
 
 // 简易导出 CSV
 func (l *ProductAdminLogic) ExportCSV(shopID uint64) (string, error) {
-	list, _, err := l.svcCtx.ProductAdmin.List(repository.ProductListFilter{ShopID: shopID, Page: 1, PageSize: 5000})
+	list, _, err := l.svcCtx.ProductAdmin.List(l.ctx, repository.ProductListFilter{ShopID: shopID, Page: 1, PageSize: 5000})
 	if err != nil {
 		return "", err
 	}

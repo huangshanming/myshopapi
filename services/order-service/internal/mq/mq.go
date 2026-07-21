@@ -79,7 +79,7 @@ func (c *Consumer) handleReserved(ctx context.Context, _ string, body []byte) er
 	if err := json.Unmarshal(body, &evt); err != nil {
 		return err
 	}
-	order, err := c.repo.FindByOrderNo(evt.OrderNo)
+	order, err := c.repo.FindByOrderNo(ctx, evt.OrderNo)
 	if err != nil {
 		c.logger.Warn("load order for wallet settle failed", zap.String("order_no", evt.OrderNo), zap.Error(err))
 		return err
@@ -92,7 +92,7 @@ func (c *Consumer) handleReserved(ctx context.Context, _ string, body []byte) er
 			return err
 		}
 	}
-	if err := c.repo.UpdateStatus(evt.OrderNo, model.OrderStatusConfirmed); err != nil {
+	if err := c.repo.UpdateStatus(ctx, evt.OrderNo, model.OrderStatusConfirmed); err != nil {
 		return err
 	}
 	if c.merchantHTTP != nil {
@@ -122,10 +122,10 @@ func (c *Consumer) handleFailed(ctx context.Context, _ string, body []byte) erro
 		return err
 	}
 	c.logger.Warn("inventory failed", zap.String("order_no", evt.OrderNo), zap.String("message", evt.Message))
-	if err := c.repo.UpdateStatus(evt.OrderNo, model.OrderStatusFailed); err != nil {
+	if err := c.repo.UpdateStatus(ctx, evt.OrderNo, model.OrderStatusFailed); err != nil {
 		return err
 	}
-	order, err := c.repo.FindByOrderNo(evt.OrderNo)
+	order, err := c.repo.FindByOrderNo(ctx, evt.OrderNo)
 	if err != nil {
 		c.logger.Warn("load order for restore failed", zap.String("order_no", evt.OrderNo), zap.Error(err))
 		return nil

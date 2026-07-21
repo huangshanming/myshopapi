@@ -1,6 +1,7 @@
 package logic
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -56,11 +57,11 @@ func (l *ArticleLogic) normalizeBanner(req BannerSaveReq) (*model.HomepageBanner
 	case model.BannerLinkNone:
 		req.LinkID = 0
 	case model.BannerLinkProduct:
-		if req.LinkID == 0 || !l.svcCtx.Articles.ProductExistsOnSale(req.LinkID) {
+		if req.LinkID == 0 || !l.svcCtx.Articles.ProductExistsOnSale(context.Background(), req.LinkID) {
 			return nil, errors.New("请选择有效在售商品")
 		}
 	case model.BannerLinkArticle:
-		if req.LinkID == 0 || !l.svcCtx.Articles.ArticleExistsPublished(req.LinkID) {
+		if req.LinkID == 0 || !l.svcCtx.Articles.ArticleExistsPublished(context.Background(), req.LinkID) {
 			return nil, errors.New("请选择已发布文章")
 		}
 	default:
@@ -94,25 +95,25 @@ func (l *ArticleLogic) normalizeBanner(req BannerSaveReq) (*model.HomepageBanner
 }
 
 func (l *ArticleLogic) PublicBanners() ([]model.HomepageBanner, error) {
-	return l.svcCtx.Articles.ListBannersPublic()
+	return l.svcCtx.Articles.ListBannersPublic(context.Background())
 }
 
 func (l *ArticleLogic) AdminListBanners(page, pageSize int) (map[string]interface{}, error) {
-	list, total, err := l.svcCtx.Articles.ListBannersAdmin(page, pageSize)
+	list, total, err := l.svcCtx.Articles.ListBannersAdmin(context.Background(), page, pageSize)
 	if err != nil {
 		return nil, err
 	}
-	l.svcCtx.Articles.FillBannerLinkNames(list)
+	l.svcCtx.Articles.FillBannerLinkNames(context.Background(), list)
 	return map[string]interface{}{"list": list, "total": total}, nil
 }
 
 func (l *ArticleLogic) AdminGetBanner(id uint64) (*model.HomepageBanner, error) {
-	b, err := l.svcCtx.Articles.GetBanner(id)
+	b, err := l.svcCtx.Articles.GetBanner(context.Background(), id)
 	if err != nil {
 		return nil, errors.New("Banner 不存在")
 	}
 	tmp := []model.HomepageBanner{*b}
-	l.svcCtx.Articles.FillBannerLinkNames(tmp)
+	l.svcCtx.Articles.FillBannerLinkNames(context.Background(), tmp)
 	b.LinkName = tmp[0].LinkName
 	return b, nil
 }
@@ -122,14 +123,14 @@ func (l *ArticleLogic) AdminCreateBanner(req BannerSaveReq) (*model.HomepageBann
 	if err != nil {
 		return nil, err
 	}
-	if err := l.svcCtx.Articles.CreateBanner(b); err != nil {
+	if err := l.svcCtx.Articles.CreateBanner(context.Background(), b); err != nil {
 		return nil, err
 	}
 	return b, nil
 }
 
 func (l *ArticleLogic) AdminUpdateBanner(id uint64, req BannerSaveReq) error {
-	if _, err := l.svcCtx.Articles.GetBanner(id); err != nil {
+	if _, err := l.svcCtx.Articles.GetBanner(context.Background(), id); err != nil {
 		return errors.New("Banner 不存在")
 	}
 	b, err := l.normalizeBanner(req)
@@ -146,11 +147,11 @@ func (l *ArticleLogic) AdminUpdateBanner(id uint64, req BannerSaveReq) error {
 		"start_at":  b.StartAt,
 		"end_at":    b.EndAt,
 	}
-	return l.svcCtx.Articles.UpdateBanner(id, updates)
+	return l.svcCtx.Articles.UpdateBanner(context.Background(), id, updates)
 }
 
 func (l *ArticleLogic) AdminDeleteBanner(id uint64) error {
-	return l.svcCtx.Articles.DeleteBanner(id)
+	return l.svcCtx.Articles.DeleteBanner(context.Background(), id)
 }
 
 func (l *ArticleLogic) SaveBannerUpload(filename string, data []byte) (string, error) {

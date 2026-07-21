@@ -1,6 +1,7 @@
 package biz
 
 import (
+	"context"
 	"errors"
 	"strings"
 
@@ -16,7 +17,7 @@ func validSlotType(t string) bool {
 }
 
 func (l *MerchantLogic) ListSlotPackages(slotType string, onlyOn bool) ([]model.HomepageSlotPackage, error) {
-	return l.svcCtx.Repo.ListSlotPackages(slotType, onlyOn)
+	return l.svcCtx.Repo.ListSlotPackages(context.Background(), slotType, onlyOn)
 }
 
 func (l *MerchantLogic) CreateSlotPackage(p *model.HomepageSlotPackage) error {
@@ -32,11 +33,11 @@ func (l *MerchantLogic) CreateSlotPackage(p *model.HomepageSlotPackage) error {
 	if p.Status == "" {
 		p.Status = model.SlotPkgOn
 	}
-	return l.svcCtx.Repo.CreateSlotPackage(p)
+	return l.svcCtx.Repo.CreateSlotPackage(context.Background(), p)
 }
 
 func (l *MerchantLogic) UpdateSlotPackage(id uint64, p *model.HomepageSlotPackage) error {
-	old, err := l.svcCtx.Repo.GetSlotPackage(id)
+	old, err := l.svcCtx.Repo.GetSlotPackage(context.Background(), id)
 	if err != nil {
 		return errors.New("套餐不存在")
 	}
@@ -44,19 +45,19 @@ func (l *MerchantLogic) UpdateSlotPackage(id uint64, p *model.HomepageSlotPackag
 	if !validSlotType(p.SlotType) {
 		return errors.New("无效展位类型")
 	}
-	return l.svcCtx.Repo.UpdateSlotPackage(p)
+	return l.svcCtx.Repo.UpdateSlotPackage(context.Background(), p)
 }
 
 func (l *MerchantLogic) ListSlotSettings() ([]model.HomepageSlotSetting, error) {
-	list, err := l.svcCtx.Repo.ListSlotSettings()
+	list, err := l.svcCtx.Repo.ListSlotSettings(context.Background())
 	if err != nil {
 		return nil, err
 	}
 	if len(list) == 0 {
 		for _, t := range []string{model.SlotBrandShop, model.SlotQualityShop, model.SlotArticle} {
-			_, _ = l.svcCtx.Repo.GetSlotSetting(t)
+			_, _ = l.svcCtx.Repo.GetSlotSetting(context.Background(), t)
 		}
-		return l.svcCtx.Repo.ListSlotSettings()
+		return l.svcCtx.Repo.ListSlotSettings(context.Background())
 	}
 	return list, nil
 }
@@ -69,7 +70,7 @@ func (l *MerchantLogic) UpdateSlotSettings(items []model.HomepageSlotSetting) er
 		if it.HomeLimit < 1 {
 			it.HomeLimit = 1
 		}
-		if err := l.svcCtx.Repo.UpsertSlotSetting(it.SlotType, it.HomeLimit); err != nil {
+		if err := l.svcCtx.Repo.UpsertSlotSetting(context.Background(), it.SlotType, it.HomeLimit); err != nil {
 			return err
 		}
 	}
@@ -77,20 +78,20 @@ func (l *MerchantLogic) UpdateSlotSettings(items []model.HomepageSlotSetting) er
 }
 
 func (l *MerchantLogic) ListSlotOrders(shopID uint64, slotType, status string, page, pageSize int) ([]model.HomepageSlotOrder, int64, error) {
-	l.svcCtx.Repo.ExpireDueSlotOrders()
-	list, total, err := l.svcCtx.Repo.ListSlotOrders(shopID, slotType, status, page, pageSize)
+	l.svcCtx.Repo.ExpireDueSlotOrders(context.Background())
+	list, total, err := l.svcCtx.Repo.ListSlotOrders(context.Background(), shopID, slotType, status, page, pageSize)
 	if err != nil {
 		return nil, 0, err
 	}
 	for i := range list {
-		if shop, e := l.svcCtx.Repo.FindShop(list[i].ShopID); e == nil {
+		if shop, e := l.svcCtx.Repo.FindShop(context.Background(), list[i].ShopID); e == nil {
 			list[i].ShopName = shop.Name
 		}
-		if pkg, e := l.svcCtx.Repo.GetSlotPackage(list[i].PackageID); e == nil {
+		if pkg, e := l.svcCtx.Repo.GetSlotPackage(context.Background(), list[i].PackageID); e == nil {
 			list[i].PackageName = pkg.Name
 		}
 		if list[i].SlotType == model.SlotArticle && list[i].TargetID > 0 {
-			if title, e := l.svcCtx.Repo.GetArticleTitle(list[i].TargetID); e == nil {
+			if title, e := l.svcCtx.Repo.GetArticleTitle(context.Background(), list[i].TargetID); e == nil {
 				list[i].TargetName = title
 			}
 		} else if list[i].ShopName != "" {
@@ -106,7 +107,7 @@ type BuySlotReq struct {
 }
 
 func (l *MerchantLogic) BuySlot(shopID, userID uint64, req BuySlotReq) (*model.HomepageSlotOrder, error) {
-	pkg, err := l.svcCtx.Repo.GetSlotPackage(req.PackageID)
+	pkg, err := l.svcCtx.Repo.GetSlotPackage(context.Background(), req.PackageID)
 	if err != nil || pkg.Status != model.SlotPkgOn {
 		return nil, errors.New("套餐不存在或已下架")
 	}
@@ -125,7 +126,7 @@ func (l *MerchantLogic) BuySlot(shopID, userID uint64, req BuySlotReq) (*model.H
 	} else {
 		targetID = shopID
 	}
-	shop, err := l.svcCtx.Repo.FindShop(shopID)
+	shop, err := l.svcCtx.Repo.FindShop(context.Background(), shopID)
 	if err != nil || shop.Status != model.ShopApproved {
 		return nil, errors.New("店铺不可用")
 	}
@@ -140,7 +141,7 @@ func (l *MerchantLogic) BuySlot(shopID, userID uint64, req BuySlotReq) (*model.H
 		OperatorID:   userID,
 	}
 	op := userID
-	if err := l.svcCtx.Repo.PurchaseSlotOrder(order, true, &op); err != nil {
+	if err := l.svcCtx.Repo.PurchaseSlotOrder(context.Background(), order, true, &op); err != nil {
 		return nil, err
 	}
 	return order, nil
@@ -153,11 +154,11 @@ type GrantSlotReq struct {
 }
 
 func (l *MerchantLogic) GrantSlot(adminID uint64, req GrantSlotReq) (*model.HomepageSlotOrder, error) {
-	pkg, err := l.svcCtx.Repo.GetSlotPackage(req.PackageID)
+	pkg, err := l.svcCtx.Repo.GetSlotPackage(context.Background(), req.PackageID)
 	if err != nil {
 		return nil, errors.New("套餐不存在")
 	}
-	shop, err := l.svcCtx.Repo.FindShop(req.ShopID)
+	shop, err := l.svcCtx.Repo.FindShop(context.Background(), req.ShopID)
 	if err != nil {
 		return nil, errors.New("店铺不存在")
 	}
@@ -180,7 +181,7 @@ func (l *MerchantLogic) GrantSlot(adminID uint64, req GrantSlotReq) (*model.Home
 		PaySource:    model.SlotPayAdmin,
 		OperatorID:   adminID,
 	}
-	if err := l.svcCtx.Repo.PurchaseSlotOrder(order, false, &adminID); err != nil {
+	if err := l.svcCtx.Repo.PurchaseSlotOrder(context.Background(), order, false, &adminID); err != nil {
 		return nil, err
 	}
 	return order, nil
@@ -190,16 +191,16 @@ func (l *MerchantLogic) HomeSlots(slotType string) ([]map[string]interface{}, er
 	if !validSlotType(slotType) || slotType == model.SlotArticle {
 		return nil, errors.New("无效展位类型")
 	}
-	setting, _ := l.svcCtx.Repo.GetSlotSetting(slotType)
+	setting, _ := l.svcCtx.Repo.GetSlotSetting(context.Background(), slotType)
 	limit := 8
 	if setting != nil && setting.HomeLimit > 0 {
 		limit = setting.HomeLimit
 	}
-	list, _, err := l.svcCtx.Repo.ListPublicShopsWithSlot(slotType, 1, limit, limit)
+	list, _, err := l.svcCtx.Repo.ListPublicShopsWithSlot(context.Background(), slotType, 1, limit, limit)
 	if err != nil {
 		return nil, err
 	}
-	paid, _ := l.svcCtx.Repo.ActivePaidTargetIDs(slotType)
+	paid, _ := l.svcCtx.Repo.ActivePaidTargetIDs(context.Background(), slotType)
 	out := make([]map[string]interface{}, 0, len(list))
 	for _, s := range list {
 		out = append(out, map[string]interface{}{
@@ -218,11 +219,11 @@ func (l *MerchantLogic) ListPublicShopsSlot(slotType string, page, pageSize int)
 	if !validSlotType(slotType) || slotType == model.SlotArticle {
 		return nil, 0, errors.New("无效展位类型")
 	}
-	list, total, err := l.svcCtx.Repo.ListPublicShopsWithSlot(slotType, page, pageSize, 0)
+	list, total, err := l.svcCtx.Repo.ListPublicShopsWithSlot(context.Background(), slotType, page, pageSize, 0)
 	if err != nil {
 		return nil, 0, err
 	}
-	paid, _ := l.svcCtx.Repo.ActivePaidTargetIDs(slotType)
+	paid, _ := l.svcCtx.Repo.ActivePaidTargetIDs(context.Background(), slotType)
 	out := make([]map[string]interface{}, 0, len(list))
 	for _, s := range list {
 		out = append(out, map[string]interface{}{

@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -24,32 +25,32 @@ func NewProductRepository(db *gorm.DB) *ProductRepository {
 	return &ProductRepository{db: db}
 }
 
-func (r *ProductRepository) GetList(page *pagination.PageReq) (map[string]interface{}, error) {
-	return r.GetListByShop(page, 0, "on_sale")
+func (r *ProductRepository) GetList(ctx context.Context, page *pagination.PageReq) (map[string]interface{}, error) {
+	return r.GetListByShop(ctx, page, 0, "on_sale")
 }
 
-func (r *ProductRepository) GetListByShop(page *pagination.PageReq, shopID uint64, status string) (map[string]interface{}, error) {
-	return r.GetListFiltered(page, shopID, status, 0, "")
+func (r *ProductRepository) GetListByShop(ctx context.Context, page *pagination.PageReq, shopID uint64, status string) (map[string]interface{}, error) {
+	return r.GetListFiltered(ctx, page, shopID, status, 0, "")
 }
 
-func (r *ProductRepository) categoryIDsIncludingChildren(categoryID uint64) []uint64 {
+func (r *ProductRepository) categoryIDsIncludingChildren(ctx context.Context, categoryID uint64) []uint64 {
 	if categoryID == 0 {
 		return nil
 	}
 	ids := []uint64{categoryID}
 	var children []uint64
-	_ = r.db.Model(&model.ProductCategory{}).Where("parent_id = ?", categoryID).Pluck("id", &children).Error
+	_ = r.db.WithContext(ctx).Model(&model.ProductCategory{}).Where("parent_id = ?", categoryID).Pluck("id", &children).Error
 	ids = append(ids, children...)
 	// 再下一层（最多三级）
 	if len(children) > 0 {
 		var grand []uint64
-		_ = r.db.Model(&model.ProductCategory{}).Where("parent_id IN ?", children).Pluck("id", &grand).Error
+		_ = r.db.WithContext(ctx).Model(&model.ProductCategory{}).Where("parent_id IN ?", children).Pluck("id", &grand).Error
 		ids = append(ids, grand...)
 	}
 	return ids
 }
 
-func (r *ProductRepository) GetListFiltered(page *pagination.PageReq, shopID uint64, status string, categoryID uint64, orderBy string) (map[string]interface{}, error) {
+func (r *ProductRepository) GetListFiltered(ctx context.Context, page *pagination.PageReq, shopID uint64, status string, categoryID uint64, orderBy string) (map[string]interface{}, error) {
 	empty := map[string]interface{}{
 		"total": int64(0),
 		"list":  []model.ProductListResp{},
@@ -63,7 +64,7 @@ func (r *ProductRepository) GetListFiltered(page *pagination.PageReq, shopID uin
 			q = q.Where("status = ?", status)
 		}
 		if categoryID > 0 {
-			ids := r.categoryIDsIncludingChildren(categoryID)
+			ids := r.categoryIDsIncludingChildren(ctx, categoryID)
 			q = q.Where("category_id IN ?", ids)
 		}
 		return q
@@ -98,12 +99,12 @@ func (r *ProductRepository) GetListFiltered(page *pagination.PageReq, shopID uin
 	}, nil
 }
 
-func (r *ProductRepository) Create(p *model.Product) error {
-	return r.db.Create(p).Error
+func (r *ProductRepository) Create(ctx context.Context, p *model.Product) error {
+	return r.db.WithContext(ctx).Create(p).Error
 }
 
-func (r *ProductRepository) UpdateByShop(id, shopID uint64, updates map[string]interface{}) error {
-	result := r.db.Model(&model.Product{}).Where("id = ? AND shop_id = ?", id, shopID).Updates(updates)
+func (r *ProductRepository) UpdateByShop(ctx context.Context, id, shopID uint64, updates map[string]interface{}) error {
+	result := r.db.WithContext(ctx).Model(&model.Product{}).Where("id = ? AND shop_id = ?", id, shopID).Updates(updates)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -113,29 +114,29 @@ func (r *ProductRepository) UpdateByShop(id, shopID uint64, updates map[string]i
 	return nil
 }
 
-func (r *ProductRepository) ForceOffSale(id uint64) error {
-	return r.db.Model(&model.Product{}).Where("id = ?", id).Update("status", "off_sale").Error
+func (r *ProductRepository) ForceOffSale(ctx context.Context, id uint64) error {
+	return r.db.WithContext(ctx).Model(&model.Product{}).Where("id = ?", id).Update("status", "off_sale").Error
 }
 
-func (r *ProductRepository) GetDetail(id uint64) (*model.Product, error) {
+func (r *ProductRepository) GetDetail(ctx context.Context, id uint64) (*model.Product, error) {
 	var product model.Product
-	if err := r.db.First(&product, id).Error; err != nil {
+	if err := r.db.WithContext(ctx).First(&product, id).Error; err != nil {
 		return nil, err
 	}
 	return &product, nil
 }
 
-func (r *ProductRepository) BatchGetByIDs(ids []uint64) ([]model.Product, error) {
+func (r *ProductRepository) BatchGetByIDs(ctx context.Context, ids []uint64) ([]model.Product, error) {
 	if len(ids) == 0 {
 		return []model.Product{}, nil
 	}
 	var products []model.Product
-	err := r.db.Where("id IN ? AND status = ?", ids, "on_sale").Find(&products).Error
+	err := r.db.WithContext(ctx).Where("id IN ? AND status = ?", ids, "on_sale").Find(&products).Error
 	return products, err
 }
 
 // ListSalesRank 今日销量优先，其次总销量；仅在售商品
-func (r *ProductRepository) ListSalesRank(page, pageSize int) ([]model.ProductSalesRankItem, int64, error) {
+func (r *ProductRepository) ListSalesRank(ctx context.Context, page, pageSize int) ([]model.ProductSalesRankItem, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -147,7 +148,7 @@ func (r *ProductRepository) ListSalesRank(page, pageSize int) ([]model.ProductSa
 	dayEnd := dayStart.Add(24 * time.Hour)
 
 	var total int64
-	if err := r.db.Model(&model.Product{}).Where("status = ?", "on_sale").Count(&total).Error; err != nil {
+	if err := r.db.WithContext(ctx).Model(&model.Product{}).Where("status = ?", "on_sale").Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 	if total == 0 {
@@ -155,7 +156,7 @@ func (r *ProductRepository) ListSalesRank(page, pageSize int) ([]model.ProductSa
 	}
 
 	var list []model.ProductSalesRankItem
-	err := r.db.Raw(`
+	err := r.db.WithContext(ctx).Raw(`
 SELECT p.id, p.shop_id, p.name, COALESCE(s.name,'') AS shop_name,
        COALESCE(p.main_image,'') AS main_image, p.sale_price,
        p.sold_count, COALESCE(t.today_sold, 0) AS today_sold
@@ -178,22 +179,22 @@ LIMIT ? OFFSET ?`, dayStart, dayEnd, pageSize, (page-1)*pageSize).Scan(&list).Er
 	return list, total, nil
 }
 
-func (r *ProductRepository) ReserveStock(items []StockItem) error {
-	admin := NewProductAdminRepository(r.db)
+func (r *ProductRepository) ReserveStock(ctx context.Context, items []StockItem) error {
+	admin := NewProductAdminRepository(r.db.WithContext(ctx))
 	skuItems := make([]SkuStockItem, 0, len(items))
 	for _, it := range items {
 		skuItems = append(skuItems, SkuStockItem{ProductID: it.ProductID, SkuID: it.SkuID, Quantity: it.Quantity})
 	}
-	return admin.ReserveSkuStock(skuItems)
+	return admin.ReserveSkuStock(ctx, skuItems)
 }
 
-func (r *ProductRepository) ReleaseStock(items []StockItem) error {
-	admin := NewProductAdminRepository(r.db)
+func (r *ProductRepository) ReleaseStock(ctx context.Context, items []StockItem) error {
+	admin := NewProductAdminRepository(r.db.WithContext(ctx))
 	skuItems := make([]SkuStockItem, 0, len(items))
 	for _, it := range items {
 		skuItems = append(skuItems, SkuStockItem{ProductID: it.ProductID, SkuID: it.SkuID, Quantity: it.Quantity})
 	}
-	return admin.ReleaseSkuStock(skuItems)
+	return admin.ReleaseSkuStock(ctx, skuItems)
 }
 
 type CategoryRepository struct {
@@ -204,54 +205,54 @@ func NewCategoryRepository(db *gorm.DB) *CategoryRepository {
 	return &CategoryRepository{db: db}
 }
 
-func (r *CategoryRepository) GetList(page *pagination.PageReq) (*pagination.PageRes[model.ProductCategory], error) {
+func (r *CategoryRepository) GetList(ctx context.Context, page *pagination.PageReq) (*pagination.PageRes[model.ProductCategory], error) {
 	res := &pagination.PageRes[model.ProductCategory]{List: []model.ProductCategory{}}
 
 	var total int64
-	if err := r.db.Model(&model.ProductCategory{}).Where("is_show = ?", true).Count(&total).Error; err != nil {
+	if err := r.db.WithContext(ctx).Model(&model.ProductCategory{}).Where("is_show = ?", true).Count(&total).Error; err != nil {
 		return res, err
 	}
 	if total == 0 {
 		return res, nil
 	}
 
-	query := r.db.Model(&model.ProductCategory{}).Where("is_show = ?", true).Order("sort_order ASC, id ASC")
+	query := r.db.WithContext(ctx).Model(&model.ProductCategory{}).Where("is_show = ?", true).Order("sort_order ASC, id ASC")
 	return pagination.Paginate[model.ProductCategory](query, page)
 }
 
 // ListAll 管理端：含隐藏分类，按排序返回全量
-func (r *CategoryRepository) ListAll() ([]model.ProductCategory, error) {
+func (r *CategoryRepository) ListAll(ctx context.Context) ([]model.ProductCategory, error) {
 	var list []model.ProductCategory
-	err := r.db.Model(&model.ProductCategory{}).Order("sort_order ASC, id ASC").Find(&list).Error
+	err := r.db.WithContext(ctx).Model(&model.ProductCategory{}).Order("sort_order ASC, id ASC").Find(&list).Error
 	return list, err
 }
 
-func (r *CategoryRepository) GetDetail(id uint64) (*model.ProductCategory, error) {
+func (r *CategoryRepository) GetDetail(ctx context.Context, id uint64) (*model.ProductCategory, error) {
 	var category model.ProductCategory
-	if err := r.db.First(&category, id).Error; err != nil {
+	if err := r.db.WithContext(ctx).First(&category, id).Error; err != nil {
 		return nil, err
 	}
 	return &category, nil
 }
 
-func (r *CategoryRepository) Create(c *model.ProductCategory) error {
-	return r.db.Create(c).Error
+func (r *CategoryRepository) Create(ctx context.Context, c *model.ProductCategory) error {
+	return r.db.WithContext(ctx).Create(c).Error
 }
 
-func (r *CategoryRepository) Update(id uint64, updates map[string]interface{}) error {
-	return r.db.Model(&model.ProductCategory{}).Where("id = ?", id).Updates(updates).Error
+func (r *CategoryRepository) Update(ctx context.Context, id uint64, updates map[string]interface{}) error {
+	return r.db.WithContext(ctx).Model(&model.ProductCategory{}).Where("id = ?", id).Updates(updates).Error
 }
 
-func (r *CategoryRepository) Delete(id uint64) error {
+func (r *CategoryRepository) Delete(ctx context.Context, id uint64) error {
 	var child int64
-	_ = r.db.Model(&model.ProductCategory{}).Where("parent_id = ?", id).Count(&child).Error
+	_ = r.db.WithContext(ctx).Model(&model.ProductCategory{}).Where("parent_id = ?", id).Count(&child).Error
 	if child > 0 {
 		return errors.New("请先删除子分类")
 	}
 	var used int64
-	_ = r.db.Model(&model.Product{}).Where("category_id = ? AND status <> ?", id, "deleted").Count(&used).Error
+	_ = r.db.WithContext(ctx).Model(&model.Product{}).Where("category_id = ? AND status <> ?", id, "deleted").Count(&used).Error
 	if used > 0 {
 		return errors.New("分类下仍有商品，无法删除")
 	}
-	return r.db.Delete(&model.ProductCategory{}, id).Error
+	return r.db.WithContext(ctx).Delete(&model.ProductCategory{}, id).Error
 }
