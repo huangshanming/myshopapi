@@ -12,7 +12,7 @@ import (
 
 func PublicSeckillCurrentHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := seckill.NewPublicSeckillCurrentLogic(svcCtx)
+		l := seckill.NewPublicSeckillCurrentLogic(r.Context(), svcCtx)
 		resp, err := l.PublicSeckillCurrent(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -30,7 +30,7 @@ func PublicSeckillEntryHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := seckill.NewPublicSeckillEntryLogic(svcCtx)
+		l := seckill.NewPublicSeckillEntryLogic(r.Context(), svcCtx)
 		resp, err := l.PublicSeckillEntry(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -48,7 +48,7 @@ func PublicSeckillListHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := seckill.NewPublicSeckillListLogic(svcCtx)
+		l := seckill.NewPublicSeckillListLogic(r.Context(), svcCtx)
 		resp, err := l.PublicSeckillList(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

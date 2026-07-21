@@ -3,12 +3,12 @@ package coupon
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
+	hpublic "mymall/services/merchant-service/internal/app/public"
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
-	hpublic "mymall/services/merchant-service/internal/app/public"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -18,9 +18,9 @@ type PublicCouponPopupLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewPublicCouponPopupLogic(svcCtx *svc.ServiceContext) *PublicCouponPopupLogic {
+func NewPublicCouponPopupLogic(ctx context.Context, svcCtx *svc.ServiceContext) *PublicCouponPopupLogic {
 	return &PublicCouponPopupLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewPublicCouponPopupLogic(svcCtx *svc.ServiceContext) *PublicCouponPopupLog
 func (l *PublicCouponPopupLogic) PublicCouponPopup(ctx context.Context) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/coupons/popup", nil, nil, nil, hpublic.NewCouponHandler(l.svcCtx).PublicCouponPopup)
+	data, err := hpublic.NewCouponHandler(l.svcCtx).PublicCouponPopup(ctx, appinput.CallInput{})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

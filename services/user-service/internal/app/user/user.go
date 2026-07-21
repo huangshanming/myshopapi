@@ -1,86 +1,74 @@
 package user
 
 import (
-	"encoding/json"
-	"mymall/pkg/httpserver"
+	"context"
+	"mymall/pkg/appinput"
 	"mymall/pkg/jwt"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	"mymall/services/user-service/internal/types"
 	"net/http"
 	"strconv"
-
-	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func (h *UserHandler) ListNotifications(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *UserHandler) ListNotifications(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
-	page, pageSize := middleware.ParsePage(r)
-	list, total, err := h.logic.ListMyNotifications(r.Context(), userID, page, pageSize)
+	page, pageSize := in.Page()
+	list, total, err := h.logic.ListMyNotifications(ctx, userID, page, pageSize)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"list": list, "total": total})
+	return map[string]interface{}{"list": list, "total": total}, nil
 }
 
-func (h *UserHandler) UnreadNotificationCount(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *UserHandler) UnreadNotificationCount(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
-	n, err := h.logic.UnreadCount(r.Context(), userID)
+	n, err := h.logic.UnreadCount(ctx, userID)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"count": n})
+	return map[string]interface{}{"count": n}, nil
 }
 
-func (h *UserHandler) MarkNotificationRead(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *UserHandler) MarkNotificationRead(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
-	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
-	if err := h.logic.MarkRead(r.Context(), userID, id); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
+	if err := h.logic.MarkRead(ctx, userID, id); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *UserHandler) MarkAllNotificationsRead(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *UserHandler) MarkAllNotificationsRead(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
-	if err := h.logic.MarkAllRead(r.Context(), userID); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+	if err := h.logic.MarkAllRead(ctx, userID); err != nil {
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) Login(ctx context.Context, in appinput.CallInput) (any, error) {
 	var req types.LoginReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	token, user, err := h.logic.LoginWithShop(r.Context(), req.Mobile, req.Password, req.ShopID)
+	token, user, err := h.logic.LoginWithShop(ctx, req.Mobile, req.Password, req.ShopID)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, err.Error()))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{
+	return map[string]interface{}{
 		"token": token,
 		"user": map[string]interface{}{
 			"id":       user.ID,
@@ -90,37 +78,33 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 			"role":     user.Role,
 			"status":   user.Status,
 		},
-	})
+	}, nil
 }
 
-func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) Register(ctx context.Context, in appinput.CallInput) (any, error) {
 	var req types.RegisterReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	user, err := h.logic.Register(r.Context(), req.Mobile, req.Password)
+	user, err := h.logic.Register(ctx, req.Mobile, req.Password)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, user)
+	return user, nil
 }
 
-func (h *UserHandler) Profile(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) Profile(ctx context.Context, in appinput.CallInput) (any, error) {
 	var userID uint64
-	if id, ok := middleware.GetUserID(r.Context()); ok {
+	if id, ok := middleware.GetUserID(ctx); ok {
 		userID = id
-	} else if claims, ok := jwt.ClaimsFromContext(r.Context()); ok {
+	} else if claims, ok := jwt.ClaimsFromContext(ctx); ok {
 		userID = claims.UserID
 	} else {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
-	user, err := h.logic.GetProfile(r.Context(), userID)
+	user, err := h.logic.GetProfile(ctx, userID)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusNotFound, "用户不存在"))
-		return
+		return nil, xerr.New(http.StatusNotFound, "用户不存在")
 	}
-	httpx.OkJsonCtx(r.Context(), w, user)
+	return user, nil
 }

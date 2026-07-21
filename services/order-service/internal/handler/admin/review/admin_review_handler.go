@@ -18,7 +18,7 @@ func AdminDeleteHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := review.NewAdminDeleteLogic(svcCtx)
+		l := review.NewAdminDeleteLogic(r.Context(), svcCtx)
 		resp, err := l.AdminDelete(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func AdminListReviewsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := review.NewAdminListReviewsLogic(svcCtx)
+		l := review.NewAdminListReviewsLogic(r.Context(), svcCtx)
 		resp, err := l.AdminListReviews(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

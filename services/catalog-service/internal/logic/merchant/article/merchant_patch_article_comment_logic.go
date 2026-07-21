@@ -3,9 +3,9 @@ package article
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hmerchant "mymall/services/catalog-service/internal/content/app/merchant"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +18,9 @@ type MerchantPatchArticleCommentLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewMerchantPatchArticleCommentLogic(svcCtx *svc.ServiceContext) *MerchantPatchArticleCommentLogic {
+func NewMerchantPatchArticleCommentLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantPatchArticleCommentLogic {
 	return &MerchantPatchArticleCommentLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewMerchantPatchArticleCommentLogic(svcCtx *svc.ServiceContext) *MerchantPa
 func (l *MerchantPatchArticleCommentLogic) MerchantPatchArticleComment(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "PATCH", "/api/v1/merchant/article-comments/:id", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, req, hmerchant.NewArticleHandler(l.svcCtx).CommentPatch)
+	data, err := hmerchant.NewArticleHandler(l.svcCtx).CommentPatch(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

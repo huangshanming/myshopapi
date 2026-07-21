@@ -1,27 +1,25 @@
 package public
 
 import (
+	"context"
+	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	"net/http"
-
-	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func (h *RegionHandler) List(w http.ResponseWriter, r *http.Request) {
-	parent := r.URL.Query().Get("parent_code")
-	list, err := h.logic.ListChildren(r.Context(), parent)
+func (h *RegionHandler) List(ctx context.Context, in appinput.CallInput) (any, error) {
+	parent := in.QueryGet("parent_code")
+	list, err := h.logic.ListChildren(ctx, parent)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, list)
+	return list, nil
 }
 
-func (h *RegionHandler) Tree(w http.ResponseWriter, r *http.Request) {
-	tree, err := h.logic.Tree(r.Context())
+func (h *RegionHandler) Tree(ctx context.Context, in appinput.CallInput) (any, error) {
+	tree, err := h.logic.Tree(ctx)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, tree)
+	return tree, nil
 }

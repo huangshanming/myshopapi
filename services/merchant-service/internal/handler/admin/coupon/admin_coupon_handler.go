@@ -18,7 +18,7 @@ func AdminCopyCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := coupon.NewAdminCopyCouponLogic(svcCtx)
+		l := coupon.NewAdminCopyCouponLogic(r.Context(), svcCtx)
 		resp, err := l.AdminCopyCoupon(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func AdminCouponClaimsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := coupon.NewAdminCouponClaimsLogic(svcCtx)
+		l := coupon.NewAdminCouponClaimsLogic(r.Context(), svcCtx)
 		resp, err := l.AdminCouponClaims(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func AdminCouponRedeemsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := coupon.NewAdminCouponRedeemsLogic(svcCtx)
+		l := coupon.NewAdminCouponRedeemsLogic(r.Context(), svcCtx)
 		resp, err := l.AdminCouponRedeems(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -72,7 +72,7 @@ func AdminCouponStatsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := coupon.NewAdminCouponStatsLogic(svcCtx)
+		l := coupon.NewAdminCouponStatsLogic(r.Context(), svcCtx)
 		resp, err := l.AdminCouponStats(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -90,7 +90,7 @@ func AdminCreateCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := coupon.NewAdminCreateCouponLogic(svcCtx)
+		l := coupon.NewAdminCreateCouponLogic(r.Context(), svcCtx)
 		resp, err := l.AdminCreateCoupon(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -108,7 +108,7 @@ func AdminGrantCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := coupon.NewAdminGrantCouponLogic(svcCtx)
+		l := coupon.NewAdminGrantCouponLogic(r.Context(), svcCtx)
 		resp, err := l.AdminGrantCoupon(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -126,7 +126,7 @@ func AdminListCouponsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := coupon.NewAdminListCouponsLogic(svcCtx)
+		l := coupon.NewAdminListCouponsLogic(r.Context(), svcCtx)
 		resp, err := l.AdminListCoupons(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -144,7 +144,7 @@ func AdminOffCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := coupon.NewAdminOffCouponLogic(svcCtx)
+		l := coupon.NewAdminOffCouponLogic(r.Context(), svcCtx)
 		resp, err := l.AdminOffCoupon(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -162,7 +162,7 @@ func AdminUpdateCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := coupon.NewAdminUpdateCouponLogic(svcCtx)
+		l := coupon.NewAdminUpdateCouponLogic(r.Context(), svcCtx)
 		resp, err := l.AdminUpdateCoupon(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

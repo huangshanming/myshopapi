@@ -3,9 +3,9 @@ package product
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hmerchant "mymall/services/catalog-service/internal/product/app/merchant"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +18,9 @@ type MerchantPurgeProductsLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewMerchantPurgeProductsLogic(svcCtx *svc.ServiceContext) *MerchantPurgeProductsLogic {
+func NewMerchantPurgeProductsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantPurgeProductsLogic {
 	return &MerchantPurgeProductsLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewMerchantPurgeProductsLogic(svcCtx *svc.ServiceContext) *MerchantPurgePro
 func (l *MerchantPurgeProductsLogic) MerchantPurgeProducts(ctx context.Context) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "DELETE", "/api/v1/merchant/products/recycle", nil, nil, nil, hmerchant.NewProductHandler(l.svcCtx).RecycleDelete)
+	data, err := hmerchant.NewProductHandler(l.svcCtx).RecycleDelete(ctx, appinput.CallInput{})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

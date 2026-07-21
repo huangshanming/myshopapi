@@ -3,9 +3,9 @@ package favorite
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	huser "mymall/services/catalog-service/internal/product/app/user"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +18,9 @@ type UserAddFavoriteLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewUserAddFavoriteLogic(svcCtx *svc.ServiceContext) *UserAddFavoriteLogic {
+func NewUserAddFavoriteLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserAddFavoriteLogic {
 	return &UserAddFavoriteLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewUserAddFavoriteLogic(svcCtx *svc.ServiceContext) *UserAddFavoriteLogic {
 func (l *UserAddFavoriteLogic) UserAddFavorite(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/user/favorites", nil, nil, req, huser.NewFavoriteHandler(l.svcCtx).Add)
+	data, err := huser.NewFavoriteHandler(l.svcCtx).Add(ctx, appinput.CallInput{Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

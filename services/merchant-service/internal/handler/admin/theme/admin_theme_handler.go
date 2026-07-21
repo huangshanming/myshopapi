@@ -18,7 +18,7 @@ func AdminCreateThemePackageHandler(svcCtx *svc.ServiceContext) http.HandlerFunc
 			return
 		}
 
-		l := theme.NewAdminCreateThemePackageLogic(svcCtx)
+		l := theme.NewAdminCreateThemePackageLogic(r.Context(), svcCtx)
 		resp, err := l.AdminCreateThemePackage(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func AdminGrantThemeHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := theme.NewAdminGrantThemeLogic(svcCtx)
+		l := theme.NewAdminGrantThemeLogic(r.Context(), svcCtx)
 		resp, err := l.AdminGrantTheme(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func AdminListThemeOrdersHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := theme.NewAdminListThemeOrdersLogic(svcCtx)
+		l := theme.NewAdminListThemeOrdersLogic(r.Context(), svcCtx)
 		resp, err := l.AdminListThemeOrders(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -72,7 +72,7 @@ func AdminListThemePackagesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc 
 			return
 		}
 
-		l := theme.NewAdminListThemePackagesLogic(svcCtx)
+		l := theme.NewAdminListThemePackagesLogic(r.Context(), svcCtx)
 		resp, err := l.AdminListThemePackages(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -90,7 +90,7 @@ func AdminListThemeSlotsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := theme.NewAdminListThemeSlotsLogic(svcCtx)
+		l := theme.NewAdminListThemeSlotsLogic(r.Context(), svcCtx)
 		resp, err := l.AdminListThemeSlots(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -108,7 +108,7 @@ func AdminUpdateThemePackageHandler(svcCtx *svc.ServiceContext) http.HandlerFunc
 			return
 		}
 
-		l := theme.NewAdminUpdateThemePackageLogic(svcCtx)
+		l := theme.NewAdminUpdateThemePackageLogic(r.Context(), svcCtx)
 		resp, err := l.AdminUpdateThemePackage(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -126,7 +126,7 @@ func AdminUpdateThemeSlotHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := theme.NewAdminUpdateThemeSlotLogic(svcCtx)
+		l := theme.NewAdminUpdateThemeSlotLogic(r.Context(), svcCtx)
 		resp, err := l.AdminUpdateThemeSlot(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

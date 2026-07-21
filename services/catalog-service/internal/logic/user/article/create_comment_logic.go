@@ -3,9 +3,9 @@ package article
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hpublic "mymall/services/catalog-service/internal/content/app/public"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +18,9 @@ type CreateCommentLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewCreateCommentLogic(svcCtx *svc.ServiceContext) *CreateCommentLogic {
+func NewCreateCommentLogic(ctx context.Context, svcCtx *svc.ServiceContext) *CreateCommentLogic {
 	return &CreateCommentLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewCreateCommentLogic(svcCtx *svc.ServiceContext) *CreateCommentLogic {
 func (l *CreateCommentLogic) CreateComment(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/articles/:id/comments", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, req, hpublic.NewArticleHandler(l.svcCtx).CreateComment)
+	data, err := hpublic.NewArticleHandler(l.svcCtx).CreateComment(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

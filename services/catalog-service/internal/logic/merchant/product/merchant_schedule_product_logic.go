@@ -3,9 +3,9 @@ package product
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hmerchant "mymall/services/catalog-service/internal/product/app/merchant"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +18,9 @@ type MerchantScheduleProductLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewMerchantScheduleProductLogic(svcCtx *svc.ServiceContext) *MerchantScheduleProductLogic {
+func NewMerchantScheduleProductLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantScheduleProductLogic {
 	return &MerchantScheduleProductLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewMerchantScheduleProductLogic(svcCtx *svc.ServiceContext) *MerchantSchedu
 func (l *MerchantScheduleProductLogic) MerchantScheduleProduct(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/merchant/products/:id/schedules", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, req, hmerchant.NewProductHandler(l.svcCtx).Schedule)
+	data, err := hmerchant.NewProductHandler(l.svcCtx).Schedule(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

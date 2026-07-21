@@ -1,7 +1,6 @@
 package public
 
 import (
-
 	"mymall/services/catalog-service/internal/content/logic"
 	"mymall/services/catalog-service/internal/svc"
 )

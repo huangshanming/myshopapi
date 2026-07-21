@@ -2,7 +2,8 @@ package auth
 
 import (
 	"context"
-	"mymall/pkg/httpinvoke"
+	"encoding/json"
+	"mymall/pkg/appinput"
 	huser "mymall/services/user-service/internal/app/user"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
@@ -15,20 +16,21 @@ type LoginLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewLoginLogic(svcCtx *svc.ServiceContext) *LoginLogic {
+func NewLoginLogic(ctx context.Context, svcCtx *svc.ServiceContext) *LoginLogic {
 	return &LoginLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
 func (l *LoginLogic) Login(ctx context.Context, req *types.LoginReq) (resp *types.LoginResp, err error) {
-	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/user/login", nil, nil, req, huser.NewUserHandler(l.svcCtx).Login)
+	data, err := huser.NewUserHandler(l.svcCtx).Login(ctx, appinput.CallInput{Body: req})
 	if err != nil {
 		return nil, err
 	}
+	b, _ := json.Marshal(data)
 	var out types.LoginResp
-	if err := httpinvoke.Decode(raw, &out); err != nil {
+	if err := json.Unmarshal(b, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil

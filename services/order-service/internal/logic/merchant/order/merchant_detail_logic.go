@@ -3,9 +3,9 @@ package order
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hmerchant "mymall/services/order-service/internal/app/merchant"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
@@ -18,9 +18,9 @@ type MerchantDetailLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewMerchantDetailLogic(svcCtx *svc.ServiceContext) *MerchantDetailLogic {
+func NewMerchantDetailLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantDetailLogic {
 	return &MerchantDetailLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewMerchantDetailLogic(svcCtx *svc.ServiceContext) *MerchantDetailLogic {
 func (l *MerchantDetailLogic) MerchantDetail(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/merchant/orders/:id", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, nil, hmerchant.NewOrderHandler(l.svcCtx).MerchantDetail)
+	data, err := hmerchant.NewOrderHandler(l.svcCtx).MerchantDetail(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

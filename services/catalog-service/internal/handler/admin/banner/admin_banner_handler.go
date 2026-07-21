@@ -18,7 +18,7 @@ func AdminListBannersHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := banner.NewAdminListBannersLogic(svcCtx)
+		l := banner.NewAdminListBannersLogic(r.Context(), svcCtx)
 		resp, err := l.AdminListBanners(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func CreateBannerHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := banner.NewCreateBannerLogic(svcCtx)
+		l := banner.NewCreateBannerLogic(r.Context(), svcCtx)
 		resp, err := l.CreateBanner(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func DeleteBannerHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := banner.NewDeleteBannerLogic(svcCtx)
+		l := banner.NewDeleteBannerLogic(r.Context(), svcCtx)
 		resp, err := l.DeleteBanner(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -72,7 +72,7 @@ func GetBannerHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := banner.NewGetBannerLogic(svcCtx)
+		l := banner.NewGetBannerLogic(r.Context(), svcCtx)
 		resp, err := l.GetBanner(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -90,7 +90,7 @@ func UpdateBannerHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := banner.NewUpdateBannerLogic(svcCtx)
+		l := banner.NewUpdateBannerLogic(r.Context(), svcCtx)
 		resp, err := l.UpdateBanner(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -102,14 +102,9 @@ func UpdateBannerHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func UploadBannerHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
-		if err := httpx.Parse(r, &req); err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
-			return
-		}
 
-		l := banner.NewUploadBannerLogic(svcCtx)
-		resp, err := l.UploadBanner(r.Context(), &req)
+		l := banner.NewUploadBannerLogic(r.Context(), svcCtx)
+		resp, err := l.UploadBanner(r.Context(), r)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {

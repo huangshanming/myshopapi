@@ -1,19 +1,19 @@
 package handler
 
 import (
-	"encoding/json"
+	"context"
+	"mymall/pkg/appinput"
 	"net/http"
 	"strconv"
 
-	"mymall/pkg/httpserver"
 	"mymall/pkg/middleware"
 	"mymall/services/catalog-service/internal/shopops/model"
 	"mymall/services/catalog-service/internal/shopops/repository"
 	"mymall/services/catalog-service/internal/shopops/types"
 	"mymall/services/catalog-service/internal/svc"
 
-	"github.com/zeromicro/go-zero/rest/httpx"
-	"mymall/pkg/xerr")
+	"mymall/pkg/xerr"
+)
 
 // ShopOpsHandler 商家店铺 RBAC / 员工
 type ShopOpsHandler struct {
@@ -24,124 +24,109 @@ func NewShopOpsHandler(svcCtx *svc.ServiceContext) *ShopOpsHandler {
 	return &ShopOpsHandler{svcCtx: svcCtx}
 }
 
-func (h *ShopOpsHandler) shopUser(r *http.Request) (shopID, userID uint64, ok bool) {
-	shopID = middleware.GetShopID(r.Context())
-	userID, _ = middleware.GetUserID(r.Context())
+func (h *ShopOpsHandler) shopUser(ctx context.Context) (shopID, userID uint64, ok bool) {
+	shopID = middleware.GetShopID(ctx)
+	userID, _ = middleware.GetUserID(ctx)
 	return shopID, userID, shopID > 0 && userID > 0
 }
 
-func (h *ShopOpsHandler) AuthMe(w http.ResponseWriter, r *http.Request) {
-	shopID, uid, ok := h.shopUser(r)
+func (h *ShopOpsHandler) AuthMe(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID, uid, ok := h.shopUser(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	_ = h.svcCtx.ShopRBAC.EnsureOwnerRole(r.Context(), shopID, uid)
-	perms, _ := h.svcCtx.ShopRBAC.ListPerms(r.Context(), shopID, uid)
-	menus, _ := h.svcCtx.ShopRBAC.ListMenusForUser(r.Context(), shopID, uid)
-	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{
+	_ = h.svcCtx.ShopRBAC.EnsureOwnerRole(ctx, shopID, uid)
+	perms, _ := h.svcCtx.ShopRBAC.ListPerms(ctx, shopID, uid)
+	menus, _ := h.svcCtx.ShopRBAC.ListMenusForUser(ctx, shopID, uid)
+	return map[string]interface{}{
 		"perms": perms, "menus": menus, "menu_tree": repository.BuildShopMenuTree(menus),
-		"is_owner": h.svcCtx.ShopRBAC.IsOwner(r.Context(), shopID, uid),
-	})
+		"is_owner": h.svcCtx.ShopRBAC.IsOwner(ctx, shopID, uid),
+	}, nil
 }
 
-func (h *ShopOpsHandler) ListRoles(w http.ResponseWriter, r *http.Request) {
-	shopID, _, ok := h.shopUser(r)
+func (h *ShopOpsHandler) ListRoles(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID, _, ok := h.shopUser(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	list, err := h.svcCtx.ShopRBAC.ListRoles(r.Context(), shopID)
+	list, err := h.svcCtx.ShopRBAC.ListRoles(ctx, shopID)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, list)
+	return list, nil
 }
 
-func (h *ShopOpsHandler) ListMenus(w http.ResponseWriter, r *http.Request) {
-	shopID, uid, ok := h.shopUser(r)
+func (h *ShopOpsHandler) ListMenus(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID, uid, ok := h.shopUser(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	_ = h.svcCtx.ShopRBAC.EnsureShopMenus(r.Context(), )
-	_ = h.svcCtx.ShopRBAC.EnsureOwnerRole(r.Context(), shopID, uid)
-	menus, err := h.svcCtx.ShopRBAC.MenuTree(r.Context(), )
+	_ = h.svcCtx.ShopRBAC.EnsureShopMenus(ctx)
+	_ = h.svcCtx.ShopRBAC.EnsureOwnerRole(ctx, shopID, uid)
+	menus, err := h.svcCtx.ShopRBAC.MenuTree(ctx)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, repository.BuildShopMenuTree(menus))
+	return repository.BuildShopMenuTree(menus), nil
 }
 
-func (h *ShopOpsHandler) RoleMenus(w http.ResponseWriter, r *http.Request) {
-	_, _, ok := h.shopUser(r)
+func (h *ShopOpsHandler) RoleMenus(ctx context.Context, in appinput.CallInput) (any, error) {
+	_, _, ok := h.shopUser(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
-	ids, err := h.svcCtx.ShopRBAC.ListRoleMenuIDs(r.Context(), id)
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
+	ids, err := h.svcCtx.ShopRBAC.ListRoleMenuIDs(ctx, id)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, ids)
+	return ids, nil
 }
 
-func (h *ShopOpsHandler) SaveRole(w http.ResponseWriter, r *http.Request) {
-	shopID, uid, ok := h.shopUser(r)
-	if !ok || !h.svcCtx.ShopRBAC.IsOwner(r.Context(), shopID, uid) {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "仅店主可操作"))
-		return
+func (h *ShopOpsHandler) SaveRole(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID, uid, ok := h.shopUser(ctx)
+	if !ok || !h.svcCtx.ShopRBAC.IsOwner(ctx, shopID, uid) {
+		return nil, xerr.New(http.StatusForbidden, "仅店主可操作")
 	}
 	var req types.ShopRoleReq
-	_ = json.NewDecoder(r.Body).Decode(&req)
-	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	_ = appinput.BindBody(in, &req)
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
 	role := &model.ShopRole{ID: id, ShopID: shopID, Code: req.Code, Name: req.Name, Remark: req.Remark, Status: 1}
 	if role.Code == "" {
 		role.Code = "custom"
 	}
-	if err := h.svcCtx.ShopRBAC.SaveRole(r.Context(), role, req.MenuIDs); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.svcCtx.ShopRBAC.SaveRole(ctx, role, req.MenuIDs); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, role)
+	return role, nil
 }
 
-func (h *ShopOpsHandler) ListStaff(w http.ResponseWriter, r *http.Request) {
-	shopID, _, ok := h.shopUser(r)
+func (h *ShopOpsHandler) ListStaff(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID, _, ok := h.shopUser(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	list, err := h.svcCtx.ShopRBAC.ListStaff(r.Context(), shopID)
+	list, err := h.svcCtx.ShopRBAC.ListStaff(ctx, shopID)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, list)
+	return list, nil
 }
 
-func (h *ShopOpsHandler) BindStaff(w http.ResponseWriter, r *http.Request) {
-	shopID, uid, ok := h.shopUser(r)
-	if !ok || !h.svcCtx.ShopRBAC.IsOwner(r.Context(), shopID, uid) {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "仅店主可操作"))
-		return
+func (h *ShopOpsHandler) BindStaff(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID, uid, ok := h.shopUser(ctx)
+	if !ok || !h.svcCtx.ShopRBAC.IsOwner(ctx, shopID, uid) {
+		return nil, xerr.New(http.StatusForbidden, "仅店主可操作")
 	}
 	var req types.ShopStaffReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
 	if req.Mobile == "" {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "请填写手机号"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "请填写手机号")
 	}
 	if req.RoleID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "请选择角色"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "请选择角色")
 	}
 	mode := req.Mode
 	if mode == "" {
@@ -151,25 +136,22 @@ func (h *ShopOpsHandler) BindStaff(w http.ResponseWriter, r *http.Request) {
 	var err error
 	switch mode {
 	case "create":
-		userID, err = h.svcCtx.ShopRBAC.CreateStaffUser(r.Context(), req.Mobile, req.Password, req.Nickname)
+		userID, err = h.svcCtx.ShopRBAC.CreateStaffUser(ctx, req.Mobile, req.Password, req.Nickname)
 		if err != nil {
-			httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-			return
+			return nil, xerr.New(http.StatusBadRequest, err.Error())
 		}
 	default:
-		userID, err = h.svcCtx.ShopRBAC.FindUserIDByMobile(r.Context(), req.Mobile)
+		userID, err = h.svcCtx.ShopRBAC.FindUserIDByMobile(ctx, req.Mobile)
 		if err != nil {
-			httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-			return
+			return nil, xerr.New(http.StatusBadRequest, err.Error())
 		}
 	}
-	if err := h.svcCtx.ShopRBAC.BindStaff(r.Context(), shopID, userID, req.RoleID); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.svcCtx.ShopRBAC.BindStaff(ctx, shopID, userID, req.RoleID); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
 	msg := "已绑定"
 	if mode == "create" {
 		msg = "已创建账号并绑定店铺"
 	}
-	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"user_id": userID, "msg": msg})
+	return map[string]interface{}{"user_id": userID, "msg": msg}, nil
 }

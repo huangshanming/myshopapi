@@ -3,10 +3,11 @@ package review
 import (
 	"net/http"
 
-	"github.com/zeromicro/go-zero/rest/httpx"
 	"mymall/services/order-service/internal/logic/public/review"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
+
+	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
 func PublicListProductReviewsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
@@ -17,7 +18,7 @@ func PublicListProductReviewsHandler(svcCtx *svc.ServiceContext) http.HandlerFun
 			return
 		}
 
-		l := review.NewPublicListProductReviewsLogic(svcCtx)
+		l := review.NewPublicListProductReviewsLogic(r.Context(), svcCtx)
 		resp, err := l.PublicListProductReviews(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

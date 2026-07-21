@@ -3,12 +3,12 @@ package coupon
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
+	hinternal "mymall/services/merchant-service/internal/app/internalapi"
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
-	hinternal "mymall/services/merchant-service/internal/app/internalapi"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -18,9 +18,9 @@ type InternalRedeemCouponLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewInternalRedeemCouponLogic(svcCtx *svc.ServiceContext) *InternalRedeemCouponLogic {
+func NewInternalRedeemCouponLogic(ctx context.Context, svcCtx *svc.ServiceContext) *InternalRedeemCouponLogic {
 	return &InternalRedeemCouponLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewInternalRedeemCouponLogic(svcCtx *svc.ServiceContext) *InternalRedeemCou
 func (l *InternalRedeemCouponLogic) InternalRedeemCoupon(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/internal/coupons/redeem", nil, nil, req, hinternal.NewCouponHandler(l.svcCtx).InternalRedeemCoupon)
+	data, err := hinternal.NewCouponHandler(l.svcCtx).InternalRedeemCoupon(ctx, appinput.CallInput{Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

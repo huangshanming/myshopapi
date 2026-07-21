@@ -3,9 +3,9 @@ package article
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hpublic "mymall/services/catalog-service/internal/content/app/public"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +18,9 @@ type UpdateMineLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewUpdateMineLogic(svcCtx *svc.ServiceContext) *UpdateMineLogic {
+func NewUpdateMineLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UpdateMineLogic {
 	return &UpdateMineLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewUpdateMineLogic(svcCtx *svc.ServiceContext) *UpdateMineLogic {
 func (l *UpdateMineLogic) UpdateMine(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "PUT", "/api/v1/user/articles/:id", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, req, hpublic.NewArticleHandler(l.svcCtx).UpdateMine)
+	data, err := hpublic.NewArticleHandler(l.svcCtx).UpdateMine(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

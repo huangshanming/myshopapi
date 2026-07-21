@@ -12,7 +12,7 @@ import (
 
 func MerchantGetWalletHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := wallet.NewMerchantGetWalletLogic(svcCtx)
+		l := wallet.NewMerchantGetWalletLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantGetWallet(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -30,7 +30,7 @@ func MerchantWalletLogsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := wallet.NewMerchantWalletLogsLogic(svcCtx)
+		l := wallet.NewMerchantWalletLogsLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantWalletLogs(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

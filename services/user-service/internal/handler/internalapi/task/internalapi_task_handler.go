@@ -17,7 +17,7 @@ func InternalEventHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := task.NewInternalEventLogic(svcCtx)
+		l := task.NewInternalEventLogic(r.Context(), svcCtx)
 		err := l.InternalEvent(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

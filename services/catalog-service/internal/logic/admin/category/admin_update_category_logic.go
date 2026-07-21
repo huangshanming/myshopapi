@@ -3,9 +3,9 @@ package category
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hadmin "mymall/services/catalog-service/internal/product/app/admin"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +18,9 @@ type AdminUpdateCategoryLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminUpdateCategoryLogic(svcCtx *svc.ServiceContext) *AdminUpdateCategoryLogic {
+func NewAdminUpdateCategoryLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminUpdateCategoryLogic {
 	return &AdminUpdateCategoryLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewAdminUpdateCategoryLogic(svcCtx *svc.ServiceContext) *AdminUpdateCategor
 func (l *AdminUpdateCategoryLogic) AdminUpdateCategory(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "PUT", "/api/v1/admin/categories/:id", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, req, hadmin.NewCatalogHandler(l.svcCtx).AdminUpdateCategory)
+	data, err := hadmin.NewCatalogHandler(l.svcCtx).AdminUpdateCategory(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

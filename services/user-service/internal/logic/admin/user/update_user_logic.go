@@ -3,7 +3,7 @@ package user
 import (
 	"context"
 	"fmt"
-	"mymall/pkg/httpinvoke"
+	"mymall/pkg/appinput"
 	hadmin "mymall/services/user-service/internal/app/admin"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
@@ -16,15 +16,15 @@ type UpdateUserLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewUpdateUserLogic(svcCtx *svc.ServiceContext) *UpdateUserLogic {
+func NewUpdateUserLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UpdateUserLogic {
 	return &UpdateUserLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
 func (l *UpdateUserLogic) UpdateUser(ctx context.Context, req *types.UserUpdateReq) error {
-	_, err := httpinvoke.Run(ctx, "PUT", "/api/v1/admin/users/{Id}", map[string]string{"id": fmt.Sprintf("%v", req.Id)}, nil, req, hadmin.NewAdminHandler(l.svcCtx).UpdateUser)
+	_, err := hadmin.NewAdminHandler(l.svcCtx).UpdateUser(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%v", req.Id)}, Body: req})
 	if err != nil {
 		return err
 	}

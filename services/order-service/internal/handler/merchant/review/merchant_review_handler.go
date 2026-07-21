@@ -18,7 +18,7 @@ func MerchantDeleteHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := review.NewMerchantDeleteLogic(svcCtx)
+		l := review.NewMerchantDeleteLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantDelete(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func MerchantListReviewsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := review.NewMerchantListReviewsLogic(svcCtx)
+		l := review.NewMerchantListReviewsLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantListReviews(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func MerchantReplyHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := review.NewMerchantReplyLogic(svcCtx)
+		l := review.NewMerchantReplyLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantReply(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

@@ -1,215 +1,185 @@
 package public
 
 import (
-	"encoding/json"
+	"context"
 	"io"
-	"mymall/pkg/httpserver"
+	"mymall/pkg/appinput"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	"mymall/services/catalog-service/internal/content/logic"
 	"mymall/services/catalog-service/internal/content/types"
 	"net/http"
 	"strconv"
-
-	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func (h *ArticleHandler) List(w http.ResponseWriter, r *http.Request) {
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
-	home := r.URL.Query().Get("home") == "1"
-	data, err := h.logic.PublicList(r.Context(), page, pageSize, home)
+func (h *ArticleHandler) List(ctx context.Context, in appinput.CallInput) (any, error) {
+	page, _ := strconv.Atoi(in.QueryGet("page"))
+	pageSize, _ := strconv.Atoi(in.QueryGet("page_size"))
+	home := in.QueryGet("home") == "1"
+	data, err := h.logic.PublicList(ctx, page, pageSize, home)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, data)
+	return data, nil
 }
 
-func (h *ArticleHandler) Detail(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+func (h *ArticleHandler) Detail(ctx context.Context, in appinput.CallInput) (any, error) {
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil || id == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "文章ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "文章ID无效")
 	}
-	userID, _ := middleware.GetUserID(r.Context())
-	if userID == 0 {
-		if raw := r.Header.Get(middleware.GatewayUserIDHeader); raw != "" {
+	userID, _ := middleware.GetUserID(ctx)
+	if userID == 0 && in.Request != nil {
+		if raw := in.Request.Header.Get(middleware.GatewayUserIDHeader); raw != "" {
 			userID, _ = strconv.ParseUint(raw, 10, 64)
 		}
 	}
-	data, err := h.logic.PublicDetail(r.Context(), id, userID)
+	data, err := h.logic.PublicDetail(ctx, id, userID)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusNotFound, err.Error()))
-		return
+		return nil, xerr.New(http.StatusNotFound, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, data)
+	return data, nil
 }
 
-func (h *ArticleHandler) Like(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *ArticleHandler) Like(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil || id == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "文章ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "文章ID无效")
 	}
-	if err := h.logic.LikeArticle(r.Context(), userID, id, true); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.LikeArticle(ctx, userID, id, true); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *ArticleHandler) Unlike(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *ArticleHandler) Unlike(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil || id == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "文章ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "文章ID无效")
 	}
-	if err := h.logic.LikeArticle(r.Context(), userID, id, false); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.LikeArticle(ctx, userID, id, false); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *ArticleHandler) Favorite(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *ArticleHandler) Favorite(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil || id == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "文章ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "文章ID无效")
 	}
-	if err := h.logic.FavoriteArticle(r.Context(), userID, id, true); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.FavoriteArticle(ctx, userID, id, true); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *ArticleHandler) Unfavorite(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *ArticleHandler) Unfavorite(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil || id == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "文章ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "文章ID无效")
 	}
-	if err := h.logic.FavoriteArticle(r.Context(), userID, id, false); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.FavoriteArticle(ctx, userID, id, false); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *ArticleHandler) Status(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *ArticleHandler) Status(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil || id == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "文章ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "文章ID无效")
 	}
-	liked, favorited := h.logic.EngagementStatus(r.Context(), userID, id)
-	httpx.OkJsonCtx(r.Context(), w, map[string]bool{"liked": liked, "favorited": favorited})
+	liked, favorited := h.logic.EngagementStatus(ctx, userID, id)
+	return map[string]bool{"liked": liked, "favorited": favorited}, nil
 }
 
-func (h *ArticleHandler) ListMyFavorites(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *ArticleHandler) ListMyFavorites(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
-	data, err := h.logic.ListMyFavorites(r.Context(), userID, page, pageSize)
+	page, _ := strconv.Atoi(in.QueryGet("page"))
+	pageSize, _ := strconv.Atoi(in.QueryGet("page_size"))
+	data, err := h.logic.ListMyFavorites(ctx, userID, page, pageSize)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, data)
+	return data, nil
 }
 
-func (h *ArticleHandler) ListMyLikes(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *ArticleHandler) ListMyLikes(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
-	data, err := h.logic.ListMyLikes(r.Context(), userID, page, pageSize)
+	page, _ := strconv.Atoi(in.QueryGet("page"))
+	pageSize, _ := strconv.Atoi(in.QueryGet("page_size"))
+	data, err := h.logic.ListMyLikes(ctx, userID, page, pageSize)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, data)
+	return data, nil
 }
 
-func (h *ArticleHandler) ListComments(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+func (h *ArticleHandler) ListComments(ctx context.Context, in appinput.CallInput) (any, error) {
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil || id == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "文章ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "文章ID无效")
 	}
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
-	data, err := h.logic.PublicListComments(r.Context(), id, page, pageSize)
+	page, _ := strconv.Atoi(in.QueryGet("page"))
+	pageSize, _ := strconv.Atoi(in.QueryGet("page_size"))
+	data, err := h.logic.PublicListComments(ctx, id, page, pageSize)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, data)
+	return data, nil
 }
 
-func (h *ArticleHandler) CreateComment(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *ArticleHandler) CreateComment(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil || id == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "文章ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "文章ID无效")
 	}
 	var req logic.CreateCommentReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	c, err := h.logic.CreatePublicComment(r.Context(), userID, id, req)
+	c, err := h.logic.CreatePublicComment(ctx, userID, id, req)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, c)
+	return c, nil
 }
 
-func (h *ArticleHandler) CreateMine(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *ArticleHandler) CreateMine(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
 	var req struct {
 		CategoryID uint64   `json:"category_id"`
@@ -218,66 +188,57 @@ func (h *ArticleHandler) CreateMine(w http.ResponseWriter, r *http.Request) {
 		Content    string   `json:"content"`
 		ImageURLs  []string `json:"image_urls"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	a, err := h.logic.UserCreate(r.Context(), userID, types.ArticleSaveReq{
+	a, err := h.logic.UserCreate(ctx, userID, types.ArticleSaveReq{
 		CategoryID: req.CategoryID, Title: req.Title, CoverURL: req.CoverURL,
 		Content: req.Content, ImageURLs: req.ImageURLs,
 	})
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, a)
+	return a, nil
 }
 
-func (h *ArticleHandler) ListMine(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *ArticleHandler) ListMine(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
-	data, err := h.logic.UserListMine(r.Context(), userID, page, pageSize)
+	page, _ := strconv.Atoi(in.QueryGet("page"))
+	pageSize, _ := strconv.Atoi(in.QueryGet("page_size"))
+	data, err := h.logic.UserListMine(ctx, userID, page, pageSize)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, data)
+	return data, nil
 }
 
-func (h *ArticleHandler) DetailMine(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *ArticleHandler) DetailMine(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil || id == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "文章ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "文章ID无效")
 	}
-	data, err := h.logic.UserGetMine(r.Context(), userID, id)
+	data, err := h.logic.UserGetMine(ctx, userID, id)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusNotFound, err.Error()))
-		return
+		return nil, xerr.New(http.StatusNotFound, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, data)
+	return data, nil
 }
 
-func (h *ArticleHandler) UpdateMine(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *ArticleHandler) UpdateMine(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil || id == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "文章ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "文章ID无效")
 	}
 	var req struct {
 		CategoryID uint64   `json:"category_id"`
@@ -286,82 +247,74 @@ func (h *ArticleHandler) UpdateMine(w http.ResponseWriter, r *http.Request) {
 		Content    string   `json:"content"`
 		ImageURLs  []string `json:"image_urls"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	if err := h.logic.UserUpdate(r.Context(), userID, id, types.ArticleSaveReq{
+	if err := h.logic.UserUpdate(ctx, userID, id, types.ArticleSaveReq{
 		CategoryID: req.CategoryID, Title: req.Title, CoverURL: req.CoverURL,
 		Content: req.Content, ImageURLs: req.ImageURLs,
 	}); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *ArticleHandler) DeleteMine(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *ArticleHandler) DeleteMine(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil || id == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "文章ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "文章ID无效")
 	}
-	if err := h.logic.UserDelete(r.Context(), userID, id); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.UserDelete(ctx, userID, id); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *ArticleHandler) UploadMine(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *ArticleHandler) UploadMine(ctx context.Context, in appinput.CallInput) (any, error) {
+	if in.Request == nil {
+		return nil, xerr.New(http.StatusBadRequest, "缺少上传请求")
+	}
+
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
 	_ = userID
-	if err := r.ParseMultipartForm(6 << 20); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "上传失败"))
-		return
+	if err := in.Request.ParseMultipartForm(6 << 20); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "上传失败")
 	}
-	file, hdr, err := r.FormFile("file")
+	file, hdr, err := in.Request.FormFile("file")
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "请选择文件"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "请选择文件")
 	}
 	defer file.Close()
 	buf, err := io.ReadAll(io.LimitReader(file, 5<<20+1))
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "读取文件失败"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "读取文件失败")
 	}
 	url, err := h.logic.SaveUpload(0, hdr.Filename, buf)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, map[string]string{"url": url})
+	return map[string]string{"url": url}, nil
 }
 
-func (h *ArticleHandler) ListEmojis(w http.ResponseWriter, r *http.Request) {
-	list, err := h.logic.ListEmojisPublic(r.Context())
+func (h *ArticleHandler) ListEmojis(ctx context.Context, in appinput.CallInput) (any, error) {
+	list, err := h.logic.ListEmojisPublic(ctx)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"list": list})
+	return map[string]interface{}{"list": list}, nil
 }
 
-func (h *ArticleHandler) ListBanners(w http.ResponseWriter, r *http.Request) {
+func (h *ArticleHandler) ListBanners(ctx context.Context, in appinput.CallInput) (any, error) {
 	list, err := h.logic.PublicBanners()
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"list": list})
+	return map[string]interface{}{"list": list}, nil
 }

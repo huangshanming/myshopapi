@@ -3,12 +3,12 @@ package seckill
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
+	hinternal "mymall/services/merchant-service/internal/app/internalapi"
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
-	hinternal "mymall/services/merchant-service/internal/app/internalapi"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -18,9 +18,9 @@ type SeckillRestoreLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewSeckillRestoreLogic(svcCtx *svc.ServiceContext) *SeckillRestoreLogic {
+func NewSeckillRestoreLogic(ctx context.Context, svcCtx *svc.ServiceContext) *SeckillRestoreLogic {
 	return &SeckillRestoreLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewSeckillRestoreLogic(svcCtx *svc.ServiceContext) *SeckillRestoreLogic {
 func (l *SeckillRestoreLogic) SeckillRestore(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/seckill/restore", nil, nil, req, hinternal.NewSeckillHandler(l.svcCtx).SeckillRestore)
+	data, err := hinternal.NewSeckillHandler(l.svcCtx).SeckillRestore(ctx, appinput.CallInput{Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

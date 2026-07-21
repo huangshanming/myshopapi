@@ -1,130 +1,114 @@
 package admin
 
 import (
-	"encoding/json"
+	"context"
 	"io"
+	"mymall/pkg/appinput"
 	"mymall/services/user-service/internal/biz"
 	"net/http"
 	"strconv"
 
-	"github.com/zeromicro/go-zero/rest/httpx"
-
-	"mymall/pkg/httpserver"
-	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 )
 
-func (h *PointsProductHandler) List(w http.ResponseWriter, r *http.Request) {
-	page, pageSize := middleware.ParsePage(r)
-	list, total, err := h.logic.List(r.Context(), page, pageSize, r.URL.Query().Get("status"), r.URL.Query().Get("keyword"))
+func (h *PointsProductHandler) List(ctx context.Context, in appinput.CallInput) (any, error) {
+	page, pageSize := in.Page()
+	list, total, err := h.logic.List(ctx, page, pageSize, in.QueryGet("status"), in.QueryGet("keyword"))
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"list": list, "total": total})
+	return map[string]interface{}{"list": list, "total": total}, nil
 }
 
-func (h *PointsProductHandler) Detail(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+func (h *PointsProductHandler) Detail(ctx context.Context, in appinput.CallInput) (any, error) {
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil || id == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "商品ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "商品ID无效")
 	}
-	p, err := h.logic.Get(r.Context(), id)
+	p, err := h.logic.Get(ctx, id)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, p)
+	return p, nil
 }
 
-func (h *PointsProductHandler) Create(w http.ResponseWriter, r *http.Request) {
+func (h *PointsProductHandler) Create(ctx context.Context, in appinput.CallInput) (any, error) {
 	var req biz.PointsProductSaveReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	p, err := h.logic.Create(r.Context(), req)
+	p, err := h.logic.Create(ctx, req)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, p)
+	return p, nil
 }
 
-func (h *PointsProductHandler) Update(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+func (h *PointsProductHandler) Update(ctx context.Context, in appinput.CallInput) (any, error) {
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil || id == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "商品ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "商品ID无效")
 	}
 	var req biz.PointsProductSaveReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	p, err := h.logic.Update(r.Context(), id, req)
+	p, err := h.logic.Update(ctx, id, req)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, p)
+	return p, nil
 }
 
-func (h *PointsProductHandler) SetStatus(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+func (h *PointsProductHandler) SetStatus(ctx context.Context, in appinput.CallInput) (any, error) {
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil || id == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "商品ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "商品ID无效")
 	}
 	var req struct {
 		Status string `json:"status"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	p, err := h.logic.SetStatus(r.Context(), id, req.Status)
+	p, err := h.logic.SetStatus(ctx, id, req.Status)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, p)
+	return p, nil
 }
 
-func (h *PointsProductHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+func (h *PointsProductHandler) Delete(ctx context.Context, in appinput.CallInput) (any, error) {
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil || id == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "商品ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "商品ID无效")
 	}
-	if err := h.logic.Delete(r.Context(), id); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.Delete(ctx, id); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *PointsProductHandler) Upload(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseMultipartForm(6 << 20); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "上传失败"))
-		return
+func (h *PointsProductHandler) Upload(ctx context.Context, in appinput.CallInput) (any, error) {
+	if in.Request == nil {
+		return nil, xerr.New(http.StatusBadRequest, "缺少上传请求")
 	}
-	file, hdr, err := r.FormFile("file")
+
+	if err := in.Request.ParseMultipartForm(6 << 20); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "上传失败")
+	}
+	file, hdr, err := in.Request.FormFile("file")
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "请选择文件"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "请选择文件")
 	}
 	defer file.Close()
 	buf, err := io.ReadAll(io.LimitReader(file, 5<<20+1))
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "读取文件失败"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "读取文件失败")
 	}
-	url, err := h.logic.SaveUpload(r.Context(), hdr.Filename, buf)
+	url, err := h.logic.SaveUpload(ctx, hdr.Filename, buf)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, map[string]string{"url": url})
+	return map[string]string{"url": url}, nil
 }

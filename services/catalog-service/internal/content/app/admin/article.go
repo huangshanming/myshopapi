@@ -1,9 +1,9 @@
 package admin
 
 import (
-	"encoding/json"
+	"context"
 	"io"
-	"mymall/pkg/httpserver"
+	"mymall/pkg/appinput"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	"mymall/services/catalog-service/internal/content/logic"
@@ -13,445 +13,400 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func (h *ArticleHandler) List(w http.ResponseWriter, r *http.Request) {
-	page, pageSize := middleware.ParsePage(r)
+func (h *ArticleHandler) List(ctx context.Context, in appinput.CallInput) (any, error) {
+	page, pageSize := in.Page()
 	f := repository.ArticleListFilter{
-		Title:       r.URL.Query().Get("title"),
-		AuditStatus: r.URL.Query().Get("audit_status"),
-		Status:      r.URL.Query().Get("status"),
+		Title:       in.QueryGet("title"),
+		AuditStatus: in.QueryGet("audit_status"),
+		Status:      in.QueryGet("status"),
 		Page:        page, PageSize: pageSize,
-		Recycle: r.URL.Query().Get("recycle") == "1" || strings.Contains(r.URL.Path, "/recycle"),
+		Recycle: in.QueryGet("recycle") == "1" || (in.Request != nil && strings.Contains(in.Request.URL.Path, "/recycle")),
 	}
-	if s := r.URL.Query().Get("shop_id"); s != "" {
+	if s := in.QueryGet("shop_id"); s != "" {
 		shopID, _ := strconv.ParseUint(s, 10, 64)
 		f.ShopID = shopID
 		f.FilterShop = true
 	}
-	if s := r.URL.Query().Get("has_schedule"); s == "1" {
+	if s := in.QueryGet("has_schedule"); s == "1" {
 		v := true
 		f.HasSchedule = &v
 	} else if s == "0" {
 		v := false
 		f.HasSchedule = &v
 	}
-	if s := r.URL.Query().Get("created_from"); s != "" {
+	if s := in.QueryGet("created_from"); s != "" {
 		if t, err := time.ParseInLocation("2006-01-02", s, time.Local); err == nil {
 			f.CreatedFrom = &t
 		}
 	}
-	if s := r.URL.Query().Get("created_to"); s != "" {
+	if s := in.QueryGet("created_to"); s != "" {
 		if t, err := time.ParseInLocation("2006-01-02", s, time.Local); err == nil {
 			end := t.Add(24*time.Hour - time.Second)
 			f.CreatedTo = &end
 		}
 	}
-	data, err := h.logic.List(r.Context(), f)
+	data, err := h.logic.List(ctx, f)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, data)
+	return data, nil
 }
 
-func (h *ArticleHandler) Detail(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
-	data, err := h.logic.Detail(r.Context(), id, 0)
+func (h *ArticleHandler) Detail(ctx context.Context, in appinput.CallInput) (any, error) {
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
+	data, err := h.logic.Detail(ctx, id, 0)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusNotFound, err.Error()))
-		return
+		return nil, xerr.New(http.StatusNotFound, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, data)
+	return data, nil
 }
 
-func (h *ArticleHandler) Create(w http.ResponseWriter, r *http.Request) {
-	uid, _ := middleware.GetUserID(r.Context())
+func (h *ArticleHandler) Create(ctx context.Context, in appinput.CallInput) (any, error) {
+	uid, _ := middleware.GetUserID(ctx)
 	var req types.ArticleSaveReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	a, err := h.logic.AdminCreate(r.Context(), uid, req)
+	a, err := h.logic.AdminCreate(ctx, uid, req)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, a)
+	return a, nil
 }
 
-func (h *ArticleHandler) Update(w http.ResponseWriter, r *http.Request) {
-	uid, _ := middleware.GetUserID(r.Context())
-	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+func (h *ArticleHandler) Update(ctx context.Context, in appinput.CallInput) (any, error) {
+	uid, _ := middleware.GetUserID(ctx)
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
 	var req types.ArticleSaveReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	if err := h.logic.AdminUpdate(r.Context(), id, uid, req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.AdminUpdate(ctx, id, uid, req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *ArticleHandler) Audit(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+func (h *ArticleHandler) Audit(ctx context.Context, in appinput.CallInput) (any, error) {
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
 	var req types.ArticleAuditReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	if err := h.logic.Audit(r.Context(), id, req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.Audit(ctx, id, req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *ArticleHandler) BatchAudit(w http.ResponseWriter, r *http.Request) {
+func (h *ArticleHandler) BatchAudit(ctx context.Context, in appinput.CallInput) (any, error) {
 	var req types.ArticleBatchAuditReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	if err := h.logic.BatchAudit(r.Context(), req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.BatchAudit(ctx, req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *ArticleHandler) Top(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+func (h *ArticleHandler) Top(ctx context.Context, in appinput.CallInput) (any, error) {
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
 	var req types.ArticleTopReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	if err := h.logic.SetTop(r.Context(), id, req.IsTop); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.SetTop(ctx, id, req.IsTop); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *ArticleHandler) Offline(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+func (h *ArticleHandler) Offline(ctx context.Context, in appinput.CallInput) (any, error) {
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
 	var req types.ArticleRemarkReq
-	_ = json.NewDecoder(r.Body).Decode(&req)
-	if err := h.logic.Offline(r.Context(), id, req.Remark); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	_ = appinput.BindBody(in, &req)
+	if err := h.logic.Offline(ctx, id, req.Remark); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *ArticleHandler) SoftDelete(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+func (h *ArticleHandler) SoftDelete(ctx context.Context, in appinput.CallInput) (any, error) {
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
 	var req types.ArticleRemarkReq
-	_ = json.NewDecoder(r.Body).Decode(&req)
-	if err := h.logic.SoftDelete(r.Context(), id, req.Remark); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	_ = appinput.BindBody(in, &req)
+	if err := h.logic.SoftDelete(ctx, id, req.Remark); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *ArticleHandler) RecycleRestore(w http.ResponseWriter, r *http.Request) {
+func (h *ArticleHandler) RecycleRestore(ctx context.Context, in appinput.CallInput) (any, error) {
 	var body struct {
 		ID uint64 `json:"id"`
 	}
-	_ = json.NewDecoder(r.Body).Decode(&body)
+	_ = appinput.BindBody(in, &body)
 	if body.ID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "缺少 id"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "缺少 id")
 	}
-	if err := h.logic.Restore(r.Context(), body.ID); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.Restore(ctx, body.ID); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *ArticleHandler) RecycleDelete(w http.ResponseWriter, r *http.Request) {
+func (h *ArticleHandler) RecycleDelete(ctx context.Context, in appinput.CallInput) (any, error) {
 	var body struct {
 		ID uint64 `json:"id"`
 	}
-	_ = json.NewDecoder(r.Body).Decode(&body)
+	_ = appinput.BindBody(in, &body)
 	if body.ID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "缺少 id"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "缺少 id")
 	}
-	if err := h.logic.PermanentDelete(r.Context(), body.ID); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.PermanentDelete(ctx, body.ID); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *ArticleHandler) Stats(w http.ResponseWriter, r *http.Request) {
-	data, err := h.logic.Stats(r.Context())
+func (h *ArticleHandler) Stats(ctx context.Context, in appinput.CallInput) (any, error) {
+	data, err := h.logic.Stats(ctx)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, data)
+	return data, nil
 }
 
-func (h *ArticleHandler) CategoryList(w http.ResponseWriter, r *http.Request) {
-	tree, err := h.logic.CategoryTree(r.Context())
+func (h *ArticleHandler) CategoryList(ctx context.Context, in appinput.CallInput) (any, error) {
+	tree, err := h.logic.CategoryTree(ctx)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, tree)
+	return tree, nil
 }
 
-func (h *ArticleHandler) CategoryCreate(w http.ResponseWriter, r *http.Request) {
+func (h *ArticleHandler) CategoryCreate(ctx context.Context, in appinput.CallInput) (any, error) {
 	var req types.ArticleCategorySaveReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	if err := h.logic.SaveCategory(r.Context(), 0, req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.SaveCategory(ctx, 0, req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *ArticleHandler) CategoryUpdate(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+func (h *ArticleHandler) CategoryUpdate(ctx context.Context, in appinput.CallInput) (any, error) {
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
 	var req types.ArticleCategorySaveReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	if err := h.logic.SaveCategory(r.Context(), id, req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.SaveCategory(ctx, id, req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *ArticleHandler) CategoryDelete(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
-	if err := h.logic.DeleteCategory(r.Context(), id); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+func (h *ArticleHandler) CategoryDelete(ctx context.Context, in appinput.CallInput) (any, error) {
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
+	if err := h.logic.DeleteCategory(ctx, id); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *ArticleHandler) CommentList(w http.ResponseWriter, r *http.Request) {
-	page, pageSize := middleware.ParsePage(r)
-	articleID, _ := strconv.ParseUint(r.URL.Query().Get("article_id"), 10, 64)
-	shopID, _ := strconv.ParseUint(r.URL.Query().Get("shop_id"), 10, 64)
-	data, err := h.logic.ListComments(r.Context(), repository.CommentListFilter{
-		ShopID: shopID, ArticleID: articleID, Status: r.URL.Query().Get("status"),
+func (h *ArticleHandler) CommentList(ctx context.Context, in appinput.CallInput) (any, error) {
+	page, pageSize := in.Page()
+	articleID, _ := strconv.ParseUint(in.QueryGet("article_id"), 10, 64)
+	shopID, _ := strconv.ParseUint(in.QueryGet("shop_id"), 10, 64)
+	data, err := h.logic.ListComments(ctx, repository.CommentListFilter{
+		ShopID: shopID, ArticleID: articleID, Status: in.QueryGet("status"),
 		Page: page, PageSize: pageSize,
 	})
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, data)
+	return data, nil
 }
 
-func (h *ArticleHandler) CommentPatch(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+func (h *ArticleHandler) CommentPatch(ctx context.Context, in appinput.CallInput) (any, error) {
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
 	var req types.ArticleCommentPatchReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	if err := h.logic.PatchComment(r.Context(), id, 0, req.Status); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.PatchComment(ctx, id, 0, req.Status); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *ArticleHandler) CommentDelete(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
-	if err := h.logic.DeleteComment(r.Context(), id, 0); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+func (h *ArticleHandler) CommentDelete(ctx context.Context, in appinput.CallInput) (any, error) {
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
+	if err := h.logic.DeleteComment(ctx, id, 0); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *ArticleHandler) EmojiList(w http.ResponseWriter, r *http.Request) {
-	page, pageSize := middleware.ParsePage(r)
-	data, err := h.logic.ListEmojisAdmin(r.Context(), page, pageSize)
+func (h *ArticleHandler) EmojiList(ctx context.Context, in appinput.CallInput) (any, error) {
+	page, pageSize := in.Page()
+	data, err := h.logic.ListEmojisAdmin(ctx, page, pageSize)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, data)
+	return data, nil
 }
 
-func (h *ArticleHandler) EmojiCreate(w http.ResponseWriter, r *http.Request) {
+func (h *ArticleHandler) EmojiCreate(ctx context.Context, in appinput.CallInput) (any, error) {
 	var req struct {
 		Name     string `json:"name"`
 		ImageURL string `json:"image_url"`
 		Sort     int    `json:"sort"`
 		Status   *int8  `json:"status"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
 	status := int8(1)
 	if req.Status != nil {
 		status = *req.Status
 	}
-	e, err := h.logic.CreateEmoji(r.Context(), req.Name, req.ImageURL, req.Sort, status)
+	e, err := h.logic.CreateEmoji(ctx, req.Name, req.ImageURL, req.Sort, status)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, e)
+	return e, nil
 }
 
-func (h *ArticleHandler) EmojiUpdate(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+func (h *ArticleHandler) EmojiUpdate(ctx context.Context, in appinput.CallInput) (any, error) {
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
 	var req struct {
 		Name     string `json:"name"`
 		ImageURL string `json:"image_url"`
 		Sort     *int   `json:"sort"`
 		Status   *int8  `json:"status"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	if err := h.logic.UpdateEmoji(r.Context(), id, req.Name, req.ImageURL, req.Sort, req.Status); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.UpdateEmoji(ctx, id, req.Name, req.ImageURL, req.Sort, req.Status); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *ArticleHandler) EmojiDelete(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
-	if err := h.logic.DeleteEmoji(r.Context(), id); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+func (h *ArticleHandler) EmojiDelete(ctx context.Context, in appinput.CallInput) (any, error) {
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
+	if err := h.logic.DeleteEmoji(ctx, id); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *ArticleHandler) Upload(w http.ResponseWriter, r *http.Request) {
-	shopID, _ := strconv.ParseUint(r.URL.Query().Get("shop_id"), 10, 64)
-	file, hdr, err := r.FormFile("file")
+func (h *ArticleHandler) Upload(ctx context.Context, in appinput.CallInput) (any, error) {
+	if in.Request == nil {
+		return nil, xerr.New(http.StatusBadRequest, "缺少上传请求")
+	}
+
+	shopID, _ := strconv.ParseUint(in.QueryGet("shop_id"), 10, 64)
+	file, hdr, err := in.Request.FormFile("file")
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "缺少文件"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "缺少文件")
 	}
 	defer file.Close()
 	data, err := io.ReadAll(file)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "读取失败"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "读取失败")
 	}
 	url, err := h.logic.SaveUpload(shopID, hdr.Filename, data)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, map[string]string{"url": url})
+	return map[string]string{"url": url}, nil
 }
 
-func (h *ArticleHandler) ListBanners(w http.ResponseWriter, r *http.Request) {
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
+func (h *ArticleHandler) ListBanners(ctx context.Context, in appinput.CallInput) (any, error) {
+	page, _ := strconv.Atoi(in.QueryGet("page"))
+	pageSize, _ := strconv.Atoi(in.QueryGet("page_size"))
 	data, err := h.logic.AdminListBanners(page, pageSize)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, data)
+	return data, nil
 }
 
-func (h *ArticleHandler) GetBanner(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+func (h *ArticleHandler) GetBanner(ctx context.Context, in appinput.CallInput) (any, error) {
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil || id == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "ID无效")
 	}
 	b, err := h.logic.AdminGetBanner(id)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusNotFound, err.Error()))
-		return
+		return nil, xerr.New(http.StatusNotFound, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, b)
+	return b, nil
 }
 
-func (h *ArticleHandler) CreateBanner(w http.ResponseWriter, r *http.Request) {
+func (h *ArticleHandler) CreateBanner(ctx context.Context, in appinput.CallInput) (any, error) {
 	var req logic.BannerSaveReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
 	b, err := h.logic.AdminCreateBanner(req)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, b)
+	return b, nil
 }
 
-func (h *ArticleHandler) UpdateBanner(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+func (h *ArticleHandler) UpdateBanner(ctx context.Context, in appinput.CallInput) (any, error) {
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil || id == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "ID无效")
 	}
 	var req logic.BannerSaveReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
 	if err := h.logic.AdminUpdateBanner(id, req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *ArticleHandler) DeleteBanner(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+func (h *ArticleHandler) DeleteBanner(ctx context.Context, in appinput.CallInput) (any, error) {
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil || id == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "ID无效")
 	}
 	if err := h.logic.AdminDeleteBanner(id); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *ArticleHandler) UploadBanner(w http.ResponseWriter, r *http.Request) {
-	file, hdr, err := r.FormFile("file")
+func (h *ArticleHandler) UploadBanner(ctx context.Context, in appinput.CallInput) (any, error) {
+	if in.Request == nil {
+		return nil, xerr.New(http.StatusBadRequest, "缺少上传请求")
+	}
+
+	file, hdr, err := in.Request.FormFile("file")
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "缺少文件"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "缺少文件")
 	}
 	defer file.Close()
 	data, err := io.ReadAll(file)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "读取失败"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "读取失败")
 	}
 	url, err := h.logic.SaveBannerUpload(hdr.Filename, data)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, map[string]string{"url": url})
+	return map[string]string{"url": url}, nil
 }

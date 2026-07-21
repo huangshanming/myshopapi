@@ -3,9 +3,9 @@ package product
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hpublic "mymall/services/catalog-service/internal/product/app/public"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +18,9 @@ type GetSalesRankLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewGetSalesRankLogic(svcCtx *svc.ServiceContext) *GetSalesRankLogic {
+func NewGetSalesRankLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetSalesRankLogic {
 	return &GetSalesRankLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewGetSalesRankLogic(svcCtx *svc.ServiceContext) *GetSalesRankLogic {
 func (l *GetSalesRankLogic) GetSalesRank(ctx context.Context) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/products/sales-rank", nil, nil, nil, hpublic.NewCatalogHandler(l.svcCtx).GetSalesRank)
+	data, err := hpublic.NewCatalogHandler(l.svcCtx).GetSalesRank(ctx, appinput.CallInput{})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

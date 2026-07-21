@@ -18,7 +18,7 @@ func EligibleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := review.NewEligibleLogic(svcCtx)
+		l := review.NewEligibleLogic(r.Context(), svcCtx)
 		resp, err := l.Eligible(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func GetByOrderHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := review.NewGetByOrderLogic(svcCtx)
+		l := review.NewGetByOrderLogic(r.Context(), svcCtx)
 		resp, err := l.GetByOrder(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func UserCreateReviewHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := review.NewUserCreateReviewLogic(svcCtx)
+		l := review.NewUserCreateReviewLogic(r.Context(), svcCtx)
 		resp, err := l.UserCreateReview(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -66,14 +66,9 @@ func UserCreateReviewHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func UserUploadReviewHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
-		if err := httpx.Parse(r, &req); err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
-			return
-		}
 
-		l := review.NewUserUploadReviewLogic(svcCtx)
-		resp, err := l.UserUploadReview(r.Context(), &req)
+		l := review.NewUserUploadReviewLogic(r.Context(), svcCtx)
+		resp, err := l.UserUploadReview(r.Context(), r)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {

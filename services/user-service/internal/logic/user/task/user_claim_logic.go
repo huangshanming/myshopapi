@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"mymall/pkg/httpinvoke"
+	"mymall/pkg/appinput"
 	huser "mymall/services/user-service/internal/app/user"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
@@ -17,23 +17,24 @@ type UserClaimLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewUserClaimLogic(svcCtx *svc.ServiceContext) *UserClaimLogic {
+func NewUserClaimLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserClaimLogic {
 	return &UserClaimLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
 func (l *UserClaimLogic) UserClaim(ctx context.Context, req *types.CodePathReq) (resp *types.PointsResp, err error) {
-	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/user/tasks/{Code}/claim", map[string]string{"code": fmt.Sprintf("%v", req.Code)}, nil, nil, huser.NewTaskHandler(l.svcCtx).UserClaim)
+	data, err := huser.NewTaskHandler(l.svcCtx).UserClaim(ctx, appinput.CallInput{PathVars: map[string]string{"code": fmt.Sprintf("%v", req.Code)}})
 	if err != nil {
 		return nil, err
 	}
+	b, _ := json.Marshal(data)
 	var out types.PointsResp
-	if err := httpinvoke.Decode(raw, &out); err != nil {
+	if err := json.Unmarshal(b, &out); err != nil {
 		// may be bare number or {points:n}
 		var n int64
-		if err2 := json.Unmarshal(raw, &n); err2 == nil {
+		if err2 := json.Unmarshal(b, &n); err2 == nil {
 			out.Points = n
 			return &out, nil
 		}

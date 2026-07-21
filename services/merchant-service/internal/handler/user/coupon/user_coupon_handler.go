@@ -18,7 +18,7 @@ func ClaimCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := coupon.NewClaimCouponLogic(svcCtx)
+		l := coupon.NewClaimCouponLogic(r.Context(), svcCtx)
 		resp, err := l.ClaimCoupon(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func ListMyCouponsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := coupon.NewListMyCouponsLogic(svcCtx)
+		l := coupon.NewListMyCouponsLogic(r.Context(), svcCtx)
 		resp, err := l.ListMyCoupons(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

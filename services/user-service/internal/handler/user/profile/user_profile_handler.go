@@ -10,7 +10,7 @@ import (
 
 func UserProfileHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := profile.NewUserProfileLogic(svcCtx)
+		l := profile.NewUserProfileLogic(r.Context(), svcCtx)
 		resp, err := l.UserProfile(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

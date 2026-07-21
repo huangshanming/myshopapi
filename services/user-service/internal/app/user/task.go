@@ -1,107 +1,91 @@
 package user
 
 import (
-	"encoding/json"
-	"mymall/pkg/httpserver"
+	"context"
+	"mymall/pkg/appinput"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	"mymall/services/user-service/internal/biz"
 	"net/http"
-
-	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func (h *TaskHandler) UserPoints(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *TaskHandler) UserPoints(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	p, err := h.logic.GetPoints(r.Context(), userID)
+	p, err := h.logic.GetPoints(ctx, userID)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, p)
+	return p, nil
 }
 
-func (h *TaskHandler) UserPointLogs(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *TaskHandler) UserPointLogs(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	page, pageSize := middleware.ParsePage(r)
-	list, total, err := h.logic.ListPointLogs(r.Context(), userID, page, pageSize)
+	page, pageSize := in.Page()
+	list, total, err := h.logic.ListPointLogs(ctx, userID, page, pageSize)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"list": list, "total": total})
+	return map[string]interface{}{"list": list, "total": total}, nil
 }
 
-func (h *TaskHandler) UserListTasks(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *TaskHandler) UserListTasks(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	list, err := h.logic.ListUserTasks(r.Context(), userID)
+	list, err := h.logic.ListUserTasks(ctx, userID)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"list": list})
+	return map[string]interface{}{"list": list}, nil
 }
 
-func (h *TaskHandler) UserCheckin(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *TaskHandler) UserCheckin(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	p, err := h.logic.Checkin(r.Context(), userID)
+	p, err := h.logic.Checkin(ctx, userID)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, p)
+	return p, nil
 }
 
-func (h *TaskHandler) UserClaim(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *TaskHandler) UserClaim(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	code := httpserver.PathParam(r, "code")
+	code := in.Path("code")
 	if code == "" {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "任务编码无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "任务编码无效")
 	}
-	p, err := h.logic.Claim(r.Context(), userID, code)
+	p, err := h.logic.Claim(ctx, userID, code)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, p)
+	return p, nil
 }
 
-func (h *TaskHandler) UserReportEvent(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *TaskHandler) UserReportEvent(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
 	var req biz.TaskEventReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
 	req.UserID = userID
-	if err := h.logic.HandleEvent(r.Context(), req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.HandleEvent(ctx, req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }

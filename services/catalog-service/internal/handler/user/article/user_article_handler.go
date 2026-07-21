@@ -18,7 +18,7 @@ func CreateCommentHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := article.NewCreateCommentLogic(svcCtx)
+		l := article.NewCreateCommentLogic(r.Context(), svcCtx)
 		resp, err := l.CreateComment(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func CreateMineHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := article.NewCreateMineLogic(svcCtx)
+		l := article.NewCreateMineLogic(r.Context(), svcCtx)
 		resp, err := l.CreateMine(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func DeleteMineHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := article.NewDeleteMineLogic(svcCtx)
+		l := article.NewDeleteMineLogic(r.Context(), svcCtx)
 		resp, err := l.DeleteMine(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -72,7 +72,7 @@ func DetailMineHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := article.NewDetailMineLogic(svcCtx)
+		l := article.NewDetailMineLogic(r.Context(), svcCtx)
 		resp, err := l.DetailMine(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -90,7 +90,7 @@ func FavoriteHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := article.NewFavoriteLogic(svcCtx)
+		l := article.NewFavoriteLogic(r.Context(), svcCtx)
 		resp, err := l.Favorite(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -108,7 +108,7 @@ func LikeHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := article.NewLikeLogic(svcCtx)
+		l := article.NewLikeLogic(r.Context(), svcCtx)
 		resp, err := l.Like(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -126,7 +126,7 @@ func ListMineHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := article.NewListMineLogic(svcCtx)
+		l := article.NewListMineLogic(r.Context(), svcCtx)
 		resp, err := l.ListMine(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -144,7 +144,7 @@ func ListMyFavoritesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := article.NewListMyFavoritesLogic(svcCtx)
+		l := article.NewListMyFavoritesLogic(r.Context(), svcCtx)
 		resp, err := l.ListMyFavorites(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -162,7 +162,7 @@ func ListMyLikesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := article.NewListMyLikesLogic(svcCtx)
+		l := article.NewListMyLikesLogic(r.Context(), svcCtx)
 		resp, err := l.ListMyLikes(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -180,7 +180,7 @@ func UnfavoriteHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := article.NewUnfavoriteLogic(svcCtx)
+		l := article.NewUnfavoriteLogic(r.Context(), svcCtx)
 		resp, err := l.Unfavorite(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -198,7 +198,7 @@ func UnlikeHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := article.NewUnlikeLogic(svcCtx)
+		l := article.NewUnlikeLogic(r.Context(), svcCtx)
 		resp, err := l.Unlike(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -216,7 +216,7 @@ func UpdateMineHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := article.NewUpdateMineLogic(svcCtx)
+		l := article.NewUpdateMineLogic(r.Context(), svcCtx)
 		resp, err := l.UpdateMine(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -228,14 +228,9 @@ func UpdateMineHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func UploadMineHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
-		if err := httpx.Parse(r, &req); err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
-			return
-		}
 
-		l := article.NewUploadMineLogic(svcCtx)
-		resp, err := l.UploadMine(r.Context(), &req)
+		l := article.NewUploadMineLogic(r.Context(), svcCtx)
+		resp, err := l.UploadMine(r.Context(), r)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {
@@ -252,7 +247,7 @@ func UserArticleEngagementHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := article.NewUserArticleEngagementLogic(svcCtx)
+		l := article.NewUserArticleEngagementLogic(r.Context(), svcCtx)
 		resp, err := l.UserArticleEngagement(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

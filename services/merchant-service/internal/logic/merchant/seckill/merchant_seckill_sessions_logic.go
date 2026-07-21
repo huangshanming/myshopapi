@@ -3,12 +3,12 @@ package seckill
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
+	hmerchant "mymall/services/merchant-service/internal/app/merchant"
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
-	hmerchant "mymall/services/merchant-service/internal/app/merchant"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -18,9 +18,9 @@ type MerchantSeckillSessionsLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewMerchantSeckillSessionsLogic(svcCtx *svc.ServiceContext) *MerchantSeckillSessionsLogic {
+func NewMerchantSeckillSessionsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantSeckillSessionsLogic {
 	return &MerchantSeckillSessionsLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewMerchantSeckillSessionsLogic(svcCtx *svc.ServiceContext) *MerchantSeckil
 func (l *MerchantSeckillSessionsLogic) MerchantSeckillSessions(ctx context.Context) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/merchant/seckill/sessions", nil, nil, nil, hmerchant.NewSeckillHandler(l.svcCtx).MerchantSeckillSessions)
+	data, err := hmerchant.NewSeckillHandler(l.svcCtx).MerchantSeckillSessions(ctx, appinput.CallInput{})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

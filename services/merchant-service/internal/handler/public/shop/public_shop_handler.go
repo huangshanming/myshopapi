@@ -18,7 +18,7 @@ func PublicGetShopHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := shop.NewPublicGetShopLogic(svcCtx)
+		l := shop.NewPublicGetShopLogic(r.Context(), svcCtx)
 		resp, err := l.PublicGetShop(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -30,7 +30,7 @@ func PublicGetShopHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func PublicHomeSlotsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := shop.NewPublicHomeSlotsLogic(svcCtx)
+		l := shop.NewPublicHomeSlotsLogic(r.Context(), svcCtx)
 		resp, err := l.PublicHomeSlots(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -48,7 +48,7 @@ func PublicListShopsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := shop.NewPublicListShopsLogic(svcCtx)
+		l := shop.NewPublicListShopsLogic(r.Context(), svcCtx)
 		resp, err := l.PublicListShops(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -60,7 +60,7 @@ func PublicListShopsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func PublicThemeTilesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := shop.NewPublicThemeTilesLogic(svcCtx)
+		l := shop.NewPublicThemeTilesLogic(r.Context(), svcCtx)
 		resp, err := l.PublicThemeTiles(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

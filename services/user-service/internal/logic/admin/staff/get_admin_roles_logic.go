@@ -3,7 +3,7 @@ package staff
 import (
 	"context"
 	"fmt"
-	"mymall/pkg/httpinvoke"
+	"mymall/pkg/appinput"
 	hadmin "mymall/services/user-service/internal/app/admin"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
@@ -16,20 +16,16 @@ type GetAdminRolesLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewGetAdminRolesLogic(svcCtx *svc.ServiceContext) *GetAdminRolesLogic {
+func NewGetAdminRolesLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetAdminRolesLogic {
 	return &GetAdminRolesLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
 func (l *GetAdminRolesLogic) GetAdminRoles(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
-	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/admin/admins/{Id}/roles", map[string]string{"id": fmt.Sprintf("%v", req.Id)}, nil, nil, hadmin.NewAdminHandler(l.svcCtx).GetAdminRoles)
+	data, err := hadmin.NewAdminHandler(l.svcCtx).GetAdminRoles(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%v", req.Id)}})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

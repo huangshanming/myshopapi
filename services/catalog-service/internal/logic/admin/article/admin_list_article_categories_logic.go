@@ -2,10 +2,11 @@ package article
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hadmin "mymall/services/catalog-service/internal/content/app/admin"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +19,9 @@ type AdminListArticleCategoriesLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminListArticleCategoriesLogic(svcCtx *svc.ServiceContext) *AdminListArticleCategoriesLogic {
+func NewAdminListArticleCategoriesLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminListArticleCategoriesLogic {
 	return &AdminListArticleCategoriesLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,14 +29,15 @@ func NewAdminListArticleCategoriesLogic(svcCtx *svc.ServiceContext) *AdminListAr
 func (l *AdminListArticleCategoriesLogic) AdminListArticleCategories(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/admin/article-categories", nil, url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}, nil, hadmin.NewArticleHandler(l.svcCtx).CategoryList)
+	data, err := hadmin.NewArticleHandler(l.svcCtx).CategoryList(ctx, appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}})
 	if err != nil {
 		return nil, err
 	}
+	b, _ := json.Marshal(data)
 	var out types.PageListResp
-	if err := httpinvoke.Decode(raw, &out); err != nil {
+	if err := json.Unmarshal(b, &out); err != nil {
 		var list interface{}
-		if err2 := httpinvoke.Decode(raw, &list); err2 == nil {
+		if err2 := func() error { b, _ := json.Marshal(data); return json.Unmarshal(b, &list) }(); err2 == nil {
 			return &types.PageListResp{List: list}, nil
 		}
 		return nil, err

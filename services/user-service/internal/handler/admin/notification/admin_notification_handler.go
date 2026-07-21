@@ -18,7 +18,7 @@ func AdminListNotificationRecipientsHandler(svcCtx *svc.ServiceContext) http.Han
 			return
 		}
 
-		l := notification.NewAdminListNotificationRecipientsLogic(svcCtx)
+		l := notification.NewAdminListNotificationRecipientsLogic(r.Context(), svcCtx)
 		resp, err := l.AdminListNotificationRecipients(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func AdminListNotificationSendsHandler(svcCtx *svc.ServiceContext) http.HandlerF
 			return
 		}
 
-		l := notification.NewAdminListNotificationSendsLogic(svcCtx)
+		l := notification.NewAdminListNotificationSendsLogic(r.Context(), svcCtx)
 		resp, err := l.AdminListNotificationSends(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func AdminSendNotificationHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := notification.NewAdminSendNotificationLogic(svcCtx)
+		l := notification.NewAdminSendNotificationLogic(r.Context(), svcCtx)
 		resp, err := l.AdminSendNotification(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

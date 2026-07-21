@@ -1,117 +1,103 @@
 package user
 
 import (
-	"encoding/json"
+	"context"
 	"io"
-	"mymall/pkg/httpserver"
+	"mymall/pkg/appinput"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	"mymall/services/order-service/internal/model"
 	"net/http"
 	"strconv"
-
-	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func (h *ReviewHandler) Eligible(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *ReviewHandler) Eligible(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
-	orderID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	orderID, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "订单ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "订单ID无效")
 	}
-	data, err := h.logic.ReviewEligible(r.Context(), userID, orderID)
+	data, err := h.logic.ReviewEligible(ctx, userID, orderID)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, data)
+	return data, nil
 }
 
-func (h *ReviewHandler) Create(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *ReviewHandler) Create(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
-	orderID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	orderID, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "订单ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "订单ID无效")
 	}
 	var req model.CreateReviewReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	rev, err := h.logic.Create(r.Context(), userID, orderID, req)
+	rev, err := h.logic.Create(ctx, userID, orderID, req)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, rev)
+	return rev, nil
 }
 
-func (h *ReviewHandler) GetByOrder(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *ReviewHandler) GetByOrder(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
-	orderID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	orderID, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "订单ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "订单ID无效")
 	}
-	rev, err := h.logic.GetByOrder(r.Context(), userID, orderID)
+	rev, err := h.logic.GetByOrder(ctx, userID, orderID)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusNotFound, err.Error()))
-		return
+		return nil, xerr.New(http.StatusNotFound, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, rev)
+	return rev, nil
 }
 
-func (h *ReviewHandler) ProductList(w http.ResponseWriter, r *http.Request) {
-	productID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+func (h *ReviewHandler) ProductList(ctx context.Context, in appinput.CallInput) (any, error) {
+	productID, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil || productID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "商品ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "商品ID无效")
 	}
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
-	list, total, err := h.logic.ListByProduct(r.Context(), productID, page, pageSize)
+	page, _ := strconv.Atoi(in.QueryGet("page"))
+	pageSize, _ := strconv.Atoi(in.QueryGet("page_size"))
+	list, total, err := h.logic.ListByProduct(ctx, productID, page, pageSize)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"list": list, "total": total})
+	return map[string]interface{}{"list": list, "total": total}, nil
 }
 
-func (h *ReviewHandler) Upload(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
-	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
-		return
+func (h *ReviewHandler) Upload(ctx context.Context, in appinput.CallInput) (any, error) {
+	if in.Request == nil {
+		return nil, xerr.New(http.StatusBadRequest, "缺少上传请求")
 	}
-	file, hdr, err := r.FormFile("file")
+
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok || userID == 0 {
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
+	}
+	file, hdr, err := in.Request.FormFile("file")
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "请上传文件"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "请上传文件")
 	}
 	defer file.Close()
 	data, err := io.ReadAll(file)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "读取文件失败"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "读取文件失败")
 	}
 	url, err := h.logic.SaveUpload(userID, hdr.Filename, data)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, map[string]string{"url": url})
+	return map[string]string{"url": url}, nil
 }

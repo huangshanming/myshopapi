@@ -3,9 +3,9 @@ package shopops
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hhandler "mymall/services/catalog-service/internal/shopops/handler"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +18,9 @@ type MerchantAuthMeLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewMerchantAuthMeLogic(svcCtx *svc.ServiceContext) *MerchantAuthMeLogic {
+func NewMerchantAuthMeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantAuthMeLogic {
 	return &MerchantAuthMeLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewMerchantAuthMeLogic(svcCtx *svc.ServiceContext) *MerchantAuthMeLogic {
 func (l *MerchantAuthMeLogic) MerchantAuthMe(ctx context.Context) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/merchant/auth/me", nil, nil, nil, hhandler.NewShopOpsHandler(l.svcCtx).AuthMe)
+	data, err := hhandler.NewShopOpsHandler(l.svcCtx).AuthMe(ctx, appinput.CallInput{})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

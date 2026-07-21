@@ -12,7 +12,7 @@ import (
 
 func MerchantAfterSalesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := order.NewMerchantAfterSalesLogic(svcCtx)
+		l := order.NewMerchantAfterSalesLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantAfterSales(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -30,7 +30,7 @@ func MerchantCompleteHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := order.NewMerchantCompleteLogic(svcCtx)
+		l := order.NewMerchantCompleteLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantComplete(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -48,7 +48,7 @@ func MerchantDetailHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := order.NewMerchantDetailLogic(svcCtx)
+		l := order.NewMerchantDetailLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantDetail(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -66,7 +66,7 @@ func MerchantHandleAfterSaleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc
 			return
 		}
 
-		l := order.NewMerchantHandleAfterSaleLogic(svcCtx)
+		l := order.NewMerchantHandleAfterSaleLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantHandleAfterSale(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -84,7 +84,7 @@ func MerchantListOrdersHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := order.NewMerchantListOrdersLogic(svcCtx)
+		l := order.NewMerchantListOrdersLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantListOrders(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -102,7 +102,7 @@ func MerchantRemarkHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := order.NewMerchantRemarkLogic(svcCtx)
+		l := order.NewMerchantRemarkLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantRemark(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -120,7 +120,7 @@ func MerchantShipHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := order.NewMerchantShipLogic(svcCtx)
+		l := order.NewMerchantShipLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantShip(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

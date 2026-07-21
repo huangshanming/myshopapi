@@ -3,9 +3,9 @@ package article
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hpublic "mymall/services/catalog-service/internal/content/app/public"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +18,9 @@ type CreateMineLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewCreateMineLogic(svcCtx *svc.ServiceContext) *CreateMineLogic {
+func NewCreateMineLogic(ctx context.Context, svcCtx *svc.ServiceContext) *CreateMineLogic {
 	return &CreateMineLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewCreateMineLogic(svcCtx *svc.ServiceContext) *CreateMineLogic {
 func (l *CreateMineLogic) CreateMine(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/user/articles", nil, nil, req, hpublic.NewArticleHandler(l.svcCtx).CreateMine)
+	data, err := hpublic.NewArticleHandler(l.svcCtx).CreateMine(ctx, appinput.CallInput{Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

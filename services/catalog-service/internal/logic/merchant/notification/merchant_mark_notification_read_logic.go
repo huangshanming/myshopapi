@@ -3,9 +3,9 @@ package notification
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hhandler "mymall/services/catalog-service/internal/notify/handler"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +18,9 @@ type MerchantMarkNotificationReadLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewMerchantMarkNotificationReadLogic(svcCtx *svc.ServiceContext) *MerchantMarkNotificationReadLogic {
+func NewMerchantMarkNotificationReadLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantMarkNotificationReadLogic {
 	return &MerchantMarkNotificationReadLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewMerchantMarkNotificationReadLogic(svcCtx *svc.ServiceContext) *MerchantM
 func (l *MerchantMarkNotificationReadLogic) MerchantMarkNotificationRead(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/merchant/notifications/:id/read", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, req, hhandler.NewNotificationHandler(l.svcCtx).MarkRead)
+	data, err := hhandler.NewNotificationHandler(l.svcCtx).MarkRead(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

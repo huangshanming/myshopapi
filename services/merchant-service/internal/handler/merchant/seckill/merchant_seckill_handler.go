@@ -18,7 +18,7 @@ func MerchantApplySeckillHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := seckill.NewMerchantApplySeckillLogic(svcCtx)
+		l := seckill.NewMerchantApplySeckillLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantApplySeckill(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func MerchantListSeckillEntriesHandler(svcCtx *svc.ServiceContext) http.HandlerF
 			return
 		}
 
-		l := seckill.NewMerchantListSeckillEntriesLogic(svcCtx)
+		l := seckill.NewMerchantListSeckillEntriesLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantListSeckillEntries(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -48,7 +48,7 @@ func MerchantListSeckillEntriesHandler(svcCtx *svc.ServiceContext) http.HandlerF
 
 func MerchantSeckillSessionsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := seckill.NewMerchantSeckillSessionsLogic(svcCtx)
+		l := seckill.NewMerchantSeckillSessionsLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantSeckillSessions(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -66,7 +66,7 @@ func MerchantSetSeckillAutoRenewHandler(svcCtx *svc.ServiceContext) http.Handler
 			return
 		}
 
-		l := seckill.NewMerchantSetSeckillAutoRenewLogic(svcCtx)
+		l := seckill.NewMerchantSetSeckillAutoRenewLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantSetSeckillAutoRenew(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

@@ -3,9 +3,9 @@ package comment
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hadmin "mymall/services/catalog-service/internal/content/app/admin"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +18,9 @@ type EmojiCreateLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewEmojiCreateLogic(svcCtx *svc.ServiceContext) *EmojiCreateLogic {
+func NewEmojiCreateLogic(ctx context.Context, svcCtx *svc.ServiceContext) *EmojiCreateLogic {
 	return &EmojiCreateLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewEmojiCreateLogic(svcCtx *svc.ServiceContext) *EmojiCreateLogic {
 func (l *EmojiCreateLogic) EmojiCreate(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/admin/comment-emojis", nil, nil, req, hadmin.NewArticleHandler(l.svcCtx).EmojiCreate)
+	data, err := hadmin.NewArticleHandler(l.svcCtx).EmojiCreate(ctx, appinput.CallInput{Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

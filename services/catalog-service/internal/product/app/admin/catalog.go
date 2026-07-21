@@ -1,102 +1,86 @@
 package admin
 
 import (
-	"encoding/json"
-	"mymall/pkg/httpserver"
-	"mymall/pkg/middleware"
+	"context"
+	"mymall/pkg/appinput"
 	"mymall/pkg/pagination"
 	"mymall/pkg/xerr"
 	"mymall/services/catalog-service/internal/product/types"
 	"net/http"
 	"strconv"
-
-	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func (h *CatalogHandler) AdminListProducts(w http.ResponseWriter, r *http.Request) {
-	page, pageSize := middleware.ParsePage(r)
+func (h *CatalogHandler) AdminListProducts(ctx context.Context, in appinput.CallInput) (any, error) {
+	page, pageSize := in.Page()
 	pageReq := &pagination.PageReq{Page: page, PageSize: pageSize}
-	shopID, _ := strconv.ParseUint(r.URL.Query().Get("shop_id"), 10, 64)
-	status := r.URL.Query().Get("status")
-	data, err := h.logic.GetProductListFiltered(r.Context(), pageReq, shopID, status, 0, "")
+	shopID, _ := strconv.ParseUint(in.QueryGet("shop_id"), 10, 64)
+	status := in.QueryGet("status")
+	data, err := h.logic.GetProductListFiltered(ctx, pageReq, shopID, status, 0, "")
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, data)
+	return data, nil
 }
 
-func (h *CatalogHandler) AdminForceOffSale(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+func (h *CatalogHandler) AdminForceOffSale(ctx context.Context, in appinput.CallInput) (any, error) {
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "商品ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "商品ID无效")
 	}
-	if err := h.logic.ForceOffSale(r.Context(), id); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.ForceOffSale(ctx, id); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *CatalogHandler) AdminListCategories(w http.ResponseWriter, r *http.Request) {
-	list, err := h.logic.ListAllCategories(r.Context())
+func (h *CatalogHandler) AdminListCategories(ctx context.Context, in appinput.CallInput) (any, error) {
+	list, err := h.logic.ListAllCategories(ctx)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, list)
+	return list, nil
 }
 
-func (h *CatalogHandler) AdminCreateCategory(w http.ResponseWriter, r *http.Request) {
+func (h *CatalogHandler) AdminCreateCategory(ctx context.Context, in appinput.CallInput) (any, error) {
 	var req types.CategoryReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
 	if req.Name == "" {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	cat, err := h.logic.CreateCategory(r.Context(), req)
+	cat, err := h.logic.CreateCategory(ctx, req)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, cat)
+	return cat, nil
 }
 
-func (h *CatalogHandler) AdminUpdateCategory(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+func (h *CatalogHandler) AdminUpdateCategory(ctx context.Context, in appinput.CallInput) (any, error) {
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "分类ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "分类ID无效")
 	}
 	var req types.CategoryReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
 	if req.Name == "" {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	if err := h.logic.UpdateCategory(r.Context(), id, req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.UpdateCategory(ctx, id, req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *CatalogHandler) AdminDeleteCategory(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+func (h *CatalogHandler) AdminDeleteCategory(ctx context.Context, in appinput.CallInput) (any, error) {
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "分类ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "分类ID无效")
 	}
-	if err := h.logic.DeleteCategory(r.Context(), id); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.DeleteCategory(ctx, id); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }

@@ -1,17 +1,18 @@
 package handler
 
 import (
+	"context"
+	"mymall/pkg/appinput"
 	"net/http"
 	"strconv"
 
-	"mymall/pkg/httpserver"
 	"mymall/pkg/middleware"
 	"mymall/services/catalog-service/internal/notify/logic"
 	"mymall/services/catalog-service/internal/notify/repository"
 	"mymall/services/catalog-service/internal/svc"
 
-	"github.com/zeromicro/go-zero/rest/httpx"
-	"mymall/pkg/xerr")
+	"mymall/pkg/xerr"
+)
 
 type NotificationHandler struct {
 	svcCtx *svc.ServiceContext
@@ -22,66 +23,58 @@ func NewNotificationHandler(svcCtx *svc.ServiceContext) *NotificationHandler {
 	return &NotificationHandler{svcCtx: svcCtx, logic: logic.NewNotificationLogic(svcCtx)}
 }
 
-func (h *NotificationHandler) List(w http.ResponseWriter, r *http.Request) {
-	shopID := middleware.GetShopID(r.Context())
+func (h *NotificationHandler) List(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID := middleware.GetShopID(ctx)
 	if shopID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	page, pageSize := middleware.ParsePage(r)
+	page, pageSize := in.Page()
 	f := repository.NotificationListFilter{ShopID: shopID, Page: page, PageSize: pageSize}
-	if s := r.URL.Query().Get("is_read"); s == "0" || s == "1" {
+	if s := in.QueryGet("is_read"); s == "0" || s == "1" {
 		v := int8(0)
 		if s == "1" {
 			v = 1
 		}
 		f.IsRead = &v
 	}
-	data, err := h.logic.List(r.Context(), f)
+	data, err := h.logic.List(ctx, f)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, data)
+	return data, nil
 }
 
-func (h *NotificationHandler) UnreadCount(w http.ResponseWriter, r *http.Request) {
-	shopID := middleware.GetShopID(r.Context())
+func (h *NotificationHandler) UnreadCount(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID := middleware.GetShopID(ctx)
 	if shopID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	data, err := h.logic.UnreadCount(r.Context(), shopID)
+	data, err := h.logic.UnreadCount(ctx, shopID)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, data)
+	return data, nil
 }
 
-func (h *NotificationHandler) MarkRead(w http.ResponseWriter, r *http.Request) {
-	shopID := middleware.GetShopID(r.Context())
+func (h *NotificationHandler) MarkRead(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID := middleware.GetShopID(ctx)
 	if shopID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
-	if err := h.logic.MarkRead(r.Context(), id, shopID); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
+	if err := h.logic.MarkRead(ctx, id, shopID); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *NotificationHandler) MarkAllRead(w http.ResponseWriter, r *http.Request) {
-	shopID := middleware.GetShopID(r.Context())
+func (h *NotificationHandler) MarkAllRead(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID := middleware.GetShopID(ctx)
 	if shopID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	if err := h.logic.MarkAllRead(r.Context(), shopID); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.MarkAllRead(ctx, shopID); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }

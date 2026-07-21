@@ -11,7 +11,7 @@ import (
 
 func HealthzHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := health.NewHealthzLogic(svcCtx)
+		l := health.NewHealthzLogic(r.Context(), svcCtx)
 		resp, err := l.Healthz(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -23,7 +23,7 @@ func HealthzHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func ReadyzHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := health.NewReadyzLogic(svcCtx)
+		l := health.NewReadyzLogic(r.Context(), svcCtx)
 		resp, err := l.Readyz(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

@@ -3,12 +3,12 @@ package coupon
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
+	hadmin "mymall/services/merchant-service/internal/app/admin"
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
-	hadmin "mymall/services/merchant-service/internal/app/admin"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -18,9 +18,9 @@ type AdminCouponStatsLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminCouponStatsLogic(svcCtx *svc.ServiceContext) *AdminCouponStatsLogic {
+func NewAdminCouponStatsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminCouponStatsLogic {
 	return &AdminCouponStatsLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewAdminCouponStatsLogic(svcCtx *svc.ServiceContext) *AdminCouponStatsLogic
 func (l *AdminCouponStatsLogic) AdminCouponStats(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/admin/coupons/:id/stats", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, nil, hadmin.NewCouponHandler(l.svcCtx).AdminCouponStats)
+	data, err := hadmin.NewCouponHandler(l.svcCtx).AdminCouponStats(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

@@ -2,7 +2,7 @@ package profile
 
 import (
 	"context"
-	"mymall/pkg/httpinvoke"
+	"mymall/pkg/appinput"
 	huser "mymall/services/user-service/internal/app/user"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
@@ -15,20 +15,16 @@ type UserProfileLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewUserProfileLogic(svcCtx *svc.ServiceContext) *UserProfileLogic {
+func NewUserProfileLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserProfileLogic {
 	return &UserProfileLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
 func (l *UserProfileLogic) UserProfile(ctx context.Context) (resp *types.AnyResp, err error) {
-	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/user/profile", nil, nil, nil, huser.NewUserHandler(l.svcCtx).Profile)
+	data, err := huser.NewUserHandler(l.svcCtx).Profile(ctx, appinput.CallInput{})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

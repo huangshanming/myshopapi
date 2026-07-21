@@ -3,7 +3,7 @@ package user
 import (
 	"context"
 	"fmt"
-	"mymall/pkg/httpinvoke"
+	"mymall/pkg/appinput"
 	hadmin "mymall/services/user-service/internal/app/admin"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
@@ -16,21 +16,17 @@ type AdminListUserAddressesLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminListUserAddressesLogic(svcCtx *svc.ServiceContext) *AdminListUserAddressesLogic {
+func NewAdminListUserAddressesLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminListUserAddressesLogic {
 	return &AdminListUserAddressesLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
 func (l *AdminListUserAddressesLogic) AdminListUserAddresses(ctx context.Context, req *types.IdPathReq) (resp *types.PageListResp, err error) {
-	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/admin/users/{Id}/addresses", map[string]string{"id": fmt.Sprintf("%v", req.Id)}, nil, nil, hadmin.NewAddressHandler(l.svcCtx).AdminList)
+	data, err := hadmin.NewAddressHandler(l.svcCtx).AdminList(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%v", req.Id)}})
 	if err != nil {
 		return nil, err
 	}
-	var list interface{}
-	if err := httpinvoke.Decode(raw, &list); err != nil {
-		return nil, err
-	}
-	return &types.PageListResp{List: list}, nil
+	return &types.PageListResp{List: data}, nil
 }

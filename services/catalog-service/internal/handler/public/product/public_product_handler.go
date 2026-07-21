@@ -18,7 +18,7 @@ func CountHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := product.NewCountLogic(svcCtx)
+		l := product.NewCountLogic(r.Context(), svcCtx)
 		resp, err := l.Count(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -30,7 +30,7 @@ func CountHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func GetProductDetailHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := product.NewGetProductDetailLogic(svcCtx)
+		l := product.NewGetProductDetailLogic(r.Context(), svcCtx)
 		resp, err := l.GetProductDetail(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -48,7 +48,7 @@ func GetProductListHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := product.NewGetProductListLogic(svcCtx)
+		l := product.NewGetProductListLogic(r.Context(), svcCtx)
 		resp, err := l.GetProductList(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -60,7 +60,7 @@ func GetProductListHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func GetSalesRankHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := product.NewGetSalesRankLogic(svcCtx)
+		l := product.NewGetSalesRankLogic(r.Context(), svcCtx)
 		resp, err := l.GetSalesRank(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

@@ -3,9 +3,9 @@ package order
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	huser "mymall/services/order-service/internal/app/user"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
@@ -18,9 +18,9 @@ type UserGetOrderLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewUserGetOrderLogic(svcCtx *svc.ServiceContext) *UserGetOrderLogic {
+func NewUserGetOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserGetOrderLogic {
 	return &UserGetOrderLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewUserGetOrderLogic(svcCtx *svc.ServiceContext) *UserGetOrderLogic {
 func (l *UserGetOrderLogic) UserGetOrder(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/orders/:id", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, nil, huser.NewOrderHandler(l.svcCtx).Detail)
+	data, err := huser.NewOrderHandler(l.svcCtx).Detail(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

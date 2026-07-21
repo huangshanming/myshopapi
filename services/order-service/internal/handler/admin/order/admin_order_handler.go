@@ -12,7 +12,7 @@ import (
 
 func AdminAfterSalesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := order.NewAdminAfterSalesLogic(svcCtx)
+		l := order.NewAdminAfterSalesLogic(r.Context(), svcCtx)
 		resp, err := l.AdminAfterSales(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -30,7 +30,7 @@ func AdminCompleteHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := order.NewAdminCompleteLogic(svcCtx)
+		l := order.NewAdminCompleteLogic(r.Context(), svcCtx)
 		resp, err := l.AdminComplete(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -48,7 +48,7 @@ func AdminDetailHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := order.NewAdminDetailLogic(svcCtx)
+		l := order.NewAdminDetailLogic(r.Context(), svcCtx)
 		resp, err := l.AdminDetail(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -66,7 +66,7 @@ func AdminHandleAfterSaleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := order.NewAdminHandleAfterSaleLogic(svcCtx)
+		l := order.NewAdminHandleAfterSaleLogic(r.Context(), svcCtx)
 		resp, err := l.AdminHandleAfterSale(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -84,7 +84,7 @@ func AdminListOrdersHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := order.NewAdminListOrdersLogic(svcCtx)
+		l := order.NewAdminListOrdersLogic(r.Context(), svcCtx)
 		resp, err := l.AdminListOrders(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -102,7 +102,7 @@ func AdminRemarkHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := order.NewAdminRemarkLogic(svcCtx)
+		l := order.NewAdminRemarkLogic(r.Context(), svcCtx)
 		resp, err := l.AdminRemark(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -120,7 +120,7 @@ func AdminShipHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := order.NewAdminShipLogic(svcCtx)
+		l := order.NewAdminShipLogic(r.Context(), svcCtx)
 		resp, err := l.AdminShip(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

@@ -1,104 +1,87 @@
 package merchant
 
 import (
-	"encoding/json"
-	"mymall/pkg/httpserver"
+	"context"
+	"mymall/pkg/appinput"
 	"mymall/pkg/middleware"
 	"mymall/pkg/pagination"
 	"mymall/pkg/xerr"
 	"mymall/services/catalog-service/internal/product/types"
 	"net/http"
 	"strconv"
-
-	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func (h *CatalogHandler) MerchantListProducts(w http.ResponseWriter, r *http.Request) {
-	shopID := middleware.GetShopID(r.Context())
+func (h *CatalogHandler) MerchantListProducts(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID := middleware.GetShopID(ctx)
 	if shopID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少 shop_id"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少 shop_id")
 	}
-	page, pageSize := middleware.ParsePage(r)
+	page, pageSize := in.Page()
 	pageReq := &pagination.PageReq{Page: page, PageSize: pageSize}
-	status := r.URL.Query().Get("status")
-	data, err := h.logic.GetProductListFiltered(r.Context(), pageReq, shopID, status, 0, "")
+	status := in.QueryGet("status")
+	data, err := h.logic.GetProductListFiltered(ctx, pageReq, shopID, status, 0, "")
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, data)
+	return data, nil
 }
 
-func (h *CatalogHandler) MerchantCreateProduct(w http.ResponseWriter, r *http.Request) {
-	shopID := middleware.GetShopID(r.Context())
+func (h *CatalogHandler) MerchantCreateProduct(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID := middleware.GetShopID(ctx)
 	if shopID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少 shop_id"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少 shop_id")
 	}
 	var req types.MerchantProductReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
 	if req.Name == "" || req.SalePrice == 0 || req.CategoryID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	p, err := h.logic.CreateProduct(r.Context(), shopID, req)
+	p, err := h.logic.CreateProduct(ctx, shopID, req)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, p)
+	return p, nil
 }
 
-func (h *CatalogHandler) MerchantUpdateProduct(w http.ResponseWriter, r *http.Request) {
-	shopID := middleware.GetShopID(r.Context())
+func (h *CatalogHandler) MerchantUpdateProduct(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID := middleware.GetShopID(ctx)
 	if shopID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少 shop_id"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少 shop_id")
 	}
-	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "商品ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "商品ID无效")
 	}
 	var req types.MerchantProductReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
 	if req.Name == "" || req.SalePrice == 0 || req.CategoryID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	if err := h.logic.UpdateProductByShop(r.Context(), id, shopID, req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, err.Error()))
-		return
+	if err := h.logic.UpdateProductByShop(ctx, id, shopID, req); err != nil {
+		return nil, xerr.New(http.StatusForbidden, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *CatalogHandler) MerchantSetStatus(w http.ResponseWriter, r *http.Request) {
-	shopID := middleware.GetShopID(r.Context())
+func (h *CatalogHandler) MerchantSetStatus(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID := middleware.GetShopID(ctx)
 	if shopID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少 shop_id"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少 shop_id")
 	}
-	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "商品ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "商品ID无效")
 	}
 	var body types.SetStatusReq
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Status == "" {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &body); err != nil || body.Status == "" {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	if err := h.logic.SetProductStatus(r.Context(), id, shopID, body.Status); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, err.Error()))
-		return
+	if err := h.logic.SetProductStatus(ctx, id, shopID, body.Status); err != nil {
+		return nil, xerr.New(http.StatusForbidden, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }

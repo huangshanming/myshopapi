@@ -12,7 +12,7 @@ import (
 
 func UserCheckinHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := task.NewUserCheckinLogic(svcCtx)
+		l := task.NewUserCheckinLogic(r.Context(), svcCtx)
 		resp, err := l.UserCheckin(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -30,7 +30,7 @@ func UserClaimHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := task.NewUserClaimLogic(svcCtx)
+		l := task.NewUserClaimLogic(r.Context(), svcCtx)
 		resp, err := l.UserClaim(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -42,7 +42,7 @@ func UserClaimHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func UserListTasksHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := task.NewUserListTasksLogic(svcCtx)
+		l := task.NewUserListTasksLogic(r.Context(), svcCtx)
 		resp, err := l.UserListTasks(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -60,7 +60,7 @@ func UserReportEventHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := task.NewUserReportEventLogic(svcCtx)
+		l := task.NewUserReportEventLogic(r.Context(), svcCtx)
 		err := l.UserReportEvent(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

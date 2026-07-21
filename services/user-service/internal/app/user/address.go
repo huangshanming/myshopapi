@@ -1,105 +1,88 @@
 package user
 
 import (
-	"encoding/json"
-	"mymall/pkg/httpserver"
+	"context"
+	"mymall/pkg/appinput"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	"mymall/services/user-service/internal/types"
 	"net/http"
 	"strconv"
-
-	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func (h *AddressHandler) List(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *AddressHandler) List(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	list, err := h.logic.List(r.Context(), userID)
+	list, err := h.logic.List(ctx, userID)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, list)
+	return list, nil
 }
 
-func (h *AddressHandler) Create(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *AddressHandler) Create(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
 	var req types.AddressReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	a, err := h.logic.Create(r.Context(), userID, req)
+	a, err := h.logic.Create(ctx, userID, req)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, a)
+	return a, nil
 }
 
-func (h *AddressHandler) Update(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *AddressHandler) Update(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "地址ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "地址ID无效")
 	}
 	var req types.AddressReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	if err := h.logic.Update(r.Context(), userID, id, req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.Update(ctx, userID, id, req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *AddressHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *AddressHandler) Delete(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "地址ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "地址ID无效")
 	}
-	if err := h.logic.Delete(r.Context(), userID, id); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.Delete(ctx, userID, id); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *AddressHandler) SetDefault(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *AddressHandler) SetDefault(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "地址ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "地址ID无效")
 	}
-	if err := h.logic.SetDefault(r.Context(), userID, id); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.SetDefault(ctx, userID, id); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }

@@ -2,7 +2,7 @@ package role
 
 import (
 	"context"
-	"mymall/pkg/httpinvoke"
+	"mymall/pkg/appinput"
 	hadmin "mymall/services/user-service/internal/app/admin"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
@@ -15,21 +15,17 @@ type ListRolesLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewListRolesLogic(svcCtx *svc.ServiceContext) *ListRolesLogic {
+func NewListRolesLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListRolesLogic {
 	return &ListRolesLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
 func (l *ListRolesLogic) ListRoles(ctx context.Context) (resp *types.PageListResp, err error) {
-	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/admin/roles", nil, nil, nil, hadmin.NewAdminHandler(l.svcCtx).ListRoles)
+	data, err := hadmin.NewAdminHandler(l.svcCtx).ListRoles(ctx, appinput.CallInput{})
 	if err != nil {
 		return nil, err
 	}
-	var list interface{}
-	if err := httpinvoke.Decode(raw, &list); err != nil {
-		return nil, err
-	}
-	return &types.PageListResp{List: list}, nil
+	return &types.PageListResp{List: data}, nil
 }

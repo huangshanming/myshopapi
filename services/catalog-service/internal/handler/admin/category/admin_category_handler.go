@@ -18,7 +18,7 @@ func AdminCreateCategoryHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := category.NewAdminCreateCategoryLogic(svcCtx)
+		l := category.NewAdminCreateCategoryLogic(r.Context(), svcCtx)
 		resp, err := l.AdminCreateCategory(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func AdminDeleteCategoryHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := category.NewAdminDeleteCategoryLogic(svcCtx)
+		l := category.NewAdminDeleteCategoryLogic(r.Context(), svcCtx)
 		resp, err := l.AdminDeleteCategory(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func AdminListCategoriesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := category.NewAdminListCategoriesLogic(svcCtx)
+		l := category.NewAdminListCategoriesLogic(r.Context(), svcCtx)
 		resp, err := l.AdminListCategories(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -72,7 +72,7 @@ func AdminUpdateCategoryHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := category.NewAdminUpdateCategoryLogic(svcCtx)
+		l := category.NewAdminUpdateCategoryLogic(r.Context(), svcCtx)
 		resp, err := l.AdminUpdateCategory(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

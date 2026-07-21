@@ -1,175 +1,148 @@
 package user
 
 import (
-	"encoding/json"
-	"mymall/pkg/httpserver"
+	"context"
+	"mymall/pkg/appinput"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	"mymall/services/order-service/internal/types"
 	"net/http"
 	"strconv"
-
-	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func (h *OrderHandler) Create(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *OrderHandler) Create(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
 	var req types.CreateOrderReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	order, err := h.logic.CreateOrder(r.Context(), userID, req.AddressID, req.Items, req.UserCouponID)
+	order, err := h.logic.CreateOrder(ctx, userID, req.AddressID, req.Items, req.UserCouponID)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, order)
+	return order, nil
 }
 
-func (h *OrderHandler) CouponPreview(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *OrderHandler) CouponPreview(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
 	var req types.CouponPreviewReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	resp, err := h.logic.CouponPreview(r.Context(), userID, req.Items, req.UserCouponID)
+	resp, err := h.logic.CouponPreview(ctx, userID, req.Items, req.UserCouponID)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, resp)
+	return resp, nil
 }
 
-func (h *OrderHandler) List(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *OrderHandler) List(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
-	p, ps := middleware.ParsePage(r)
-	status := r.URL.Query().Get("status")
-	orders, total, err := h.logic.ListOrders(r.Context(), userID, p, ps, status)
+	p, ps := in.Page()
+	status := in.QueryGet("status")
+	orders, total, err := h.logic.ListOrders(ctx, userID, p, ps, status)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, types.PageListResp{Total: total, List: orders})
+	return types.PageListResp{Total: total, List: orders}, nil
 }
 
-func (h *OrderHandler) StatusCounts(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *OrderHandler) StatusCounts(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
-	counts, err := h.logic.UserOrderStatusCounts(r.Context(), userID)
+	counts, err := h.logic.UserOrderStatusCounts(ctx, userID)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, counts)
+	return counts, nil
 }
 
-func (h *OrderHandler) UserAfterSales(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *OrderHandler) UserAfterSales(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
-	p, ps := middleware.ParsePage(r)
-	list, total, err := h.logic.ListUserAfterSales(r.Context(), userID, p, ps)
+	p, ps := in.Page()
+	list, total, err := h.logic.ListUserAfterSales(ctx, userID, p, ps)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, types.PageListResp{Total: total, List: list})
+	return types.PageListResp{Total: total, List: list}, nil
 }
 
-func (h *OrderHandler) Detail(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *OrderHandler) Detail(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
-	orderID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	orderID, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "订单ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "订单ID无效")
 	}
-	order, err := h.logic.GetOrder(r.Context(), userID, orderID)
+	order, err := h.logic.GetOrder(ctx, userID, orderID)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusNotFound, "订单不存在"))
-		return
+		return nil, xerr.New(http.StatusNotFound, "订单不存在")
 	}
-	httpx.OkJsonCtx(r.Context(), w, order)
+	return order, nil
 }
 
-func (h *OrderHandler) Cancel(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *OrderHandler) Cancel(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
-	orderID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	orderID, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "订单ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "订单ID无效")
 	}
-	if err := h.logic.CancelOrder(r.Context(), userID, orderID); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.CancelOrder(ctx, userID, orderID); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *OrderHandler) ConfirmReceive(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *OrderHandler) ConfirmReceive(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
-	orderID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	orderID, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "订单ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "订单ID无效")
 	}
-	if err := h.logic.ConfirmReceive(r.Context(), userID, orderID); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.ConfirmReceive(ctx, userID, orderID); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *OrderHandler) CreateAfterSale(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *OrderHandler) CreateAfterSale(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
-	orderID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	orderID, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "订单ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "订单ID无效")
 	}
 	var req types.CreateAfterSaleReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	as, err := h.logic.CreateAfterSale(r.Context(), userID, orderID, req)
+	as, err := h.logic.CreateAfterSale(ctx, userID, orderID, req)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, as)
+	return as, nil
 }

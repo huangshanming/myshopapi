@@ -1,23 +1,21 @@
 package merchant
 
 import (
-	"encoding/json"
+	"context"
+	"mymall/pkg/appinput"
 	"mymall/services/merchant-service/internal/biz"
 	"net/http"
 	"strconv"
-
-	"github.com/zeromicro/go-zero/rest/httpx"
 
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	"mymall/services/merchant-service/internal/model"
 )
 
-func (h *HomepageThemeHandler) MerchantListThemeSlots(w http.ResponseWriter, r *http.Request) {
+func (h *HomepageThemeHandler) MerchantListThemeSlots(ctx context.Context, in appinput.CallInput) (any, error) {
 	list, err := h.logic.AdminListThemeSlots()
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
 	on := make([]model.HomepageThemeSlot, 0)
 	for _, s := range list {
@@ -25,51 +23,45 @@ func (h *HomepageThemeHandler) MerchantListThemeSlots(w http.ResponseWriter, r *
 			on = append(on, s)
 		}
 	}
-	httpx.OkJsonCtx(r.Context(), w, on)
+	return on, nil
 }
 
-func (h *HomepageThemeHandler) MerchantListThemePackages(w http.ResponseWriter, r *http.Request) {
-	slotID, _ := strconv.ParseUint(r.URL.Query().Get("theme_slot_id"), 10, 64)
+func (h *HomepageThemeHandler) MerchantListThemePackages(ctx context.Context, in appinput.CallInput) (any, error) {
+	slotID, _ := strconv.ParseUint(in.QueryGet("theme_slot_id"), 10, 64)
 	list, err := h.logic.ListThemePackages(slotID, true)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, list)
+	return list, nil
 }
 
-func (h *HomepageThemeHandler) MerchantBuyTheme(w http.ResponseWriter, r *http.Request) {
-	shopID := middleware.GetShopID(r.Context())
-	userID, _ := middleware.GetUserID(r.Context())
+func (h *HomepageThemeHandler) MerchantBuyTheme(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID := middleware.GetShopID(ctx)
+	userID, _ := middleware.GetUserID(ctx)
 	if shopID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺")
 	}
 	var req biz.ThemeBuyReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
 	o, err := h.logic.BuyTheme(shopID, userID, req)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, o)
+	return o, nil
 }
 
-func (h *HomepageThemeHandler) MerchantListThemeOrders(w http.ResponseWriter, r *http.Request) {
-	shopID := middleware.GetShopID(r.Context())
+func (h *HomepageThemeHandler) MerchantListThemeOrders(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID := middleware.GetShopID(ctx)
 	if shopID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺")
 	}
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
+	page, _ := strconv.Atoi(in.QueryGet("page"))
+	pageSize, _ := strconv.Atoi(in.QueryGet("page_size"))
 	list, total, err := h.logic.ListThemeOrders(shopID, 0, page, pageSize)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"list": list, "total": total})
+	return map[string]interface{}{"list": list, "total": total}, nil
 }

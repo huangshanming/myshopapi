@@ -3,9 +3,9 @@ package shopops
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hhandler "mymall/services/catalog-service/internal/shopops/handler"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +18,9 @@ type MerchantCreateRoleLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewMerchantCreateRoleLogic(svcCtx *svc.ServiceContext) *MerchantCreateRoleLogic {
+func NewMerchantCreateRoleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantCreateRoleLogic {
 	return &MerchantCreateRoleLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewMerchantCreateRoleLogic(svcCtx *svc.ServiceContext) *MerchantCreateRoleL
 func (l *MerchantCreateRoleLogic) MerchantCreateRole(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/merchant/shop/roles", nil, nil, req, hhandler.NewShopOpsHandler(l.svcCtx).SaveRole)
+	data, err := hhandler.NewShopOpsHandler(l.svcCtx).SaveRole(ctx, appinput.CallInput{Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

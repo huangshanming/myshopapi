@@ -1,24 +1,21 @@
 package admin
 
 import (
-	"mymall/pkg/httpserver"
+	"context"
+	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	"net/http"
 	"strconv"
-
-	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func (h *AddressHandler) AdminList(w http.ResponseWriter, r *http.Request) {
-	userID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+func (h *AddressHandler) AdminList(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "用户ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "用户ID无效")
 	}
-	list, err := h.logic.List(r.Context(), userID)
+	list, err := h.logic.List(ctx, userID)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, list)
+	return list, nil
 }

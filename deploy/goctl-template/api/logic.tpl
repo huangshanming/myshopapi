@@ -10,9 +10,9 @@ type {{.logic}} struct {
 }
 
 {{if .hasDoc}}{{.doc}}{{end}}
-func New{{.logic}}(svcCtx *svc.ServiceContext) *{{.logic}} {
+func New{{.logic}}(ctx context.Context, svcCtx *svc.ServiceContext) *{{.logic}} {
 	return &{{.logic}}{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }

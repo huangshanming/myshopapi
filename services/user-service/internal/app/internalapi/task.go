@@ -1,51 +1,44 @@
 package internalapi
 
 import (
-	"encoding/json"
+	"context"
+	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	"mymall/services/user-service/internal/biz"
 	"net/http"
-
-	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func (h *TaskHandler) InternalEvent(w http.ResponseWriter, r *http.Request) {
+func (h *TaskHandler) InternalEvent(ctx context.Context, in appinput.CallInput) (any, error) {
 	var req biz.TaskEventReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	if err := h.logic.HandleEvent(r.Context(), req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.HandleEvent(ctx, req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *TaskHandler) InternalDeductPoints(w http.ResponseWriter, r *http.Request) {
+func (h *TaskHandler) InternalDeductPoints(ctx context.Context, in appinput.CallInput) (any, error) {
 	var req biz.PointsLedgerReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	p, err := h.logic.DeductPoints(r.Context(), req)
+	p, err := h.logic.DeductPoints(ctx, req)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, p)
+	return p, nil
 }
 
-func (h *TaskHandler) InternalRefundPoints(w http.ResponseWriter, r *http.Request) {
+func (h *TaskHandler) InternalRefundPoints(ctx context.Context, in appinput.CallInput) (any, error) {
 	var req biz.PointsLedgerReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	p, err := h.logic.RefundPoints(r.Context(), req)
+	p, err := h.logic.RefundPoints(ctx, req)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, p)
+	return p, nil
 }

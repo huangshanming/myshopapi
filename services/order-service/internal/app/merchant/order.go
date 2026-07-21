@@ -1,7 +1,8 @@
 package merchant
 
 import (
-	"mymall/pkg/httpserver"
+	"context"
+	"mymall/pkg/appinput"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	"mymall/services/order-service/internal/app/shared"
@@ -9,80 +10,71 @@ import (
 	"mymall/services/order-service/internal/types"
 	"net/http"
 	"strconv"
-
-	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func (h *OrderHandler) MerchantList(w http.ResponseWriter, r *http.Request) {
-	shopID := middleware.GetShopID(r.Context())
+func (h *OrderHandler) MerchantList(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID := middleware.GetShopID(ctx)
 	if shopID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少 shop_id"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少 shop_id")
 	}
-	p, ps := middleware.ParsePage(r)
-	orders, total, err := h.logic.ListByShop(r.Context(), shopID, p, ps, r.URL.Query().Get("status"), r.URL.Query().Get("order_no"))
+	p, ps := in.Page()
+	orders, total, err := h.logic.ListByShop(ctx, shopID, p, ps, in.QueryGet("status"), in.QueryGet("order_no"))
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, types.PageListResp{Total: total, List: orders})
+	return types.PageListResp{Total: total, List: orders}, nil
 }
 
-func (h *OrderHandler) MerchantDetail(w http.ResponseWriter, r *http.Request) {
-	shopID := middleware.GetShopID(r.Context())
+func (h *OrderHandler) MerchantDetail(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID := middleware.GetShopID(ctx)
 	if shopID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少 shop_id"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少 shop_id")
 	}
-	orderID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	orderID, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "订单ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "订单ID无效")
 	}
-	order, err := h.logic.GetOrderByShop(r.Context(), shopID, orderID)
+	order, err := h.logic.GetOrderByShop(ctx, shopID, orderID)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusNotFound, "订单不存在"))
-		return
+		return nil, xerr.New(http.StatusNotFound, "订单不存在")
 	}
-	as, _ := h.logic.ListAfterSalesByOrder(r.Context(), orderID)
-	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"order": order, "after_sales": as})
+	as, _ := h.logic.ListAfterSalesByOrder(ctx, orderID)
+	return map[string]interface{}{"order": order, "after_sales": as}, nil
 }
 
-func (h *OrderHandler) MerchantShip(w http.ResponseWriter, r *http.Request) {
-	shopID := middleware.GetShopID(r.Context())
-	shared.Ship(w, r, h.logic, shopID)
+func (h *OrderHandler) MerchantShip(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID := middleware.GetShopID(ctx)
+	return shared.Ship(ctx, in, h.logic, shopID)
 }
 
-func (h *OrderHandler) MerchantComplete(w http.ResponseWriter, r *http.Request) {
-	shopID := middleware.GetShopID(r.Context())
-	shared.Complete(w, r, h.logic, shopID)
+func (h *OrderHandler) MerchantComplete(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID := middleware.GetShopID(ctx)
+	return shared.Complete(ctx, in, h.logic, shopID)
 }
 
-func (h *OrderHandler) MerchantRemark(w http.ResponseWriter, r *http.Request) {
-	shopID := middleware.GetShopID(r.Context())
-	shared.Remark(w, r, h.logic, shopID)
+func (h *OrderHandler) MerchantRemark(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID := middleware.GetShopID(ctx)
+	return shared.Remark(ctx, in, h.logic, shopID)
 }
 
-func (h *OrderHandler) MerchantAfterSales(w http.ResponseWriter, r *http.Request) {
-	shopID := middleware.GetShopID(r.Context())
+func (h *OrderHandler) MerchantAfterSales(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID := middleware.GetShopID(ctx)
 	if shopID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少 shop_id"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少 shop_id")
 	}
-	p, ps := middleware.ParsePage(r)
-	list, total, err := h.logic.ListAfterSales(r.Context(), repository.AfterSaleListFilter{
-		ShopID: shopID, Status: r.URL.Query().Get("status"), OrderNo: r.URL.Query().Get("order_no"),
+	p, ps := in.Page()
+	list, total, err := h.logic.ListAfterSales(ctx, repository.AfterSaleListFilter{
+		ShopID: shopID, Status: in.QueryGet("status"), OrderNo: in.QueryGet("order_no"),
 		Page: p, PageSize: ps,
 	})
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, types.PageListResp{Total: total, List: list})
+	return types.PageListResp{Total: total, List: list}, nil
 }
 
-func (h *OrderHandler) MerchantHandleAfterSale(w http.ResponseWriter, r *http.Request) {
-	shopID := middleware.GetShopID(r.Context())
-	uid, _ := middleware.GetUserID(r.Context())
-	shared.HandleAfterSale(w, r, h.logic, shopID, uid)
+func (h *OrderHandler) MerchantHandleAfterSale(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID := middleware.GetShopID(ctx)
+	uid, _ := middleware.GetUserID(ctx)
+	return shared.HandleAfterSale(ctx, in, h.logic, shopID, uid)
 }

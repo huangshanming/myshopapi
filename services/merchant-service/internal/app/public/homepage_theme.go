@@ -1,18 +1,17 @@
 package public
 
 import (
+	"context"
+	"mymall/pkg/appinput"
 	"net/http"
-
-	"github.com/zeromicro/go-zero/rest/httpx"
 
 	"mymall/pkg/xerr"
 )
 
-func (h *HomepageThemeHandler) PublicThemeTiles(w http.ResponseWriter, r *http.Request) {
+func (h *HomepageThemeHandler) PublicThemeTiles(ctx context.Context, in appinput.CallInput) (any, error) {
 	list, err := h.logic.ListThemeTiles()
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"list": list})
+	return map[string]interface{}{"list": list}, nil
 }

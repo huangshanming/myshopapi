@@ -18,7 +18,7 @@ func RemoveBatchHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := favorite.NewRemoveBatchLogic(svcCtx)
+		l := favorite.NewRemoveBatchLogic(r.Context(), svcCtx)
 		resp, err := l.RemoveBatch(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func UserAddFavoriteHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := favorite.NewUserAddFavoriteLogic(svcCtx)
+		l := favorite.NewUserAddFavoriteLogic(r.Context(), svcCtx)
 		resp, err := l.UserAddFavorite(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func UserFavoriteStatusHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := favorite.NewUserFavoriteStatusLogic(svcCtx)
+		l := favorite.NewUserFavoriteStatusLogic(r.Context(), svcCtx)
 		resp, err := l.UserFavoriteStatus(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -72,7 +72,7 @@ func UserListFavoritesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := favorite.NewUserListFavoritesLogic(svcCtx)
+		l := favorite.NewUserListFavoritesLogic(r.Context(), svcCtx)
 		resp, err := l.UserListFavorites(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -84,7 +84,7 @@ func UserListFavoritesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func UserRemoveFavoriteHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := favorite.NewUserRemoveFavoriteLogic(svcCtx)
+		l := favorite.NewUserRemoveFavoriteLogic(r.Context(), svcCtx)
 		resp, err := l.UserRemoveFavorite(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

@@ -2,7 +2,7 @@ package notification
 
 import (
 	"context"
-	"mymall/pkg/httpinvoke"
+	"mymall/pkg/appinput"
 	hadmin "mymall/services/user-service/internal/app/admin"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
@@ -15,20 +15,16 @@ type AdminSendNotificationLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminSendNotificationLogic(svcCtx *svc.ServiceContext) *AdminSendNotificationLogic {
+func NewAdminSendNotificationLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminSendNotificationLogic {
 	return &AdminSendNotificationLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
 func (l *AdminSendNotificationLogic) AdminSendNotification(ctx context.Context, req *types.AdminSendReq) (resp *types.AnyResp, err error) {
-	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/admin/notifications/send", nil, nil, req, hadmin.NewAdminHandler(l.svcCtx).AdminSendNotification)
+	data, err := hadmin.NewAdminHandler(l.svcCtx).AdminSendNotification(ctx, appinput.CallInput{Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

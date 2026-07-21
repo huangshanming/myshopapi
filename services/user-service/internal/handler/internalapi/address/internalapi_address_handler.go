@@ -17,7 +17,7 @@ func InternalGetHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := address.NewInternalGetLogic(svcCtx)
+		l := address.NewInternalGetLogic(r.Context(), svcCtx)
 		resp, err := l.InternalGet(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

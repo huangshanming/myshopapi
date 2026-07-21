@@ -2,10 +2,11 @@ package article
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hmerchant "mymall/services/catalog-service/internal/content/app/merchant"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +19,9 @@ type MerchantListArticleCommentsLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewMerchantListArticleCommentsLogic(svcCtx *svc.ServiceContext) *MerchantListArticleCommentsLogic {
+func NewMerchantListArticleCommentsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantListArticleCommentsLogic {
 	return &MerchantListArticleCommentsLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,14 +29,15 @@ func NewMerchantListArticleCommentsLogic(svcCtx *svc.ServiceContext) *MerchantLi
 func (l *MerchantListArticleCommentsLogic) MerchantListArticleComments(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/merchant/article-comments", nil, url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}, nil, hmerchant.NewArticleHandler(l.svcCtx).CommentList)
+	data, err := hmerchant.NewArticleHandler(l.svcCtx).CommentList(ctx, appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}})
 	if err != nil {
 		return nil, err
 	}
+	b, _ := json.Marshal(data)
 	var out types.PageListResp
-	if err := httpinvoke.Decode(raw, &out); err != nil {
+	if err := json.Unmarshal(b, &out); err != nil {
 		var list interface{}
-		if err2 := httpinvoke.Decode(raw, &list); err2 == nil {
+		if err2 := func() error { b, _ := json.Marshal(data); return json.Unmarshal(b, &list) }(); err2 == nil {
 			return &types.PageListResp{List: list}, nil
 		}
 		return nil, err

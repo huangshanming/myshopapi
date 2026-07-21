@@ -14,8 +14,8 @@ type HealthzLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewHealthzLogic(svcCtx *svc.ServiceContext) *HealthzLogic {
-	return &HealthzLogic{Logger: logx.WithContext(context.Background()), svcCtx: svcCtx}
+func NewHealthzLogic(ctx context.Context, svcCtx *svc.ServiceContext) *HealthzLogic {
+	return &HealthzLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
 func (l *HealthzLogic) Healthz(ctx context.Context) (resp *types.EmptyResp, err error) {

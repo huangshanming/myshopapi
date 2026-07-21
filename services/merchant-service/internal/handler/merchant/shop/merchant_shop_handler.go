@@ -18,7 +18,7 @@ func ApplyHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := shop.NewApplyLogic(svcCtx)
+		l := shop.NewApplyLogic(r.Context(), svcCtx)
 		resp, err := l.Apply(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -30,7 +30,7 @@ func ApplyHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func MyShopsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := shop.NewMyShopsLogic(svcCtx)
+		l := shop.NewMyShopsLogic(r.Context(), svcCtx)
 		resp, err := l.MyShops(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -48,7 +48,7 @@ func UpdateMyShopHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := shop.NewUpdateMyShopLogic(svcCtx)
+		l := shop.NewUpdateMyShopLogic(r.Context(), svcCtx)
 		resp, err := l.UpdateMyShop(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

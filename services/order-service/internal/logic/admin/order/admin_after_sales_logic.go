@@ -3,9 +3,9 @@ package order
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hadmin "mymall/services/order-service/internal/app/admin"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
@@ -18,9 +18,9 @@ type AdminAfterSalesLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminAfterSalesLogic(svcCtx *svc.ServiceContext) *AdminAfterSalesLogic {
+func NewAdminAfterSalesLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminAfterSalesLogic {
 	return &AdminAfterSalesLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewAdminAfterSalesLogic(svcCtx *svc.ServiceContext) *AdminAfterSalesLogic {
 func (l *AdminAfterSalesLogic) AdminAfterSales(ctx context.Context) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/admin/after-sales", nil, nil, nil, hadmin.NewOrderHandler(l.svcCtx).AdminAfterSales)
+	data, err := hadmin.NewOrderHandler(l.svcCtx).AdminAfterSales(ctx, appinput.CallInput{})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

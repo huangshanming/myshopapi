@@ -3,9 +3,9 @@ package banner
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hadmin "mymall/services/catalog-service/internal/content/app/admin"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +18,9 @@ type DeleteBannerLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewDeleteBannerLogic(svcCtx *svc.ServiceContext) *DeleteBannerLogic {
+func NewDeleteBannerLogic(ctx context.Context, svcCtx *svc.ServiceContext) *DeleteBannerLogic {
 	return &DeleteBannerLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewDeleteBannerLogic(svcCtx *svc.ServiceContext) *DeleteBannerLogic {
 func (l *DeleteBannerLogic) DeleteBanner(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "DELETE", "/api/v1/admin/banners/:id", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, nil, hadmin.NewArticleHandler(l.svcCtx).DeleteBanner)
+	data, err := hadmin.NewArticleHandler(l.svcCtx).DeleteBanner(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

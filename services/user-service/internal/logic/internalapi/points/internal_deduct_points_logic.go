@@ -3,7 +3,7 @@ package points
 import (
 	"context"
 	"encoding/json"
-	"mymall/pkg/httpinvoke"
+	"mymall/pkg/appinput"
 	hinternal "mymall/services/user-service/internal/app/internalapi"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
@@ -16,23 +16,24 @@ type InternalDeductPointsLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewInternalDeductPointsLogic(svcCtx *svc.ServiceContext) *InternalDeductPointsLogic {
+func NewInternalDeductPointsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *InternalDeductPointsLogic {
 	return &InternalDeductPointsLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
 func (l *InternalDeductPointsLogic) InternalDeductPoints(ctx context.Context, req *types.PointsLedgerReq) (resp *types.PointsResp, err error) {
-	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/internal/points/deduct", nil, nil, req, hinternal.NewTaskHandler(l.svcCtx).InternalDeductPoints)
+	data, err := hinternal.NewTaskHandler(l.svcCtx).InternalDeductPoints(ctx, appinput.CallInput{Body: req})
 	if err != nil {
 		return nil, err
 	}
+	b, _ := json.Marshal(data)
 	var out types.PointsResp
-	if err := httpinvoke.Decode(raw, &out); err != nil {
+	if err := json.Unmarshal(b, &out); err != nil {
 		// may be bare number or {points:n}
 		var n int64
-		if err2 := json.Unmarshal(raw, &n); err2 == nil {
+		if err2 := json.Unmarshal(b, &n); err2 == nil {
 			out.Points = n
 			return &out, nil
 		}

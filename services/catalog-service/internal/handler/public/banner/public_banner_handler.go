@@ -3,10 +3,11 @@ package banner
 import (
 	"net/http"
 
-	"github.com/zeromicro/go-zero/rest/httpx"
 	"mymall/services/catalog-service/internal/logic/public/banner"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
+
+	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
 func ListBannersHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
@@ -17,7 +18,7 @@ func ListBannersHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := banner.NewListBannersLogic(svcCtx)
+		l := banner.NewListBannersLogic(r.Context(), svcCtx)
 		resp, err := l.ListBanners(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

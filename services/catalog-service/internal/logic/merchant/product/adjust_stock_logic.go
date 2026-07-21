@@ -3,9 +3,9 @@ package product
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hmerchant "mymall/services/catalog-service/internal/product/app/merchant"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +18,9 @@ type AdjustStockLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdjustStockLogic(svcCtx *svc.ServiceContext) *AdjustStockLogic {
+func NewAdjustStockLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdjustStockLogic {
 	return &AdjustStockLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewAdjustStockLogic(svcCtx *svc.ServiceContext) *AdjustStockLogic {
 func (l *AdjustStockLogic) AdjustStock(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "PUT", "/api/v1/merchant/skus/:id/stock", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, req, hmerchant.NewProductHandler(l.svcCtx).AdjustStock)
+	data, err := hmerchant.NewProductHandler(l.svcCtx).AdjustStock(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

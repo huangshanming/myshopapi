@@ -18,7 +18,7 @@ func AdminCreateShopHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := shop.NewAdminCreateShopLogic(svcCtx)
+		l := shop.NewAdminCreateShopLogic(r.Context(), svcCtx)
 		resp, err := l.AdminCreateShop(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func AdminDisableShopHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := shop.NewAdminDisableShopLogic(svcCtx)
+		l := shop.NewAdminDisableShopLogic(r.Context(), svcCtx)
 		resp, err := l.AdminDisableShop(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func AdminEnableShopHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := shop.NewAdminEnableShopLogic(svcCtx)
+		l := shop.NewAdminEnableShopLogic(r.Context(), svcCtx)
 		resp, err := l.AdminEnableShop(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -72,7 +72,7 @@ func AdminGetShopHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := shop.NewAdminGetShopLogic(svcCtx)
+		l := shop.NewAdminGetShopLogic(r.Context(), svcCtx)
 		resp, err := l.AdminGetShop(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -90,7 +90,7 @@ func AdminListShopsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := shop.NewAdminListShopsLogic(svcCtx)
+		l := shop.NewAdminListShopsLogic(r.Context(), svcCtx)
 		resp, err := l.AdminListShops(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -108,7 +108,7 @@ func AdminResetOwnerPasswordHandler(svcCtx *svc.ServiceContext) http.HandlerFunc
 			return
 		}
 
-		l := shop.NewAdminResetOwnerPasswordLogic(svcCtx)
+		l := shop.NewAdminResetOwnerPasswordLogic(r.Context(), svcCtx)
 		resp, err := l.AdminResetOwnerPassword(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -126,7 +126,7 @@ func AdminUpdateShopHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := shop.NewAdminUpdateShopLogic(svcCtx)
+		l := shop.NewAdminUpdateShopLogic(r.Context(), svcCtx)
 		resp, err := l.AdminUpdateShop(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

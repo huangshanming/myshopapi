@@ -3,7 +3,7 @@ package points
 import (
 	"context"
 	"encoding/json"
-	"mymall/pkg/httpinvoke"
+	"mymall/pkg/appinput"
 	huser "mymall/services/user-service/internal/app/user"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
@@ -16,23 +16,24 @@ type UserPointsLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewUserPointsLogic(svcCtx *svc.ServiceContext) *UserPointsLogic {
+func NewUserPointsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserPointsLogic {
 	return &UserPointsLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
 func (l *UserPointsLogic) UserPoints(ctx context.Context) (resp *types.PointsResp, err error) {
-	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/user/points", nil, nil, nil, huser.NewTaskHandler(l.svcCtx).UserPoints)
+	data, err := huser.NewTaskHandler(l.svcCtx).UserPoints(ctx, appinput.CallInput{})
 	if err != nil {
 		return nil, err
 	}
+	b, _ := json.Marshal(data)
 	var out types.PointsResp
-	if err := httpinvoke.Decode(raw, &out); err != nil {
+	if err := json.Unmarshal(b, &out); err != nil {
 		// may be bare number or {points:n}
 		var n int64
-		if err2 := json.Unmarshal(raw, &n); err2 == nil {
+		if err2 := json.Unmarshal(b, &n); err2 == nil {
 			out.Points = n
 			return &out, nil
 		}

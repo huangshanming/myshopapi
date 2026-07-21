@@ -18,7 +18,7 @@ func UserPointLogsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := points.NewUserPointLogsLogic(svcCtx)
+		l := points.NewUserPointLogsLogic(r.Context(), svcCtx)
 		resp, err := l.UserPointLogs(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -30,7 +30,7 @@ func UserPointLogsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func UserPointsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := points.NewUserPointsLogic(svcCtx)
+		l := points.NewUserPointsLogic(r.Context(), svcCtx)
 		resp, err := l.UserPoints(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

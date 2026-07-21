@@ -3,9 +3,9 @@ package notification
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hhandler "mymall/services/catalog-service/internal/notify/handler"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +18,9 @@ type MerchantUnreadNotificationCountLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewMerchantUnreadNotificationCountLogic(svcCtx *svc.ServiceContext) *MerchantUnreadNotificationCountLogic {
+func NewMerchantUnreadNotificationCountLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantUnreadNotificationCountLogic {
 	return &MerchantUnreadNotificationCountLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewMerchantUnreadNotificationCountLogic(svcCtx *svc.ServiceContext) *Mercha
 func (l *MerchantUnreadNotificationCountLogic) MerchantUnreadNotificationCount(ctx context.Context) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/merchant/notifications/unread-count", nil, nil, nil, hhandler.NewNotificationHandler(l.svcCtx).UnreadCount)
+	data, err := hhandler.NewNotificationHandler(l.svcCtx).UnreadCount(ctx, appinput.CallInput{})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

@@ -18,7 +18,7 @@ func MerchantListNotificationsHandler(svcCtx *svc.ServiceContext) http.HandlerFu
 			return
 		}
 
-		l := notification.NewMerchantListNotificationsLogic(svcCtx)
+		l := notification.NewMerchantListNotificationsLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantListNotifications(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func MerchantMarkAllNotificationsReadHandler(svcCtx *svc.ServiceContext) http.Ha
 			return
 		}
 
-		l := notification.NewMerchantMarkAllNotificationsReadLogic(svcCtx)
+		l := notification.NewMerchantMarkAllNotificationsReadLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantMarkAllNotificationsRead(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func MerchantMarkNotificationReadHandler(svcCtx *svc.ServiceContext) http.Handle
 			return
 		}
 
-		l := notification.NewMerchantMarkNotificationReadLogic(svcCtx)
+		l := notification.NewMerchantMarkNotificationReadLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantMarkNotificationRead(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -66,7 +66,7 @@ func MerchantMarkNotificationReadHandler(svcCtx *svc.ServiceContext) http.Handle
 
 func MerchantUnreadNotificationCountHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := notification.NewMerchantUnreadNotificationCountLogic(svcCtx)
+		l := notification.NewMerchantUnreadNotificationCountLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantUnreadNotificationCount(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

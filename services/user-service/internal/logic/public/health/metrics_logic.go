@@ -12,9 +12,9 @@ type MetricsLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewMetricsLogic(svcCtx *svc.ServiceContext) *MetricsLogic {
+func NewMetricsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MetricsLogic {
 	return &MetricsLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }

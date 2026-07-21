@@ -3,12 +3,12 @@ package coupon
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
+	hadmin "mymall/services/merchant-service/internal/app/admin"
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
-	hadmin "mymall/services/merchant-service/internal/app/admin"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -18,9 +18,9 @@ type AdminCreateCouponLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminCreateCouponLogic(svcCtx *svc.ServiceContext) *AdminCreateCouponLogic {
+func NewAdminCreateCouponLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminCreateCouponLogic {
 	return &AdminCreateCouponLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewAdminCreateCouponLogic(svcCtx *svc.ServiceContext) *AdminCreateCouponLog
 func (l *AdminCreateCouponLogic) AdminCreateCoupon(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/admin/coupons", nil, nil, req, hadmin.NewCouponHandler(l.svcCtx).AdminCreateCoupon)
+	data, err := hadmin.NewCouponHandler(l.svcCtx).AdminCreateCoupon(ctx, appinput.CallInput{Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

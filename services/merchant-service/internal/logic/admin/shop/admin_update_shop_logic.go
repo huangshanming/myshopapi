@@ -3,12 +3,12 @@ package shop
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
+	hadmin "mymall/services/merchant-service/internal/app/admin"
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
-	hadmin "mymall/services/merchant-service/internal/app/admin"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -18,9 +18,9 @@ type AdminUpdateShopLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminUpdateShopLogic(svcCtx *svc.ServiceContext) *AdminUpdateShopLogic {
+func NewAdminUpdateShopLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminUpdateShopLogic {
 	return &AdminUpdateShopLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewAdminUpdateShopLogic(svcCtx *svc.ServiceContext) *AdminUpdateShopLogic {
 func (l *AdminUpdateShopLogic) AdminUpdateShop(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-raw, err := httpinvoke.Run(ctx, "PUT", "/api/v1/admin/shops/:id", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, req, hadmin.NewShopHandler(l.svcCtx).AdminUpdateShop)
+	data, err := hadmin.NewShopHandler(l.svcCtx).AdminUpdateShop(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

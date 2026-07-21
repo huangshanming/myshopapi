@@ -2,7 +2,7 @@ package task
 
 import (
 	"context"
-	"mymall/pkg/httpinvoke"
+	"mymall/pkg/appinput"
 	hadmin "mymall/services/user-service/internal/app/admin"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
@@ -15,21 +15,17 @@ type AdminListTasksLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminListTasksLogic(svcCtx *svc.ServiceContext) *AdminListTasksLogic {
+func NewAdminListTasksLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminListTasksLogic {
 	return &AdminListTasksLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
 func (l *AdminListTasksLogic) AdminListTasks(ctx context.Context) (resp *types.PageListResp, err error) {
-	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/admin/tasks", nil, nil, nil, hadmin.NewTaskHandler(l.svcCtx).AdminList)
+	data, err := hadmin.NewTaskHandler(l.svcCtx).AdminList(ctx, appinput.CallInput{})
 	if err != nil {
 		return nil, err
 	}
-	var list interface{}
-	if err := httpinvoke.Decode(raw, &list); err != nil {
-		return nil, err
-	}
-	return &types.PageListResp{List: list}, nil
+	return &types.PageListResp{List: data}, nil
 }

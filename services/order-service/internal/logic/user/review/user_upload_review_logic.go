@@ -2,10 +2,9 @@ package review
 
 import (
 	"context"
-	"fmt"
-	"net/url"
+	"mymall/pkg/appinput"
+	"net/http"
 
-	"mymall/pkg/httpinvoke"
 	huser "mymall/services/order-service/internal/app/user"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
@@ -18,22 +17,16 @@ type UserUploadReviewLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewUserUploadReviewLogic(svcCtx *svc.ServiceContext) *UserUploadReviewLogic {
+func NewUserUploadReviewLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserUploadReviewLogic {
 	return &UserUploadReviewLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *UserUploadReviewLogic) UserUploadReview(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/user/review-uploads", nil, nil, req, huser.NewReviewHandler(l.svcCtx).Upload)
+func (l *UserUploadReviewLogic) UserUploadReview(ctx context.Context, r *http.Request) (resp *types.AnyResp, err error) {
+	data, err := huser.NewReviewHandler(l.svcCtx).Upload(ctx, appinput.CallInput{Request: r})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

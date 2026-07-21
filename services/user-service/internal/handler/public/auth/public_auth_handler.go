@@ -18,7 +18,7 @@ func LoginHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := auth.NewLoginLogic(svcCtx)
+		l := auth.NewLoginLogic(r.Context(), svcCtx)
 		resp, err := l.Login(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func RegisterHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := auth.NewRegisterLogic(svcCtx)
+		l := auth.NewRegisterLogic(r.Context(), svcCtx)
 		resp, err := l.Register(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

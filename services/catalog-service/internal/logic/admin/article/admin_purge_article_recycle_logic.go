@@ -3,9 +3,9 @@ package article
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hadmin "mymall/services/catalog-service/internal/content/app/admin"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +18,9 @@ type AdminPurgeArticleRecycleLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminPurgeArticleRecycleLogic(svcCtx *svc.ServiceContext) *AdminPurgeArticleRecycleLogic {
+func NewAdminPurgeArticleRecycleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminPurgeArticleRecycleLogic {
 	return &AdminPurgeArticleRecycleLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewAdminPurgeArticleRecycleLogic(svcCtx *svc.ServiceContext) *AdminPurgeArt
 func (l *AdminPurgeArticleRecycleLogic) AdminPurgeArticleRecycle(ctx context.Context) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "DELETE", "/api/v1/admin/articles/recycle", nil, nil, nil, hadmin.NewArticleHandler(l.svcCtx).RecycleDelete)
+	data, err := hadmin.NewArticleHandler(l.svcCtx).RecycleDelete(ctx, appinput.CallInput{})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

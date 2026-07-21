@@ -1,72 +1,61 @@
 package merchant
 
 import (
-	"encoding/json"
-	"mymall/pkg/httpserver"
+	"context"
+	"mymall/pkg/appinput"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	"net/http"
 	"strconv"
-
-	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func (h *ReviewHandler) MerchantList(w http.ResponseWriter, r *http.Request) {
-	shopID := middleware.GetShopID(r.Context())
+func (h *ReviewHandler) MerchantList(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID := middleware.GetShopID(ctx)
 	if shopID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "店铺未绑定"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "店铺未绑定")
 	}
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
-	level := r.URL.Query().Get("rating_level")
-	list, total, err := h.logic.MerchantList(r.Context(), shopID, level, page, pageSize)
+	page, _ := strconv.Atoi(in.QueryGet("page"))
+	pageSize, _ := strconv.Atoi(in.QueryGet("page_size"))
+	level := in.QueryGet("rating_level")
+	list, total, err := h.logic.MerchantList(ctx, shopID, level, page, pageSize)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"list": list, "total": total})
+	return map[string]interface{}{"list": list, "total": total}, nil
 }
 
-func (h *ReviewHandler) MerchantReply(w http.ResponseWriter, r *http.Request) {
-	shopID := middleware.GetShopID(r.Context())
+func (h *ReviewHandler) MerchantReply(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID := middleware.GetShopID(ctx)
 	if shopID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "店铺未绑定"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "店铺未绑定")
 	}
-	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "评价ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "评价ID无效")
 	}
 	var req struct {
 		Reply string `json:"reply"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	if err := h.logic.Reply(r.Context(), shopID, id, req.Reply); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.Reply(ctx, shopID, id, req.Reply); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *ReviewHandler) MerchantDelete(w http.ResponseWriter, r *http.Request) {
-	shopID := middleware.GetShopID(r.Context())
+func (h *ReviewHandler) MerchantDelete(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID := middleware.GetShopID(ctx)
 	if shopID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "店铺未绑定"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "店铺未绑定")
 	}
-	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "评价ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "评价ID无效")
 	}
-	if err := h.logic.SoftDelete(r.Context(), id, shopID); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.SoftDelete(ctx, id, shopID); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }

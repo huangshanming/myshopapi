@@ -12,7 +12,7 @@ import (
 
 func AdminGetSeckillRuleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := seckill.NewAdminGetSeckillRuleLogic(svcCtx)
+		l := seckill.NewAdminGetSeckillRuleLogic(r.Context(), svcCtx)
 		resp, err := l.AdminGetSeckillRule(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -30,7 +30,7 @@ func AdminListSeckillEntriesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc
 			return
 		}
 
-		l := seckill.NewAdminListSeckillEntriesLogic(svcCtx)
+		l := seckill.NewAdminListSeckillEntriesLogic(r.Context(), svcCtx)
 		resp, err := l.AdminListSeckillEntries(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -48,7 +48,7 @@ func AdminListSeckillSessionsHandler(svcCtx *svc.ServiceContext) http.HandlerFun
 			return
 		}
 
-		l := seckill.NewAdminListSeckillSessionsLogic(svcCtx)
+		l := seckill.NewAdminListSeckillSessionsLogic(r.Context(), svcCtx)
 		resp, err := l.AdminListSeckillSessions(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -66,7 +66,7 @@ func AdminUpdateSeckillRuleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc 
 			return
 		}
 
-		l := seckill.NewAdminUpdateSeckillRuleLogic(svcCtx)
+		l := seckill.NewAdminUpdateSeckillRuleLogic(r.Context(), svcCtx)
 		resp, err := l.AdminUpdateSeckillRule(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

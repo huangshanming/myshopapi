@@ -18,7 +18,7 @@ func MerchantBuySlotHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := homepage.NewMerchantBuySlotLogic(svcCtx)
+		l := homepage.NewMerchantBuySlotLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantBuySlot(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func MerchantListSlotOrdersHandler(svcCtx *svc.ServiceContext) http.HandlerFunc 
 			return
 		}
 
-		l := homepage.NewMerchantListSlotOrdersLogic(svcCtx)
+		l := homepage.NewMerchantListSlotOrdersLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantListSlotOrders(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func MerchantListSlotPackagesHandler(svcCtx *svc.ServiceContext) http.HandlerFun
 			return
 		}
 
-		l := homepage.NewMerchantListSlotPackagesLogic(svcCtx)
+		l := homepage.NewMerchantListSlotPackagesLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantListSlotPackages(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

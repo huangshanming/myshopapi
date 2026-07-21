@@ -2,7 +2,8 @@ package notification
 
 import (
 	"context"
-	"mymall/pkg/httpinvoke"
+	"encoding/json"
+	"mymall/pkg/appinput"
 	huser "mymall/services/user-service/internal/app/user"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
@@ -15,20 +16,21 @@ type UnreadNotificationCountLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewUnreadNotificationCountLogic(svcCtx *svc.ServiceContext) *UnreadNotificationCountLogic {
+func NewUnreadNotificationCountLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UnreadNotificationCountLogic {
 	return &UnreadNotificationCountLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
 func (l *UnreadNotificationCountLogic) UnreadNotificationCount(ctx context.Context) (resp *types.CountResp, err error) {
-	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/user/notifications/unread-count", nil, nil, nil, huser.NewUserHandler(l.svcCtx).UnreadNotificationCount)
+	data, err := huser.NewUserHandler(l.svcCtx).UnreadNotificationCount(ctx, appinput.CallInput{})
 	if err != nil {
 		return nil, err
 	}
+	b, _ := json.Marshal(data)
 	var out types.CountResp
-	if err := httpinvoke.Decode(raw, &out); err != nil {
+	if err := json.Unmarshal(b, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil

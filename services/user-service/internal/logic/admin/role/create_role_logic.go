@@ -2,7 +2,7 @@ package role
 
 import (
 	"context"
-	"mymall/pkg/httpinvoke"
+	"mymall/pkg/appinput"
 	hadmin "mymall/services/user-service/internal/app/admin"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
@@ -15,20 +15,16 @@ type CreateRoleLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewCreateRoleLogic(svcCtx *svc.ServiceContext) *CreateRoleLogic {
+func NewCreateRoleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *CreateRoleLogic {
 	return &CreateRoleLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
 func (l *CreateRoleLogic) CreateRole(ctx context.Context, req *types.RoleReq) (resp *types.AnyResp, err error) {
-	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/admin/roles", nil, nil, req, hadmin.NewAdminHandler(l.svcCtx).CreateRole)
+	data, err := hadmin.NewAdminHandler(l.svcCtx).CreateRole(ctx, appinput.CallInput{Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

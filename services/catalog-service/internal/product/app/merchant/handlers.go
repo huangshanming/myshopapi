@@ -1,7 +1,6 @@
 package merchant
 
 import (
-
 	"mymall/services/catalog-service/internal/product/logic"
 	"mymall/services/catalog-service/internal/svc"
 )

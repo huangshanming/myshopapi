@@ -18,7 +18,7 @@ func DetailUserPointsOrderHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := points_mall.NewDetailUserPointsOrderLogic(svcCtx)
+		l := points_mall.NewDetailUserPointsOrderLogic(r.Context(), svcCtx)
 		resp, err := l.DetailUserPointsOrder(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func ExchangeHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := points_mall.NewExchangeLogic(svcCtx)
+		l := points_mall.NewExchangeLogic(r.Context(), svcCtx)
 		resp, err := l.Exchange(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func ListUserPointsOrdersHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := points_mall.NewListUserPointsOrdersLogic(svcCtx)
+		l := points_mall.NewListUserPointsOrdersLogic(r.Context(), svcCtx)
 		resp, err := l.ListUserPointsOrders(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

@@ -3,10 +3,11 @@ package user_favorite
 import (
 	"net/http"
 
-	"github.com/zeromicro/go-zero/rest/httpx"
 	"mymall/services/catalog-service/internal/logic/admin/user_favorite"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
+
+	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
 func AdminListUserFavoritesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
@@ -17,7 +18,7 @@ func AdminListUserFavoritesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc 
 			return
 		}
 
-		l := user_favorite.NewAdminListUserFavoritesLogic(svcCtx)
+		l := user_favorite.NewAdminListUserFavoritesLogic(r.Context(), svcCtx)
 		resp, err := l.AdminListUserFavorites(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

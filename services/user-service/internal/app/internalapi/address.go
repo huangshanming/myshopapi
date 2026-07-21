@@ -1,24 +1,22 @@
 package internalapi
 
 import (
+	"context"
+	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	"net/http"
 	"strconv"
-
-	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func (h *AddressHandler) InternalGet(w http.ResponseWriter, r *http.Request) {
-	userID, _ := strconv.ParseUint(r.URL.Query().Get("user_id"), 10, 64)
-	id, _ := strconv.ParseUint(r.URL.Query().Get("id"), 10, 64)
+func (h *AddressHandler) InternalGet(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, _ := strconv.ParseUint(in.QueryGet("user_id"), 10, 64)
+	id, _ := strconv.ParseUint(in.QueryGet("id"), 10, 64)
 	if userID == 0 || id == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "参数无效")
 	}
-	a, err := h.logic.Get(r.Context(), userID, id)
+	a, err := h.logic.Get(ctx, userID, id)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, a)
+	return a, nil
 }

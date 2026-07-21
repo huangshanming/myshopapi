@@ -2,10 +2,11 @@ package review
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	huser "mymall/services/order-service/internal/app/user"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
@@ -18,9 +19,9 @@ type PublicListProductReviewsLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewPublicListProductReviewsLogic(svcCtx *svc.ServiceContext) *PublicListProductReviewsLogic {
+func NewPublicListProductReviewsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *PublicListProductReviewsLogic {
 	return &PublicListProductReviewsLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,14 +29,15 @@ func NewPublicListProductReviewsLogic(svcCtx *svc.ServiceContext) *PublicListPro
 func (l *PublicListProductReviewsLogic) PublicListProductReviews(ctx context.Context, req *types.IdPathReq) (resp *types.PageListResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/products/:id/reviews", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, nil, huser.NewReviewHandler(l.svcCtx).ProductList)
+	data, err := huser.NewReviewHandler(l.svcCtx).ProductList(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}})
 	if err != nil {
 		return nil, err
 	}
+	b, _ := json.Marshal(data)
 	var out types.PageListResp
-	if err := httpinvoke.Decode(raw, &out); err != nil {
+	if err := json.Unmarshal(b, &out); err != nil {
 		var list interface{}
-		if err2 := httpinvoke.Decode(raw, &list); err2 == nil {
+		if err2 := func() error { b, _ := json.Marshal(data); return json.Unmarshal(b, &list) }(); err2 == nil {
 			return &types.PageListResp{List: list}, nil
 		}
 		return nil, err

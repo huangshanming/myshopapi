@@ -3,9 +3,9 @@ package category
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hadmin "mymall/services/catalog-service/internal/product/app/admin"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +18,9 @@ type AdminDeleteCategoryLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminDeleteCategoryLogic(svcCtx *svc.ServiceContext) *AdminDeleteCategoryLogic {
+func NewAdminDeleteCategoryLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminDeleteCategoryLogic {
 	return &AdminDeleteCategoryLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewAdminDeleteCategoryLogic(svcCtx *svc.ServiceContext) *AdminDeleteCategor
 func (l *AdminDeleteCategoryLogic) AdminDeleteCategory(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "DELETE", "/api/v1/admin/categories/:id", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, nil, hadmin.NewCatalogHandler(l.svcCtx).AdminDeleteCategory)
+	data, err := hadmin.NewCatalogHandler(l.svcCtx).AdminDeleteCategory(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

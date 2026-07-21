@@ -2,7 +2,7 @@ package address
 
 import (
 	"context"
-	"mymall/pkg/httpinvoke"
+	"mymall/pkg/appinput"
 	huser "mymall/services/user-service/internal/app/user"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
@@ -15,21 +15,17 @@ type UserListAddressesLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewUserListAddressesLogic(svcCtx *svc.ServiceContext) *UserListAddressesLogic {
+func NewUserListAddressesLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserListAddressesLogic {
 	return &UserListAddressesLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
 func (l *UserListAddressesLogic) UserListAddresses(ctx context.Context) (resp *types.PageListResp, err error) {
-	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/user/addresses", nil, nil, nil, huser.NewAddressHandler(l.svcCtx).List)
+	data, err := huser.NewAddressHandler(l.svcCtx).List(ctx, appinput.CallInput{})
 	if err != nil {
 		return nil, err
 	}
-	var list interface{}
-	if err := httpinvoke.Decode(raw, &list); err != nil {
-		return nil, err
-	}
-	return &types.PageListResp{List: list}, nil
+	return &types.PageListResp{List: data}, nil
 }

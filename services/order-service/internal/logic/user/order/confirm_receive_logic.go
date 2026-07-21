@@ -3,9 +3,9 @@ package order
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	huser "mymall/services/order-service/internal/app/user"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
@@ -18,9 +18,9 @@ type ConfirmReceiveLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewConfirmReceiveLogic(svcCtx *svc.ServiceContext) *ConfirmReceiveLogic {
+func NewConfirmReceiveLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ConfirmReceiveLogic {
 	return &ConfirmReceiveLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewConfirmReceiveLogic(svcCtx *svc.ServiceContext) *ConfirmReceiveLogic {
 func (l *ConfirmReceiveLogic) ConfirmReceive(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "PUT", "/api/v1/orders/:id/confirm-receive", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, req, huser.NewOrderHandler(l.svcCtx).ConfirmReceive)
+	data, err := huser.NewOrderHandler(l.svcCtx).ConfirmReceive(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

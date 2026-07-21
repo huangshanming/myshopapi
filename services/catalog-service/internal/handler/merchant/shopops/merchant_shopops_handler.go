@@ -18,7 +18,7 @@ func BindStaffHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := shopops.NewBindStaffLogic(svcCtx)
+		l := shopops.NewBindStaffLogic(r.Context(), svcCtx)
 		resp, err := l.BindStaff(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func ListMenusHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := shopops.NewListMenusLogic(svcCtx)
+		l := shopops.NewListMenusLogic(r.Context(), svcCtx)
 		resp, err := l.ListMenus(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func ListRolesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := shopops.NewListRolesLogic(svcCtx)
+		l := shopops.NewListRolesLogic(r.Context(), svcCtx)
 		resp, err := l.ListRoles(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -72,7 +72,7 @@ func ListStaffHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := shopops.NewListStaffLogic(svcCtx)
+		l := shopops.NewListStaffLogic(r.Context(), svcCtx)
 		resp, err := l.ListStaff(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -84,7 +84,7 @@ func ListStaffHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func MerchantAuthMeHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := shopops.NewMerchantAuthMeLogic(svcCtx)
+		l := shopops.NewMerchantAuthMeLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantAuthMe(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -102,7 +102,7 @@ func MerchantCreateRoleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := shopops.NewMerchantCreateRoleLogic(svcCtx)
+		l := shopops.NewMerchantCreateRoleLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantCreateRole(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -120,7 +120,7 @@ func MerchantUpdateRoleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := shopops.NewMerchantUpdateRoleLogic(svcCtx)
+		l := shopops.NewMerchantUpdateRoleLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantUpdateRole(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -138,7 +138,7 @@ func RoleMenusHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := shopops.NewRoleMenusLogic(svcCtx)
+		l := shopops.NewRoleMenusLogic(r.Context(), svcCtx)
 		resp, err := l.RoleMenus(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

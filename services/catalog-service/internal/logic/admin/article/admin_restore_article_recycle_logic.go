@@ -3,9 +3,9 @@ package article
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hadmin "mymall/services/catalog-service/internal/content/app/admin"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +18,9 @@ type AdminRestoreArticleRecycleLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminRestoreArticleRecycleLogic(svcCtx *svc.ServiceContext) *AdminRestoreArticleRecycleLogic {
+func NewAdminRestoreArticleRecycleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminRestoreArticleRecycleLogic {
 	return &AdminRestoreArticleRecycleLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewAdminRestoreArticleRecycleLogic(svcCtx *svc.ServiceContext) *AdminRestor
 func (l *AdminRestoreArticleRecycleLogic) AdminRestoreArticleRecycle(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/admin/articles/recycle/restore", nil, nil, req, hadmin.NewArticleHandler(l.svcCtx).RecycleRestore)
+	data, err := hadmin.NewArticleHandler(l.svcCtx).RecycleRestore(ctx, appinput.CallInput{Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

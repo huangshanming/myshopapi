@@ -3,9 +3,9 @@ package product
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hmerchant "mymall/services/catalog-service/internal/product/app/merchant"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +18,9 @@ type MerchantCopyProductLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewMerchantCopyProductLogic(svcCtx *svc.ServiceContext) *MerchantCopyProductLogic {
+func NewMerchantCopyProductLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantCopyProductLogic {
 	return &MerchantCopyProductLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewMerchantCopyProductLogic(svcCtx *svc.ServiceContext) *MerchantCopyProduc
 func (l *MerchantCopyProductLogic) MerchantCopyProduct(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/merchant/products/:id/copy", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, req, hmerchant.NewProductHandler(l.svcCtx).Copy)
+	data, err := hmerchant.NewProductHandler(l.svcCtx).Copy(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

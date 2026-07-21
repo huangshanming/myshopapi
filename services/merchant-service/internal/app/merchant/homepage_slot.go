@@ -1,57 +1,50 @@
 package merchant
 
 import (
-	"encoding/json"
+	"context"
+	"mymall/pkg/appinput"
 	"mymall/services/merchant-service/internal/biz"
 	"net/http"
-
-	"github.com/zeromicro/go-zero/rest/httpx"
 
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	"mymall/services/merchant-service/internal/types"
 )
 
-func (h *HomepageSlotHandler) MerchantListSlotPackages(w http.ResponseWriter, r *http.Request) {
-	list, err := h.logic.ListSlotPackages(r.URL.Query().Get("slot_type"), true)
+func (h *HomepageSlotHandler) MerchantListSlotPackages(ctx context.Context, in appinput.CallInput) (any, error) {
+	list, err := h.logic.ListSlotPackages(in.QueryGet("slot_type"), true)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, list)
+	return list, nil
 }
 
-func (h *HomepageSlotHandler) MerchantBuySlot(w http.ResponseWriter, r *http.Request) {
-	shopID := middleware.GetShopID(r.Context())
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *HomepageSlotHandler) MerchantBuySlot(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID := middleware.GetShopID(ctx)
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || shopID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
 	var req biz.BuySlotReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
 	order, err := h.logic.BuySlot(shopID, userID, req)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, order)
+	return order, nil
 }
 
-func (h *HomepageSlotHandler) MerchantListSlotOrders(w http.ResponseWriter, r *http.Request) {
-	shopID := middleware.GetShopID(r.Context())
+func (h *HomepageSlotHandler) MerchantListSlotOrders(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID := middleware.GetShopID(ctx)
 	if shopID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺")
 	}
-	p, ps := middleware.ParsePage(r)
-	list, total, err := h.logic.ListSlotOrders(shopID, r.URL.Query().Get("slot_type"), r.URL.Query().Get("status"), p, ps)
+	p, ps := in.Page()
+	list, total, err := h.logic.ListSlotOrders(shopID, in.QueryGet("slot_type"), in.QueryGet("status"), p, ps)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, types.PageListResp{Total: total, List: list})
+	return types.PageListResp{Total: total, List: list}, nil
 }

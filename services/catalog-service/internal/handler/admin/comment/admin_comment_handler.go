@@ -18,7 +18,7 @@ func AdminDeleteArticleCommentHandler(svcCtx *svc.ServiceContext) http.HandlerFu
 			return
 		}
 
-		l := comment.NewAdminDeleteArticleCommentLogic(svcCtx)
+		l := comment.NewAdminDeleteArticleCommentLogic(r.Context(), svcCtx)
 		resp, err := l.AdminDeleteArticleComment(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func AdminListArticleCommentsHandler(svcCtx *svc.ServiceContext) http.HandlerFun
 			return
 		}
 
-		l := comment.NewAdminListArticleCommentsLogic(svcCtx)
+		l := comment.NewAdminListArticleCommentsLogic(r.Context(), svcCtx)
 		resp, err := l.AdminListArticleComments(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func AdminPatchArticleCommentHandler(svcCtx *svc.ServiceContext) http.HandlerFun
 			return
 		}
 
-		l := comment.NewAdminPatchArticleCommentLogic(svcCtx)
+		l := comment.NewAdminPatchArticleCommentLogic(r.Context(), svcCtx)
 		resp, err := l.AdminPatchArticleComment(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -72,7 +72,7 @@ func EmojiCreateHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := comment.NewEmojiCreateLogic(svcCtx)
+		l := comment.NewEmojiCreateLogic(r.Context(), svcCtx)
 		resp, err := l.EmojiCreate(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -90,7 +90,7 @@ func EmojiDeleteHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := comment.NewEmojiDeleteLogic(svcCtx)
+		l := comment.NewEmojiDeleteLogic(r.Context(), svcCtx)
 		resp, err := l.EmojiDelete(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -108,7 +108,7 @@ func EmojiListHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := comment.NewEmojiListLogic(svcCtx)
+		l := comment.NewEmojiListLogic(r.Context(), svcCtx)
 		resp, err := l.EmojiList(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -126,7 +126,7 @@ func EmojiUpdateHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := comment.NewEmojiUpdateLogic(svcCtx)
+		l := comment.NewEmojiUpdateLogic(r.Context(), svcCtx)
 		resp, err := l.EmojiUpdate(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

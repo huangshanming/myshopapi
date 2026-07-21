@@ -1,48 +1,42 @@
 package user
 
 import (
-	"encoding/json"
+	"context"
+	"mymall/pkg/appinput"
 	"net/http"
 	"strconv"
 
-	"github.com/zeromicro/go-zero/rest/httpx"
-
-	"mymall/pkg/httpserver"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 )
 
-func (h *CouponHandler) ClaimCoupon(w http.ResponseWriter, r *http.Request) {
-	userID, _ := middleware.GetUserID(r.Context())
+func (h *CouponHandler) ClaimCoupon(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, _ := middleware.GetUserID(ctx)
 	if userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "请先登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "请先登录")
 	}
-	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
 	var body struct {
 		Source string `json:"source"`
 	}
-	_ = json.NewDecoder(r.Body).Decode(&body)
+	_ = appinput.BindBody(in, &body)
 	uc, err := h.logic.ClaimCoupon(userID, id, body.Source)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, uc)
+	return uc, nil
 }
 
-func (h *CouponHandler) ListMyCoupons(w http.ResponseWriter, r *http.Request) {
-	userID, _ := middleware.GetUserID(r.Context())
+func (h *CouponHandler) ListMyCoupons(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, _ := middleware.GetUserID(ctx)
 	if userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "请先登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "请先登录")
 	}
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
-	list, total, err := h.logic.ListMyCoupons(userID, r.URL.Query().Get("status"), page, pageSize)
+	page, _ := strconv.Atoi(in.QueryGet("page"))
+	pageSize, _ := strconv.Atoi(in.QueryGet("page_size"))
+	list, total, err := h.logic.ListMyCoupons(userID, in.QueryGet("status"), page, pageSize)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"list": list, "total": total})
+	return map[string]interface{}{"list": list, "total": total}, nil
 }

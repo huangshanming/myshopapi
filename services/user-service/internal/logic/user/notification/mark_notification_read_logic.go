@@ -3,7 +3,7 @@ package notification
 import (
 	"context"
 	"fmt"
-	"mymall/pkg/httpinvoke"
+	"mymall/pkg/appinput"
 	huser "mymall/services/user-service/internal/app/user"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
@@ -16,15 +16,15 @@ type MarkNotificationReadLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewMarkNotificationReadLogic(svcCtx *svc.ServiceContext) *MarkNotificationReadLogic {
+func NewMarkNotificationReadLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MarkNotificationReadLogic {
 	return &MarkNotificationReadLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
 func (l *MarkNotificationReadLogic) MarkNotificationRead(ctx context.Context, req *types.IdPathReq) error {
-	_, err := httpinvoke.Run(ctx, "POST", "/api/v1/user/notifications/{Id}/read", map[string]string{"id": fmt.Sprintf("%v", req.Id)}, nil, nil, huser.NewUserHandler(l.svcCtx).MarkNotificationRead)
+	_, err := huser.NewUserHandler(l.svcCtx).MarkNotificationRead(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%v", req.Id)}})
 	if err != nil {
 		return err
 	}

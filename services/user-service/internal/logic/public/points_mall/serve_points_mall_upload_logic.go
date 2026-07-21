@@ -13,9 +13,9 @@ type ServePointsMallUploadLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewServePointsMallUploadLogic(svcCtx *svc.ServiceContext) *ServePointsMallUploadLogic {
+func NewServePointsMallUploadLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ServePointsMallUploadLogic {
 	return &ServePointsMallUploadLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }

@@ -1,9 +1,11 @@
 package admin
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
+	"mymall/pkg/appinput"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -13,29 +15,28 @@ import (
 
 	"mymall/pkg/xerr"
 	"mymall/services/catalog-service/internal/uploadpath"
-
-	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func (h *ShopUploadHandler) Upload(w http.ResponseWriter, r *http.Request) {
-	shopID, _ := strconv.ParseUint(r.URL.Query().Get("shop_id"), 10, 64)
-	file, hdr, err := r.FormFile("file")
+func (h *ShopUploadHandler) Upload(ctx context.Context, in appinput.CallInput) (any, error) {
+	if in.Request == nil {
+		return nil, xerr.New(http.StatusBadRequest, "缺少上传请求")
+	}
+
+	shopID, _ := strconv.ParseUint(in.QueryGet("shop_id"), 10, 64)
+	file, hdr, err := in.Request.FormFile("file")
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "缺少文件"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "缺少文件")
 	}
 	defer file.Close()
 	data, err := io.ReadAll(file)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "读取失败"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "读取失败")
 	}
 	url, err := saveShopUpload(shopID, hdr.Filename, data)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, map[string]string{"url": url})
+	return map[string]string{"url": url}, nil
 }
 
 func saveShopUpload(shopID uint64, filename string, data []byte) (string, error) {

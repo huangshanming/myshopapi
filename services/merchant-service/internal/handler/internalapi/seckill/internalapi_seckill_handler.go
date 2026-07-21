@@ -18,7 +18,7 @@ func SeckillConsumeHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := seckill.NewSeckillConsumeLogic(svcCtx)
+		l := seckill.NewSeckillConsumeLogic(r.Context(), svcCtx)
 		resp, err := l.SeckillConsume(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func SeckillRestoreHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := seckill.NewSeckillRestoreLogic(svcCtx)
+		l := seckill.NewSeckillRestoreLogic(r.Context(), svcCtx)
 		resp, err := l.SeckillRestore(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

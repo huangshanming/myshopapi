@@ -3,9 +3,9 @@ package order
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	huser "mymall/services/order-service/internal/app/user"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
@@ -18,9 +18,9 @@ type UserAfterSalesLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewUserAfterSalesLogic(svcCtx *svc.ServiceContext) *UserAfterSalesLogic {
+func NewUserAfterSalesLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserAfterSalesLogic {
 	return &UserAfterSalesLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewUserAfterSalesLogic(svcCtx *svc.ServiceContext) *UserAfterSalesLogic {
 func (l *UserAfterSalesLogic) UserAfterSales(ctx context.Context) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/orders/after-sales", nil, nil, nil, huser.NewOrderHandler(l.svcCtx).UserAfterSales)
+	data, err := huser.NewOrderHandler(l.svcCtx).UserAfterSales(ctx, appinput.CallInput{})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

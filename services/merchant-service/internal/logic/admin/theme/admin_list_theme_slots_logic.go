@@ -2,13 +2,14 @@ package theme
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
+	hadmin "mymall/services/merchant-service/internal/app/admin"
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
-	hadmin "mymall/services/merchant-service/internal/app/admin"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -18,9 +19,9 @@ type AdminListThemeSlotsLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminListThemeSlotsLogic(svcCtx *svc.ServiceContext) *AdminListThemeSlotsLogic {
+func NewAdminListThemeSlotsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminListThemeSlotsLogic {
 	return &AdminListThemeSlotsLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,14 +29,15 @@ func NewAdminListThemeSlotsLogic(svcCtx *svc.ServiceContext) *AdminListThemeSlot
 func (l *AdminListThemeSlotsLogic) AdminListThemeSlots(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/admin/theme-slots", nil, url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}, nil, hadmin.NewHomepageThemeHandler(l.svcCtx).AdminListThemeSlots)
+	data, err := hadmin.NewHomepageThemeHandler(l.svcCtx).AdminListThemeSlots(ctx, appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}})
 	if err != nil {
 		return nil, err
 	}
+	b, _ := json.Marshal(data)
 	var out types.PageListResp
-	if err := httpinvoke.Decode(raw, &out); err != nil {
+	if err := json.Unmarshal(b, &out); err != nil {
 		var list interface{}
-		if err2 := httpinvoke.Decode(raw, &list); err2 == nil {
+		if err2 := func() error { b,_:=json.Marshal(data); return json.Unmarshal(b, &list) }(); err2 == nil {
 			return &types.PageListResp{List: list}, nil
 		}
 		return nil, err

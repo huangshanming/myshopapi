@@ -1,37 +1,32 @@
 package public
 
 import (
+	"context"
+	"mymall/pkg/appinput"
 	"net/http"
 	"strconv"
 
-	"github.com/zeromicro/go-zero/rest/httpx"
-
-	"mymall/pkg/httpserver"
-	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	"mymall/services/merchant-service/internal/types"
 )
 
-func (h *ShopHandler) PublicListShops(w http.ResponseWriter, r *http.Request) {
-	p, ps := middleware.ParsePage(r)
-	list, total, err := h.logic.ListPublicShops(r.Context(), p, ps)
+func (h *ShopHandler) PublicListShops(ctx context.Context, in appinput.CallInput) (any, error) {
+	p, ps := in.Page()
+	list, total, err := h.logic.ListPublicShops(ctx, p, ps)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, types.PageListResp{Total: total, List: list})
+	return types.PageListResp{Total: total, List: list}, nil
 }
 
-func (h *ShopHandler) PublicGetShop(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+func (h *ShopHandler) PublicGetShop(ctx context.Context, in appinput.CallInput) (any, error) {
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil || id == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "店铺ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "店铺ID无效")
 	}
-	shop, err := h.logic.GetPublicShop(r.Context(), id)
+	shop, err := h.logic.GetPublicShop(ctx, id)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, shop)
+	return shop, nil
 }

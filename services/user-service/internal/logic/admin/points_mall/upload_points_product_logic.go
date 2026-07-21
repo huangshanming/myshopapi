@@ -17,9 +17,9 @@ type UploadPointsProductLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewUploadPointsProductLogic(svcCtx *svc.ServiceContext) *UploadPointsProductLogic {
+func NewUploadPointsProductLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UploadPointsProductLogic {
 	return &UploadPointsProductLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }

@@ -18,7 +18,7 @@ func MerchantBuyThemeHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := theme.NewMerchantBuyThemeLogic(svcCtx)
+		l := theme.NewMerchantBuyThemeLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantBuyTheme(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func MerchantListThemeOrdersHandler(svcCtx *svc.ServiceContext) http.HandlerFunc
 			return
 		}
 
-		l := theme.NewMerchantListThemeOrdersLogic(svcCtx)
+		l := theme.NewMerchantListThemeOrdersLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantListThemeOrders(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func MerchantListThemePackagesHandler(svcCtx *svc.ServiceContext) http.HandlerFu
 			return
 		}
 
-		l := theme.NewMerchantListThemePackagesLogic(svcCtx)
+		l := theme.NewMerchantListThemePackagesLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantListThemePackages(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -72,7 +72,7 @@ func MerchantListThemeSlotsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc 
 			return
 		}
 
-		l := theme.NewMerchantListThemeSlotsLogic(svcCtx)
+		l := theme.NewMerchantListThemeSlotsLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantListThemeSlots(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

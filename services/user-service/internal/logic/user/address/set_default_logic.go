@@ -3,7 +3,7 @@ package address
 import (
 	"context"
 	"fmt"
-	"mymall/pkg/httpinvoke"
+	"mymall/pkg/appinput"
 	huser "mymall/services/user-service/internal/app/user"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
@@ -16,15 +16,15 @@ type SetDefaultLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewSetDefaultLogic(svcCtx *svc.ServiceContext) *SetDefaultLogic {
+func NewSetDefaultLogic(ctx context.Context, svcCtx *svc.ServiceContext) *SetDefaultLogic {
 	return &SetDefaultLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
 func (l *SetDefaultLogic) SetDefault(ctx context.Context, req *types.IdPathReq) error {
-	_, err := httpinvoke.Run(ctx, "PUT", "/api/v1/user/addresses/{Id}/default", map[string]string{"id": fmt.Sprintf("%v", req.Id)}, nil, nil, huser.NewAddressHandler(l.svcCtx).SetDefault)
+	_, err := huser.NewAddressHandler(l.svcCtx).SetDefault(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%v", req.Id)}})
 	if err != nil {
 		return err
 	}

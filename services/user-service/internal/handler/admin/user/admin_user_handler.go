@@ -18,7 +18,7 @@ func AdminAdjustWalletHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := user.NewAdminAdjustWalletLogic(svcCtx)
+		l := user.NewAdminAdjustWalletLogic(r.Context(), svcCtx)
 		resp, err := l.AdminAdjustWallet(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func AdminGetWalletHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := user.NewAdminGetWalletLogic(svcCtx)
+		l := user.NewAdminGetWalletLogic(r.Context(), svcCtx)
 		resp, err := l.AdminGetWallet(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func AdminListUserAddressesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc 
 			return
 		}
 
-		l := user.NewAdminListUserAddressesLogic(svcCtx)
+		l := user.NewAdminListUserAddressesLogic(r.Context(), svcCtx)
 		resp, err := l.AdminListUserAddresses(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -72,7 +72,7 @@ func AdminWalletLogsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := user.NewAdminWalletLogsLogic(svcCtx)
+		l := user.NewAdminWalletLogsLogic(r.Context(), svcCtx)
 		resp, err := l.AdminWalletLogs(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -90,7 +90,7 @@ func GenerateUserTokenHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := user.NewGenerateUserTokenLogic(svcCtx)
+		l := user.NewGenerateUserTokenLogic(r.Context(), svcCtx)
 		resp, err := l.GenerateUserToken(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -108,7 +108,7 @@ func GetUserHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := user.NewGetUserLogic(svcCtx)
+		l := user.NewGetUserLogic(r.Context(), svcCtx)
 		resp, err := l.GetUser(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -126,7 +126,7 @@ func ListUsersHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := user.NewListUsersLogic(svcCtx)
+		l := user.NewListUsersLogic(r.Context(), svcCtx)
 		resp, err := l.ListUsers(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -144,7 +144,7 @@ func ResetUserPasswordHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := user.NewResetUserPasswordLogic(svcCtx)
+		l := user.NewResetUserPasswordLogic(r.Context(), svcCtx)
 		err := l.ResetUserPassword(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -162,7 +162,7 @@ func SetUserStatusHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := user.NewSetUserStatusLogic(svcCtx)
+		l := user.NewSetUserStatusLogic(r.Context(), svcCtx)
 		err := l.SetUserStatus(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -180,7 +180,7 @@ func UpdateUserHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := user.NewUpdateUserLogic(svcCtx)
+		l := user.NewUpdateUserLogic(r.Context(), svcCtx)
 		err := l.UpdateUser(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

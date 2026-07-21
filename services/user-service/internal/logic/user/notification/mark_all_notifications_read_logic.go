@@ -2,7 +2,7 @@ package notification
 
 import (
 	"context"
-	"mymall/pkg/httpinvoke"
+	"mymall/pkg/appinput"
 	huser "mymall/services/user-service/internal/app/user"
 	"mymall/services/user-service/internal/svc"
 
@@ -14,15 +14,15 @@ type MarkAllNotificationsReadLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewMarkAllNotificationsReadLogic(svcCtx *svc.ServiceContext) *MarkAllNotificationsReadLogic {
+func NewMarkAllNotificationsReadLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MarkAllNotificationsReadLogic {
 	return &MarkAllNotificationsReadLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
 func (l *MarkAllNotificationsReadLogic) MarkAllNotificationsRead(ctx context.Context) error {
-	_, err := httpinvoke.Run(ctx, "POST", "/api/v1/user/notifications/read-all", nil, nil, nil, huser.NewUserHandler(l.svcCtx).MarkAllNotificationsRead)
+	_, err := huser.NewUserHandler(l.svcCtx).MarkAllNotificationsRead(ctx, appinput.CallInput{})
 	if err != nil {
 		return err
 	}

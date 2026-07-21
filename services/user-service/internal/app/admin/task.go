@@ -1,40 +1,34 @@
 package admin
 
 import (
-	"encoding/json"
-	"mymall/pkg/httpserver"
+	"context"
+	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	"mymall/services/user-service/internal/biz"
 	"net/http"
 	"strconv"
-
-	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func (h *TaskHandler) AdminList(w http.ResponseWriter, r *http.Request) {
-	list, err := h.logic.AdminListTasks(r.Context())
+func (h *TaskHandler) AdminList(ctx context.Context, in appinput.CallInput) (any, error) {
+	list, err := h.logic.AdminListTasks(ctx)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"list": list})
+	return map[string]interface{}{"list": list}, nil
 }
 
-func (h *TaskHandler) AdminUpdate(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+func (h *TaskHandler) AdminUpdate(ctx context.Context, in appinput.CallInput) (any, error) {
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil || id == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "任务ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "任务ID无效")
 	}
 	var req biz.UpdateTaskReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	t, err := h.logic.AdminUpdateTask(r.Context(), id, req)
+	t, err := h.logic.AdminUpdateTask(ctx, id, req)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, t)
+	return t, nil
 }

@@ -2,7 +2,7 @@ package wallet
 
 import (
 	"context"
-	"mymall/pkg/httpinvoke"
+	"mymall/pkg/appinput"
 	hinternal "mymall/services/user-service/internal/app/internalapi"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
@@ -15,15 +15,15 @@ type InternalSettleWalletLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewInternalSettleWalletLogic(svcCtx *svc.ServiceContext) *InternalSettleWalletLogic {
+func NewInternalSettleWalletLogic(ctx context.Context, svcCtx *svc.ServiceContext) *InternalSettleWalletLogic {
 	return &InternalSettleWalletLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
 func (l *InternalSettleWalletLogic) InternalSettleWallet(ctx context.Context, req *types.WalletOrderOpReq) error {
-	_, err := httpinvoke.Run(ctx, "POST", "/api/v1/user/wallet/settle", nil, nil, req, hinternal.NewWalletHandler(l.svcCtx).Settle)
+	_, err := hinternal.NewWalletHandler(l.svcCtx).Settle(ctx, appinput.CallInput{Body: req})
 	if err != nil {
 		return err
 	}

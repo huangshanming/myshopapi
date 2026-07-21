@@ -12,7 +12,7 @@ import (
 
 func ListConfigsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := config.NewListConfigsLogic(svcCtx)
+		l := config.NewListConfigsLogic(r.Context(), svcCtx)
 		resp, err := l.ListConfigs(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -30,7 +30,7 @@ func SaveConfigsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := config.NewSaveConfigsLogic(svcCtx)
+		l := config.NewSaveConfigsLogic(r.Context(), svcCtx)
 		err := l.SaveConfigs(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

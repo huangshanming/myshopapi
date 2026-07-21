@@ -12,7 +12,7 @@ import (
 
 func AdminArticleStatsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := article.NewAdminArticleStatsLogic(svcCtx)
+		l := article.NewAdminArticleStatsLogic(r.Context(), svcCtx)
 		resp, err := l.AdminArticleStats(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -30,7 +30,7 @@ func AdminAuditArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := article.NewAdminAuditArticleLogic(svcCtx)
+		l := article.NewAdminAuditArticleLogic(r.Context(), svcCtx)
 		resp, err := l.AdminAuditArticle(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -48,7 +48,7 @@ func AdminBatchAuditArticlesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc
 			return
 		}
 
-		l := article.NewAdminBatchAuditArticlesLogic(svcCtx)
+		l := article.NewAdminBatchAuditArticlesLogic(r.Context(), svcCtx)
 		resp, err := l.AdminBatchAuditArticles(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -66,7 +66,7 @@ func AdminCreateArticleCategoryHandler(svcCtx *svc.ServiceContext) http.HandlerF
 			return
 		}
 
-		l := article.NewAdminCreateArticleCategoryLogic(svcCtx)
+		l := article.NewAdminCreateArticleCategoryLogic(r.Context(), svcCtx)
 		resp, err := l.AdminCreateArticleCategory(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -84,7 +84,7 @@ func AdminCreateArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := article.NewAdminCreateArticleLogic(svcCtx)
+		l := article.NewAdminCreateArticleLogic(r.Context(), svcCtx)
 		resp, err := l.AdminCreateArticle(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -102,7 +102,7 @@ func AdminDeleteArticleCategoryHandler(svcCtx *svc.ServiceContext) http.HandlerF
 			return
 		}
 
-		l := article.NewAdminDeleteArticleCategoryLogic(svcCtx)
+		l := article.NewAdminDeleteArticleCategoryLogic(r.Context(), svcCtx)
 		resp, err := l.AdminDeleteArticleCategory(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -120,7 +120,7 @@ func AdminGetArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := article.NewAdminGetArticleLogic(svcCtx)
+		l := article.NewAdminGetArticleLogic(r.Context(), svcCtx)
 		resp, err := l.AdminGetArticle(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -138,7 +138,7 @@ func AdminListArticleCategoriesHandler(svcCtx *svc.ServiceContext) http.HandlerF
 			return
 		}
 
-		l := article.NewAdminListArticleCategoriesLogic(svcCtx)
+		l := article.NewAdminListArticleCategoriesLogic(r.Context(), svcCtx)
 		resp, err := l.AdminListArticleCategories(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -156,7 +156,7 @@ func AdminListArticleRecycleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc
 			return
 		}
 
-		l := article.NewAdminListArticleRecycleLogic(svcCtx)
+		l := article.NewAdminListArticleRecycleLogic(r.Context(), svcCtx)
 		resp, err := l.AdminListArticleRecycle(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -174,7 +174,7 @@ func AdminListArticlesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := article.NewAdminListArticlesLogic(svcCtx)
+		l := article.NewAdminListArticlesLogic(r.Context(), svcCtx)
 		resp, err := l.AdminListArticles(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -192,7 +192,7 @@ func AdminOfflineArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := article.NewAdminOfflineArticleLogic(svcCtx)
+		l := article.NewAdminOfflineArticleLogic(r.Context(), svcCtx)
 		resp, err := l.AdminOfflineArticle(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -204,7 +204,7 @@ func AdminOfflineArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func AdminPurgeArticleRecycleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := article.NewAdminPurgeArticleRecycleLogic(svcCtx)
+		l := article.NewAdminPurgeArticleRecycleLogic(r.Context(), svcCtx)
 		resp, err := l.AdminPurgeArticleRecycle(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -222,7 +222,7 @@ func AdminRestoreArticleRecycleHandler(svcCtx *svc.ServiceContext) http.HandlerF
 			return
 		}
 
-		l := article.NewAdminRestoreArticleRecycleLogic(svcCtx)
+		l := article.NewAdminRestoreArticleRecycleLogic(r.Context(), svcCtx)
 		resp, err := l.AdminRestoreArticleRecycle(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -240,7 +240,7 @@ func AdminSoftDeleteArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc 
 			return
 		}
 
-		l := article.NewAdminSoftDeleteArticleLogic(svcCtx)
+		l := article.NewAdminSoftDeleteArticleLogic(r.Context(), svcCtx)
 		resp, err := l.AdminSoftDeleteArticle(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -258,7 +258,7 @@ func AdminTopArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := article.NewAdminTopArticleLogic(svcCtx)
+		l := article.NewAdminTopArticleLogic(r.Context(), svcCtx)
 		resp, err := l.AdminTopArticle(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -276,7 +276,7 @@ func AdminUpdateArticleCategoryHandler(svcCtx *svc.ServiceContext) http.HandlerF
 			return
 		}
 
-		l := article.NewAdminUpdateArticleCategoryLogic(svcCtx)
+		l := article.NewAdminUpdateArticleCategoryLogic(r.Context(), svcCtx)
 		resp, err := l.AdminUpdateArticleCategory(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -294,7 +294,7 @@ func AdminUpdateArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := article.NewAdminUpdateArticleLogic(svcCtx)
+		l := article.NewAdminUpdateArticleLogic(r.Context(), svcCtx)
 		resp, err := l.AdminUpdateArticle(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -306,14 +306,9 @@ func AdminUpdateArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func AdminUploadArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
-		if err := httpx.Parse(r, &req); err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
-			return
-		}
 
-		l := article.NewAdminUploadArticleLogic(svcCtx)
-		resp, err := l.AdminUploadArticle(r.Context(), &req)
+		l := article.NewAdminUploadArticleLogic(r.Context(), svcCtx)
+		resp, err := l.AdminUploadArticle(r.Context(), r)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {

@@ -10,7 +10,7 @@ import (
 
 func AuthMeHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := auth.NewAuthMeLogic(svcCtx)
+		l := auth.NewAuthMeLogic(r.Context(), svcCtx)
 		resp, err := l.AuthMe(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

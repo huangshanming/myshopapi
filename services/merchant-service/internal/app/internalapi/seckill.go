@@ -1,38 +1,33 @@
 package internalapi
 
 import (
-	"encoding/json"
+	"context"
+	"mymall/pkg/appinput"
 	"net/http"
-
-	"github.com/zeromicro/go-zero/rest/httpx"
 
 	"mymall/pkg/xerr"
 	"mymall/services/merchant-service/internal/types"
 )
 
-func (h *SeckillHandler) SeckillConsume(w http.ResponseWriter, r *http.Request) {
+func (h *SeckillHandler) SeckillConsume(ctx context.Context, in appinput.CallInput) (any, error) {
 	var req types.SeckillConsumeReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
 	data, err := h.logic.ConsumeSeckill(req.EntryID, req.ProductID, req.Quantity)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, data)
+	return data, nil
 }
 
-func (h *SeckillHandler) SeckillRestore(w http.ResponseWriter, r *http.Request) {
+func (h *SeckillHandler) SeckillRestore(ctx context.Context, in appinput.CallInput) (any, error) {
 	var req types.SeckillRestoreReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
 	if err := h.logic.RestoreSeckill(req.EntryID, req.Quantity); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }

@@ -11,7 +11,7 @@ import (
 
 func PublicCouponCenterHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := coupon.NewPublicCouponCenterLogic(svcCtx)
+		l := coupon.NewPublicCouponCenterLogic(r.Context(), svcCtx)
 		resp, err := l.PublicCouponCenter(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -23,7 +23,7 @@ func PublicCouponCenterHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func PublicCouponPopupHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := coupon.NewPublicCouponPopupLogic(svcCtx)
+		l := coupon.NewPublicCouponPopupLogic(r.Context(), svcCtx)
 		resp, err := l.PublicCouponPopup(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

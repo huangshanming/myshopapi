@@ -18,7 +18,7 @@ func AdminDeleteProductHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := product.NewAdminDeleteProductLogic(svcCtx)
+		l := product.NewAdminDeleteProductLogic(r.Context(), svcCtx)
 		resp, err := l.AdminDeleteProduct(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func AdminListProductsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := product.NewAdminListProductsLogic(svcCtx)
+		l := product.NewAdminListProductsLogic(r.Context(), svcCtx)
 		resp, err := l.AdminListProducts(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func AdminOffSaleProductHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := product.NewAdminOffSaleProductLogic(svcCtx)
+		l := product.NewAdminOffSaleProductLogic(r.Context(), svcCtx)
 		resp, err := l.AdminOffSaleProduct(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

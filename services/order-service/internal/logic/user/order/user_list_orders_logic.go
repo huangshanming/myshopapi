@@ -2,10 +2,11 @@ package order
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	huser "mymall/services/order-service/internal/app/user"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
@@ -18,9 +19,9 @@ type UserListOrdersLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewUserListOrdersLogic(svcCtx *svc.ServiceContext) *UserListOrdersLogic {
+func NewUserListOrdersLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserListOrdersLogic {
 	return &UserListOrdersLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,14 +29,15 @@ func NewUserListOrdersLogic(svcCtx *svc.ServiceContext) *UserListOrdersLogic {
 func (l *UserListOrdersLogic) UserListOrders(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/orders", nil, url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}, nil, huser.NewOrderHandler(l.svcCtx).List)
+	data, err := huser.NewOrderHandler(l.svcCtx).List(ctx, appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}})
 	if err != nil {
 		return nil, err
 	}
+	b, _ := json.Marshal(data)
 	var out types.PageListResp
-	if err := httpinvoke.Decode(raw, &out); err != nil {
+	if err := json.Unmarshal(b, &out); err != nil {
 		var list interface{}
-		if err2 := httpinvoke.Decode(raw, &list); err2 == nil {
+		if err2 := func() error { b, _ := json.Marshal(data); return json.Unmarshal(b, &list) }(); err2 == nil {
 			return &types.PageListResp{List: list}, nil
 		}
 		return nil, err

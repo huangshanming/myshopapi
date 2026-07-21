@@ -2,7 +2,7 @@ package points_mall
 
 import (
 	"context"
-	"mymall/pkg/httpinvoke"
+	"mymall/pkg/appinput"
 	hadmin "mymall/services/user-service/internal/app/admin"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
@@ -15,20 +15,16 @@ type CreatePointsProductLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewCreatePointsProductLogic(svcCtx *svc.ServiceContext) *CreatePointsProductLogic {
+func NewCreatePointsProductLogic(ctx context.Context, svcCtx *svc.ServiceContext) *CreatePointsProductLogic {
 	return &CreatePointsProductLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
 func (l *CreatePointsProductLogic) CreatePointsProduct(ctx context.Context, req *types.PointsProductSaveReq) (resp *types.AnyResp, err error) {
-	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/admin/points-products", nil, nil, req, hadmin.NewPointsProductHandler(l.svcCtx).Create)
+	data, err := hadmin.NewPointsProductHandler(l.svcCtx).Create(ctx, appinput.CallInput{Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

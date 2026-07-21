@@ -3,9 +3,9 @@ package article
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hadmin "mymall/services/catalog-service/internal/content/app/admin"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +18,9 @@ type AdminTopArticleLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminTopArticleLogic(svcCtx *svc.ServiceContext) *AdminTopArticleLogic {
+func NewAdminTopArticleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminTopArticleLogic {
 	return &AdminTopArticleLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewAdminTopArticleLogic(svcCtx *svc.ServiceContext) *AdminTopArticleLogic {
 func (l *AdminTopArticleLogic) AdminTopArticle(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/admin/articles/:id/top", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, req, hadmin.NewArticleHandler(l.svcCtx).Top)
+	data, err := hadmin.NewArticleHandler(l.svcCtx).Top(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

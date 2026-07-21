@@ -1,39 +1,35 @@
 package user
 
 import (
+	"context"
+	"mymall/pkg/appinput"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	"mymall/services/user-service/internal/types"
 	"net/http"
-
-	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func (h *WalletHandler) UserGetWallet(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *WalletHandler) UserGetWallet(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	wallet, err := h.logic.GetWallet(r.Context(), userID)
+	wallet, err := h.logic.GetWallet(ctx, userID)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, wallet)
+	return wallet, nil
 }
 
-func (h *WalletHandler) UserWalletLogs(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *WalletHandler) UserWalletLogs(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	p, ps := middleware.ParsePage(r)
-	list, total, err := h.logic.ListWalletLogs(r.Context(), userID, p, ps)
+	p, ps := in.Page()
+	list, total, err := h.logic.ListWalletLogs(ctx, userID, p, ps)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, types.PageListResp{Total: total, List: list})
+	return types.PageListResp{Total: total, List: list}, nil
 }

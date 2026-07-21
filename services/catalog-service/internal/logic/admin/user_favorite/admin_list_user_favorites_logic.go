@@ -2,10 +2,11 @@ package user_favorite
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hadmin "mymall/services/catalog-service/internal/product/app/admin"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +19,9 @@ type AdminListUserFavoritesLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminListUserFavoritesLogic(svcCtx *svc.ServiceContext) *AdminListUserFavoritesLogic {
+func NewAdminListUserFavoritesLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminListUserFavoritesLogic {
 	return &AdminListUserFavoritesLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,14 +29,15 @@ func NewAdminListUserFavoritesLogic(svcCtx *svc.ServiceContext) *AdminListUserFa
 func (l *AdminListUserFavoritesLogic) AdminListUserFavorites(ctx context.Context, req *types.IdPathReq) (resp *types.PageListResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/admin/users/:id/favorites", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, nil, hadmin.NewFavoriteHandler(l.svcCtx).AdminUserList)
+	data, err := hadmin.NewFavoriteHandler(l.svcCtx).AdminUserList(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}})
 	if err != nil {
 		return nil, err
 	}
+	b, _ := json.Marshal(data)
 	var out types.PageListResp
-	if err := httpinvoke.Decode(raw, &out); err != nil {
+	if err := json.Unmarshal(b, &out); err != nil {
 		var list interface{}
-		if err2 := httpinvoke.Decode(raw, &list); err2 == nil {
+		if err2 := func() error { b, _ := json.Marshal(data); return json.Unmarshal(b, &list) }(); err2 == nil {
 			return &types.PageListResp{List: list}, nil
 		}
 		return nil, err

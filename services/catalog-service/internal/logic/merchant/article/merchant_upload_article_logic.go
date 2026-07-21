@@ -2,10 +2,9 @@ package article
 
 import (
 	"context"
-	"fmt"
-	"net/url"
+	"mymall/pkg/appinput"
+	"net/http"
 
-	"mymall/pkg/httpinvoke"
 	hmerchant "mymall/services/catalog-service/internal/content/app/merchant"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,22 +17,16 @@ type MerchantUploadArticleLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewMerchantUploadArticleLogic(svcCtx *svc.ServiceContext) *MerchantUploadArticleLogic {
+func NewMerchantUploadArticleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantUploadArticleLogic {
 	return &MerchantUploadArticleLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *MerchantUploadArticleLogic) MerchantUploadArticle(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/merchant/article-uploads", nil, nil, req, hmerchant.NewArticleHandler(l.svcCtx).Upload)
+func (l *MerchantUploadArticleLogic) MerchantUploadArticle(ctx context.Context, r *http.Request) (resp *types.AnyResp, err error) {
+	data, err := hmerchant.NewArticleHandler(l.svcCtx).Upload(ctx, appinput.CallInput{Request: r})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

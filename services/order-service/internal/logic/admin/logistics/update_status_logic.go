@@ -3,9 +3,9 @@ package logistics
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hadmin "mymall/services/order-service/internal/app/admin"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
@@ -18,9 +18,9 @@ type UpdateStatusLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewUpdateStatusLogic(svcCtx *svc.ServiceContext) *UpdateStatusLogic {
+func NewUpdateStatusLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UpdateStatusLogic {
 	return &UpdateStatusLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewUpdateStatusLogic(svcCtx *svc.ServiceContext) *UpdateStatusLogic {
 func (l *UpdateStatusLogic) UpdateStatus(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "PUT", "/api/v1/admin/logistics/:id/status", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, req, hadmin.NewLogisticsHandler(l.svcCtx).UpdateStatus)
+	data, err := hadmin.NewLogisticsHandler(l.svcCtx).UpdateStatus(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

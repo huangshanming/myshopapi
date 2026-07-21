@@ -3,9 +3,9 @@ package product
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hmerchant "mymall/services/catalog-service/internal/product/app/merchant"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +18,9 @@ type BatchStockLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewBatchStockLogic(svcCtx *svc.ServiceContext) *BatchStockLogic {
+func NewBatchStockLogic(ctx context.Context, svcCtx *svc.ServiceContext) *BatchStockLogic {
 	return &BatchStockLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewBatchStockLogic(svcCtx *svc.ServiceContext) *BatchStockLogic {
 func (l *BatchStockLogic) BatchStock(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/merchant/skus/batch-stock", nil, nil, req, hmerchant.NewProductHandler(l.svcCtx).BatchStock)
+	data, err := hmerchant.NewProductHandler(l.svcCtx).BatchStock(ctx, appinput.CallInput{Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

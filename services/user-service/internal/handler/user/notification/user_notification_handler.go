@@ -18,7 +18,7 @@ func ListNotificationsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := notification.NewListNotificationsLogic(svcCtx)
+		l := notification.NewListNotificationsLogic(r.Context(), svcCtx)
 		resp, err := l.ListNotifications(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -30,7 +30,7 @@ func ListNotificationsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func MarkAllNotificationsReadHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := notification.NewMarkAllNotificationsReadLogic(svcCtx)
+		l := notification.NewMarkAllNotificationsReadLogic(r.Context(), svcCtx)
 		err := l.MarkAllNotificationsRead(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -48,7 +48,7 @@ func MarkNotificationReadHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := notification.NewMarkNotificationReadLogic(svcCtx)
+		l := notification.NewMarkNotificationReadLogic(r.Context(), svcCtx)
 		err := l.MarkNotificationRead(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -60,7 +60,7 @@ func MarkNotificationReadHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func UnreadNotificationCountHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := notification.NewUnreadNotificationCountLogic(svcCtx)
+		l := notification.NewUnreadNotificationCountLogic(r.Context(), svcCtx)
 		resp, err := l.UnreadNotificationCount(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

@@ -2,7 +2,7 @@ package wallet
 
 import (
 	"context"
-	"mymall/pkg/httpinvoke"
+	"mymall/pkg/appinput"
 	hinternal "mymall/services/user-service/internal/app/internalapi"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
@@ -15,15 +15,15 @@ type InternalFreezeWalletLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewInternalFreezeWalletLogic(svcCtx *svc.ServiceContext) *InternalFreezeWalletLogic {
+func NewInternalFreezeWalletLogic(ctx context.Context, svcCtx *svc.ServiceContext) *InternalFreezeWalletLogic {
 	return &InternalFreezeWalletLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
 func (l *InternalFreezeWalletLogic) InternalFreezeWallet(ctx context.Context, req *types.WalletOrderOpReq) error {
-	_, err := httpinvoke.Run(ctx, "POST", "/api/v1/user/wallet/freeze", nil, nil, req, hinternal.NewWalletHandler(l.svcCtx).Freeze)
+	_, err := hinternal.NewWalletHandler(l.svcCtx).Freeze(ctx, appinput.CallInput{Body: req})
 	if err != nil {
 		return err
 	}

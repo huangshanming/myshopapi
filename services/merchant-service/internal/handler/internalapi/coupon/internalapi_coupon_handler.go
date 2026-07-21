@@ -18,7 +18,7 @@ func InternalLockCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := coupon.NewInternalLockCouponLogic(svcCtx)
+		l := coupon.NewInternalLockCouponLogic(r.Context(), svcCtx)
 		resp, err := l.InternalLockCoupon(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func InternalMatchCouponsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := coupon.NewInternalMatchCouponsLogic(svcCtx)
+		l := coupon.NewInternalMatchCouponsLogic(r.Context(), svcCtx)
 		resp, err := l.InternalMatchCoupons(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func InternalOrderGiftHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := coupon.NewInternalOrderGiftLogic(svcCtx)
+		l := coupon.NewInternalOrderGiftLogic(r.Context(), svcCtx)
 		resp, err := l.InternalOrderGift(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -72,7 +72,7 @@ func InternalRedeemCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := coupon.NewInternalRedeemCouponLogic(svcCtx)
+		l := coupon.NewInternalRedeemCouponLogic(r.Context(), svcCtx)
 		resp, err := l.InternalRedeemCoupon(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -90,7 +90,7 @@ func InternalReturnCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := coupon.NewInternalReturnCouponLogic(svcCtx)
+		l := coupon.NewInternalReturnCouponLogic(r.Context(), svcCtx)
 		resp, err := l.InternalReturnCoupon(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -108,7 +108,7 @@ func InternalUnlockCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := coupon.NewInternalUnlockCouponLogic(svcCtx)
+		l := coupon.NewInternalUnlockCouponLogic(r.Context(), svcCtx)
 		resp, err := l.InternalUnlockCoupon(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

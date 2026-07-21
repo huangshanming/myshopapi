@@ -3,7 +3,7 @@ package staff
 import (
 	"context"
 	"fmt"
-	"mymall/pkg/httpinvoke"
+	"mymall/pkg/appinput"
 	hadmin "mymall/services/user-service/internal/app/admin"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
@@ -16,15 +16,15 @@ type ResetAdminPasswordLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewResetAdminPasswordLogic(svcCtx *svc.ServiceContext) *ResetAdminPasswordLogic {
+func NewResetAdminPasswordLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ResetAdminPasswordLogic {
 	return &ResetAdminPasswordLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
 func (l *ResetAdminPasswordLogic) ResetAdminPassword(ctx context.Context, req *types.AdminResetPwdReq) error {
-	_, err := httpinvoke.Run(ctx, "PUT", "/api/v1/admin/admins/{Id}/password", map[string]string{"id": fmt.Sprintf("%v", req.Id)}, nil, req, hadmin.NewAdminHandler(l.svcCtx).ResetAdminPassword)
+	_, err := hadmin.NewAdminHandler(l.svcCtx).ResetAdminPassword(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%v", req.Id)}, Body: req})
 	if err != nil {
 		return err
 	}

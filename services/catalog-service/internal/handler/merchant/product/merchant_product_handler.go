@@ -18,7 +18,7 @@ func AdjustStockHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := product.NewAdjustStockLogic(svcCtx)
+		l := product.NewAdjustStockLogic(r.Context(), svcCtx)
 		resp, err := l.AdjustStock(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func BatchStockHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := product.NewBatchStockLogic(svcCtx)
+		l := product.NewBatchStockLogic(r.Context(), svcCtx)
 		resp, err := l.BatchStock(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func CancelScheduleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := product.NewCancelScheduleLogic(svcCtx)
+		l := product.NewCancelScheduleLogic(r.Context(), svcCtx)
 		resp, err := l.CancelSchedule(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -72,7 +72,7 @@ func DeleteAttrTemplateHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := product.NewDeleteAttrTemplateLogic(svcCtx)
+		l := product.NewDeleteAttrTemplateLogic(r.Context(), svcCtx)
 		resp, err := l.DeleteAttrTemplate(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -90,7 +90,7 @@ func DeleteTagHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := product.NewDeleteTagLogic(svcCtx)
+		l := product.NewDeleteTagLogic(r.Context(), svcCtx)
 		resp, err := l.DeleteTag(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -108,7 +108,7 @@ func JobStatusHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := product.NewJobStatusLogic(svcCtx)
+		l := product.NewJobStatusLogic(r.Context(), svcCtx)
 		resp, err := l.JobStatus(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -126,7 +126,7 @@ func ListAttrTemplatesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := product.NewListAttrTemplatesLogic(svcCtx)
+		l := product.NewListAttrTemplatesLogic(r.Context(), svcCtx)
 		resp, err := l.ListAttrTemplates(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -144,7 +144,7 @@ func ListTagsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := product.NewListTagsLogic(svcCtx)
+		l := product.NewListTagsLogic(r.Context(), svcCtx)
 		resp, err := l.ListTags(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -162,7 +162,7 @@ func MerchantBatchProductsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := product.NewMerchantBatchProductsLogic(svcCtx)
+		l := product.NewMerchantBatchProductsLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantBatchProducts(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -180,7 +180,7 @@ func MerchantCopyProductHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := product.NewMerchantCopyProductLogic(svcCtx)
+		l := product.NewMerchantCopyProductLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantCopyProduct(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -198,7 +198,7 @@ func MerchantCreateAttrTemplateHandler(svcCtx *svc.ServiceContext) http.HandlerF
 			return
 		}
 
-		l := product.NewMerchantCreateAttrTemplateLogic(svcCtx)
+		l := product.NewMerchantCreateAttrTemplateLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantCreateAttrTemplate(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -216,7 +216,7 @@ func MerchantCreateProductHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := product.NewMerchantCreateProductLogic(svcCtx)
+		l := product.NewMerchantCreateProductLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantCreateProduct(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -234,7 +234,7 @@ func MerchantCreateTagHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := product.NewMerchantCreateTagLogic(svcCtx)
+		l := product.NewMerchantCreateTagLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantCreateTag(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -252,7 +252,7 @@ func MerchantExportProductsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc 
 			return
 		}
 
-		l := product.NewMerchantExportProductsLogic(svcCtx)
+		l := product.NewMerchantExportProductsLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantExportProducts(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -270,7 +270,7 @@ func MerchantGetProductHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := product.NewMerchantGetProductLogic(svcCtx)
+		l := product.NewMerchantGetProductLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantGetProduct(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -282,14 +282,9 @@ func MerchantGetProductHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func MerchantImportProductsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
-		if err := httpx.Parse(r, &req); err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
-			return
-		}
 
-		l := product.NewMerchantImportProductsLogic(svcCtx)
-		resp, err := l.MerchantImportProducts(r.Context(), &req)
+		l := product.NewMerchantImportProductsLogic(r.Context(), svcCtx)
+		resp, err := l.MerchantImportProducts(r.Context(), r)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {
@@ -306,7 +301,7 @@ func MerchantListProductsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := product.NewMerchantListProductsLogic(svcCtx)
+		l := product.NewMerchantListProductsLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantListProducts(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -318,7 +313,7 @@ func MerchantListProductsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func MerchantPurgeProductsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := product.NewMerchantPurgeProductsLogic(svcCtx)
+		l := product.NewMerchantPurgeProductsLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantPurgeProducts(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -336,7 +331,7 @@ func MerchantRestoreProductsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc
 			return
 		}
 
-		l := product.NewMerchantRestoreProductsLogic(svcCtx)
+		l := product.NewMerchantRestoreProductsLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantRestoreProducts(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -354,7 +349,7 @@ func MerchantScheduleProductHandler(svcCtx *svc.ServiceContext) http.HandlerFunc
 			return
 		}
 
-		l := product.NewMerchantScheduleProductLogic(svcCtx)
+		l := product.NewMerchantScheduleProductLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantScheduleProduct(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -372,7 +367,7 @@ func MerchantSetProductStatusHandler(svcCtx *svc.ServiceContext) http.HandlerFun
 			return
 		}
 
-		l := product.NewMerchantSetProductStatusLogic(svcCtx)
+		l := product.NewMerchantSetProductStatusLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantSetProductStatus(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -390,7 +385,7 @@ func MerchantUpdateAttrTemplateHandler(svcCtx *svc.ServiceContext) http.HandlerF
 			return
 		}
 
-		l := product.NewMerchantUpdateAttrTemplateLogic(svcCtx)
+		l := product.NewMerchantUpdateAttrTemplateLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantUpdateAttrTemplate(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -408,7 +403,7 @@ func MerchantUpdateProductHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := product.NewMerchantUpdateProductLogic(svcCtx)
+		l := product.NewMerchantUpdateProductLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantUpdateProduct(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -426,7 +421,7 @@ func MerchantUpdateTagHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := product.NewMerchantUpdateTagLogic(svcCtx)
+		l := product.NewMerchantUpdateTagLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantUpdateTag(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -438,14 +433,9 @@ func MerchantUpdateTagHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func MerchantUploadImageHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
-		if err := httpx.Parse(r, &req); err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
-			return
-		}
 
-		l := product.NewMerchantUploadImageLogic(svcCtx)
-		resp, err := l.MerchantUploadImage(r.Context(), &req)
+		l := product.NewMerchantUploadImageLogic(r.Context(), svcCtx)
+		resp, err := l.MerchantUploadImage(r.Context(), r)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {
@@ -462,7 +452,7 @@ func OpLogsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := product.NewOpLogsLogic(svcCtx)
+		l := product.NewOpLogsLogic(r.Context(), svcCtx)
 		resp, err := l.OpLogs(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -474,7 +464,7 @@ func OpLogsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func StockWarningsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := product.NewStockWarningsLogic(svcCtx)
+		l := product.NewStockWarningsLogic(r.Context(), svcCtx)
 		resp, err := l.StockWarnings(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

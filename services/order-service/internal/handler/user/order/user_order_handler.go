@@ -18,7 +18,7 @@ func CancelHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := order.NewCancelLogic(svcCtx)
+		l := order.NewCancelLogic(r.Context(), svcCtx)
 		resp, err := l.Cancel(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func ConfirmReceiveHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := order.NewConfirmReceiveLogic(svcCtx)
+		l := order.NewConfirmReceiveLogic(r.Context(), svcCtx)
 		resp, err := l.ConfirmReceive(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func CouponPreviewHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := order.NewCouponPreviewLogic(svcCtx)
+		l := order.NewCouponPreviewLogic(r.Context(), svcCtx)
 		resp, err := l.CouponPreview(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -72,7 +72,7 @@ func CreateAfterSaleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := order.NewCreateAfterSaleLogic(svcCtx)
+		l := order.NewCreateAfterSaleLogic(r.Context(), svcCtx)
 		resp, err := l.CreateAfterSale(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -84,7 +84,7 @@ func CreateAfterSaleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func StatusCountsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := order.NewStatusCountsLogic(svcCtx)
+		l := order.NewStatusCountsLogic(r.Context(), svcCtx)
 		resp, err := l.StatusCounts(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -96,7 +96,7 @@ func StatusCountsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func UserAfterSalesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := order.NewUserAfterSalesLogic(svcCtx)
+		l := order.NewUserAfterSalesLogic(r.Context(), svcCtx)
 		resp, err := l.UserAfterSales(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -114,7 +114,7 @@ func UserCreateOrderHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := order.NewUserCreateOrderLogic(svcCtx)
+		l := order.NewUserCreateOrderLogic(r.Context(), svcCtx)
 		resp, err := l.UserCreateOrder(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -132,7 +132,7 @@ func UserGetOrderHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := order.NewUserGetOrderLogic(svcCtx)
+		l := order.NewUserGetOrderLogic(r.Context(), svcCtx)
 		resp, err := l.UserGetOrder(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -150,7 +150,7 @@ func UserListOrdersHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := order.NewUserListOrdersLogic(svcCtx)
+		l := order.NewUserListOrdersLogic(r.Context(), svcCtx)
 		resp, err := l.UserListOrders(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

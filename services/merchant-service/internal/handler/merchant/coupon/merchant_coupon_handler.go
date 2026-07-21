@@ -18,7 +18,7 @@ func MerchantCopyCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := coupon.NewMerchantCopyCouponLogic(svcCtx)
+		l := coupon.NewMerchantCopyCouponLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantCopyCoupon(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func MerchantCouponClaimsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := coupon.NewMerchantCouponClaimsLogic(svcCtx)
+		l := coupon.NewMerchantCouponClaimsLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantCouponClaims(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func MerchantCouponRedeemsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := coupon.NewMerchantCouponRedeemsLogic(svcCtx)
+		l := coupon.NewMerchantCouponRedeemsLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantCouponRedeems(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -72,7 +72,7 @@ func MerchantCouponStatsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := coupon.NewMerchantCouponStatsLogic(svcCtx)
+		l := coupon.NewMerchantCouponStatsLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantCouponStats(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -90,7 +90,7 @@ func MerchantCreateCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := coupon.NewMerchantCreateCouponLogic(svcCtx)
+		l := coupon.NewMerchantCreateCouponLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantCreateCoupon(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -108,7 +108,7 @@ func MerchantGrantCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := coupon.NewMerchantGrantCouponLogic(svcCtx)
+		l := coupon.NewMerchantGrantCouponLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantGrantCoupon(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -126,7 +126,7 @@ func MerchantListCouponsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := coupon.NewMerchantListCouponsLogic(svcCtx)
+		l := coupon.NewMerchantListCouponsLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantListCoupons(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -144,7 +144,7 @@ func MerchantOffCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := coupon.NewMerchantOffCouponLogic(svcCtx)
+		l := coupon.NewMerchantOffCouponLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantOffCoupon(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -162,7 +162,7 @@ func MerchantUpdateCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := coupon.NewMerchantUpdateCouponLogic(svcCtx)
+		l := coupon.NewMerchantUpdateCouponLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantUpdateCoupon(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

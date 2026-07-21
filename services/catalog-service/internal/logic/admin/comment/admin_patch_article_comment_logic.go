@@ -3,9 +3,9 @@ package comment
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hadmin "mymall/services/catalog-service/internal/content/app/admin"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +18,9 @@ type AdminPatchArticleCommentLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminPatchArticleCommentLogic(svcCtx *svc.ServiceContext) *AdminPatchArticleCommentLogic {
+func NewAdminPatchArticleCommentLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminPatchArticleCommentLogic {
 	return &AdminPatchArticleCommentLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewAdminPatchArticleCommentLogic(svcCtx *svc.ServiceContext) *AdminPatchArt
 func (l *AdminPatchArticleCommentLogic) AdminPatchArticleComment(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "PATCH", "/api/v1/admin/article-comments/:id", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, req, hadmin.NewArticleHandler(l.svcCtx).CommentPatch)
+	data, err := hadmin.NewArticleHandler(l.svcCtx).CommentPatch(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

@@ -2,10 +2,9 @@ package product
 
 import (
 	"context"
-	"fmt"
-	"net/url"
+	"mymall/pkg/appinput"
+	"net/http"
 
-	"mymall/pkg/httpinvoke"
 	hmerchant "mymall/services/catalog-service/internal/product/app/merchant"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,22 +17,16 @@ type MerchantImportProductsLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewMerchantImportProductsLogic(svcCtx *svc.ServiceContext) *MerchantImportProductsLogic {
+func NewMerchantImportProductsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantImportProductsLogic {
 	return &MerchantImportProductsLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *MerchantImportProductsLogic) MerchantImportProducts(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/merchant/products/import", nil, nil, req, hmerchant.NewProductHandler(l.svcCtx).Import)
+func (l *MerchantImportProductsLogic) MerchantImportProducts(ctx context.Context, r *http.Request) (resp *types.AnyResp, err error) {
+	data, err := hmerchant.NewProductHandler(l.svcCtx).Import(ctx, appinput.CallInput{Request: r})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

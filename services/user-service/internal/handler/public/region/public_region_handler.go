@@ -18,7 +18,7 @@ func ListRegionsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := region.NewListRegionsLogic(svcCtx)
+		l := region.NewListRegionsLogic(r.Context(), svcCtx)
 		resp, err := l.ListRegions(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -30,7 +30,7 @@ func ListRegionsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func RegionTreeHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := region.NewRegionTreeLogic(svcCtx)
+		l := region.NewRegionTreeLogic(r.Context(), svcCtx)
 		resp, err := l.RegionTree(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

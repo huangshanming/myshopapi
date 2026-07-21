@@ -18,7 +18,7 @@ func ListCommentsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := article.NewListCommentsLogic(svcCtx)
+		l := article.NewListCommentsLogic(r.Context(), svcCtx)
 		resp, err := l.ListComments(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func ListEmojisHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := article.NewListEmojisLogic(svcCtx)
+		l := article.NewListEmojisLogic(r.Context(), svcCtx)
 		resp, err := l.ListEmojis(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func PublicGetArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := article.NewPublicGetArticleLogic(svcCtx)
+		l := article.NewPublicGetArticleLogic(r.Context(), svcCtx)
 		resp, err := l.PublicGetArticle(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -72,7 +72,7 @@ func PublicListArticlesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := article.NewPublicListArticlesLogic(svcCtx)
+		l := article.NewPublicListArticlesLogic(r.Context(), svcCtx)
 		resp, err := l.PublicListArticles(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

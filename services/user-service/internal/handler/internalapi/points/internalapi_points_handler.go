@@ -18,7 +18,7 @@ func InternalDeductPointsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := points.NewInternalDeductPointsLogic(svcCtx)
+		l := points.NewInternalDeductPointsLogic(r.Context(), svcCtx)
 		resp, err := l.InternalDeductPoints(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func InternalRefundPointsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := points.NewInternalRefundPointsLogic(svcCtx)
+		l := points.NewInternalRefundPointsLogic(r.Context(), svcCtx)
 		resp, err := l.InternalRefundPoints(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

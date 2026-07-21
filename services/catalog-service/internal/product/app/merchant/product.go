@@ -1,9 +1,9 @@
 package merchant
 
 import (
-	"encoding/json"
+	"context"
 	"io"
-	"mymall/pkg/httpserver"
+	"mymall/pkg/appinput"
 	"mymall/pkg/jwt"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
@@ -12,459 +12,407 @@ import (
 	"mymall/services/catalog-service/internal/product/types"
 	"net/http"
 	"strconv"
-
-	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func (h *ProductHandler) shopUser(r *http.Request) (shopID, userID uint64, ok bool) {
-	shopID = middleware.GetShopID(r.Context())
-	userID, _ = middleware.GetUserID(r.Context())
+func (h *ProductHandler) shopUser(ctx context.Context) (shopID, userID uint64, ok bool) {
+	shopID = middleware.GetShopID(ctx)
+	userID, _ = middleware.GetUserID(ctx)
 	return shopID, userID, shopID > 0 && userID > 0
 }
 
-func (h *ProductHandler) requirePerm(w http.ResponseWriter, r *http.Request, code string) bool {
-	shopID, uid, ok := h.shopUser(r)
+func (h *ProductHandler) requirePerm(ctx context.Context, code string) error {
+	shopID, uid, ok := h.shopUser(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return false
+		return xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
 	// JWT 店主首次访问时自动建店主角色
-	if middleware.GetUserRole(r.Context()) == jwt.RoleMerchantOwner {
-		_ = h.svcCtx.ShopRBAC.EnsureOwnerRole(r.Context(), shopID, uid)
+	if middleware.GetUserRole(ctx) == jwt.RoleMerchantOwner {
+		_ = h.svcCtx.ShopRBAC.EnsureOwnerRole(ctx, shopID, uid)
 	}
-	if !h.svcCtx.ShopRBAC.HasPerm(r.Context(), shopID, uid, code) {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "无权限: "+code))
-		return false
+	if !h.svcCtx.ShopRBAC.HasPerm(ctx, shopID, uid, code) {
+		return xerr.New(http.StatusForbidden, "无权限: "+code)
 	}
-	return true
+	return nil
 }
 
-func (h *ProductHandler) List(w http.ResponseWriter, r *http.Request) {
-	shopID, _, ok := h.shopUser(r)
+func (h *ProductHandler) List(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID, _, ok := h.shopUser(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	page, pageSize := middleware.ParsePage(r)
-	catID, _ := strconv.ParseUint(r.URL.Query().Get("category_id"), 10, 64)
+	page, pageSize := in.Page()
+	catID, _ := strconv.ParseUint(in.QueryGet("category_id"), 10, 64)
 	f := repository.ProductListFilter{
-		ShopID: shopID, Name: r.URL.Query().Get("name"), ProductNo: r.URL.Query().Get("product_no"),
-		CategoryID: catID, Status: r.URL.Query().Get("status"), ProductType: r.URL.Query().Get("product_type"),
-		StockWarnOnly: r.URL.Query().Get("stock_warn") == "1",
-		Page:          page, PageSize: pageSize, OrderBy: r.URL.Query().Get("order_by"),
-		Recycle: r.URL.Query().Get("recycle") == "1",
+		ShopID: shopID, Name: in.QueryGet("name"), ProductNo: in.QueryGet("product_no"),
+		CategoryID: catID, Status: in.QueryGet("status"), ProductType: in.QueryGet("product_type"),
+		StockWarnOnly: in.QueryGet("stock_warn") == "1",
+		Page:          page, PageSize: pageSize, OrderBy: in.QueryGet("order_by"),
+		Recycle: in.QueryGet("recycle") == "1",
 	}
-	data, err := h.logic.List(r.Context(), f)
+	data, err := h.logic.List(ctx, f)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, data)
+	return data, nil
 }
 
-func (h *ProductHandler) Detail(w http.ResponseWriter, r *http.Request) {
-	shopID, _, ok := h.shopUser(r)
+func (h *ProductHandler) Detail(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID, _, ok := h.shopUser(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
-	data, err := h.logic.Detail(r.Context(), id, shopID)
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
+	data, err := h.logic.Detail(ctx, id, shopID)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusNotFound, err.Error()))
-		return
+		return nil, xerr.New(http.StatusNotFound, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, data)
+	return data, nil
 }
 
-func (h *ProductHandler) Create(w http.ResponseWriter, r *http.Request) {
-	shopID, uid, ok := h.shopUser(r)
+func (h *ProductHandler) Create(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID, uid, ok := h.shopUser(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	if middleware.GetUserRole(r.Context()) == jwt.RoleMerchantOwner {
-		_ = h.svcCtx.ShopRBAC.EnsureOwnerRole(r.Context(), shopID, uid)
+	if middleware.GetUserRole(ctx) == jwt.RoleMerchantOwner {
+		_ = h.svcCtx.ShopRBAC.EnsureOwnerRole(ctx, shopID, uid)
 	}
-	if !h.svcCtx.ShopRBAC.HasPerm(r.Context(), shopID, uid, "product:add") && !h.svcCtx.ShopRBAC.HasPerm(r.Context(), shopID, uid, "product:edit") {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "无权限: product:add"))
-		return
+	if !h.svcCtx.ShopRBAC.HasPerm(ctx, shopID, uid, "product:add") && !h.svcCtx.ShopRBAC.HasPerm(ctx, shopID, uid, "product:edit") {
+		return nil, xerr.New(http.StatusForbidden, "无权限: product:add")
 	}
 	var req types.MerchantProductSaveReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	p, err := h.logic.Save(r.Context(), shopID, uid, 0, req)
+	p, err := h.logic.Save(ctx, shopID, uid, 0, req)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, p)
+	return p, nil
 }
 
-func (h *ProductHandler) Update(w http.ResponseWriter, r *http.Request) {
-	if !h.requirePerm(w, r, "product:edit") {
-		return
+func (h *ProductHandler) Update(ctx context.Context, in appinput.CallInput) (any, error) {
+	if err := h.requirePerm(ctx, "product:edit"); err != nil {
+		return nil, err
 	}
-	shopID, uid, ok := h.shopUser(r)
+	shopID, uid, ok := h.shopUser(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
 	var req types.MerchantProductSaveReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	p, err := h.logic.Save(r.Context(), shopID, uid, id, req)
+	p, err := h.logic.Save(ctx, shopID, uid, id, req)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, p)
+	return p, nil
 }
 
-func (h *ProductHandler) Copy(w http.ResponseWriter, r *http.Request) {
-	shopID, uid, ok := h.shopUser(r)
+func (h *ProductHandler) Copy(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID, uid, ok := h.shopUser(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
-	p, err := h.logic.Copy(r.Context(), shopID, uid, id)
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
+	p, err := h.logic.Copy(ctx, shopID, uid, id)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, p)
+	return p, nil
 }
 
-func (h *ProductHandler) SetStatus(w http.ResponseWriter, r *http.Request) {
-	if !h.requirePerm(w, r, "product:status") {
-		return
+func (h *ProductHandler) SetStatus(ctx context.Context, in appinput.CallInput) (any, error) {
+	if err := h.requirePerm(ctx, "product:status"); err != nil {
+		return nil, err
 	}
-	shopID, uid, ok := h.shopUser(r)
+	shopID, uid, ok := h.shopUser(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
 	var body types.SetStatusReq
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &body); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	if err := h.logic.SetStatus(r.Context(), shopID, uid, id, body.Status); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.SetStatus(ctx, shopID, uid, id, body.Status); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *ProductHandler) Batch(w http.ResponseWriter, r *http.Request) {
-	if !h.requirePerm(w, r, "product:batch") {
-		return
+func (h *ProductHandler) Batch(ctx context.Context, in appinput.CallInput) (any, error) {
+	if err := h.requirePerm(ctx, "product:batch"); err != nil {
+		return nil, err
 	}
-	shopID, uid, ok := h.shopUser(r)
+	shopID, uid, ok := h.shopUser(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
 	var req types.BatchProductReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	job, err := h.logic.Batch(r.Context(), shopID, uid, req)
+	job, err := h.logic.Batch(ctx, shopID, uid, req)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, job)
+	return job, nil
 }
 
-func (h *ProductHandler) JobStatus(w http.ResponseWriter, r *http.Request) {
-	shopID, _, ok := h.shopUser(r)
+func (h *ProductHandler) JobStatus(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID, _, ok := h.shopUser(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
-	job, err := h.logic.Job(r.Context(), shopID, id)
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
+	job, err := h.logic.Job(ctx, shopID, id)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusNotFound, "任务不存在"))
-		return
+		return nil, xerr.New(http.StatusNotFound, "任务不存在")
 	}
-	httpx.OkJsonCtx(r.Context(), w, job)
+	return job, nil
 }
 
-func (h *ProductHandler) RecycleRestore(w http.ResponseWriter, r *http.Request) {
-	shopID, uid, ok := h.shopUser(r)
+func (h *ProductHandler) RecycleRestore(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID, uid, ok := h.shopUser(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
 	var req types.RecycleReq
-	_ = json.NewDecoder(r.Body).Decode(&req)
+	_ = appinput.BindBody(in, &req)
 	if err := h.logic.Restore(shopID, uid, req.ProductIDs); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *ProductHandler) RecycleDelete(w http.ResponseWriter, r *http.Request) {
-	shopID, uid, ok := h.shopUser(r)
+func (h *ProductHandler) RecycleDelete(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID, uid, ok := h.shopUser(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
 	var req types.RecycleReq
-	_ = json.NewDecoder(r.Body).Decode(&req)
-	if err := h.logic.PermanentDelete(r.Context(), shopID, uid, req.ProductIDs); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	_ = appinput.BindBody(in, &req)
+	if err := h.logic.PermanentDelete(ctx, shopID, uid, req.ProductIDs); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *ProductHandler) AdjustStock(w http.ResponseWriter, r *http.Request) {
-	shopID, _, ok := h.shopUser(r)
+func (h *ProductHandler) AdjustStock(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID, _, ok := h.shopUser(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
 	var req types.StockAdjustReq
-	_ = json.NewDecoder(r.Body).Decode(&req)
+	_ = appinput.BindBody(in, &req)
 	req.SkuID = id
-	if err := h.logic.AdjustStock(r.Context(), shopID, req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.AdjustStock(ctx, shopID, req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *ProductHandler) BatchStock(w http.ResponseWriter, r *http.Request) {
-	shopID, _, ok := h.shopUser(r)
+func (h *ProductHandler) BatchStock(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID, _, ok := h.shopUser(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
 	var req types.BatchStockReq
-	_ = json.NewDecoder(r.Body).Decode(&req)
-	if err := h.logic.BatchStock(r.Context(), shopID, req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	_ = appinput.BindBody(in, &req)
+	if err := h.logic.BatchStock(ctx, shopID, req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *ProductHandler) StockWarnings(w http.ResponseWriter, r *http.Request) {
-	shopID, _, ok := h.shopUser(r)
+func (h *ProductHandler) StockWarnings(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID, _, ok := h.shopUser(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	page, pageSize := middleware.ParsePage(r)
-	data, err := h.logic.StockWarnings(r.Context(), shopID, page, pageSize)
+	page, pageSize := in.Page()
+	data, err := h.logic.StockWarnings(ctx, shopID, page, pageSize)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, data)
+	return data, nil
 }
 
-func (h *ProductHandler) Upload(w http.ResponseWriter, r *http.Request) {
-	shopID, _, ok := h.shopUser(r)
+func (h *ProductHandler) Upload(ctx context.Context, in appinput.CallInput) (any, error) {
+	if in.Request == nil {
+		return nil, xerr.New(http.StatusBadRequest, "缺少上传请求")
+	}
+
+	shopID, _, ok := h.shopUser(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	if err := r.ParseMultipartForm(6 << 20); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "上传失败"))
-		return
+	if err := in.Request.ParseMultipartForm(6 << 20); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "上传失败")
 	}
-	file, hdr, err := r.FormFile("file")
+	file, hdr, err := in.Request.FormFile("file")
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "缺少文件"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "缺少文件")
 	}
 	defer file.Close()
 	data, err := io.ReadAll(file)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "读取失败"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "读取失败")
 	}
 	url, err := h.logic.SaveUpload(shopID, hdr.Filename, data)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, map[string]string{"url": url})
+	return map[string]string{"url": url}, nil
 }
 
-func (h *ProductHandler) Schedule(w http.ResponseWriter, r *http.Request) {
-	shopID, uid, ok := h.shopUser(r)
+func (h *ProductHandler) Schedule(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID, uid, ok := h.shopUser(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
 	var req types.ScheduleReq
-	_ = json.NewDecoder(r.Body).Decode(&req)
-	if err := h.logic.CreateSchedule(r.Context(), shopID, uid, id, req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	_ = appinput.BindBody(in, &req)
+	if err := h.logic.CreateSchedule(ctx, shopID, uid, id, req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *ProductHandler) CancelSchedule(w http.ResponseWriter, r *http.Request) {
-	shopID, _, ok := h.shopUser(r)
+func (h *ProductHandler) CancelSchedule(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID, _, ok := h.shopUser(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
-	_ = h.svcCtx.ProductAdmin.CancelSchedule(r.Context(), id, shopID)
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
+	_ = h.svcCtx.ProductAdmin.CancelSchedule(ctx, id, shopID)
+	return nil, nil
 }
 
-func (h *ProductHandler) OpLogs(w http.ResponseWriter, r *http.Request) {
-	shopID, _, ok := h.shopUser(r)
+func (h *ProductHandler) OpLogs(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID, _, ok := h.shopUser(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	pid, _ := strconv.ParseUint(r.URL.Query().Get("product_id"), 10, 64)
-	page, pageSize := middleware.ParsePage(r)
-	data, err := h.logic.OpLogs(r.Context(), shopID, pid, page, pageSize)
+	pid, _ := strconv.ParseUint(in.QueryGet("product_id"), 10, 64)
+	page, pageSize := in.Page()
+	data, err := h.logic.OpLogs(ctx, shopID, pid, page, pageSize)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, data)
+	return data, nil
 }
 
-func (h *ProductHandler) Export(w http.ResponseWriter, r *http.Request) {
-	shopID, _, ok := h.shopUser(r)
+func (h *ProductHandler) Export(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID, _, ok := h.shopUser(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	url, err := h.logic.ExportCSV(r.Context(), shopID)
+	url, err := h.logic.ExportCSV(ctx, shopID)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, map[string]string{"url": url})
+	return map[string]string{"url": url}, nil
 }
 
-func (h *ProductHandler) Import(w http.ResponseWriter, r *http.Request) {
-	shopID, uid, ok := h.shopUser(r)
-	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+func (h *ProductHandler) Import(ctx context.Context, in appinput.CallInput) (any, error) {
+	if in.Request == nil {
+		return nil, xerr.New(http.StatusBadRequest, "缺少上传请求")
 	}
-	_ = r.ParseMultipartForm(10 << 20)
-	file, _, err := r.FormFile("file")
+
+	shopID, uid, ok := h.shopUser(ctx)
+	if !ok {
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
+	}
+	_ = in.Request.ParseMultipartForm(10 << 20)
+	file, _, err := in.Request.FormFile("file")
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "缺少文件"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "缺少文件")
 	}
 	defer file.Close()
 	data, _ := io.ReadAll(file)
 	res, err := h.logic.ImportCSV(shopID, uid, string(data))
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, res)
+	return res, nil
 }
 
-func (h *ProductHandler) ListTags(w http.ResponseWriter, r *http.Request) {
-	shopID, _, ok := h.shopUser(r)
+func (h *ProductHandler) ListTags(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID, _, ok := h.shopUser(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	list, err := h.svcCtx.ProductAdmin.ListTags(r.Context(), shopID)
+	list, err := h.svcCtx.ProductAdmin.ListTags(ctx, shopID)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, list)
+	return list, nil
 }
 
-func (h *ProductHandler) SaveTag(w http.ResponseWriter, r *http.Request) {
-	shopID, _, ok := h.shopUser(r)
+func (h *ProductHandler) SaveTag(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID, _, ok := h.shopUser(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
 	var req types.TagReq
-	_ = json.NewDecoder(r.Body).Decode(&req)
-	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	_ = appinput.BindBody(in, &req)
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
 	tag := &model.ProductTag{ID: id, ShopID: shopID, Name: req.Name, Color: req.Color, Status: 1}
-	if err := h.svcCtx.ProductAdmin.SaveTag(r.Context(), tag); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.svcCtx.ProductAdmin.SaveTag(ctx, tag); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, tag)
+	return tag, nil
 }
 
-func (h *ProductHandler) DeleteTag(w http.ResponseWriter, r *http.Request) {
-	shopID, _, ok := h.shopUser(r)
+func (h *ProductHandler) DeleteTag(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID, _, ok := h.shopUser(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
-	_ = h.svcCtx.ProductAdmin.DeleteTag(r.Context(), id, shopID)
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
+	_ = h.svcCtx.ProductAdmin.DeleteTag(ctx, id, shopID)
+	return nil, nil
 }
 
-func (h *ProductHandler) ListAttrTemplates(w http.ResponseWriter, r *http.Request) {
-	shopID, _, ok := h.shopUser(r)
+func (h *ProductHandler) ListAttrTemplates(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID, _, ok := h.shopUser(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	list, err := h.svcCtx.ProductAdmin.ListAttrTemplates(r.Context(), shopID)
+	list, err := h.svcCtx.ProductAdmin.ListAttrTemplates(ctx, shopID)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, list)
+	return list, nil
 }
 
-func (h *ProductHandler) SaveAttrTemplate(w http.ResponseWriter, r *http.Request) {
-	shopID, _, ok := h.shopUser(r)
+func (h *ProductHandler) SaveAttrTemplate(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID, _, ok := h.shopUser(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
 	var req types.AttrTemplateReq
-	_ = json.NewDecoder(r.Body).Decode(&req)
-	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	_ = appinput.BindBody(in, &req)
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
 	t := &model.ProductAttrTemplate{ID: id, ShopID: shopID, Name: req.Name, AttrsJSON: req.AttrsJSON, Status: 1}
-	if err := h.svcCtx.ProductAdmin.SaveAttrTemplate(r.Context(), t); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.svcCtx.ProductAdmin.SaveAttrTemplate(ctx, t); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, t)
+	return t, nil
 }
 
-func (h *ProductHandler) DeleteAttrTemplate(w http.ResponseWriter, r *http.Request) {
-	shopID, _, ok := h.shopUser(r)
+func (h *ProductHandler) DeleteAttrTemplate(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID, _, ok := h.shopUser(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
-		return
+		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
-	_ = h.svcCtx.ProductAdmin.DeleteAttrTemplate(r.Context(), id, shopID)
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	id, _ := strconv.ParseUint(in.Path("id"), 10, 64)
+	_ = h.svcCtx.ProductAdmin.DeleteAttrTemplate(ctx, id, shopID)
+	return nil, nil
 }

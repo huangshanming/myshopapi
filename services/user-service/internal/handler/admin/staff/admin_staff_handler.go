@@ -18,7 +18,7 @@ func AssignAdminRolesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := staff.NewAssignAdminRolesLogic(svcCtx)
+		l := staff.NewAssignAdminRolesLogic(r.Context(), svcCtx)
 		err := l.AssignAdminRoles(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func CreateAdminHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := staff.NewCreateAdminLogic(svcCtx)
+		l := staff.NewCreateAdminLogic(r.Context(), svcCtx)
 		resp, err := l.CreateAdmin(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func GetAdminRolesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := staff.NewGetAdminRolesLogic(svcCtx)
+		l := staff.NewGetAdminRolesLogic(r.Context(), svcCtx)
 		resp, err := l.GetAdminRoles(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -72,7 +72,7 @@ func ListAdminsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := staff.NewListAdminsLogic(svcCtx)
+		l := staff.NewListAdminsLogic(r.Context(), svcCtx)
 		resp, err := l.ListAdmins(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -90,7 +90,7 @@ func ResetAdminPasswordHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := staff.NewResetAdminPasswordLogic(svcCtx)
+		l := staff.NewResetAdminPasswordLogic(r.Context(), svcCtx)
 		err := l.ResetAdminPassword(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

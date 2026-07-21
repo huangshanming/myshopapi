@@ -18,7 +18,7 @@ func AdminCreateSlotPackageHandler(svcCtx *svc.ServiceContext) http.HandlerFunc 
 			return
 		}
 
-		l := homepage.NewAdminCreateSlotPackageLogic(svcCtx)
+		l := homepage.NewAdminCreateSlotPackageLogic(r.Context(), svcCtx)
 		resp, err := l.AdminCreateSlotPackage(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func AdminGrantSlotHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := homepage.NewAdminGrantSlotLogic(svcCtx)
+		l := homepage.NewAdminGrantSlotLogic(r.Context(), svcCtx)
 		resp, err := l.AdminGrantSlot(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func AdminListSlotOrdersHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := homepage.NewAdminListSlotOrdersLogic(svcCtx)
+		l := homepage.NewAdminListSlotOrdersLogic(r.Context(), svcCtx)
 		resp, err := l.AdminListSlotOrders(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -72,7 +72,7 @@ func AdminListSlotPackagesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := homepage.NewAdminListSlotPackagesLogic(svcCtx)
+		l := homepage.NewAdminListSlotPackagesLogic(r.Context(), svcCtx)
 		resp, err := l.AdminListSlotPackages(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -90,7 +90,7 @@ func AdminListSlotSettingsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := homepage.NewAdminListSlotSettingsLogic(svcCtx)
+		l := homepage.NewAdminListSlotSettingsLogic(r.Context(), svcCtx)
 		resp, err := l.AdminListSlotSettings(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -108,7 +108,7 @@ func AdminUpdateSlotPackageHandler(svcCtx *svc.ServiceContext) http.HandlerFunc 
 			return
 		}
 
-		l := homepage.NewAdminUpdateSlotPackageLogic(svcCtx)
+		l := homepage.NewAdminUpdateSlotPackageLogic(r.Context(), svcCtx)
 		resp, err := l.AdminUpdateSlotPackage(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -126,7 +126,7 @@ func AdminUpdateSlotSettingsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc
 			return
 		}
 
-		l := homepage.NewAdminUpdateSlotSettingsLogic(svcCtx)
+		l := homepage.NewAdminUpdateSlotSettingsLogic(r.Context(), svcCtx)
 		resp, err := l.AdminUpdateSlotSettings(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

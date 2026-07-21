@@ -1,70 +1,59 @@
 package merchant
 
 import (
-	"encoding/json"
+	"context"
+	"mymall/pkg/appinput"
 	"net/http"
 	"strconv"
 
-	"github.com/zeromicro/go-zero/rest/httpx"
-
-	"mymall/pkg/httpserver"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	"mymall/services/merchant-service/internal/types"
 )
 
-func (h *ShopHandler) Apply(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *ShopHandler) Apply(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
-	var in types.ApplyReq
-	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	var req types.ApplyReq
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	app, err := h.logic.Apply(r.Context(), userID, in)
+	app, err := h.logic.Apply(ctx, userID, req)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, app)
+	return app, nil
 }
 
-func (h *ShopHandler) MyShops(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *ShopHandler) MyShops(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
-	shops, err := h.logic.MyShops(r.Context(), userID)
+	shops, err := h.logic.MyShops(ctx, userID)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, shops)
+	return shops, nil
 }
 
-func (h *ShopHandler) UpdateMyShop(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *ShopHandler) UpdateMyShop(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未授权"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
-	shopID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	shopID, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "店铺ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "店铺ID无效")
 	}
 	var req types.UpdateShopReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	if err := h.logic.UpdateMyShop(r.Context(), shopID, userID, req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, err.Error()))
-		return
+	if err := h.logic.UpdateMyShop(ctx, shopID, userID, req); err != nil {
+		return nil, xerr.New(http.StatusForbidden, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }

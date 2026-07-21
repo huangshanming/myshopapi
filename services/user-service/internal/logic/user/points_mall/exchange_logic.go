@@ -2,7 +2,7 @@ package points_mall
 
 import (
 	"context"
-	"mymall/pkg/httpinvoke"
+	"mymall/pkg/appinput"
 	huser "mymall/services/user-service/internal/app/user"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
@@ -15,20 +15,16 @@ type ExchangeLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewExchangeLogic(svcCtx *svc.ServiceContext) *ExchangeLogic {
+func NewExchangeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ExchangeLogic {
 	return &ExchangeLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
 func (l *ExchangeLogic) Exchange(ctx context.Context, req *types.ExchangeReq) (resp *types.AnyResp, err error) {
-	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/user/points-mall/exchange", nil, nil, req, huser.NewPointsOrderHandler(l.svcCtx).Exchange)
+	data, err := huser.NewPointsOrderHandler(l.svcCtx).Exchange(ctx, appinput.CallInput{Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

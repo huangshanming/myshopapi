@@ -2,10 +2,9 @@ package article
 
 import (
 	"context"
-	"fmt"
-	"net/url"
+	"mymall/pkg/appinput"
+	"net/http"
 
-	"mymall/pkg/httpinvoke"
 	hadmin "mymall/services/catalog-service/internal/content/app/admin"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,22 +17,16 @@ type AdminUploadArticleLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminUploadArticleLogic(svcCtx *svc.ServiceContext) *AdminUploadArticleLogic {
+func NewAdminUploadArticleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminUploadArticleLogic {
 	return &AdminUploadArticleLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *AdminUploadArticleLogic) AdminUploadArticle(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/admin/article-uploads", nil, nil, req, hadmin.NewArticleHandler(l.svcCtx).Upload)
+func (l *AdminUploadArticleLogic) AdminUploadArticle(ctx context.Context, r *http.Request) (resp *types.AnyResp, err error) {
+	data, err := hadmin.NewArticleHandler(l.svcCtx).Upload(ctx, appinput.CallInput{Request: r})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

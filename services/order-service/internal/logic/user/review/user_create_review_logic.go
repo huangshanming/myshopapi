@@ -3,9 +3,9 @@ package review
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	huser "mymall/services/order-service/internal/app/user"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
@@ -18,9 +18,9 @@ type UserCreateReviewLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewUserCreateReviewLogic(svcCtx *svc.ServiceContext) *UserCreateReviewLogic {
+func NewUserCreateReviewLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserCreateReviewLogic {
 	return &UserCreateReviewLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewUserCreateReviewLogic(svcCtx *svc.ServiceContext) *UserCreateReviewLogic
 func (l *UserCreateReviewLogic) UserCreateReview(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/orders/:id/reviews", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, req, huser.NewReviewHandler(l.svcCtx).Create)
+	data, err := huser.NewReviewHandler(l.svcCtx).Create(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

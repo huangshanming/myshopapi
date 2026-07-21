@@ -3,9 +3,9 @@ package product
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hadmin "mymall/services/catalog-service/internal/product/app/admin"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +18,9 @@ type AdminOffSaleProductLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminOffSaleProductLogic(svcCtx *svc.ServiceContext) *AdminOffSaleProductLogic {
+func NewAdminOffSaleProductLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminOffSaleProductLogic {
 	return &AdminOffSaleProductLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewAdminOffSaleProductLogic(svcCtx *svc.ServiceContext) *AdminOffSaleProduc
 func (l *AdminOffSaleProductLogic) AdminOffSaleProduct(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "PUT", "/api/v1/admin/products/:id/off_sale", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, req, hadmin.NewPlatformProductHandler(l.svcCtx).OffSale)
+	data, err := hadmin.NewPlatformProductHandler(l.svcCtx).OffSale(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

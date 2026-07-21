@@ -2,7 +2,7 @@ package wallet
 
 import (
 	"context"
-	"mymall/pkg/httpinvoke"
+	"mymall/pkg/appinput"
 	huser "mymall/services/user-service/internal/app/user"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
@@ -15,20 +15,16 @@ type UserGetWalletLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewUserGetWalletLogic(svcCtx *svc.ServiceContext) *UserGetWalletLogic {
+func NewUserGetWalletLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserGetWalletLogic {
 	return &UserGetWalletLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
 func (l *UserGetWalletLogic) UserGetWallet(ctx context.Context) (resp *types.AnyResp, err error) {
-	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/user/wallet", nil, nil, nil, huser.NewWalletHandler(l.svcCtx).UserGetWallet)
+	data, err := huser.NewWalletHandler(l.svcCtx).UserGetWallet(ctx, appinput.CallInput{})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

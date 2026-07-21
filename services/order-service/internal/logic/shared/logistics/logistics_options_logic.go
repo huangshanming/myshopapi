@@ -3,9 +3,9 @@ package logistics
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hadmin "mymall/services/order-service/internal/app/admin"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
@@ -18,9 +18,9 @@ type LogisticsOptionsLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewLogisticsOptionsLogic(svcCtx *svc.ServiceContext) *LogisticsOptionsLogic {
+func NewLogisticsOptionsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *LogisticsOptionsLogic {
 	return &LogisticsOptionsLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewLogisticsOptionsLogic(svcCtx *svc.ServiceContext) *LogisticsOptionsLogic
 func (l *LogisticsOptionsLogic) LogisticsOptions(ctx context.Context) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/logistics/options", nil, nil, nil, hadmin.NewLogisticsHandler(l.svcCtx).Options)
+	data, err := hadmin.NewLogisticsHandler(l.svcCtx).Options(ctx, appinput.CallInput{})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

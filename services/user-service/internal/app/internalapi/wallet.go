@@ -1,49 +1,42 @@
 package internalapi
 
 import (
-	"encoding/json"
+	"context"
+	"mymall/pkg/appinput"
 	"mymall/pkg/xerr"
 	"mymall/services/user-service/internal/types"
 	"net/http"
-
-	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func (h *WalletHandler) Freeze(w http.ResponseWriter, r *http.Request) {
+func (h *WalletHandler) Freeze(ctx context.Context, in appinput.CallInput) (any, error) {
 	var req types.WalletOrderOpReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	if err := h.logic.FreezeForOrder(r.Context(), req.UserID, req.Amount, req.OrderID, req.OrderNo); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.FreezeForOrder(ctx, req.UserID, req.Amount, req.OrderID, req.OrderNo); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *WalletHandler) Unfreeze(w http.ResponseWriter, r *http.Request) {
+func (h *WalletHandler) Unfreeze(ctx context.Context, in appinput.CallInput) (any, error) {
 	var req types.WalletOrderOpReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	if err := h.logic.UnfreezeOrder(r.Context(), req.UserID, req.Amount, req.OrderID, req.OrderNo); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.UnfreezeOrder(ctx, req.UserID, req.Amount, req.OrderID, req.OrderNo); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *WalletHandler) Settle(w http.ResponseWriter, r *http.Request) {
+func (h *WalletHandler) Settle(ctx context.Context, in appinput.CallInput) (any, error) {
 	var req types.WalletOrderOpReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	if err := h.logic.SettleOrder(r.Context(), req.UserID, req.Amount, req.OrderID, req.OrderNo); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.SettleOrder(ctx, req.UserID, req.Amount, req.OrderID, req.OrderNo); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }

@@ -18,7 +18,7 @@ func AdminCreateLogisticsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := logistics.NewAdminCreateLogisticsLogic(svcCtx)
+		l := logistics.NewAdminCreateLogisticsLogic(r.Context(), svcCtx)
 		resp, err := l.AdminCreateLogistics(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func AdminDeleteLogisticsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := logistics.NewAdminDeleteLogisticsLogic(svcCtx)
+		l := logistics.NewAdminDeleteLogisticsLogic(r.Context(), svcCtx)
 		resp, err := l.AdminDeleteLogistics(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func AdminListLogisticsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := logistics.NewAdminListLogisticsLogic(svcCtx)
+		l := logistics.NewAdminListLogisticsLogic(r.Context(), svcCtx)
 		resp, err := l.AdminListLogistics(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -72,7 +72,7 @@ func AdminUpdateLogisticsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := logistics.NewAdminUpdateLogisticsLogic(svcCtx)
+		l := logistics.NewAdminUpdateLogisticsLogic(r.Context(), svcCtx)
 		resp, err := l.AdminUpdateLogistics(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -90,7 +90,7 @@ func UpdateStatusHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := logistics.NewUpdateStatusLogic(svcCtx)
+		l := logistics.NewUpdateStatusLogic(r.Context(), svcCtx)
 		resp, err := l.UpdateStatus(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

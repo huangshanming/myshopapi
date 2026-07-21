@@ -2,10 +2,9 @@ package banner
 
 import (
 	"context"
-	"fmt"
-	"net/url"
+	"mymall/pkg/appinput"
+	"net/http"
 
-	"mymall/pkg/httpinvoke"
 	hadmin "mymall/services/catalog-service/internal/content/app/admin"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,22 +17,16 @@ type UploadBannerLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewUploadBannerLogic(svcCtx *svc.ServiceContext) *UploadBannerLogic {
+func NewUploadBannerLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UploadBannerLogic {
 	return &UploadBannerLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *UploadBannerLogic) UploadBanner(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
-	_ = fmt.Sprintf
-	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/admin/banners/upload", nil, nil, req, hadmin.NewArticleHandler(l.svcCtx).UploadBanner)
+func (l *UploadBannerLogic) UploadBanner(ctx context.Context, r *http.Request) (resp *types.AnyResp, err error) {
+	data, err := hadmin.NewArticleHandler(l.svcCtx).UploadBanner(ctx, appinput.CallInput{Request: r})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

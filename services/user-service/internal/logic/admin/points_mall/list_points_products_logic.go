@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"mymall/pkg/httpinvoke"
+	"mymall/pkg/appinput"
 	hadmin "mymall/services/user-service/internal/app/admin"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
@@ -18,23 +18,24 @@ type ListPointsProductsLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewListPointsProductsLogic(svcCtx *svc.ServiceContext) *ListPointsProductsLogic {
+func NewListPointsProductsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListPointsProductsLogic {
 	return &ListPointsProductsLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
 func (l *ListPointsProductsLogic) ListPointsProducts(ctx context.Context, req *types.ListPointsProductsReq) (resp *types.PageListResp, err error) {
-	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/admin/points-products", nil, url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}, "status": {req.Status}, "keyword": {req.Keyword}}, nil, hadmin.NewPointsProductHandler(l.svcCtx).List)
+	data, err := hadmin.NewPointsProductHandler(l.svcCtx).List(ctx, appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}, "status": {req.Status}, "keyword": {req.Keyword}}})
 	if err != nil {
 		return nil, err
 	}
+	b, _ := json.Marshal(data)
 	var out types.PageListResp
-	if err := httpinvoke.Decode(raw, &out); err != nil {
+	if err := json.Unmarshal(b, &out); err != nil {
 		// raw may already be {list,total}
 		var m map[string]json.RawMessage
-		if err2 := json.Unmarshal(raw, &m); err2 == nil {
+		if err2 := json.Unmarshal(b, &m); err2 == nil {
 			_ = json.Unmarshal(m["list"], &out.List)
 			_ = json.Unmarshal(m["total"], &out.Total)
 			return &out, nil

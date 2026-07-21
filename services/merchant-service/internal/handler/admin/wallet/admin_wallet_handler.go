@@ -18,7 +18,7 @@ func AdminAdjustWalletHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := wallet.NewAdminAdjustWalletLogic(svcCtx)
+		l := wallet.NewAdminAdjustWalletLogic(r.Context(), svcCtx)
 		resp, err := l.AdminAdjustWallet(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func AdminGetWalletHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := wallet.NewAdminGetWalletLogic(svcCtx)
+		l := wallet.NewAdminGetWalletLogic(r.Context(), svcCtx)
 		resp, err := l.AdminGetWallet(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func AdminWalletLogsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := wallet.NewAdminWalletLogsLogic(svcCtx)
+		l := wallet.NewAdminWalletLogsLogic(r.Context(), svcCtx)
 		resp, err := l.AdminWalletLogs(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

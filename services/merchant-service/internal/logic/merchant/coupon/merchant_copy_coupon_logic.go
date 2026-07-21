@@ -3,12 +3,12 @@ package coupon
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
+	hmerchant "mymall/services/merchant-service/internal/app/merchant"
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
-	hmerchant "mymall/services/merchant-service/internal/app/merchant"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -18,9 +18,9 @@ type MerchantCopyCouponLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewMerchantCopyCouponLogic(svcCtx *svc.ServiceContext) *MerchantCopyCouponLogic {
+func NewMerchantCopyCouponLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantCopyCouponLogic {
 	return &MerchantCopyCouponLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewMerchantCopyCouponLogic(svcCtx *svc.ServiceContext) *MerchantCopyCouponL
 func (l *MerchantCopyCouponLogic) MerchantCopyCoupon(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/merchant/coupons/:id/copy", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, req, hmerchant.NewCouponHandler(l.svcCtx).MerchantCopyCoupon)
+	data, err := hmerchant.NewCouponHandler(l.svcCtx).MerchantCopyCoupon(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

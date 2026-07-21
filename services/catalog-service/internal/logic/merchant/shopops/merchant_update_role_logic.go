@@ -3,9 +3,9 @@ package shopops
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hhandler "mymall/services/catalog-service/internal/shopops/handler"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +18,9 @@ type MerchantUpdateRoleLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewMerchantUpdateRoleLogic(svcCtx *svc.ServiceContext) *MerchantUpdateRoleLogic {
+func NewMerchantUpdateRoleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantUpdateRoleLogic {
 	return &MerchantUpdateRoleLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewMerchantUpdateRoleLogic(svcCtx *svc.ServiceContext) *MerchantUpdateRoleL
 func (l *MerchantUpdateRoleLogic) MerchantUpdateRole(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "PUT", "/api/v1/merchant/shop/roles/:id", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, req, hhandler.NewShopOpsHandler(l.svcCtx).SaveRole)
+	data, err := hhandler.NewShopOpsHandler(l.svcCtx).SaveRole(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

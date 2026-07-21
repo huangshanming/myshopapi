@@ -1,7 +1,6 @@
 package public
 
 import (
-
 	"mymall/services/merchant-service/internal/biz"
 	"mymall/services/merchant-service/internal/svc"
 )

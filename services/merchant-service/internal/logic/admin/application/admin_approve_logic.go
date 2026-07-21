@@ -3,12 +3,12 @@ package application
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
+	hadmin "mymall/services/merchant-service/internal/app/admin"
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
-	hadmin "mymall/services/merchant-service/internal/app/admin"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -18,9 +18,9 @@ type AdminApproveLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminApproveLogic(svcCtx *svc.ServiceContext) *AdminApproveLogic {
+func NewAdminApproveLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminApproveLogic {
 	return &AdminApproveLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewAdminApproveLogic(svcCtx *svc.ServiceContext) *AdminApproveLogic {
 func (l *AdminApproveLogic) AdminApprove(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/admin/applications/:id/approve", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, req, hadmin.NewShopHandler(l.svcCtx).AdminApprove)
+	data, err := hadmin.NewShopHandler(l.svcCtx).AdminApprove(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

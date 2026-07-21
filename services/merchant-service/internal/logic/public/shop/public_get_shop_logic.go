@@ -3,12 +3,12 @@ package shop
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
+	hpublic "mymall/services/merchant-service/internal/app/public"
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
-	hpublic "mymall/services/merchant-service/internal/app/public"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -18,9 +18,9 @@ type PublicGetShopLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewPublicGetShopLogic(svcCtx *svc.ServiceContext) *PublicGetShopLogic {
+func NewPublicGetShopLogic(ctx context.Context, svcCtx *svc.ServiceContext) *PublicGetShopLogic {
 	return &PublicGetShopLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewPublicGetShopLogic(svcCtx *svc.ServiceContext) *PublicGetShopLogic {
 func (l *PublicGetShopLogic) PublicGetShop(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/shops/:id", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, nil, hpublic.NewShopHandler(l.svcCtx).PublicGetShop)
+	data, err := hpublic.NewShopHandler(l.svcCtx).PublicGetShop(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

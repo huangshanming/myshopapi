@@ -1,67 +1,57 @@
 package user
 
 import (
-	"encoding/json"
+	"context"
+	"mymall/pkg/appinput"
 	"mymall/services/user-service/internal/biz"
 	"net/http"
 	"strconv"
 
-	"github.com/zeromicro/go-zero/rest/httpx"
-
-	"mymall/pkg/httpserver"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 )
 
-func (h *PointsOrderHandler) Exchange(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *PointsOrderHandler) Exchange(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
 	var req biz.ExchangeReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	o, err := h.logic.UserExchange(r.Context(), userID, req)
+	o, err := h.logic.UserExchange(ctx, userID, req)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, o)
+	return o, nil
 }
 
-func (h *PointsOrderHandler) List(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *PointsOrderHandler) List(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	page, pageSize := middleware.ParsePage(r)
-	list, total, err := h.logic.UserList(r.Context(), userID, page, pageSize)
+	page, pageSize := in.Page()
+	list, total, err := h.logic.UserList(ctx, userID, page, pageSize)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"list": list, "total": total})
+	return map[string]interface{}{"list": list, "total": total}, nil
 }
 
-func (h *PointsOrderHandler) Detail(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *PointsOrderHandler) Detail(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	id, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	id, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil || id == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "订单ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "订单ID无效")
 	}
-	o, err := h.logic.UserGet(r.Context(), userID, id)
+	o, err := h.logic.UserGet(ctx, userID, id)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, o)
+	return o, nil
 }

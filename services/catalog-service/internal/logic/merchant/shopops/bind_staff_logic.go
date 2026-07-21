@@ -3,9 +3,9 @@ package shopops
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hhandler "mymall/services/catalog-service/internal/shopops/handler"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +18,9 @@ type BindStaffLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewBindStaffLogic(svcCtx *svc.ServiceContext) *BindStaffLogic {
+func NewBindStaffLogic(ctx context.Context, svcCtx *svc.ServiceContext) *BindStaffLogic {
 	return &BindStaffLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewBindStaffLogic(svcCtx *svc.ServiceContext) *BindStaffLogic {
 func (l *BindStaffLogic) BindStaff(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/merchant/shop/staff", nil, nil, req, hhandler.NewShopOpsHandler(l.svcCtx).BindStaff)
+	data, err := hhandler.NewShopOpsHandler(l.svcCtx).BindStaff(ctx, appinput.CallInput{Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

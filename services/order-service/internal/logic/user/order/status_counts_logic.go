@@ -3,9 +3,9 @@ package order
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	huser "mymall/services/order-service/internal/app/user"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
@@ -18,9 +18,9 @@ type StatusCountsLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewStatusCountsLogic(svcCtx *svc.ServiceContext) *StatusCountsLogic {
+func NewStatusCountsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *StatusCountsLogic {
 	return &StatusCountsLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewStatusCountsLogic(svcCtx *svc.ServiceContext) *StatusCountsLogic {
 func (l *StatusCountsLogic) StatusCounts(ctx context.Context) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/orders/status-counts", nil, nil, nil, huser.NewOrderHandler(l.svcCtx).StatusCounts)
+	data, err := huser.NewOrderHandler(l.svcCtx).StatusCounts(ctx, appinput.CallInput{})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

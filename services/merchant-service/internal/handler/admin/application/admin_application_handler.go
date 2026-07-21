@@ -18,7 +18,7 @@ func AdminApproveHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := application.NewAdminApproveLogic(svcCtx)
+		l := application.NewAdminApproveLogic(r.Context(), svcCtx)
 		resp, err := l.AdminApprove(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func AdminListApplicationsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := application.NewAdminListApplicationsLogic(svcCtx)
+		l := application.NewAdminListApplicationsLogic(r.Context(), svcCtx)
 		resp, err := l.AdminListApplications(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func AdminRejectHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := application.NewAdminRejectLogic(svcCtx)
+		l := application.NewAdminRejectLogic(r.Context(), svcCtx)
 		resp, err := l.AdminReject(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

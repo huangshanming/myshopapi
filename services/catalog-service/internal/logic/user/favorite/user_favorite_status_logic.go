@@ -3,9 +3,9 @@ package favorite
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	huser "mymall/services/catalog-service/internal/product/app/user"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +18,9 @@ type UserFavoriteStatusLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewUserFavoriteStatusLogic(svcCtx *svc.ServiceContext) *UserFavoriteStatusLogic {
+func NewUserFavoriteStatusLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserFavoriteStatusLogic {
 	return &UserFavoriteStatusLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewUserFavoriteStatusLogic(svcCtx *svc.ServiceContext) *UserFavoriteStatusL
 func (l *UserFavoriteStatusLogic) UserFavoriteStatus(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/products/:id/favorite", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, nil, huser.NewFavoriteHandler(l.svcCtx).Status)
+	data, err := huser.NewFavoriteHandler(l.svcCtx).Status(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

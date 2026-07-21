@@ -17,7 +17,7 @@ func InternalCreateNotificationHandler(svcCtx *svc.ServiceContext) http.HandlerF
 			return
 		}
 
-		l := notification.NewInternalCreateNotificationLogic(svcCtx)
+		l := notification.NewInternalCreateNotificationLogic(r.Context(), svcCtx)
 		resp, err := l.InternalCreateNotification(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

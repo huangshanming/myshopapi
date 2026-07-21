@@ -3,9 +3,9 @@ package order
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hadmin "mymall/services/order-service/internal/app/admin"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
@@ -18,9 +18,9 @@ type AdminRemarkLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminRemarkLogic(svcCtx *svc.ServiceContext) *AdminRemarkLogic {
+func NewAdminRemarkLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminRemarkLogic {
 	return &AdminRemarkLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewAdminRemarkLogic(svcCtx *svc.ServiceContext) *AdminRemarkLogic {
 func (l *AdminRemarkLogic) AdminRemark(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "PUT", "/api/v1/admin/orders/:id/remark", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, req, hadmin.NewOrderHandler(l.svcCtx).AdminRemark)
+	data, err := hadmin.NewOrderHandler(l.svcCtx).AdminRemark(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

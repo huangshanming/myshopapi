@@ -1,63 +1,54 @@
 package admin
 
 import (
-	"encoding/json"
+	"context"
+	"mymall/pkg/appinput"
 	"net/http"
 	"strconv"
 
-	"github.com/zeromicro/go-zero/rest/httpx"
-
-	"mymall/pkg/httpserver"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	"mymall/services/merchant-service/internal/types"
 )
 
-func (h *WalletHandler) AdminGetWallet(w http.ResponseWriter, r *http.Request) {
-	shopID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+func (h *WalletHandler) AdminGetWallet(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "店铺ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "店铺ID无效")
 	}
 	wallet, err := h.logic.GetWallet(shopID)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, wallet)
+	return wallet, nil
 }
 
-func (h *WalletHandler) AdminAdjustWallet(w http.ResponseWriter, r *http.Request) {
-	shopID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+func (h *WalletHandler) AdminAdjustWallet(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "店铺ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "店铺ID无效")
 	}
-	adminID, _ := middleware.GetUserID(r.Context())
+	adminID, _ := middleware.GetUserID(ctx)
 	var req types.WalletAdjustReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
 	wallet, err := h.logic.AdjustWallet(shopID, req.Field, req.Amount, req.Remark, adminID)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, wallet)
+	return wallet, nil
 }
 
-func (h *WalletHandler) AdminWalletLogs(w http.ResponseWriter, r *http.Request) {
-	shopID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+func (h *WalletHandler) AdminWalletLogs(ctx context.Context, in appinput.CallInput) (any, error) {
+	shopID, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "店铺ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "店铺ID无效")
 	}
-	p, ps := middleware.ParsePage(r)
+	p, ps := in.Page()
 	list, total, err := h.logic.ListWalletLogs(shopID, p, ps)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, types.PageListResp{Total: total, List: list})
+	return types.PageListResp{Total: total, List: list}, nil
 }

@@ -13,8 +13,8 @@ type MetricsLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewMetricsLogic(svcCtx *svc.ServiceContext) *MetricsLogic {
-	return &MetricsLogic{Logger: logx.WithContext(context.Background()), svcCtx: svcCtx}
+func NewMetricsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MetricsLogic {
+	return &MetricsLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
 func (l *MetricsLogic) Metrics(ctx context.Context) error {

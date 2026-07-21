@@ -12,7 +12,7 @@ import (
 
 func AdminListTasksHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := task.NewAdminListTasksLogic(svcCtx)
+		l := task.NewAdminListTasksLogic(r.Context(), svcCtx)
 		resp, err := l.AdminListTasks(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -30,7 +30,7 @@ func AdminUpdateTaskHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := task.NewAdminUpdateTaskLogic(svcCtx)
+		l := task.NewAdminUpdateTaskLogic(r.Context(), svcCtx)
 		resp, err := l.AdminUpdateTask(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

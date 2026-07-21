@@ -14,8 +14,8 @@ type ReadyzLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewReadyzLogic(svcCtx *svc.ServiceContext) *ReadyzLogic {
-	return &ReadyzLogic{Logger: logx.WithContext(context.Background()), svcCtx: svcCtx}
+func NewReadyzLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ReadyzLogic {
+	return &ReadyzLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
 func (l *ReadyzLogic) Readyz(ctx context.Context) (resp *types.EmptyResp, err error) {

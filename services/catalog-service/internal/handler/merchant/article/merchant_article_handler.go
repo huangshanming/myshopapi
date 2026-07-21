@@ -18,7 +18,7 @@ func MerchantCreateArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := article.NewMerchantCreateArticleLogic(svcCtx)
+		l := article.NewMerchantCreateArticleLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantCreateArticle(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func MerchantDeleteArticleCommentHandler(svcCtx *svc.ServiceContext) http.Handle
 			return
 		}
 
-		l := article.NewMerchantDeleteArticleCommentLogic(svcCtx)
+		l := article.NewMerchantDeleteArticleCommentLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantDeleteArticleComment(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func MerchantDeleteArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := article.NewMerchantDeleteArticleLogic(svcCtx)
+		l := article.NewMerchantDeleteArticleLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantDeleteArticle(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -72,7 +72,7 @@ func MerchantGetArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := article.NewMerchantGetArticleLogic(svcCtx)
+		l := article.NewMerchantGetArticleLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantGetArticle(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -90,7 +90,7 @@ func MerchantListArticleCategoriesHandler(svcCtx *svc.ServiceContext) http.Handl
 			return
 		}
 
-		l := article.NewMerchantListArticleCategoriesLogic(svcCtx)
+		l := article.NewMerchantListArticleCategoriesLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantListArticleCategories(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -108,7 +108,7 @@ func MerchantListArticleCommentsHandler(svcCtx *svc.ServiceContext) http.Handler
 			return
 		}
 
-		l := article.NewMerchantListArticleCommentsLogic(svcCtx)
+		l := article.NewMerchantListArticleCommentsLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantListArticleComments(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -126,7 +126,7 @@ func MerchantListArticlesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := article.NewMerchantListArticlesLogic(svcCtx)
+		l := article.NewMerchantListArticlesLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantListArticles(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -144,7 +144,7 @@ func MerchantPatchArticleCommentHandler(svcCtx *svc.ServiceContext) http.Handler
 			return
 		}
 
-		l := article.NewMerchantPatchArticleCommentLogic(svcCtx)
+		l := article.NewMerchantPatchArticleCommentLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantPatchArticleComment(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -162,7 +162,7 @@ func MerchantUpdateArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := article.NewMerchantUpdateArticleLogic(svcCtx)
+		l := article.NewMerchantUpdateArticleLogic(r.Context(), svcCtx)
 		resp, err := l.MerchantUpdateArticle(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -174,14 +174,9 @@ func MerchantUpdateArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func MerchantUploadArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.JSONBody
-		if err := httpx.Parse(r, &req); err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
-			return
-		}
 
-		l := article.NewMerchantUploadArticleLogic(svcCtx)
-		resp, err := l.MerchantUploadArticle(r.Context(), &req)
+		l := article.NewMerchantUploadArticleLogic(r.Context(), svcCtx)
+		resp, err := l.MerchantUploadArticle(r.Context(), r)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {

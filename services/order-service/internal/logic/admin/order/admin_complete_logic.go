@@ -3,9 +3,9 @@ package order
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hadmin "mymall/services/order-service/internal/app/admin"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
@@ -18,9 +18,9 @@ type AdminCompleteLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminCompleteLogic(svcCtx *svc.ServiceContext) *AdminCompleteLogic {
+func NewAdminCompleteLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminCompleteLogic {
 	return &AdminCompleteLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewAdminCompleteLogic(svcCtx *svc.ServiceContext) *AdminCompleteLogic {
 func (l *AdminCompleteLogic) AdminComplete(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "PUT", "/api/v1/admin/orders/:id/complete", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, req, hadmin.NewOrderHandler(l.svcCtx).AdminComplete)
+	data, err := hadmin.NewOrderHandler(l.svcCtx).AdminComplete(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

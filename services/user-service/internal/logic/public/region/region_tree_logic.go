@@ -2,7 +2,7 @@ package region
 
 import (
 	"context"
-	"mymall/pkg/httpinvoke"
+	"mymall/pkg/appinput"
 	hpublic "mymall/services/user-service/internal/app/public"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
@@ -15,20 +15,16 @@ type RegionTreeLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewRegionTreeLogic(svcCtx *svc.ServiceContext) *RegionTreeLogic {
+func NewRegionTreeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *RegionTreeLogic {
 	return &RegionTreeLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
 func (l *RegionTreeLogic) RegionTree(ctx context.Context) (resp *types.AnyResp, err error) {
-	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/regions/tree", nil, nil, nil, hpublic.NewRegionHandler(l.svcCtx).Tree)
+	data, err := hpublic.NewRegionHandler(l.svcCtx).Tree(ctx, appinput.CallInput{})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

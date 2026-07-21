@@ -12,7 +12,7 @@ import (
 
 func GetCategoryDetailHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := category.NewGetCategoryDetailLogic(svcCtx)
+		l := category.NewGetCategoryDetailLogic(r.Context(), svcCtx)
 		resp, err := l.GetCategoryDetail(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -30,7 +30,7 @@ func GetCategoryListHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := category.NewGetCategoryListLogic(svcCtx)
+		l := category.NewGetCategoryListLogic(r.Context(), svcCtx)
 		resp, err := l.GetCategoryList(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

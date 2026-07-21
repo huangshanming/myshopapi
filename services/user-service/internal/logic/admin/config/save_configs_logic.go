@@ -2,7 +2,7 @@ package config
 
 import (
 	"context"
-	"mymall/pkg/httpinvoke"
+	"mymall/pkg/appinput"
 	hadmin "mymall/services/user-service/internal/app/admin"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
@@ -15,15 +15,15 @@ type SaveConfigsLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewSaveConfigsLogic(svcCtx *svc.ServiceContext) *SaveConfigsLogic {
+func NewSaveConfigsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *SaveConfigsLogic {
 	return &SaveConfigsLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
 func (l *SaveConfigsLogic) SaveConfigs(ctx context.Context, req *types.ConfigBatchReq) error {
-	_, err := httpinvoke.Run(ctx, "PUT", "/api/v1/admin/configs", nil, nil, req, hadmin.NewAdminHandler(l.svcCtx).SaveConfigs)
+	_, err := hadmin.NewAdminHandler(l.svcCtx).SaveConfigs(ctx, appinput.CallInput{Body: req})
 	if err != nil {
 		return err
 	}

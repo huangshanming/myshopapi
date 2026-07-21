@@ -3,9 +3,9 @@ package product
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hmerchant "mymall/services/catalog-service/internal/product/app/merchant"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +18,9 @@ type MerchantBatchProductsLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewMerchantBatchProductsLogic(svcCtx *svc.ServiceContext) *MerchantBatchProductsLogic {
+func NewMerchantBatchProductsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantBatchProductsLogic {
 	return &MerchantBatchProductsLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewMerchantBatchProductsLogic(svcCtx *svc.ServiceContext) *MerchantBatchPro
 func (l *MerchantBatchProductsLogic) MerchantBatchProducts(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/merchant/products/batch", nil, nil, req, hmerchant.NewProductHandler(l.svcCtx).Batch)
+	data, err := hmerchant.NewProductHandler(l.svcCtx).Batch(ctx, appinput.CallInput{Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

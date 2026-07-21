@@ -18,7 +18,7 @@ func InternalFreezeWalletHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := wallet.NewInternalFreezeWalletLogic(svcCtx)
+		l := wallet.NewInternalFreezeWalletLogic(r.Context(), svcCtx)
 		err := l.InternalFreezeWallet(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func InternalSettleWalletHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := wallet.NewInternalSettleWalletLogic(svcCtx)
+		l := wallet.NewInternalSettleWalletLogic(r.Context(), svcCtx)
 		err := l.InternalSettleWallet(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func InternalUnfreezeWalletHandler(svcCtx *svc.ServiceContext) http.HandlerFunc 
 			return
 		}
 
-		l := wallet.NewInternalUnfreezeWalletLogic(svcCtx)
+		l := wallet.NewInternalUnfreezeWalletLogic(r.Context(), svcCtx)
 		err := l.InternalUnfreezeWallet(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

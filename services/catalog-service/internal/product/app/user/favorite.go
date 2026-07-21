@@ -1,119 +1,101 @@
 package user
 
 import (
-	"encoding/json"
-	"mymall/pkg/httpserver"
+	"context"
+	"mymall/pkg/appinput"
 	"mymall/pkg/middleware"
 	"mymall/pkg/xerr"
 	"net/http"
 	"strconv"
-
-	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func (h *FavoriteHandler) Add(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *FavoriteHandler) Add(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
 	var req struct {
 		ProductID uint64 `json:"product_id"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.ProductID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil || req.ProductID == 0 {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	if err := h.logic.Add(r.Context(), userID, req.ProductID); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.Add(ctx, userID, req.ProductID); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *FavoriteHandler) Remove(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *FavoriteHandler) Remove(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	productID, err := strconv.ParseUint(httpserver.PathParam(r, "product_id"), 10, 64)
+	productID, err := strconv.ParseUint(in.Path("product_id"), 10, 64)
 	if err != nil || productID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "商品ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "商品ID无效")
 	}
-	if err := h.logic.Remove(r.Context(), userID, productID); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.Remove(ctx, userID, productID); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *FavoriteHandler) RemoveBatch(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *FavoriteHandler) RemoveBatch(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
 	var req struct {
 		ProductIDs []uint64 `json:"product_ids"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || len(req.ProductIDs) == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
-		return
+	if err := appinput.BindBody(in, &req); err != nil || len(req.ProductIDs) == 0 {
+		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
-	if err := h.logic.RemoveBatch(r.Context(), userID, req.ProductIDs); err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
-		return
+	if err := h.logic.RemoveBatch(ctx, userID, req.ProductIDs); err != nil {
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, nil)
+	return nil, nil
 }
 
-func (h *FavoriteHandler) List(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *FavoriteHandler) List(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
-	list, total, err := h.logic.List(r.Context(), userID, page, pageSize)
+	page, _ := strconv.Atoi(in.QueryGet("page"))
+	pageSize, _ := strconv.Atoi(in.QueryGet("page_size"))
+	list, total, err := h.logic.List(ctx, userID, page, pageSize)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, map[string]interface{}{"list": list, "total": total})
+	return map[string]interface{}{"list": list, "total": total}, nil
 }
 
-func (h *FavoriteHandler) Status(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+func (h *FavoriteHandler) Status(ctx context.Context, in appinput.CallInput) (any, error) {
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusUnauthorized, "未登录"))
-		return
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	productID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+	productID, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil || productID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "商品ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "商品ID无效")
 	}
-	okFav, err := h.logic.IsFavorited(r.Context(), userID, productID)
+	okFav, err := h.logic.IsFavorited(ctx, userID, productID)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
-		return
+		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	httpx.OkJsonCtx(r.Context(), w, map[string]bool{"favorited": okFav})
+	return map[string]bool{"favorited": okFav}, nil
 }
 
-func (h *FavoriteHandler) Count(w http.ResponseWriter, r *http.Request) {
-	productID, err := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
+func (h *FavoriteHandler) Count(ctx context.Context, in appinput.CallInput) (any, error) {
+	productID, err := strconv.ParseUint(in.Path("id"), 10, 64)
 	if err != nil || productID == 0 {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "商品ID无效"))
-		return
+		return nil, xerr.New(http.StatusBadRequest, "商品ID无效")
 	}
 	n, err := h.logic.FavoriteCount(productID)
 	if err != nil {
-		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusNotFound, "商品不存在"))
-		return
+		return nil, xerr.New(http.StatusNotFound, "商品不存在")
 	}
-	httpx.OkJsonCtx(r.Context(), w, map[string]int64{"count": n})
+	return map[string]int64{"count": n}, nil
 }

@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"mymall/pkg/httpinvoke"
+	"mymall/pkg/appinput"
 	huser "mymall/services/user-service/internal/app/user"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
@@ -18,23 +18,24 @@ type UserWalletLogsLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewUserWalletLogsLogic(svcCtx *svc.ServiceContext) *UserWalletLogsLogic {
+func NewUserWalletLogsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserWalletLogsLogic {
 	return &UserWalletLogsLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
 
 func (l *UserWalletLogsLogic) UserWalletLogs(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
-	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/user/wallet/logs", nil, url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}, nil, huser.NewWalletHandler(l.svcCtx).UserWalletLogs)
+	data, err := huser.NewWalletHandler(l.svcCtx).UserWalletLogs(ctx, appinput.CallInput{Query: url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}})
 	if err != nil {
 		return nil, err
 	}
+	b, _ := json.Marshal(data)
 	var out types.PageListResp
-	if err := httpinvoke.Decode(raw, &out); err != nil {
+	if err := json.Unmarshal(b, &out); err != nil {
 		// raw may already be {list,total}
 		var m map[string]json.RawMessage
-		if err2 := json.Unmarshal(raw, &m); err2 == nil {
+		if err2 := json.Unmarshal(b, &m); err2 == nil {
 			_ = json.Unmarshal(m["list"], &out.List)
 			_ = json.Unmarshal(m["total"], &out.Total)
 			return &out, nil

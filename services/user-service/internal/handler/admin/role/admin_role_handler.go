@@ -18,7 +18,7 @@ func AssignRoleMenusHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := role.NewAssignRoleMenusLogic(svcCtx)
+		l := role.NewAssignRoleMenusLogic(r.Context(), svcCtx)
 		err := l.AssignRoleMenus(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func CreateRoleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := role.NewCreateRoleLogic(svcCtx)
+		l := role.NewCreateRoleLogic(r.Context(), svcCtx)
 		resp, err := l.CreateRole(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func DeleteRoleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := role.NewDeleteRoleLogic(svcCtx)
+		l := role.NewDeleteRoleLogic(r.Context(), svcCtx)
 		err := l.DeleteRole(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -72,7 +72,7 @@ func GetRoleMenusHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := role.NewGetRoleMenusLogic(svcCtx)
+		l := role.NewGetRoleMenusLogic(r.Context(), svcCtx)
 		resp, err := l.GetRoleMenus(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -84,7 +84,7 @@ func GetRoleMenusHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func ListRolesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := role.NewListRolesLogic(svcCtx)
+		l := role.NewListRolesLogic(r.Context(), svcCtx)
 		resp, err := l.ListRoles(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -102,7 +102,7 @@ func UpdateRoleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := role.NewUpdateRoleLogic(svcCtx)
+		l := role.NewUpdateRoleLogic(r.Context(), svcCtx)
 		err := l.UpdateRole(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

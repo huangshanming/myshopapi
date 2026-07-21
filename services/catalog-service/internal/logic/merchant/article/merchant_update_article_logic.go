@@ -3,9 +3,9 @@ package article
 import (
 	"context"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
 	hmerchant "mymall/services/catalog-service/internal/content/app/merchant"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/types"
@@ -18,9 +18,9 @@ type MerchantUpdateArticleLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewMerchantUpdateArticleLogic(svcCtx *svc.ServiceContext) *MerchantUpdateArticleLogic {
+func NewMerchantUpdateArticleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantUpdateArticleLogic {
 	return &MerchantUpdateArticleLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,12 +28,8 @@ func NewMerchantUpdateArticleLogic(svcCtx *svc.ServiceContext) *MerchantUpdateAr
 func (l *MerchantUpdateArticleLogic) MerchantUpdateArticle(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-	raw, err := httpinvoke.Run(ctx, "PUT", "/api/v1/merchant/articles/:id", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, req, hmerchant.NewArticleHandler(l.svcCtx).Update)
+	data, err := hmerchant.NewArticleHandler(l.svcCtx).Update(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}, Body: req})
 	if err != nil {
-		return nil, err
-	}
-	var data interface{}
-	if err := httpinvoke.Decode(raw, &data); err != nil {
 		return nil, err
 	}
 	return &types.AnyResp{Data: data}, nil

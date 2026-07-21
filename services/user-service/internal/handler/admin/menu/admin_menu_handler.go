@@ -18,7 +18,7 @@ func CreateMenuHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := menu.NewCreateMenuLogic(svcCtx)
+		l := menu.NewCreateMenuLogic(r.Context(), svcCtx)
 		resp, err := l.CreateMenu(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func DeleteMenuHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := menu.NewDeleteMenuLogic(svcCtx)
+		l := menu.NewDeleteMenuLogic(r.Context(), svcCtx)
 		err := l.DeleteMenu(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -48,7 +48,7 @@ func DeleteMenuHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func MenuTreeHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := menu.NewMenuTreeLogic(svcCtx)
+		l := menu.NewMenuTreeLogic(r.Context(), svcCtx)
 		resp, err := l.MenuTree(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -66,7 +66,7 @@ func UpdateMenuHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := menu.NewUpdateMenuLogic(svcCtx)
+		l := menu.NewUpdateMenuLogic(r.Context(), svcCtx)
 		err := l.UpdateMenu(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)

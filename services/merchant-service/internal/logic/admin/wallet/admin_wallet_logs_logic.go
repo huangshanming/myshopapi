@@ -2,13 +2,14 @@ package wallet
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"mymall/pkg/appinput"
 	"net/url"
 
-	"mymall/pkg/httpinvoke"
+	hadmin "mymall/services/merchant-service/internal/app/admin"
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
-	hadmin "mymall/services/merchant-service/internal/app/admin"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -18,9 +19,9 @@ type AdminWalletLogsLogic struct {
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminWalletLogsLogic(svcCtx *svc.ServiceContext) *AdminWalletLogsLogic {
+func NewAdminWalletLogsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminWalletLogsLogic {
 	return &AdminWalletLogsLogic{
-		Logger: logx.WithContext(context.Background()),
+		Logger: logx.WithContext(ctx),
 		svcCtx: svcCtx,
 	}
 }
@@ -28,14 +29,15 @@ func NewAdminWalletLogsLogic(svcCtx *svc.ServiceContext) *AdminWalletLogsLogic {
 func (l *AdminWalletLogsLogic) AdminWalletLogs(ctx context.Context, req *types.IdPathReq) (resp *types.PageListResp, err error) {
 	_ = fmt.Sprintf
 	_ = url.Values{}
-raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/admin/shops/:id/wallet/logs", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, nil, hadmin.NewWalletHandler(l.svcCtx).AdminWalletLogs)
+	data, err := hadmin.NewWalletHandler(l.svcCtx).AdminWalletLogs(ctx, appinput.CallInput{PathVars: map[string]string{"id": fmt.Sprintf("%d", req.Id)}})
 	if err != nil {
 		return nil, err
 	}
+	b, _ := json.Marshal(data)
 	var out types.PageListResp
-	if err := httpinvoke.Decode(raw, &out); err != nil {
+	if err := json.Unmarshal(b, &out); err != nil {
 		var list interface{}
-		if err2 := httpinvoke.Decode(raw, &list); err2 == nil {
+		if err2 := func() error { b,_:=json.Marshal(data); return json.Unmarshal(b, &list) }(); err2 == nil {
 			return &types.PageListResp{List: list}, nil
 		}
 		return nil, err

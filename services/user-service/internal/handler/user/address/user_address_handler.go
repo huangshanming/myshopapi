@@ -18,7 +18,7 @@ func SetDefaultHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := address.NewSetDefaultLogic(svcCtx)
+		l := address.NewSetDefaultLogic(r.Context(), svcCtx)
 		err := l.SetDefault(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -36,7 +36,7 @@ func UserCreateAddressHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := address.NewUserCreateAddressLogic(svcCtx)
+		l := address.NewUserCreateAddressLogic(r.Context(), svcCtx)
 		resp, err := l.UserCreateAddress(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -54,7 +54,7 @@ func UserDeleteAddressHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := address.NewUserDeleteAddressLogic(svcCtx)
+		l := address.NewUserDeleteAddressLogic(r.Context(), svcCtx)
 		err := l.UserDeleteAddress(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -66,7 +66,7 @@ func UserDeleteAddressHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 func UserListAddressesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := address.NewUserListAddressesLogic(svcCtx)
+		l := address.NewUserListAddressesLogic(r.Context(), svcCtx)
 		resp, err := l.UserListAddresses(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
@@ -84,7 +84,7 @@ func UserUpdateAddressHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := address.NewUserUpdateAddressLogic(svcCtx)
+		l := address.NewUserUpdateAddressLogic(r.Context(), svcCtx)
 		err := l.UserUpdateAddress(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
