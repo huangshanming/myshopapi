@@ -2,28 +2,39 @@ package seckill
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	"mymall/services/merchant-service/internal/svc"
+	"mymall/services/merchant-service/internal/types"
+	hmerchant "mymall/services/merchant-service/internal/app/merchant"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	hmerchant "mymall/services/merchant-service/internal/httpapi/merchant"
-	"mymall/services/merchant-service/internal/svc"
 )
 
 type MerchantSetSeckillAutoRenewLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewMerchantSetSeckillAutoRenewLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantSetSeckillAutoRenewLogic {
+func NewMerchantSetSeckillAutoRenewLogic(svcCtx *svc.ServiceContext) *MerchantSetSeckillAutoRenewLogic {
 	return &MerchantSetSeckillAutoRenewLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *MerchantSetSeckillAutoRenewLogic) MerchantSetSeckillAutoRenew(w http.ResponseWriter, r *http.Request) {
-	hmerchant.NewSeckillHandler(l.svcCtx).MerchantSetSeckillAutoRenew(w, r)
+func (l *MerchantSetSeckillAutoRenewLogic) MerchantSetSeckillAutoRenew(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+raw, err := httpinvoke.Run(ctx, "PUT", "/api/v1/merchant/seckill/entries/:id/auto-renew", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, req, hmerchant.NewSeckillHandler(l.svcCtx).MerchantSetSeckillAutoRenew)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

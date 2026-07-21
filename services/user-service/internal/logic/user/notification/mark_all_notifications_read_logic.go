@@ -2,28 +2,29 @@ package notification
 
 import (
 	"context"
-	"net/http"
+	"mymall/pkg/httpinvoke"
+	huser "mymall/services/user-service/internal/app/user"
+	"mymall/services/user-service/internal/svc"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	huser "mymall/services/user-service/internal/httpapi/user"
-	"mymall/services/user-service/internal/svc"
 )
 
 type MarkAllNotificationsReadLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewMarkAllNotificationsReadLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MarkAllNotificationsReadLogic {
+func NewMarkAllNotificationsReadLogic(svcCtx *svc.ServiceContext) *MarkAllNotificationsReadLogic {
 	return &MarkAllNotificationsReadLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *MarkAllNotificationsReadLogic) MarkAllNotificationsRead(w http.ResponseWriter, r *http.Request) {
-	huser.NewUserHandler(l.svcCtx).MarkAllNotificationsRead(w, r)
+func (l *MarkAllNotificationsReadLogic) MarkAllNotificationsRead(ctx context.Context) error {
+	_, err := httpinvoke.Run(ctx, "POST", "/api/v1/user/notifications/read-all", nil, nil, nil, huser.NewUserHandler(l.svcCtx).MarkAllNotificationsRead)
+	if err != nil {
+		return err
+	}
+	return nil
 }

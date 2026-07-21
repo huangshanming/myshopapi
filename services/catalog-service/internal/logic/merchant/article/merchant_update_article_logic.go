@@ -2,28 +2,39 @@ package article
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	hmerchant "mymall/services/catalog-service/internal/content/app/merchant"
+	"mymall/services/catalog-service/internal/svc"
+	"mymall/services/catalog-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	cmerchant "mymall/services/catalog-service/internal/content/httpapi/merchant"
-	"mymall/services/catalog-service/internal/svc"
 )
 
 type MerchantUpdateArticleLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewMerchantUpdateArticleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantUpdateArticleLogic {
+func NewMerchantUpdateArticleLogic(svcCtx *svc.ServiceContext) *MerchantUpdateArticleLogic {
 	return &MerchantUpdateArticleLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *MerchantUpdateArticleLogic) MerchantUpdateArticle(w http.ResponseWriter, r *http.Request) {
-	cmerchant.NewArticleHandler(l.svcCtx).Update(w, r)
+func (l *MerchantUpdateArticleLogic) MerchantUpdateArticle(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+	raw, err := httpinvoke.Run(ctx, "PUT", "/api/v1/merchant/articles/:id", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, req, hmerchant.NewArticleHandler(l.svcCtx).Update)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

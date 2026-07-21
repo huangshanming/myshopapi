@@ -2,28 +2,39 @@ package article
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	hpublic "mymall/services/catalog-service/internal/content/app/public"
+	"mymall/services/catalog-service/internal/svc"
+	"mymall/services/catalog-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	cpublic "mymall/services/catalog-service/internal/content/httpapi/public"
-	"mymall/services/catalog-service/internal/svc"
 )
 
 type UserArticleEngagementLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewUserArticleEngagementLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserArticleEngagementLogic {
+func NewUserArticleEngagementLogic(svcCtx *svc.ServiceContext) *UserArticleEngagementLogic {
 	return &UserArticleEngagementLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *UserArticleEngagementLogic) UserArticleEngagement(w http.ResponseWriter, r *http.Request) {
-	cpublic.NewArticleHandler(l.svcCtx).Status(w, r)
+func (l *UserArticleEngagementLogic) UserArticleEngagement(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/articles/:id/engagement", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, nil, hpublic.NewArticleHandler(l.svcCtx).Status)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

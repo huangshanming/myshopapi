@@ -2,28 +2,34 @@ package address
 
 import (
 	"context"
-	"net/http"
+	"mymall/pkg/httpinvoke"
+	huser "mymall/services/user-service/internal/app/user"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	huser "mymall/services/user-service/internal/httpapi/user"
-	"mymall/services/user-service/internal/svc"
 )
 
 type UserCreateAddressLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewUserCreateAddressLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserCreateAddressLogic {
+func NewUserCreateAddressLogic(svcCtx *svc.ServiceContext) *UserCreateAddressLogic {
 	return &UserCreateAddressLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *UserCreateAddressLogic) UserCreateAddress(w http.ResponseWriter, r *http.Request) {
-	huser.NewAddressHandler(l.svcCtx).Create(w, r)
+func (l *UserCreateAddressLogic) UserCreateAddress(ctx context.Context, req *types.AddressReq) (resp *types.AnyResp, err error) {
+	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/user/addresses", nil, nil, req, huser.NewAddressHandler(l.svcCtx).Create)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

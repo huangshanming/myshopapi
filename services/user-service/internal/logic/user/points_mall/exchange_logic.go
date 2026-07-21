@@ -2,28 +2,34 @@ package points_mall
 
 import (
 	"context"
-	"net/http"
+	"mymall/pkg/httpinvoke"
+	huser "mymall/services/user-service/internal/app/user"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	huser "mymall/services/user-service/internal/httpapi/user"
-	"mymall/services/user-service/internal/svc"
 )
 
 type ExchangeLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewExchangeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ExchangeLogic {
+func NewExchangeLogic(svcCtx *svc.ServiceContext) *ExchangeLogic {
 	return &ExchangeLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *ExchangeLogic) Exchange(w http.ResponseWriter, r *http.Request) {
-	huser.NewPointsOrderHandler(l.svcCtx).Exchange(w, r)
+func (l *ExchangeLogic) Exchange(ctx context.Context, req *types.ExchangeReq) (resp *types.AnyResp, err error) {
+	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/user/points-mall/exchange", nil, nil, req, huser.NewPointsOrderHandler(l.svcCtx).Exchange)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

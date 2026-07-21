@@ -2,34 +2,31 @@ package role
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"mymall/pkg/httpinvoke"
+	hadmin "mymall/services/user-service/internal/app/admin"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	pkgmw "mymall/pkg/middleware"
-	hadmin "mymall/services/user-service/internal/httpapi/admin"
-	"mymall/services/user-service/internal/svc"
 )
 
 type AssignRoleMenusLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewAssignRoleMenusLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AssignRoleMenusLogic {
+func NewAssignRoleMenusLogic(svcCtx *svc.ServiceContext) *AssignRoleMenusLogic {
 	return &AssignRoleMenusLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *AssignRoleMenusLogic) AssignRoleMenus(w http.ResponseWriter, r *http.Request) {
-	h := hadmin.NewAdminHandler(l.svcCtx).AssignRoleMenus
-	admin := hadmin.NewAdminHandler(l.svcCtx)
-	if code := "system:role:assign"; code != "" {
-		h = pkgmw.RequirePermission(admin, code)(h)
+func (l *AssignRoleMenusLogic) AssignRoleMenus(ctx context.Context, req *types.RoleMenusReq) error {
+	_, err := httpinvoke.Run(ctx, "PUT", "/api/v1/admin/roles/{Id}/menus", map[string]string{"id": fmt.Sprintf("%v", req.Id)}, nil, req, hadmin.NewAdminHandler(l.svcCtx).AssignRoleMenus)
+	if err != nil {
+		return err
 	}
-	h(w, r)
+	return nil
 }

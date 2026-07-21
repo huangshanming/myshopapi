@@ -2,28 +2,39 @@ package order
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	huser "mymall/services/order-service/internal/app/user"
+	"mymall/services/order-service/internal/svc"
+	"mymall/services/order-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	huser "mymall/services/order-service/internal/httpapi/user"
-	"mymall/services/order-service/internal/svc"
 )
 
 type CancelLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewCancelLogic(ctx context.Context, svcCtx *svc.ServiceContext) *CancelLogic {
+func NewCancelLogic(svcCtx *svc.ServiceContext) *CancelLogic {
 	return &CancelLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *CancelLogic) Cancel(w http.ResponseWriter, r *http.Request) {
-	huser.NewOrderHandler(l.svcCtx).Cancel(w, r)
+func (l *CancelLogic) Cancel(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+	raw, err := httpinvoke.Run(ctx, "PUT", "/api/v1/orders/:id/cancel", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, req, huser.NewOrderHandler(l.svcCtx).Cancel)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

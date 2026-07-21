@@ -2,28 +2,39 @@ package product
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	hmerchant "mymall/services/catalog-service/internal/product/app/merchant"
+	"mymall/services/catalog-service/internal/svc"
+	"mymall/services/catalog-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	pmerchant "mymall/services/catalog-service/internal/product/httpapi/merchant"
-	"mymall/services/catalog-service/internal/svc"
 )
 
 type StockWarningsLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewStockWarningsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *StockWarningsLogic {
+func NewStockWarningsLogic(svcCtx *svc.ServiceContext) *StockWarningsLogic {
 	return &StockWarningsLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *StockWarningsLogic) StockWarnings(w http.ResponseWriter, r *http.Request) {
-	pmerchant.NewProductHandler(l.svcCtx).StockWarnings(w, r)
+func (l *StockWarningsLogic) StockWarnings(ctx context.Context) (resp *types.AnyResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/merchant/stocks/warnings", nil, nil, nil, hmerchant.NewProductHandler(l.svcCtx).StockWarnings)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

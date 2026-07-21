@@ -2,28 +2,35 @@ package points_mall
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"mymall/pkg/httpinvoke"
+	hadmin "mymall/services/user-service/internal/app/admin"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	hadmin "mymall/services/user-service/internal/httpapi/admin"
-	"mymall/services/user-service/internal/svc"
 )
 
 type CompletePointsOrderLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewCompletePointsOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *CompletePointsOrderLogic {
+func NewCompletePointsOrderLogic(svcCtx *svc.ServiceContext) *CompletePointsOrderLogic {
 	return &CompletePointsOrderLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *CompletePointsOrderLogic) CompletePointsOrder(w http.ResponseWriter, r *http.Request) {
-	hadmin.NewPointsOrderHandler(l.svcCtx).Complete(w, r)
+func (l *CompletePointsOrderLogic) CompletePointsOrder(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/admin/points-orders/{Id}/complete", map[string]string{"id": fmt.Sprintf("%v", req.Id)}, nil, nil, hadmin.NewPointsOrderHandler(l.svcCtx).Complete)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

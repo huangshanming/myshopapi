@@ -3,34 +3,81 @@ package theme
 import (
 	"net/http"
 
+	"github.com/zeromicro/go-zero/rest/httpx"
+
 	"mymall/services/merchant-service/internal/logic/merchant/theme"
 	"mymall/services/merchant-service/internal/svc"
+	"mymall/services/merchant-service/internal/types"
 )
 
 func MerchantBuyThemeHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := theme.NewMerchantBuyThemeLogic(r.Context(), svcCtx)
-		l.MerchantBuyTheme(w, r)
+		var req types.JSONBody
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := theme.NewMerchantBuyThemeLogic(svcCtx)
+		resp, err := l.MerchantBuyTheme(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func MerchantListThemeOrdersHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := theme.NewMerchantListThemeOrdersLogic(r.Context(), svcCtx)
-		l.MerchantListThemeOrders(w, r)
+		var req types.PageReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := theme.NewMerchantListThemeOrdersLogic(svcCtx)
+		resp, err := l.MerchantListThemeOrders(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func MerchantListThemePackagesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := theme.NewMerchantListThemePackagesLogic(r.Context(), svcCtx)
-		l.MerchantListThemePackages(w, r)
+		var req types.PageReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := theme.NewMerchantListThemePackagesLogic(svcCtx)
+		resp, err := l.MerchantListThemePackages(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func MerchantListThemeSlotsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := theme.NewMerchantListThemeSlotsLogic(r.Context(), svcCtx)
-		l.MerchantListThemeSlots(w, r)
+		var req types.PageReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := theme.NewMerchantListThemeSlotsLogic(svcCtx)
+		resp, err := l.MerchantListThemeSlots(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }

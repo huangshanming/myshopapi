@@ -2,34 +2,35 @@ package staff
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"mymall/pkg/httpinvoke"
+	hadmin "mymall/services/user-service/internal/app/admin"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	pkgmw "mymall/pkg/middleware"
-	hadmin "mymall/services/user-service/internal/httpapi/admin"
-	"mymall/services/user-service/internal/svc"
 )
 
 type GetAdminRolesLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewGetAdminRolesLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetAdminRolesLogic {
+func NewGetAdminRolesLogic(svcCtx *svc.ServiceContext) *GetAdminRolesLogic {
 	return &GetAdminRolesLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *GetAdminRolesLogic) GetAdminRoles(w http.ResponseWriter, r *http.Request) {
-	h := hadmin.NewAdminHandler(l.svcCtx).AssignAdminRoles
-	admin := hadmin.NewAdminHandler(l.svcCtx)
-	if code := "system:admin:assign"; code != "" {
-		h = pkgmw.RequirePermission(admin, code)(h)
+func (l *GetAdminRolesLogic) GetAdminRoles(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/admin/admins/{Id}/roles", map[string]string{"id": fmt.Sprintf("%v", req.Id)}, nil, nil, hadmin.NewAdminHandler(l.svcCtx).GetAdminRoles)
+	if err != nil {
+		return nil, err
 	}
-	h(w, r)
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

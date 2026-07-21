@@ -2,28 +2,24 @@ package health
 
 import (
 	"context"
-	"net/http"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	"mymall/pkg/httpserver"
-	"mymall/services/user-service/internal/svc"
 )
 
 type HealthzLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewHealthzLogic(ctx context.Context, svcCtx *svc.ServiceContext) *HealthzLogic {
+func NewHealthzLogic(svcCtx *svc.ServiceContext) *HealthzLogic {
 	return &HealthzLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *HealthzLogic) Healthz(w http.ResponseWriter, r *http.Request) {
-	httpserver.Healthz("user-service")(w, r)
+func (l *HealthzLogic) Healthz(ctx context.Context) (resp *types.EmptyResp, err error) {
+	return &types.EmptyResp{}, nil
 }

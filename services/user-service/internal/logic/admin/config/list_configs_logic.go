@@ -2,34 +2,34 @@ package config
 
 import (
 	"context"
-	"net/http"
+	"mymall/pkg/httpinvoke"
+	hadmin "mymall/services/user-service/internal/app/admin"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	pkgmw "mymall/pkg/middleware"
-	hadmin "mymall/services/user-service/internal/httpapi/admin"
-	"mymall/services/user-service/internal/svc"
 )
 
 type ListConfigsLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewListConfigsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListConfigsLogic {
+func NewListConfigsLogic(svcCtx *svc.ServiceContext) *ListConfigsLogic {
 	return &ListConfigsLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *ListConfigsLogic) ListConfigs(w http.ResponseWriter, r *http.Request) {
-	h := hadmin.NewAdminHandler(l.svcCtx).SaveConfigs
-	admin := hadmin.NewAdminHandler(l.svcCtx)
-	if code := "system:config:edit"; code != "" {
-		h = pkgmw.RequirePermission(admin, code)(h)
+func (l *ListConfigsLogic) ListConfigs(ctx context.Context) (resp *types.PageListResp, err error) {
+	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/admin/configs", nil, nil, nil, hadmin.NewAdminHandler(l.svcCtx).ListConfigs)
+	if err != nil {
+		return nil, err
 	}
-	h(w, r)
+	var list interface{}
+	if err := httpinvoke.Decode(raw, &list); err != nil {
+		return nil, err
+	}
+	return &types.PageListResp{List: list}, nil
 }

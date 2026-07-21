@@ -2,28 +2,39 @@ package favorite
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	huser "mymall/services/catalog-service/internal/product/app/user"
+	"mymall/services/catalog-service/internal/svc"
+	"mymall/services/catalog-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	puser "mymall/services/catalog-service/internal/product/httpapi/user"
-	"mymall/services/catalog-service/internal/svc"
 )
 
 type UserAddFavoriteLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewUserAddFavoriteLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserAddFavoriteLogic {
+func NewUserAddFavoriteLogic(svcCtx *svc.ServiceContext) *UserAddFavoriteLogic {
 	return &UserAddFavoriteLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *UserAddFavoriteLogic) UserAddFavorite(w http.ResponseWriter, r *http.Request) {
-	puser.NewFavoriteHandler(l.svcCtx).Add(w, r)
+func (l *UserAddFavoriteLogic) UserAddFavorite(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/user/favorites", nil, nil, req, huser.NewFavoriteHandler(l.svcCtx).Add)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

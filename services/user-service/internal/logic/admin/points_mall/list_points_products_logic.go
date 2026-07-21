@@ -2,28 +2,44 @@ package points_mall
 
 import (
 	"context"
-	"net/http"
+	"encoding/json"
+	"fmt"
+	"mymall/pkg/httpinvoke"
+	hadmin "mymall/services/user-service/internal/app/admin"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
+	"net/url"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	hadmin "mymall/services/user-service/internal/httpapi/admin"
-	"mymall/services/user-service/internal/svc"
 )
 
 type ListPointsProductsLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewListPointsProductsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListPointsProductsLogic {
+func NewListPointsProductsLogic(svcCtx *svc.ServiceContext) *ListPointsProductsLogic {
 	return &ListPointsProductsLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *ListPointsProductsLogic) ListPointsProducts(w http.ResponseWriter, r *http.Request) {
-	hadmin.NewPointsProductHandler(l.svcCtx).List(w, r)
+func (l *ListPointsProductsLogic) ListPointsProducts(ctx context.Context, req *types.ListPointsProductsReq) (resp *types.PageListResp, err error) {
+	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/admin/points-products", nil, url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}, "status": {req.Status}, "keyword": {req.Keyword}}, nil, hadmin.NewPointsProductHandler(l.svcCtx).List)
+	if err != nil {
+		return nil, err
+	}
+	var out types.PageListResp
+	if err := httpinvoke.Decode(raw, &out); err != nil {
+		// raw may already be {list,total}
+		var m map[string]json.RawMessage
+		if err2 := json.Unmarshal(raw, &m); err2 == nil {
+			_ = json.Unmarshal(m["list"], &out.List)
+			_ = json.Unmarshal(m["total"], &out.Total)
+			return &out, nil
+		}
+		return nil, err
+	}
+	return &out, nil
 }

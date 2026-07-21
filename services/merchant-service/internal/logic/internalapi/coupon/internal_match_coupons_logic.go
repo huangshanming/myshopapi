@@ -2,28 +2,39 @@ package coupon
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	"mymall/services/merchant-service/internal/svc"
+	"mymall/services/merchant-service/internal/types"
+	hinternal "mymall/services/merchant-service/internal/app/internalapi"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	hinternal "mymall/services/merchant-service/internal/httpapi/internalapi"
-	"mymall/services/merchant-service/internal/svc"
 )
 
 type InternalMatchCouponsLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewInternalMatchCouponsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *InternalMatchCouponsLogic {
+func NewInternalMatchCouponsLogic(svcCtx *svc.ServiceContext) *InternalMatchCouponsLogic {
 	return &InternalMatchCouponsLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *InternalMatchCouponsLogic) InternalMatchCoupons(w http.ResponseWriter, r *http.Request) {
-	hinternal.NewCouponHandler(l.svcCtx).InternalMatchCoupons(w, r)
+func (l *InternalMatchCouponsLogic) InternalMatchCoupons(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/internal/coupons/match", nil, nil, req, hinternal.NewCouponHandler(l.svcCtx).InternalMatchCoupons)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

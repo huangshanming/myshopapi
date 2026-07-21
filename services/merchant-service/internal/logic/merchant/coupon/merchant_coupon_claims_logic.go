@@ -2,28 +2,39 @@ package coupon
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	"mymall/services/merchant-service/internal/svc"
+	"mymall/services/merchant-service/internal/types"
+	hmerchant "mymall/services/merchant-service/internal/app/merchant"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	hmerchant "mymall/services/merchant-service/internal/httpapi/merchant"
-	"mymall/services/merchant-service/internal/svc"
 )
 
 type MerchantCouponClaimsLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewMerchantCouponClaimsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantCouponClaimsLogic {
+func NewMerchantCouponClaimsLogic(svcCtx *svc.ServiceContext) *MerchantCouponClaimsLogic {
 	return &MerchantCouponClaimsLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *MerchantCouponClaimsLogic) MerchantCouponClaims(w http.ResponseWriter, r *http.Request) {
-	hmerchant.NewCouponHandler(l.svcCtx).MerchantCouponClaims(w, r)
+func (l *MerchantCouponClaimsLogic) MerchantCouponClaims(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/merchant/coupons/:id/claims", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, nil, hmerchant.NewCouponHandler(l.svcCtx).MerchantCouponClaims)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

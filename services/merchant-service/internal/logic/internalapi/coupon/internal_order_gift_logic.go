@@ -2,28 +2,39 @@ package coupon
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	"mymall/services/merchant-service/internal/svc"
+	"mymall/services/merchant-service/internal/types"
+	hinternal "mymall/services/merchant-service/internal/app/internalapi"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	hinternal "mymall/services/merchant-service/internal/httpapi/internalapi"
-	"mymall/services/merchant-service/internal/svc"
 )
 
 type InternalOrderGiftLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewInternalOrderGiftLogic(ctx context.Context, svcCtx *svc.ServiceContext) *InternalOrderGiftLogic {
+func NewInternalOrderGiftLogic(svcCtx *svc.ServiceContext) *InternalOrderGiftLogic {
 	return &InternalOrderGiftLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *InternalOrderGiftLogic) InternalOrderGift(w http.ResponseWriter, r *http.Request) {
-	hinternal.NewCouponHandler(l.svcCtx).InternalOrderGift(w, r)
+func (l *InternalOrderGiftLogic) InternalOrderGift(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/internal/coupons/order-gift", nil, nil, req, hinternal.NewCouponHandler(l.svcCtx).InternalOrderGift)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

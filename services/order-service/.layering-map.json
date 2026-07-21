@@ -1,0 +1,236 @@
+{
+  "AdminShip": {
+    "alias": "hadmin",
+    "import": "mymall/services/order-service/internal/app/admin",
+    "call": "hadmin.NewOrderHandler(l.svcCtx).AdminShip",
+    "method": "AdminShip"
+  },
+  "AdminAfterSales": {
+    "alias": "hadmin",
+    "import": "mymall/services/order-service/internal/app/admin",
+    "call": "hadmin.NewOrderHandler(l.svcCtx).AdminAfterSales",
+    "method": "AdminAfterSales"
+  },
+  "AdminDetail": {
+    "alias": "hadmin",
+    "import": "mymall/services/order-service/internal/app/admin",
+    "call": "hadmin.NewOrderHandler(l.svcCtx).AdminDetail",
+    "method": "AdminDetail"
+  },
+  "AdminHandleAfterSale": {
+    "alias": "hadmin",
+    "import": "mymall/services/order-service/internal/app/admin",
+    "call": "hadmin.NewOrderHandler(l.svcCtx).AdminHandleAfterSale",
+    "method": "AdminHandleAfterSale"
+  },
+  "AdminComplete": {
+    "alias": "hadmin",
+    "import": "mymall/services/order-service/internal/app/admin",
+    "call": "hadmin.NewOrderHandler(l.svcCtx).AdminComplete",
+    "method": "AdminComplete"
+  },
+  "AdminListOrders": {
+    "alias": "hadmin",
+    "import": "mymall/services/order-service/internal/app/admin",
+    "call": "hadmin.NewOrderHandler(l.svcCtx).AdminList",
+    "method": "AdminList"
+  },
+  "AdminRemark": {
+    "alias": "hadmin",
+    "import": "mymall/services/order-service/internal/app/admin",
+    "call": "hadmin.NewOrderHandler(l.svcCtx).AdminRemark",
+    "method": "AdminRemark"
+  },
+  "AdminDelete": {
+    "alias": "hadmin",
+    "import": "mymall/services/order-service/internal/app/admin",
+    "call": "hadmin.NewReviewHandler(l.svcCtx).AdminDelete",
+    "method": "AdminDelete"
+  },
+  "AdminListReviews": {
+    "alias": "hadmin",
+    "import": "mymall/services/order-service/internal/app/admin",
+    "call": "hadmin.NewReviewHandler(l.svcCtx).AdminList",
+    "method": "AdminList"
+  },
+  "AdminUpdateLogistics": {
+    "alias": "hadmin",
+    "import": "mymall/services/order-service/internal/app/admin",
+    "call": "hadmin.NewLogisticsHandler(l.svcCtx).Delete",
+    "method": "Delete"
+  },
+  "UpdateStatus": {
+    "alias": "hadmin",
+    "import": "mymall/services/order-service/internal/app/admin",
+    "call": "hadmin.NewLogisticsHandler(l.svcCtx).UpdateStatus",
+    "method": "UpdateStatus"
+  },
+  "AdminCreateLogistics": {
+    "alias": "hadmin",
+    "import": "mymall/services/order-service/internal/app/admin",
+    "call": "hadmin.NewLogisticsHandler(l.svcCtx).Create",
+    "method": "Create"
+  },
+  "AdminDeleteLogistics": {
+    "alias": "hadmin",
+    "import": "mymall/services/order-service/internal/app/admin",
+    "call": "hadmin.NewLogisticsHandler(l.svcCtx).Delete",
+    "method": "Delete"
+  },
+  "AdminListLogistics": {
+    "alias": "hadmin",
+    "import": "mymall/services/order-service/internal/app/admin",
+    "call": "hadmin.NewLogisticsHandler(l.svcCtx).Create",
+    "method": "Create"
+  },
+  "ConfirmReceive": {
+    "alias": "huser",
+    "import": "mymall/services/order-service/internal/app/user",
+    "call": "huser.NewOrderHandler(l.svcCtx).ConfirmReceive",
+    "method": "ConfirmReceive"
+  },
+  "UserGetOrder": {
+    "alias": "huser",
+    "import": "mymall/services/order-service/internal/app/user",
+    "call": "huser.NewOrderHandler(l.svcCtx).Detail",
+    "method": "Detail"
+  },
+  "UserListOrders": {
+    "alias": "huser",
+    "import": "mymall/services/order-service/internal/app/user",
+    "call": "huser.NewOrderHandler(l.svcCtx).List",
+    "method": "List"
+  },
+  "CreateAfterSale": {
+    "alias": "huser",
+    "import": "mymall/services/order-service/internal/app/user",
+    "call": "huser.NewOrderHandler(l.svcCtx).CreateAfterSale",
+    "method": "CreateAfterSale"
+  },
+  "StatusCounts": {
+    "alias": "huser",
+    "import": "mymall/services/order-service/internal/app/user",
+    "call": "huser.NewOrderHandler(l.svcCtx).StatusCounts",
+    "method": "StatusCounts"
+  },
+  "UserCreateOrder": {
+    "alias": "huser",
+    "import": "mymall/services/order-service/internal/app/user",
+    "call": "huser.NewOrderHandler(l.svcCtx).List",
+    "method": "List"
+  },
+  "Cancel": {
+    "alias": "huser",
+    "import": "mymall/services/order-service/internal/app/user",
+    "call": "huser.NewOrderHandler(l.svcCtx).Cancel",
+    "method": "Cancel"
+  },
+  "UserAfterSales": {
+    "alias": "huser",
+    "import": "mymall/services/order-service/internal/app/user",
+    "call": "huser.NewOrderHandler(l.svcCtx).UserAfterSales",
+    "method": "UserAfterSales"
+  },
+  "CouponPreview": {
+    "alias": "huser",
+    "import": "mymall/services/order-service/internal/app/user",
+    "call": "huser.NewOrderHandler(l.svcCtx).CouponPreview",
+    "method": "CouponPreview"
+  },
+  "UserUploadReview": {
+    "alias": "huser",
+    "import": "mymall/services/order-service/internal/app/user",
+    "call": "huser.NewReviewHandler(l.svcCtx).Upload",
+    "method": "Upload"
+  },
+  "Eligible": {
+    "alias": "huser",
+    "import": "mymall/services/order-service/internal/app/user",
+    "call": "huser.NewReviewHandler(l.svcCtx).Eligible",
+    "method": "Eligible"
+  },
+  "UserCreateReview": {
+    "alias": "huser",
+    "import": "mymall/services/order-service/internal/app/user",
+    "call": "huser.NewReviewHandler(l.svcCtx).Create",
+    "method": "Create"
+  },
+  "GetByOrder": {
+    "alias": "huser",
+    "import": "mymall/services/order-service/internal/app/user",
+    "call": "huser.NewReviewHandler(l.svcCtx).GetByOrder",
+    "method": "GetByOrder"
+  },
+  "LogisticsOptions": {
+    "alias": "hadmin",
+    "import": "mymall/services/order-service/internal/app/admin",
+    "call": "hadmin.NewLogisticsHandler(l.svcCtx).Options",
+    "method": "Options"
+  },
+  "PublicListProductReviews": {
+    "alias": "huser",
+    "import": "mymall/services/order-service/internal/app/user",
+    "call": "huser.NewReviewHandler(l.svcCtx).ProductList",
+    "method": "ProductList"
+  },
+  "MerchantComplete": {
+    "alias": "hmerchant",
+    "import": "mymall/services/order-service/internal/app/merchant",
+    "call": "hmerchant.NewOrderHandler(l.svcCtx).MerchantComplete",
+    "method": "MerchantComplete"
+  },
+  "MerchantAfterSales": {
+    "alias": "hmerchant",
+    "import": "mymall/services/order-service/internal/app/merchant",
+    "call": "hmerchant.NewOrderHandler(l.svcCtx).MerchantAfterSales",
+    "method": "MerchantAfterSales"
+  },
+  "MerchantShip": {
+    "alias": "hmerchant",
+    "import": "mymall/services/order-service/internal/app/merchant",
+    "call": "hmerchant.NewOrderHandler(l.svcCtx).MerchantShip",
+    "method": "MerchantShip"
+  },
+  "MerchantDetail": {
+    "alias": "hmerchant",
+    "import": "mymall/services/order-service/internal/app/merchant",
+    "call": "hmerchant.NewOrderHandler(l.svcCtx).MerchantDetail",
+    "method": "MerchantDetail"
+  },
+  "MerchantHandleAfterSale": {
+    "alias": "hmerchant",
+    "import": "mymall/services/order-service/internal/app/merchant",
+    "call": "hmerchant.NewOrderHandler(l.svcCtx).MerchantHandleAfterSale",
+    "method": "MerchantHandleAfterSale"
+  },
+  "MerchantListOrders": {
+    "alias": "hmerchant",
+    "import": "mymall/services/order-service/internal/app/merchant",
+    "call": "hmerchant.NewOrderHandler(l.svcCtx).MerchantList",
+    "method": "MerchantList"
+  },
+  "MerchantRemark": {
+    "alias": "hmerchant",
+    "import": "mymall/services/order-service/internal/app/merchant",
+    "call": "hmerchant.NewOrderHandler(l.svcCtx).MerchantRemark",
+    "method": "MerchantRemark"
+  },
+  "MerchantDelete": {
+    "alias": "hmerchant",
+    "import": "mymall/services/order-service/internal/app/merchant",
+    "call": "hmerchant.NewReviewHandler(l.svcCtx).MerchantDelete",
+    "method": "MerchantDelete"
+  },
+  "MerchantListReviews": {
+    "alias": "hmerchant",
+    "import": "mymall/services/order-service/internal/app/merchant",
+    "call": "hmerchant.NewReviewHandler(l.svcCtx).MerchantList",
+    "method": "MerchantList"
+  },
+  "MerchantReply": {
+    "alias": "hmerchant",
+    "import": "mymall/services/order-service/internal/app/merchant",
+    "call": "hmerchant.NewReviewHandler(l.svcCtx).MerchantReply",
+    "method": "MerchantReply"
+  }
+}

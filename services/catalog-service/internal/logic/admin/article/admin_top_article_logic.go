@@ -2,28 +2,39 @@ package article
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	hadmin "mymall/services/catalog-service/internal/content/app/admin"
+	"mymall/services/catalog-service/internal/svc"
+	"mymall/services/catalog-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	cadmin "mymall/services/catalog-service/internal/content/httpapi/admin"
-	"mymall/services/catalog-service/internal/svc"
 )
 
 type AdminTopArticleLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminTopArticleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminTopArticleLogic {
+func NewAdminTopArticleLogic(svcCtx *svc.ServiceContext) *AdminTopArticleLogic {
 	return &AdminTopArticleLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *AdminTopArticleLogic) AdminTopArticle(w http.ResponseWriter, r *http.Request) {
-	cadmin.NewArticleHandler(l.svcCtx).Top(w, r)
+func (l *AdminTopArticleLogic) AdminTopArticle(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/admin/articles/:id/top", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, req, hadmin.NewArticleHandler(l.svcCtx).Top)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

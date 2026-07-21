@@ -2,34 +2,35 @@ package user
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"mymall/pkg/httpinvoke"
+	hadmin "mymall/services/user-service/internal/app/admin"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	pkgmw "mymall/pkg/middleware"
-	hadmin "mymall/services/user-service/internal/httpapi/admin"
-	"mymall/services/user-service/internal/svc"
 )
 
 type AdminGetWalletLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminGetWalletLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminGetWalletLogic {
+func NewAdminGetWalletLogic(svcCtx *svc.ServiceContext) *AdminGetWalletLogic {
 	return &AdminGetWalletLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *AdminGetWalletLogic) AdminGetWallet(w http.ResponseWriter, r *http.Request) {
-	h := hadmin.NewWalletHandler(l.svcCtx).AdminGetWallet
-	admin := hadmin.NewAdminHandler(l.svcCtx)
-	if code := "system:user:wallet"; code != "" {
-		h = pkgmw.RequirePermission(admin, code)(h)
+func (l *AdminGetWalletLogic) AdminGetWallet(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/admin/users/{Id}/wallet", map[string]string{"id": fmt.Sprintf("%v", req.Id)}, nil, nil, hadmin.NewWalletHandler(l.svcCtx).AdminGetWallet)
+	if err != nil {
+		return nil, err
 	}
-	h(w, r)
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

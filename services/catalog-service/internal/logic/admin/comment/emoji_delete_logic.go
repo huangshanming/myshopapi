@@ -2,28 +2,39 @@ package comment
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	hadmin "mymall/services/catalog-service/internal/content/app/admin"
+	"mymall/services/catalog-service/internal/svc"
+	"mymall/services/catalog-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	cadmin "mymall/services/catalog-service/internal/content/httpapi/admin"
-	"mymall/services/catalog-service/internal/svc"
 )
 
 type EmojiDeleteLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewEmojiDeleteLogic(ctx context.Context, svcCtx *svc.ServiceContext) *EmojiDeleteLogic {
+func NewEmojiDeleteLogic(svcCtx *svc.ServiceContext) *EmojiDeleteLogic {
 	return &EmojiDeleteLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *EmojiDeleteLogic) EmojiDelete(w http.ResponseWriter, r *http.Request) {
-	cadmin.NewArticleHandler(l.svcCtx).EmojiDelete(w, r)
+func (l *EmojiDeleteLogic) EmojiDelete(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+	raw, err := httpinvoke.Run(ctx, "DELETE", "/api/v1/admin/comment-emojis/:id", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, nil, hadmin.NewArticleHandler(l.svcCtx).EmojiDelete)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

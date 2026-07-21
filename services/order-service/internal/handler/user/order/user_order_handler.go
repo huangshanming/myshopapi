@@ -3,69 +3,159 @@ package order
 import (
 	"net/http"
 
+	"github.com/zeromicro/go-zero/rest/httpx"
+
 	"mymall/services/order-service/internal/logic/user/order"
 	"mymall/services/order-service/internal/svc"
+	"mymall/services/order-service/internal/types"
 )
 
 func CancelHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := order.NewCancelLogic(r.Context(), svcCtx)
-		l.Cancel(w, r)
+		var req types.IdPathReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := order.NewCancelLogic(svcCtx)
+		resp, err := l.Cancel(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func ConfirmReceiveHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := order.NewConfirmReceiveLogic(r.Context(), svcCtx)
-		l.ConfirmReceive(w, r)
+		var req types.IdPathReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := order.NewConfirmReceiveLogic(svcCtx)
+		resp, err := l.ConfirmReceive(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func CouponPreviewHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := order.NewCouponPreviewLogic(r.Context(), svcCtx)
-		l.CouponPreview(w, r)
+		var req types.JSONBody
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := order.NewCouponPreviewLogic(svcCtx)
+		resp, err := l.CouponPreview(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func CreateAfterSaleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := order.NewCreateAfterSaleLogic(r.Context(), svcCtx)
-		l.CreateAfterSale(w, r)
+		var req types.IdPathReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := order.NewCreateAfterSaleLogic(svcCtx)
+		resp, err := l.CreateAfterSale(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func StatusCountsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := order.NewStatusCountsLogic(r.Context(), svcCtx)
-		l.StatusCounts(w, r)
+		l := order.NewStatusCountsLogic(svcCtx)
+		resp, err := l.StatusCounts(r.Context())
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func UserAfterSalesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := order.NewUserAfterSalesLogic(r.Context(), svcCtx)
-		l.UserAfterSales(w, r)
+		l := order.NewUserAfterSalesLogic(svcCtx)
+		resp, err := l.UserAfterSales(r.Context())
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func UserCreateOrderHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := order.NewUserCreateOrderLogic(r.Context(), svcCtx)
-		l.UserCreateOrder(w, r)
+		var req types.JSONBody
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := order.NewUserCreateOrderLogic(svcCtx)
+		resp, err := l.UserCreateOrder(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func UserGetOrderHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := order.NewUserGetOrderLogic(r.Context(), svcCtx)
-		l.UserGetOrder(w, r)
+		var req types.IdPathReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := order.NewUserGetOrderLogic(svcCtx)
+		resp, err := l.UserGetOrder(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func UserListOrdersHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := order.NewUserListOrdersLogic(r.Context(), svcCtx)
-		l.UserListOrders(w, r)
+		var req types.PageReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := order.NewUserListOrdersLogic(svcCtx)
+		resp, err := l.UserListOrders(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }

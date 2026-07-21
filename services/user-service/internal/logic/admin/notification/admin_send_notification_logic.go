@@ -2,34 +2,34 @@ package notification
 
 import (
 	"context"
-	"net/http"
+	"mymall/pkg/httpinvoke"
+	hadmin "mymall/services/user-service/internal/app/admin"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	pkgmw "mymall/pkg/middleware"
-	hadmin "mymall/services/user-service/internal/httpapi/admin"
-	"mymall/services/user-service/internal/svc"
 )
 
 type AdminSendNotificationLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminSendNotificationLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminSendNotificationLogic {
+func NewAdminSendNotificationLogic(svcCtx *svc.ServiceContext) *AdminSendNotificationLogic {
 	return &AdminSendNotificationLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *AdminSendNotificationLogic) AdminSendNotification(w http.ResponseWriter, r *http.Request) {
-	h := hadmin.NewAdminHandler(l.svcCtx).AdminSendNotification
-	admin := hadmin.NewAdminHandler(l.svcCtx)
-	if code := "business:message:send"; code != "" {
-		h = pkgmw.RequirePermission(admin, code)(h)
+func (l *AdminSendNotificationLogic) AdminSendNotification(ctx context.Context, req *types.AdminSendReq) (resp *types.AnyResp, err error) {
+	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/admin/notifications/send", nil, nil, req, hadmin.NewAdminHandler(l.svcCtx).AdminSendNotification)
+	if err != nil {
+		return nil, err
 	}
-	h(w, r)
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

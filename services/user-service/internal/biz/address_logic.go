@@ -11,15 +11,11 @@ import (
 )
 
 type AddressLogic struct {
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewAddressLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AddressLogic {
-	return &AddressLogic{
-		ctx:    ctx,
-		svcCtx: svcCtx,
-	}
+func NewAddressLogic(svcCtx *svc.ServiceContext) *AddressLogic {
+	return &AddressLogic{svcCtx: svcCtx}
 }
 
 func (l *AddressLogic) validate(req types.AddressReq) error {
@@ -41,21 +37,21 @@ func (l *AddressLogic) validate(req types.AddressReq) error {
 	return nil
 }
 
-func (l *AddressLogic) List(userID uint64) ([]model.UserAddress, error) {
+func (l *AddressLogic) List(ctx context.Context, userID uint64) ([]model.UserAddress, error) {
 	if userID == 0 {
 		return nil, errors.New("用户无效")
 	}
-	return l.svcCtx.Repo.ListAddresses(l.ctx, userID)
+	return l.svcCtx.Repo.ListAddresses(ctx, userID)
 }
 
-func (l *AddressLogic) Get(userID, id uint64) (*model.UserAddress, error) {
+func (l *AddressLogic) Get(ctx context.Context, userID, id uint64) (*model.UserAddress, error) {
 	if userID == 0 || id == 0 {
 		return nil, errors.New("参数无效")
 	}
-	return l.svcCtx.Repo.GetAddressByID(l.ctx, userID, id)
+	return l.svcCtx.Repo.GetAddressByID(ctx, userID, id)
 }
 
-func (l *AddressLogic) Create(userID uint64, req types.AddressReq) (*model.UserAddress, error) {
+func (l *AddressLogic) Create(ctx context.Context, userID uint64, req types.AddressReq) (*model.UserAddress, error) {
 	if userID == 0 {
 		return nil, errors.New("用户无效")
 	}
@@ -78,13 +74,13 @@ func (l *AddressLogic) Create(userID uint64, req types.AddressReq) (*model.UserA
 	if a.IsDefault != 1 {
 		a.IsDefault = 0
 	}
-	if err := l.svcCtx.Repo.CreateAddress(l.ctx, a); err != nil {
+	if err := l.svcCtx.Repo.CreateAddress(ctx, a); err != nil {
 		return nil, err
 	}
 	return a, nil
 }
 
-func (l *AddressLogic) Update(userID, id uint64, req types.AddressReq) error {
+func (l *AddressLogic) Update(ctx context.Context, userID, id uint64, req types.AddressReq) error {
 	if err := l.validate(req); err != nil {
 		return err
 	}
@@ -103,13 +99,13 @@ func (l *AddressLogic) Update(userID, id uint64, req types.AddressReq) error {
 	if a.IsDefault != 1 {
 		a.IsDefault = 0
 	}
-	return l.svcCtx.Repo.UpdateAddress(l.ctx, userID, id, a)
+	return l.svcCtx.Repo.UpdateAddress(ctx, userID, id, a)
 }
 
-func (l *AddressLogic) Delete(userID, id uint64) error {
-	return l.svcCtx.Repo.DeleteAddress(l.ctx, userID, id)
+func (l *AddressLogic) Delete(ctx context.Context, userID, id uint64) error {
+	return l.svcCtx.Repo.DeleteAddress(ctx, userID, id)
 }
 
-func (l *AddressLogic) SetDefault(userID, id uint64) error {
-	return l.svcCtx.Repo.SetDefaultAddress(l.ctx, userID, id)
+func (l *AddressLogic) SetDefault(ctx context.Context, userID, id uint64) error {
+	return l.svcCtx.Repo.SetDefaultAddress(ctx, userID, id)
 }

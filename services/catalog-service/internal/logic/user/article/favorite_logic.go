@@ -2,28 +2,39 @@ package article
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	hpublic "mymall/services/catalog-service/internal/content/app/public"
+	"mymall/services/catalog-service/internal/svc"
+	"mymall/services/catalog-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	cpublic "mymall/services/catalog-service/internal/content/httpapi/public"
-	"mymall/services/catalog-service/internal/svc"
 )
 
 type FavoriteLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewFavoriteLogic(ctx context.Context, svcCtx *svc.ServiceContext) *FavoriteLogic {
+func NewFavoriteLogic(svcCtx *svc.ServiceContext) *FavoriteLogic {
 	return &FavoriteLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *FavoriteLogic) Favorite(w http.ResponseWriter, r *http.Request) {
-	cpublic.NewArticleHandler(l.svcCtx).Favorite(w, r)
+func (l *FavoriteLogic) Favorite(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/articles/:id/favorite", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, req, hpublic.NewArticleHandler(l.svcCtx).Favorite)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

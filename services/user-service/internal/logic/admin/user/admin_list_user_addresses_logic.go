@@ -2,34 +2,35 @@ package user
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"mymall/pkg/httpinvoke"
+	hadmin "mymall/services/user-service/internal/app/admin"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	pkgmw "mymall/pkg/middleware"
-	hadmin "mymall/services/user-service/internal/httpapi/admin"
-	"mymall/services/user-service/internal/svc"
 )
 
 type AdminListUserAddressesLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminListUserAddressesLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminListUserAddressesLogic {
+func NewAdminListUserAddressesLogic(svcCtx *svc.ServiceContext) *AdminListUserAddressesLogic {
 	return &AdminListUserAddressesLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *AdminListUserAddressesLogic) AdminListUserAddresses(w http.ResponseWriter, r *http.Request) {
-	h := hadmin.NewAddressHandler(l.svcCtx).AdminList
-	admin := hadmin.NewAdminHandler(l.svcCtx)
-	if code := "system:user:list"; code != "" {
-		h = pkgmw.RequirePermission(admin, code)(h)
+func (l *AdminListUserAddressesLogic) AdminListUserAddresses(ctx context.Context, req *types.IdPathReq) (resp *types.PageListResp, err error) {
+	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/admin/users/{Id}/addresses", map[string]string{"id": fmt.Sprintf("%v", req.Id)}, nil, nil, hadmin.NewAddressHandler(l.svcCtx).AdminList)
+	if err != nil {
+		return nil, err
 	}
-	h(w, r)
+	var list interface{}
+	if err := httpinvoke.Decode(raw, &list); err != nil {
+		return nil, err
+	}
+	return &types.PageListResp{List: list}, nil
 }

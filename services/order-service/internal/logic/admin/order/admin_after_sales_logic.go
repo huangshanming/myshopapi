@@ -2,28 +2,39 @@ package order
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	hadmin "mymall/services/order-service/internal/app/admin"
+	"mymall/services/order-service/internal/svc"
+	"mymall/services/order-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	hadmin "mymall/services/order-service/internal/httpapi/admin"
-	"mymall/services/order-service/internal/svc"
 )
 
 type AdminAfterSalesLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminAfterSalesLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminAfterSalesLogic {
+func NewAdminAfterSalesLogic(svcCtx *svc.ServiceContext) *AdminAfterSalesLogic {
 	return &AdminAfterSalesLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *AdminAfterSalesLogic) AdminAfterSales(w http.ResponseWriter, r *http.Request) {
-	hadmin.NewOrderHandler(l.svcCtx).AdminAfterSales(w, r)
+func (l *AdminAfterSalesLogic) AdminAfterSales(ctx context.Context) (resp *types.AnyResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/admin/after-sales", nil, nil, nil, hadmin.NewOrderHandler(l.svcCtx).AdminAfterSales)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

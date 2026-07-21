@@ -20,15 +20,11 @@ import (
 )
 
 type OrderLogic struct {
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *OrderLogic {
-	return &OrderLogic{
-		ctx:    ctx,
-		svcCtx: svcCtx,
-	}
+func NewOrderLogic(svcCtx *svc.ServiceContext) *OrderLogic {
+	return &OrderLogic{svcCtx: svcCtx}
 }
 
 func orderPayAmount(o *model.Order) float64 {
@@ -364,19 +360,19 @@ func (l *OrderLogic) CreateOrder(ctx context.Context, userID uint64, addressID u
 	return order, nil
 }
 
-func (l *OrderLogic) ListOrders(userID uint64, page, pageSize int, status string) ([]model.Order, int64, error) {
-	orders, total, err := l.svcCtx.Repo.List(l.ctx, repository.OrderListFilter{
+func (l *OrderLogic) ListOrders(ctx context.Context, userID uint64, page, pageSize int, status string) ([]model.Order, int64, error) {
+	orders, total, err := l.svcCtx.Repo.List(ctx, repository.OrderListFilter{
 		UserID: userID, Page: page, PageSize: pageSize, Status: status,
 	})
 	if err != nil {
 		return nil, 0, err
 	}
-	l.svcCtx.Repo.EnrichOrders(l.ctx, orders)
+	l.svcCtx.Repo.EnrichOrders(ctx, orders)
 	return orders, total, nil
 }
 
-func (l *OrderLogic) UserOrderStatusCounts(userID uint64) (map[string]int64, error) {
-	rows, err := l.svcCtx.Repo.CountByUserStatus(l.ctx, userID)
+func (l *OrderLogic) UserOrderStatusCounts(ctx context.Context, userID uint64) (map[string]int64, error) {
+	rows, err := l.svcCtx.Repo.CountByUserStatus(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -393,7 +389,7 @@ func (l *OrderLogic) UserOrderStatusCounts(userID uint64) (map[string]int64, err
 	for _, row := range rows {
 		out[row.Status] = row.Count
 	}
-	n, err := l.svcCtx.Repo.CountOpenAfterSalesByUser(l.ctx, userID)
+	n, err := l.svcCtx.Repo.CountOpenAfterSalesByUser(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -401,18 +397,18 @@ func (l *OrderLogic) UserOrderStatusCounts(userID uint64) (map[string]int64, err
 	return out, nil
 }
 
-func (l *OrderLogic) ListUserAfterSales(userID uint64, page, pageSize int) ([]model.OrderAfterSale, int64, error) {
-	return l.svcCtx.Repo.ListAfterSales(l.ctx, repository.AfterSaleListFilter{
+func (l *OrderLogic) ListUserAfterSales(ctx context.Context, userID uint64, page, pageSize int) ([]model.OrderAfterSale, int64, error) {
+	return l.svcCtx.Repo.ListAfterSales(ctx, repository.AfterSaleListFilter{
 		UserID: userID, Page: page, PageSize: pageSize,
 	})
 }
 
-func (l *OrderLogic) GetOrder(userID, orderID uint64) (*model.Order, error) {
-	order, err := l.svcCtx.Repo.FindByID(l.ctx, orderID, userID)
+func (l *OrderLogic) GetOrder(ctx context.Context, userID, orderID uint64) (*model.Order, error) {
+	order, err := l.svcCtx.Repo.FindByID(ctx, orderID, userID)
 	if err != nil {
 		return nil, err
 	}
-	l.svcCtx.Repo.EnrichOrder(l.ctx, order)
+	l.svcCtx.Repo.EnrichOrder(ctx, order)
 	return order, nil
 }
 
@@ -471,42 +467,42 @@ func (l *OrderLogic) releaseStock(ctx context.Context, order *model.Order) error
 	return nil
 }
 
-func (l *OrderLogic) ListFiltered(f repository.OrderListFilter) ([]model.Order, int64, error) {
-	orders, total, err := l.svcCtx.Repo.List(l.ctx, f)
+func (l *OrderLogic) ListFiltered(ctx context.Context, f repository.OrderListFilter) ([]model.Order, int64, error) {
+	orders, total, err := l.svcCtx.Repo.List(ctx, f)
 	if err != nil {
 		return nil, 0, err
 	}
-	l.svcCtx.Repo.EnrichOrders(l.ctx, orders)
+	l.svcCtx.Repo.EnrichOrders(ctx, orders)
 	return orders, total, nil
 }
 
-func (l *OrderLogic) ListByShop(shopID uint64, page, pageSize int, status, orderNo string) ([]model.Order, int64, error) {
-	return l.ListFiltered(repository.OrderListFilter{
+func (l *OrderLogic) ListByShop(ctx context.Context, shopID uint64, page, pageSize int, status, orderNo string) ([]model.Order, int64, error) {
+	return l.ListFiltered(ctx, repository.OrderListFilter{
 		ShopID: shopID, Page: page, PageSize: pageSize, Status: status, OrderNo: orderNo,
 	})
 }
 
-func (l *OrderLogic) ListAll(shopID uint64, page, pageSize int, status, orderNo string) ([]model.Order, int64, error) {
-	return l.ListFiltered(repository.OrderListFilter{
+func (l *OrderLogic) ListAll(ctx context.Context, shopID uint64, page, pageSize int, status, orderNo string) ([]model.Order, int64, error) {
+	return l.ListFiltered(ctx, repository.OrderListFilter{
 		ShopID: shopID, Page: page, PageSize: pageSize, Status: status, OrderNo: orderNo,
 	})
 }
 
-func (l *OrderLogic) GetOrderByShop(shopID, orderID uint64) (*model.Order, error) {
-	order, err := l.svcCtx.Repo.FindByIDAndShop(l.ctx, orderID, shopID)
+func (l *OrderLogic) GetOrderByShop(ctx context.Context, shopID, orderID uint64) (*model.Order, error) {
+	order, err := l.svcCtx.Repo.FindByIDAndShop(ctx, orderID, shopID)
 	if err != nil {
 		return nil, err
 	}
-	l.svcCtx.Repo.EnrichOrder(l.ctx, order)
+	l.svcCtx.Repo.EnrichOrder(ctx, order)
 	return order, nil
 }
 
-func (l *OrderLogic) GetOrderAdmin(orderID uint64) (*model.Order, error) {
-	order, err := l.svcCtx.Repo.FindByIDAdmin(l.ctx, orderID)
+func (l *OrderLogic) GetOrderAdmin(ctx context.Context, orderID uint64) (*model.Order, error) {
+	order, err := l.svcCtx.Repo.FindByIDAdmin(ctx, orderID)
 	if err != nil {
 		return nil, err
 	}
-	l.svcCtx.Repo.EnrichOrder(l.ctx, order)
+	l.svcCtx.Repo.EnrichOrder(ctx, order)
 	return order, nil
 }
 
@@ -579,8 +575,8 @@ func (l *OrderLogic) redeemCoupon(ctx context.Context, order *model.Order) {
 	_ = l.svcCtx.MerchantHTTP.RedeemCoupon(ctx, order.UserCouponID, order.ID, order.DiscountAmount)
 }
 
-func (l *OrderLogic) UpdateRemark(id, shopID uint64, remark string) error {
-	if err := l.svcCtx.Repo.UpdateRemark(l.ctx, id, shopID, remark); err != nil {
+func (l *OrderLogic) UpdateRemark(ctx context.Context, id, shopID uint64, remark string) error {
+	if err := l.svcCtx.Repo.UpdateRemark(ctx, id, shopID, remark); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("订单不存在")
 		}
@@ -589,8 +585,8 @@ func (l *OrderLogic) UpdateRemark(id, shopID uint64, remark string) error {
 	return nil
 }
 
-func (l *OrderLogic) CreateAfterSale(userID, orderID uint64, req types.CreateAfterSaleReq) (*model.OrderAfterSale, error) {
-	order, err := l.svcCtx.Repo.FindByID(l.ctx, orderID, userID)
+func (l *OrderLogic) CreateAfterSale(ctx context.Context, userID, orderID uint64, req types.CreateAfterSaleReq) (*model.OrderAfterSale, error) {
+	order, err := l.svcCtx.Repo.FindByID(ctx, orderID, userID)
 	if err != nil {
 		return nil, errors.New("订单不存在")
 	}
@@ -599,7 +595,7 @@ func (l *OrderLogic) CreateAfterSale(userID, orderID uint64, req types.CreateAft
 	default:
 		return nil, errors.New("当前订单状态不可申请售后")
 	}
-	n, _ := l.svcCtx.Repo.CountOpenAfterSales(l.ctx, orderID)
+	n, _ := l.svcCtx.Repo.CountOpenAfterSales(ctx, orderID)
 	if n > 0 {
 		return nil, errors.New("已有进行中的售后单")
 	}
@@ -628,18 +624,18 @@ func (l *OrderLogic) CreateAfterSale(userID, orderID uint64, req types.CreateAft
 		Amount:  amount,
 		Status:  model.AfterSalePending,
 	}
-	if err := l.svcCtx.Repo.CreateAfterSale(l.ctx, as); err != nil {
+	if err := l.svcCtx.Repo.CreateAfterSale(ctx, as); err != nil {
 		return nil, err
 	}
 	return as, nil
 }
 
-func (l *OrderLogic) ListAfterSales(f repository.AfterSaleListFilter) ([]model.OrderAfterSale, int64, error) {
-	return l.svcCtx.Repo.ListAfterSales(l.ctx, f)
+func (l *OrderLogic) ListAfterSales(ctx context.Context, f repository.AfterSaleListFilter) ([]model.OrderAfterSale, int64, error) {
+	return l.svcCtx.Repo.ListAfterSales(ctx, f)
 }
 
-func (l *OrderLogic) ListAfterSalesByOrder(orderID uint64) ([]model.OrderAfterSale, error) {
-	return l.svcCtx.Repo.ListAfterSalesByOrder(l.ctx, orderID)
+func (l *OrderLogic) ListAfterSalesByOrder(ctx context.Context, orderID uint64) ([]model.OrderAfterSale, error) {
+	return l.svcCtx.Repo.ListAfterSalesByOrder(ctx, orderID)
 }
 
 func (l *OrderLogic) HandleAfterSale(ctx context.Context, id, shopID, handledBy uint64, action, adminRemark string) error {

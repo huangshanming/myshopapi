@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"net/http"
 	"strconv"
 
@@ -20,7 +19,7 @@ type NotificationHandler struct {
 }
 
 func NewNotificationHandler(svcCtx *svc.ServiceContext) *NotificationHandler {
-	return &NotificationHandler{svcCtx: svcCtx, logic: logic.NewNotificationLogic(context.Background(), svcCtx)}
+	return &NotificationHandler{svcCtx: svcCtx, logic: logic.NewNotificationLogic(svcCtx)}
 }
 
 func (h *NotificationHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -38,7 +37,7 @@ func (h *NotificationHandler) List(w http.ResponseWriter, r *http.Request) {
 		}
 		f.IsRead = &v
 	}
-	data, err := h.logic.List(f)
+	data, err := h.logic.List(r.Context(), f)
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
 		return
@@ -52,7 +51,7 @@ func (h *NotificationHandler) UnreadCount(w http.ResponseWriter, r *http.Request
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
 		return
 	}
-	data, err := h.logic.UnreadCount(shopID)
+	data, err := h.logic.UnreadCount(r.Context(), shopID)
 	if err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusInternalServerError, err.Error()))
 		return
@@ -67,7 +66,7 @@ func (h *NotificationHandler) MarkRead(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id, _ := strconv.ParseUint(httpserver.PathParam(r, "id"), 10, 64)
-	if err := h.logic.MarkRead(id, shopID); err != nil {
+	if err := h.logic.MarkRead(r.Context(), id, shopID); err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
 		return
 	}
@@ -80,7 +79,7 @@ func (h *NotificationHandler) MarkAllRead(w http.ResponseWriter, r *http.Request
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusForbidden, "缺少店铺上下文"))
 		return
 	}
-	if err := h.logic.MarkAllRead(shopID); err != nil {
+	if err := h.logic.MarkAllRead(r.Context(), shopID); err != nil {
 		httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, err.Error()))
 		return
 	}

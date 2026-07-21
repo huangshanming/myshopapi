@@ -2,34 +2,35 @@ package user
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"mymall/pkg/httpinvoke"
+	hadmin "mymall/services/user-service/internal/app/admin"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	pkgmw "mymall/pkg/middleware"
-	hadmin "mymall/services/user-service/internal/httpapi/admin"
-	"mymall/services/user-service/internal/svc"
 )
 
 type AdminAdjustWalletLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminAdjustWalletLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminAdjustWalletLogic {
+func NewAdminAdjustWalletLogic(svcCtx *svc.ServiceContext) *AdminAdjustWalletLogic {
 	return &AdminAdjustWalletLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *AdminAdjustWalletLogic) AdminAdjustWallet(w http.ResponseWriter, r *http.Request) {
-	h := hadmin.NewWalletHandler(l.svcCtx).AdminAdjustWallet
-	admin := hadmin.NewAdminHandler(l.svcCtx)
-	if code := "system:user:wallet"; code != "" {
-		h = pkgmw.RequirePermission(admin, code)(h)
+func (l *AdminAdjustWalletLogic) AdminAdjustWallet(ctx context.Context, req *types.WalletAdjustReq) (resp *types.AnyResp, err error) {
+	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/admin/users/{Id}/wallet/adjust", map[string]string{"id": fmt.Sprintf("%v", req.Id)}, nil, req, hadmin.NewWalletHandler(l.svcCtx).AdminAdjustWallet)
+	if err != nil {
+		return nil, err
 	}
-	h(w, r)
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

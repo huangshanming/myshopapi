@@ -21,15 +21,11 @@ import (
 )
 
 type ArticleLogic struct {
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewArticleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ArticleLogic {
-	return &ArticleLogic{
-		ctx:    ctx,
-		svcCtx: svcCtx,
-	}
+func NewArticleLogic(svcCtx *svc.ServiceContext) *ArticleLogic {
+	return &ArticleLogic{svcCtx: svcCtx}
 }
 
 func parseScheduleAt(s string) (*common.LocalTime, error) {
@@ -54,33 +50,33 @@ func (l *ArticleLogic) resolvePublishStatus(scheduleAt *common.LocalTime) (statu
 	return model.ArticlePublished, &pub
 }
 
-func (l *ArticleLogic) List(f repository.ArticleListFilter) (map[string]interface{}, error) {
-	list, total, err := l.svcCtx.Articles.List(l.ctx, f)
+func (l *ArticleLogic) List(ctx context.Context, f repository.ArticleListFilter) (map[string]interface{}, error) {
+	list, total, err := l.svcCtx.Articles.List(ctx, f)
 	if err != nil {
 		return nil, err
 	}
 	return map[string]interface{}{"list": list, "total": total}, nil
 }
 
-func (l *ArticleLogic) Detail(id, shopID uint64) (map[string]interface{}, error) {
+func (l *ArticleLogic) Detail(ctx context.Context, id, shopID uint64) (map[string]interface{}, error) {
 	var (
 		a   *model.CommunityArticle
 		err error
 	)
 	if shopID > 0 {
-		a, err = l.svcCtx.Articles.GetByIDShop(l.ctx, id, shopID)
+		a, err = l.svcCtx.Articles.GetByIDShop(ctx, id, shopID)
 	} else {
-		a, err = l.svcCtx.Articles.GetByID(l.ctx, id)
+		a, err = l.svcCtx.Articles.GetByID(ctx, id)
 	}
 	if err != nil {
 		return nil, errors.New("文章不存在")
 	}
-	imgs, _ := l.svcCtx.Articles.ListImages(l.ctx, id)
+	imgs, _ := l.svcCtx.Articles.ListImages(ctx, id)
 	return map[string]interface{}{"article": a, "images": imgs}, nil
 }
 
 // AdminCreate 管理员创建：跳过审核；shop_id=0 表示平台官方文章
-func (l *ArticleLogic) AdminCreate(operatorID uint64, req types.ArticleSaveReq) (*model.CommunityArticle, error) {
+func (l *ArticleLogic) AdminCreate(ctx context.Context, operatorID uint64, req types.ArticleSaveReq) (*model.CommunityArticle, error) {
 	if strings.TrimSpace(req.Title) == "" {
 		return nil, errors.New("标题不能为空")
 	}
@@ -106,16 +102,16 @@ func (l *ArticleLogic) AdminCreate(operatorID uint64, req types.ArticleSaveReq) 
 		PublishedAt:       publishedAt,
 		CreatedBy:         operatorID,
 	}
-	if err := l.svcCtx.Articles.Create(l.ctx, a); err != nil {
+	if err := l.svcCtx.Articles.Create(ctx, a); err != nil {
 		return nil, err
 	}
-	_ = l.svcCtx.Articles.ReplaceImages(l.ctx, a.ID, a.ShopID, req.ImageURLs)
+	_ = l.svcCtx.Articles.ReplaceImages(ctx, a.ID, a.ShopID, req.ImageURLs)
 	return a, nil
 }
 
 // AdminUpdate 管理员更新
-func (l *ArticleLogic) AdminUpdate(id, operatorID uint64, req types.ArticleSaveReq) error {
-	a, err := l.svcCtx.Articles.GetByID(l.ctx, id)
+func (l *ArticleLogic) AdminUpdate(ctx context.Context, id, operatorID uint64, req types.ArticleSaveReq) error {
+	a, err := l.svcCtx.Articles.GetByID(ctx, id)
 	if err != nil {
 		return errors.New("文章不存在")
 	}
@@ -146,20 +142,20 @@ func (l *ArticleLogic) AdminUpdate(id, operatorID uint64, req types.ArticleSaveR
 		updates["reject_reason"] = ""
 	}
 	_ = operatorID
-	if err := l.svcCtx.Articles.Update(l.ctx, id, updates); err != nil {
+	if err := l.svcCtx.Articles.Update(ctx, id, updates); err != nil {
 		return err
 	}
 	if req.ImageURLs != nil {
-		_ = l.svcCtx.Articles.ReplaceImages(l.ctx, id, req.ShopID, req.ImageURLs)
+		_ = l.svcCtx.Articles.ReplaceImages(ctx, id, req.ShopID, req.ImageURLs)
 	}
 	return nil
 }
 
-func (l *ArticleLogic) notifyShop(shopID uint64, typ, title, content, link, refType string, refID uint64) {
+func (l *ArticleLogic) notifyShop(ctx context.Context, shopID uint64, typ, title, content, link, refType string, refID uint64) {
 	if shopID == 0 || l.svcCtx.Notifications == nil {
 		return
 	}
-	_ = l.svcCtx.Notifications.Create(l.ctx, &notifymodel.ShopNotification{
+	_ = l.svcCtx.Notifications.Create(ctx, &notifymodel.ShopNotification{
 		ShopID:  shopID,
 		Type:    typ,
 		Title:   title,
@@ -170,8 +166,8 @@ func (l *ArticleLogic) notifyShop(shopID uint64, typ, title, content, link, refT
 	})
 }
 
-func (l *ArticleLogic) Audit(id uint64, req types.ArticleAuditReq) error {
-	a, err := l.svcCtx.Articles.GetByID(l.ctx, id)
+func (l *ArticleLogic) Audit(ctx context.Context, id uint64, req types.ArticleAuditReq) error {
+	a, err := l.svcCtx.Articles.GetByID(ctx, id)
 	if err != nil {
 		return errors.New("文章不存在")
 	}
@@ -183,7 +179,7 @@ func (l *ArticleLogic) Audit(id uint64, req types.ArticleAuditReq) error {
 		if reason == "" {
 			return errors.New("请填写驳回理由")
 		}
-		if err := l.svcCtx.Articles.Update(l.ctx, id, map[string]interface{}{
+		if err := l.svcCtx.Articles.Update(ctx, id, map[string]interface{}{
 			"audit_status":  model.ArticleAuditRejected,
 			"reject_reason": reason,
 			"status":        model.ArticleDraft,
@@ -191,13 +187,13 @@ func (l *ArticleLogic) Audit(id uint64, req types.ArticleAuditReq) error {
 		}); err != nil {
 			return err
 		}
-		l.notifyShop(a.ShopID, notifymodel.NotifArticleRejected, "文章审核未通过",
+		l.notifyShop(ctx, a.ShopID, notifymodel.NotifArticleRejected, "文章审核未通过",
 			fmt.Sprintf("文章「%s」(ID:%d) 审核未通过。理由：%s", a.Title, a.ID, reason),
 			"/merchant/articles", "article", a.ID)
 		return nil
 	}
 	st, pub := l.resolvePublishStatus(a.SchedulePublishAt)
-	if err := l.svcCtx.Articles.Update(l.ctx, id, map[string]interface{}{
+	if err := l.svcCtx.Articles.Update(ctx, id, map[string]interface{}{
 		"audit_status":  model.ArticleAuditApproved,
 		"reject_reason": "",
 		"status":        st,
@@ -207,7 +203,7 @@ func (l *ArticleLogic) Audit(id uint64, req types.ArticleAuditReq) error {
 	}
 	// C 端用户发文审核通过 → 发文任务进度
 	if a.AuthorUserID > 0 && a.ShopID == 0 && l.svcCtx.UserHTTP != nil {
-		_ = l.svcCtx.UserHTTP.TaskEvent(l.ctx, userhttp.TaskEventReq{
+		_ = l.svcCtx.UserHTTP.TaskEvent(ctx, userhttp.TaskEventReq{
 			UserID: a.AuthorUserID, TaskCode: "publish_article", Delta: 1,
 			RefType: "article", RefID: a.ID,
 		})
@@ -215,25 +211,25 @@ func (l *ArticleLogic) Audit(id uint64, req types.ArticleAuditReq) error {
 	return nil
 }
 
-func (l *ArticleLogic) BatchAudit(req types.ArticleBatchAuditReq) error {
+func (l *ArticleLogic) BatchAudit(ctx context.Context, req types.ArticleBatchAuditReq) error {
 	if len(req.IDs) == 0 {
 		return errors.New("请选择文章")
 	}
 	for _, id := range req.IDs {
-		if err := l.Audit(id, types.ArticleAuditReq{Pass: req.Pass, RejectReason: req.RejectReason}); err != nil {
+		if err := l.Audit(ctx, id, types.ArticleAuditReq{Pass: req.Pass, RejectReason: req.RejectReason}); err != nil {
 			return fmt.Errorf("文章 %d: %w", id, err)
 		}
 	}
 	return nil
 }
 
-func (l *ArticleLogic) SetTop(id uint64, isTop int8) error {
-	return l.svcCtx.Articles.Update(l.ctx, id, map[string]interface{}{"is_top": isTop})
+func (l *ArticleLogic) SetTop(ctx context.Context, id uint64, isTop int8) error {
+	return l.svcCtx.Articles.Update(ctx, id, map[string]interface{}{"is_top": isTop})
 }
 
-func (l *ArticleLogic) Offline(id uint64, remark string) error {
+func (l *ArticleLogic) Offline(ctx context.Context, id uint64, remark string) error {
 	remark = strings.TrimSpace(remark)
-	a, err := l.svcCtx.Articles.GetByID(l.ctx, id)
+	a, err := l.svcCtx.Articles.GetByID(ctx, id)
 	if err != nil {
 		return errors.New("文章不存在")
 	}
@@ -243,20 +239,20 @@ func (l *ArticleLogic) Offline(id uint64, remark string) error {
 	if a.ShopID > 0 && remark == "" {
 		return errors.New("请填写备注，将通知商家")
 	}
-	if err := l.svcCtx.Articles.Update(l.ctx, id, map[string]interface{}{"status": model.ArticleOffline}); err != nil {
+	if err := l.svcCtx.Articles.Update(ctx, id, map[string]interface{}{"status": model.ArticleOffline}); err != nil {
 		return err
 	}
 	if a.ShopID > 0 {
-		l.notifyShop(a.ShopID, notifymodel.NotifArticleOffline, "文章被平台下架",
+		l.notifyShop(ctx, a.ShopID, notifymodel.NotifArticleOffline, "文章被平台下架",
 			fmt.Sprintf("文章「%s」(ID:%d) 已被平台下架。备注：%s", a.Title, a.ID, remark),
 			"/merchant/articles", "article", a.ID)
 	}
 	return nil
 }
 
-func (l *ArticleLogic) SoftDelete(id uint64, remark string) error {
+func (l *ArticleLogic) SoftDelete(ctx context.Context, id uint64, remark string) error {
 	remark = strings.TrimSpace(remark)
-	a, err := l.svcCtx.Articles.GetByID(l.ctx, id)
+	a, err := l.svcCtx.Articles.GetByID(ctx, id)
 	if err != nil {
 		return errors.New("文章不存在")
 	}
@@ -266,31 +262,31 @@ func (l *ArticleLogic) SoftDelete(id uint64, remark string) error {
 	if a.ShopID > 0 && remark == "" {
 		return errors.New("请填写备注，将通知商家")
 	}
-	if err := l.svcCtx.Articles.SoftDelete(l.ctx, id); err != nil {
+	if err := l.svcCtx.Articles.SoftDelete(ctx, id); err != nil {
 		return err
 	}
 	if a.ShopID > 0 {
-		l.notifyShop(a.ShopID, notifymodel.NotifArticleDeleted, "文章被平台删除",
+		l.notifyShop(ctx, a.ShopID, notifymodel.NotifArticleDeleted, "文章被平台删除",
 			fmt.Sprintf("文章「%s」(ID:%d) 已被平台移入回收站。备注：%s", a.Title, a.ID, remark),
 			"/merchant/articles", "article", a.ID)
 	}
 	return nil
 }
 
-func (l *ArticleLogic) Restore(id uint64) error {
-	return l.svcCtx.Articles.Restore(l.ctx, id)
+func (l *ArticleLogic) Restore(ctx context.Context, id uint64) error {
+	return l.svcCtx.Articles.Restore(ctx, id)
 }
 
-func (l *ArticleLogic) PermanentDelete(id uint64) error {
-	return l.svcCtx.Articles.PermanentDelete(l.ctx, id)
+func (l *ArticleLogic) PermanentDelete(ctx context.Context, id uint64) error {
+	return l.svcCtx.Articles.PermanentDelete(ctx, id)
 }
 
-func (l *ArticleLogic) Stats() (map[string]interface{}, error) {
-	return l.svcCtx.Articles.Stats(l.ctx)
+func (l *ArticleLogic) Stats(ctx context.Context) (map[string]interface{}, error) {
+	return l.svcCtx.Articles.Stats(ctx)
 }
 
 // UserCreate C 端用户发文：shop_id=0，强制待审
-func (l *ArticleLogic) UserCreate(userID uint64, req types.ArticleSaveReq) (*model.CommunityArticle, error) {
+func (l *ArticleLogic) UserCreate(ctx context.Context, userID uint64, req types.ArticleSaveReq) (*model.CommunityArticle, error) {
 	if userID == 0 {
 		return nil, errors.New("未登录")
 	}
@@ -309,15 +305,15 @@ func (l *ArticleLogic) UserCreate(userID uint64, req types.ArticleSaveReq) (*mod
 		IsTop:        0,
 		CreatedBy:    userID,
 	}
-	if err := l.svcCtx.Articles.Create(l.ctx, a); err != nil {
+	if err := l.svcCtx.Articles.Create(ctx, a); err != nil {
 		return nil, err
 	}
-	_ = l.svcCtx.Articles.ReplaceImages(l.ctx, a.ID, 0, req.ImageURLs)
+	_ = l.svcCtx.Articles.ReplaceImages(ctx, a.ID, 0, req.ImageURLs)
 	return a, nil
 }
 
-func (l *ArticleLogic) UserUpdate(userID, id uint64, req types.ArticleSaveReq) error {
-	a, err := l.svcCtx.Articles.GetByIDAuthor(l.ctx, id, userID)
+func (l *ArticleLogic) UserUpdate(ctx context.Context, userID, id uint64, req types.ArticleSaveReq) error {
+	a, err := l.svcCtx.Articles.GetByIDAuthor(ctx, id, userID)
 	if err != nil {
 		return errors.New("文章不存在")
 	}
@@ -336,45 +332,45 @@ func (l *ArticleLogic) UserUpdate(userID, id uint64, req types.ArticleSaveReq) e
 		"status":        model.ArticleDraft,
 		"reject_reason": "",
 	}
-	if err := l.svcCtx.Articles.UpdateAuthor(l.ctx, id, userID, updates); err != nil {
+	if err := l.svcCtx.Articles.UpdateAuthor(ctx, id, userID, updates); err != nil {
 		return err
 	}
 	if req.ImageURLs != nil {
-		_ = l.svcCtx.Articles.ReplaceImages(l.ctx, id, 0, req.ImageURLs)
+		_ = l.svcCtx.Articles.ReplaceImages(ctx, id, 0, req.ImageURLs)
 	}
 	return nil
 }
 
-func (l *ArticleLogic) UserDelete(userID, id uint64) error {
-	a, err := l.svcCtx.Articles.GetByIDAuthor(l.ctx, id, userID)
+func (l *ArticleLogic) UserDelete(ctx context.Context, userID, id uint64) error {
+	a, err := l.svcCtx.Articles.GetByIDAuthor(ctx, id, userID)
 	if err != nil {
 		return errors.New("文章不存在")
 	}
 	if a.AuditStatus == model.ArticleAuditApproved && a.Status == model.ArticlePublished {
 		return errors.New("已发布文章请联系平台下架")
 	}
-	return l.svcCtx.Articles.SoftDeleteAuthor(l.ctx, id, userID)
+	return l.svcCtx.Articles.SoftDeleteAuthor(ctx, id, userID)
 }
 
-func (l *ArticleLogic) UserListMine(userID uint64, page, pageSize int) (map[string]interface{}, error) {
-	list, total, err := l.svcCtx.Articles.ListByAuthor(l.ctx, userID, page, pageSize)
+func (l *ArticleLogic) UserListMine(ctx context.Context, userID uint64, page, pageSize int) (map[string]interface{}, error) {
+	list, total, err := l.svcCtx.Articles.ListByAuthor(ctx, userID, page, pageSize)
 	if err != nil {
 		return nil, err
 	}
 	return map[string]interface{}{"list": list, "total": total}, nil
 }
 
-func (l *ArticleLogic) UserGetMine(userID, id uint64) (map[string]interface{}, error) {
-	a, err := l.svcCtx.Articles.GetByIDAuthor(l.ctx, id, userID)
+func (l *ArticleLogic) UserGetMine(ctx context.Context, userID, id uint64) (map[string]interface{}, error) {
+	a, err := l.svcCtx.Articles.GetByIDAuthor(ctx, id, userID)
 	if err != nil {
 		return nil, errors.New("文章不存在")
 	}
-	imgs, _ := l.svcCtx.Articles.ListImages(l.ctx, id)
+	imgs, _ := l.svcCtx.Articles.ListImages(ctx, id)
 	return map[string]interface{}{"article": a, "images": imgs}, nil
 }
 
 // MerchantCreate 商家创建：强制待审
-func (l *ArticleLogic) MerchantCreate(shopID, operatorID uint64, req types.ArticleSaveReq) (*model.CommunityArticle, error) {
+func (l *ArticleLogic) MerchantCreate(ctx context.Context, shopID, operatorID uint64, req types.ArticleSaveReq) (*model.CommunityArticle, error) {
 	if strings.TrimSpace(req.Title) == "" {
 		return nil, errors.New("标题不能为空")
 	}
@@ -394,16 +390,16 @@ func (l *ArticleLogic) MerchantCreate(shopID, operatorID uint64, req types.Artic
 		IsTop:             0,
 		CreatedBy:         operatorID,
 	}
-	if err := l.svcCtx.Articles.Create(l.ctx, a); err != nil {
+	if err := l.svcCtx.Articles.Create(ctx, a); err != nil {
 		return nil, err
 	}
-	_ = l.svcCtx.Articles.ReplaceImages(l.ctx, a.ID, shopID, req.ImageURLs)
+	_ = l.svcCtx.Articles.ReplaceImages(ctx, a.ID, shopID, req.ImageURLs)
 	return a, nil
 }
 
 // MerchantUpdate 仅 pending 可改；已审/驳回只读
-func (l *ArticleLogic) MerchantUpdate(shopID, id uint64, req types.ArticleSaveReq) error {
-	a, err := l.svcCtx.Articles.GetByIDShop(l.ctx, id, shopID)
+func (l *ArticleLogic) MerchantUpdate(ctx context.Context, shopID, id uint64, req types.ArticleSaveReq) error {
+	a, err := l.svcCtx.Articles.GetByIDShop(ctx, id, shopID)
 	if err != nil {
 		return errors.New("文章不存在")
 	}
@@ -427,29 +423,29 @@ func (l *ArticleLogic) MerchantUpdate(shopID, id uint64, req types.ArticleSaveRe
 		"status":              model.ArticleDraft,
 		"reject_reason":       "",
 	}
-	if err := l.svcCtx.Articles.UpdateShop(l.ctx, id, shopID, updates); err != nil {
+	if err := l.svcCtx.Articles.UpdateShop(ctx, id, shopID, updates); err != nil {
 		return err
 	}
 	if req.ImageURLs != nil {
-		_ = l.svcCtx.Articles.ReplaceImages(l.ctx, id, shopID, req.ImageURLs)
+		_ = l.svcCtx.Articles.ReplaceImages(ctx, id, shopID, req.ImageURLs)
 	}
 	return nil
 }
 
 // MerchantDelete 仅待审可删
-func (l *ArticleLogic) MerchantDelete(shopID, id uint64) error {
-	a, err := l.svcCtx.Articles.GetByIDShop(l.ctx, id, shopID)
+func (l *ArticleLogic) MerchantDelete(ctx context.Context, shopID, id uint64) error {
+	a, err := l.svcCtx.Articles.GetByIDShop(ctx, id, shopID)
 	if err != nil {
 		return errors.New("文章不存在")
 	}
 	if a.AuditStatus != model.ArticleAuditPending {
 		return errors.New("仅可删除待审核文章")
 	}
-	return l.svcCtx.Articles.SoftDeleteShop(l.ctx, id, shopID)
+	return l.svcCtx.Articles.SoftDeleteShop(ctx, id, shopID)
 }
 
-func (l *ArticleLogic) RunPublishSchedules() {
-	_, _ = l.svcCtx.Articles.ClaimDuePublish(l.ctx, 20)
+func (l *ArticleLogic) RunPublishSchedules(ctx context.Context) {
+	_, _ = l.svcCtx.Articles.ClaimDuePublish(ctx, 20)
 }
 
 func (l *ArticleLogic) SaveUpload(shopID uint64, filename string, data []byte) (string, error) {
@@ -478,8 +474,8 @@ func (l *ArticleLogic) SaveUpload(shopID uint64, filename string, data []byte) (
 	return "/uploads/articles/" + owner + "/" + name, nil
 }
 
-func (l *ArticleLogic) CategoryTree() ([]map[string]interface{}, error) {
-	list, err := l.svcCtx.Articles.ListCategories(l.ctx)
+func (l *ArticleLogic) CategoryTree(ctx context.Context) ([]map[string]interface{}, error) {
+	list, err := l.svcCtx.Articles.ListCategories(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -502,7 +498,7 @@ func (l *ArticleLogic) CategoryTree() ([]map[string]interface{}, error) {
 	return build(0), nil
 }
 
-func (l *ArticleLogic) SaveCategory(id uint64, req types.ArticleCategorySaveReq) error {
+func (l *ArticleLogic) SaveCategory(ctx context.Context, id uint64, req types.ArticleCategorySaveReq) error {
 	if strings.TrimSpace(req.Name) == "" {
 		return errors.New("分类名不能为空")
 	}
@@ -513,7 +509,7 @@ func (l *ArticleLogic) SaveCategory(id uint64, req types.ArticleCategorySaveReq)
 		if req.Status != nil {
 			c.Status = *req.Status
 		}
-		return l.svcCtx.Articles.CreateCategory(l.ctx, c)
+		return l.svcCtx.Articles.CreateCategory(ctx, c)
 	}
 	updates := map[string]interface{}{
 		"parent_id": req.ParentID, "name": strings.TrimSpace(req.Name), "sort": req.Sort,
@@ -521,46 +517,46 @@ func (l *ArticleLogic) SaveCategory(id uint64, req types.ArticleCategorySaveReq)
 	if req.Status != nil {
 		updates["status"] = *req.Status
 	}
-	return l.svcCtx.Articles.UpdateCategory(l.ctx, id, updates)
+	return l.svcCtx.Articles.UpdateCategory(ctx, id, updates)
 }
 
-func (l *ArticleLogic) DeleteCategory(id uint64) error {
-	return l.svcCtx.Articles.DeleteCategory(l.ctx, id)
+func (l *ArticleLogic) DeleteCategory(ctx context.Context, id uint64) error {
+	return l.svcCtx.Articles.DeleteCategory(ctx, id)
 }
 
-func (l *ArticleLogic) ListComments(f repository.CommentListFilter) (map[string]interface{}, error) {
-	list, total, err := l.svcCtx.Articles.ListComments(l.ctx, f)
+func (l *ArticleLogic) ListComments(ctx context.Context, f repository.CommentListFilter) (map[string]interface{}, error) {
+	list, total, err := l.svcCtx.Articles.ListComments(ctx, f)
 	if err != nil {
 		return nil, err
 	}
 	return map[string]interface{}{"list": list, "total": total}, nil
 }
 
-func (l *ArticleLogic) PatchComment(id, shopID uint64, status string) error {
+func (l *ArticleLogic) PatchComment(ctx context.Context, id, shopID uint64, status string) error {
 	switch status {
 	case model.CommentVisible, model.CommentHidden, model.CommentDeleted:
 	default:
 		return errors.New("status 无效")
 	}
-	return l.svcCtx.Articles.PatchComment(l.ctx, id, shopID, status)
+	return l.svcCtx.Articles.PatchComment(ctx, id, shopID, status)
 }
 
-func (l *ArticleLogic) DeleteComment(id, shopID uint64) error {
-	return l.svcCtx.Articles.DeleteComment(l.ctx, id, shopID)
+func (l *ArticleLogic) DeleteComment(ctx context.Context, id, shopID uint64) error {
+	return l.svcCtx.Articles.DeleteComment(ctx, id, shopID)
 }
 
-func (l *ArticleLogic) PublicList(page, pageSize int, home bool) (map[string]interface{}, error) {
+func (l *ArticleLogic) PublicList(ctx context.Context, page, pageSize int, home bool) (map[string]interface{}, error) {
 	homeLimit := 0
 	if home {
-		homeLimit = l.svcCtx.Articles.GetHomeArticleLimit(l.ctx)
+		homeLimit = l.svcCtx.Articles.GetHomeArticleLimit(ctx)
 	}
-	list, total, err := l.svcCtx.Articles.ListPublic(l.ctx, page, pageSize, homeLimit)
+	list, total, err := l.svcCtx.Articles.ListPublic(ctx, page, pageSize, homeLimit)
 	if err != nil {
 		return nil, err
 	}
 	shopIDs, userIDs := collectAuthorIDs(list)
-	shops := l.svcCtx.Articles.MapShopBriefs(l.ctx, shopIDs)
-	users := l.svcCtx.Articles.MapUserBriefs(l.ctx, userIDs)
+	shops := l.svcCtx.Articles.MapShopBriefs(ctx, shopIDs)
+	users := l.svcCtx.Articles.MapUserBriefs(ctx, userIDs)
 	items := make([]map[string]interface{}, 0, len(list))
 	for _, a := range list {
 		item := map[string]interface{}{
@@ -568,7 +564,7 @@ func (l *ArticleLogic) PublicList(page, pageSize int, home bool) (map[string]int
 			"title": a.Title, "cover_url": a.CoverURL,
 			"like_count": a.LikeCount, "audience_count": a.AudienceCount, "read_count": a.ReadCount,
 			"collect_count": a.CollectCount, "published_at": a.PublishedAt,
-			"paid": l.svcCtx.Articles.IsArticleBoosted(l.ctx, a.ID),
+			"paid": l.svcCtx.Articles.IsArticleBoosted(ctx, a.ID),
 		}
 		for k, v := range authorPayload(a.ShopID, a.AuthorUserID, shops, users) {
 			item[k] = v
@@ -578,25 +574,25 @@ func (l *ArticleLogic) PublicList(page, pageSize int, home bool) (map[string]int
 	return map[string]interface{}{"list": items, "total": total}, nil
 }
 
-func (l *ArticleLogic) PublicDetail(id, userID uint64) (map[string]interface{}, error) {
-	a, err := l.svcCtx.Articles.GetPublished(l.ctx, id)
+func (l *ArticleLogic) PublicDetail(ctx context.Context, id, userID uint64) (map[string]interface{}, error) {
+	a, err := l.svcCtx.Articles.GetPublished(ctx, id)
 	if err != nil {
 		return nil, errors.New("文章不存在")
 	}
-	_ = l.svcCtx.Articles.RecordRead(l.ctx, id, userID)
-	a, _ = l.svcCtx.Articles.GetPublished(l.ctx, id)
+	_ = l.svcCtx.Articles.RecordRead(ctx, id, userID)
+	a, _ = l.svcCtx.Articles.GetPublished(ctx, id)
 	liked, favorited := false, false
 	if userID > 0 {
-		liked, favorited = l.svcCtx.Articles.EngagementStatus(l.ctx, userID, id)
+		liked, favorited = l.svcCtx.Articles.EngagementStatus(ctx, userID, id)
 	}
-	imgs, _ := l.svcCtx.Articles.ListImages(l.ctx, id)
-	shops := l.svcCtx.Articles.MapShopBriefs(l.ctx, nilIfZero(a.ShopID))
-	users := l.svcCtx.Articles.MapUserBriefs(l.ctx, nilIfZero(a.AuthorUserID))
+	imgs, _ := l.svcCtx.Articles.ListImages(ctx, id)
+	shops := l.svcCtx.Articles.MapShopBriefs(ctx, nilIfZero(a.ShopID))
+	users := l.svcCtx.Articles.MapUserBriefs(ctx, nilIfZero(a.AuthorUserID))
 	author := authorPayload(a.ShopID, a.AuthorUserID, shops, users)
 	return map[string]interface{}{
 		"article": a, "images": imgs,
 		"liked": liked, "favorited": favorited,
-		"paid":   l.svcCtx.Articles.IsArticleBoosted(l.ctx, id),
+		"paid":   l.svcCtx.Articles.IsArticleBoosted(ctx, id),
 		"author": author,
 	}, nil
 }
@@ -668,19 +664,19 @@ func authorPayload(shopID, authorUserID uint64, shops map[uint64]repository.Shop
 	}
 }
 
-func (l *ArticleLogic) LikeArticle(userID, articleID uint64, like bool) error {
+func (l *ArticleLogic) LikeArticle(ctx context.Context, userID, articleID uint64, like bool) error {
 	// 取消点赞允许文章已下架；新增点赞需文章仍在线
 	if like {
-		if _, err := l.svcCtx.Articles.GetPublished(l.ctx, articleID); err != nil {
+		if _, err := l.svcCtx.Articles.GetPublished(ctx, articleID); err != nil {
 			return errors.New("文章不存在")
 		}
 	}
-	changed, err := l.svcCtx.Articles.ToggleLike(l.ctx, userID, articleID, like)
+	changed, err := l.svcCtx.Articles.ToggleLike(ctx, userID, articleID, like)
 	if err != nil {
 		return err
 	}
 	if like && changed && l.svcCtx.UserHTTP != nil {
-		_ = l.svcCtx.UserHTTP.TaskEvent(l.ctx, userhttp.TaskEventReq{
+		_ = l.svcCtx.UserHTTP.TaskEvent(ctx, userhttp.TaskEventReq{
 			UserID: userID, TaskCode: "like_article", Delta: 1,
 			RefType: "article_like", RefID: articleID,
 		})
@@ -688,18 +684,18 @@ func (l *ArticleLogic) LikeArticle(userID, articleID uint64, like bool) error {
 	return nil
 }
 
-func (l *ArticleLogic) FavoriteArticle(userID, articleID uint64, fav bool) error {
+func (l *ArticleLogic) FavoriteArticle(ctx context.Context, userID, articleID uint64, fav bool) error {
 	if fav {
-		if _, err := l.svcCtx.Articles.GetPublished(l.ctx, articleID); err != nil {
+		if _, err := l.svcCtx.Articles.GetPublished(ctx, articleID); err != nil {
 			return errors.New("文章不存在")
 		}
 	}
-	changed, err := l.svcCtx.Articles.ToggleFavorite(l.ctx, userID, articleID, fav)
+	changed, err := l.svcCtx.Articles.ToggleFavorite(ctx, userID, articleID, fav)
 	if err != nil {
 		return err
 	}
 	if fav && changed && l.svcCtx.UserHTTP != nil {
-		_ = l.svcCtx.UserHTTP.TaskEvent(l.ctx, userhttp.TaskEventReq{
+		_ = l.svcCtx.UserHTTP.TaskEvent(ctx, userhttp.TaskEventReq{
 			UserID: userID, TaskCode: "favorite_article", Delta: 1,
 			RefType: "article_fav", RefID: articleID,
 		})
@@ -707,20 +703,20 @@ func (l *ArticleLogic) FavoriteArticle(userID, articleID uint64, fav bool) error
 	return nil
 }
 
-func (l *ArticleLogic) EngagementStatus(userID, articleID uint64) (liked, favorited bool) {
-	return l.svcCtx.Articles.EngagementStatus(l.ctx, userID, articleID)
+func (l *ArticleLogic) EngagementStatus(ctx context.Context, userID, articleID uint64) (liked, favorited bool) {
+	return l.svcCtx.Articles.EngagementStatus(ctx, userID, articleID)
 }
 
-func (l *ArticleLogic) ListMyFavorites(userID uint64, page, pageSize int) (map[string]interface{}, error) {
-	list, total, err := l.svcCtx.Articles.ListUserFavorites(l.ctx, userID, page, pageSize)
+func (l *ArticleLogic) ListMyFavorites(ctx context.Context, userID uint64, page, pageSize int) (map[string]interface{}, error) {
+	list, total, err := l.svcCtx.Articles.ListUserFavorites(ctx, userID, page, pageSize)
 	if err != nil {
 		return nil, err
 	}
 	return map[string]interface{}{"list": list, "total": total}, nil
 }
 
-func (l *ArticleLogic) ListMyLikes(userID uint64, page, pageSize int) (map[string]interface{}, error) {
-	list, total, err := l.svcCtx.Articles.ListUserLikes(l.ctx, userID, page, pageSize)
+func (l *ArticleLogic) ListMyLikes(ctx context.Context, userID uint64, page, pageSize int) (map[string]interface{}, error) {
+	list, total, err := l.svcCtx.Articles.ListUserLikes(ctx, userID, page, pageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -732,7 +728,7 @@ type CreateCommentReq struct {
 	ParentID uint64 `json:"parent_id"`
 }
 
-func (l *ArticleLogic) fillCommentUsers(list []model.CommunityArticleComment) {
+func (l *ArticleLogic) fillCommentUsers(ctx context.Context, list []model.CommunityArticleComment) {
 	ids := make([]uint64, 0, len(list)*2)
 	seen := map[uint64]struct{}{}
 	add := func(id uint64) {
@@ -753,7 +749,7 @@ func (l *ArticleLogic) fillCommentUsers(list []model.CommunityArticleComment) {
 			add(ch.ReplyToUserID)
 		}
 	}
-	m := l.svcCtx.Articles.MapUserBriefs(l.ctx, ids)
+	m := l.svcCtx.Articles.MapUserBriefs(ctx, ids)
 	nick := func(id uint64) string {
 		u, ok := m[id]
 		if !ok {
@@ -781,11 +777,11 @@ func (l *ArticleLogic) fillCommentUsers(list []model.CommunityArticleComment) {
 	}
 }
 
-func (l *ArticleLogic) PublicListComments(articleID uint64, page, pageSize int) (map[string]interface{}, error) {
-	if _, err := l.svcCtx.Articles.GetPublished(l.ctx, articleID); err != nil {
+func (l *ArticleLogic) PublicListComments(ctx context.Context, articleID uint64, page, pageSize int) (map[string]interface{}, error) {
+	if _, err := l.svcCtx.Articles.GetPublished(ctx, articleID); err != nil {
 		return nil, errors.New("文章不存在")
 	}
-	roots, total, err := l.svcCtx.Articles.ListPublicCommentRoots(l.ctx, articleID, page, pageSize)
+	roots, total, err := l.svcCtx.Articles.ListPublicCommentRoots(ctx, articleID, page, pageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -793,7 +789,7 @@ func (l *ArticleLogic) PublicListComments(articleID uint64, page, pageSize int) 
 	for _, c := range roots {
 		rootIDs = append(rootIDs, c.ID)
 	}
-	children, _ := l.svcCtx.Articles.ListPublicCommentChildren(l.ctx, articleID, rootIDs)
+	children, _ := l.svcCtx.Articles.ListPublicCommentChildren(ctx, articleID, rootIDs)
 	byRoot := map[uint64][]model.CommunityArticleComment{}
 	for _, ch := range children {
 		rid := ch.RootID
@@ -805,11 +801,11 @@ func (l *ArticleLogic) PublicListComments(articleID uint64, page, pageSize int) 
 	for i := range roots {
 		roots[i].Children = byRoot[roots[i].ID]
 	}
-	l.fillCommentUsers(roots)
+	l.fillCommentUsers(ctx, roots)
 	return map[string]interface{}{"list": roots, "total": total}, nil
 }
 
-func (l *ArticleLogic) CreatePublicComment(userID, articleID uint64, req CreateCommentReq) (*model.CommunityArticleComment, error) {
+func (l *ArticleLogic) CreatePublicComment(ctx context.Context, userID, articleID uint64, req CreateCommentReq) (*model.CommunityArticleComment, error) {
 	content := strings.TrimSpace(req.Content)
 	if content == "" {
 		return nil, errors.New("请输入评论内容")
@@ -817,7 +813,7 @@ func (l *ArticleLogic) CreatePublicComment(userID, articleID uint64, req CreateC
 	if len([]rune(content)) > 500 {
 		return nil, errors.New("评论最多 500 字")
 	}
-	a, err := l.svcCtx.Articles.GetPublished(l.ctx, articleID)
+	a, err := l.svcCtx.Articles.GetPublished(ctx, articleID)
 	if err != nil {
 		return nil, errors.New("文章不存在")
 	}
@@ -830,7 +826,7 @@ func (l *ArticleLogic) CreatePublicComment(userID, articleID uint64, req CreateC
 	}
 	var notifyUID uint64
 	if req.ParentID > 0 {
-		parent, err := l.svcCtx.Articles.GetComment(l.ctx, req.ParentID)
+		parent, err := l.svcCtx.Articles.GetComment(ctx, req.ParentID)
 		if err != nil || parent.ArticleID != articleID {
 			return nil, errors.New("回复的评论不存在")
 		}
@@ -843,17 +839,17 @@ func (l *ArticleLogic) CreatePublicComment(userID, articleID uint64, req CreateC
 		c.ReplyToUserID = parent.UserID
 		notifyUID = parent.UserID
 	}
-	if err := l.svcCtx.Articles.CreateComment(l.ctx, c); err != nil {
+	if err := l.svcCtx.Articles.CreateComment(ctx, c); err != nil {
 		return nil, err
 	}
 	if l.svcCtx.UserHTTP != nil {
-		_ = l.svcCtx.UserHTTP.TaskEvent(l.ctx, userhttp.TaskEventReq{
+		_ = l.svcCtx.UserHTTP.TaskEvent(ctx, userhttp.TaskEventReq{
 			UserID: userID, TaskCode: "comment_article", Delta: 1,
 			RefType: "comment", RefID: c.ID,
 		})
 	}
 	tmp := []model.CommunityArticleComment{*c}
-	l.fillCommentUsers(tmp)
+	l.fillCommentUsers(ctx, tmp)
 	*c = tmp[0]
 	if notifyUID > 0 && notifyUID != userID && l.svcCtx.UserHTTP != nil {
 		extra, _ := json.Marshal(map[string]interface{}{"comment_id": c.ID})
@@ -861,7 +857,7 @@ func (l *ArticleLogic) CreatePublicComment(userID, articleID uint64, req CreateC
 		if rs := []rune(preview); len(rs) > 40 {
 			preview = string(rs[:40]) + "…"
 		}
-		_ = l.svcCtx.UserHTTP.Notify(l.ctx, userhttp.NotifyReq{
+		_ = l.svcCtx.UserHTTP.Notify(ctx, userhttp.NotifyReq{
 			UserID: notifyUID, Title: "收到新回复",
 			Content:  fmt.Sprintf("%s 回复了你：%s", c.UserNickname, preview),
 			MsgType:  "system",
@@ -873,19 +869,19 @@ func (l *ArticleLogic) CreatePublicComment(userID, articleID uint64, req CreateC
 	return c, nil
 }
 
-func (l *ArticleLogic) ListEmojisAdmin(page, pageSize int) (map[string]interface{}, error) {
-	list, total, err := l.svcCtx.Articles.ListEmojisAdmin(l.ctx, page, pageSize)
+func (l *ArticleLogic) ListEmojisAdmin(ctx context.Context, page, pageSize int) (map[string]interface{}, error) {
+	list, total, err := l.svcCtx.Articles.ListEmojisAdmin(ctx, page, pageSize)
 	if err != nil {
 		return nil, err
 	}
 	return map[string]interface{}{"list": list, "total": total}, nil
 }
 
-func (l *ArticleLogic) ListEmojisPublic() ([]model.CommunityCommentEmoji, error) {
-	return l.svcCtx.Articles.ListEmojisPublic(l.ctx)
+func (l *ArticleLogic) ListEmojisPublic(ctx context.Context) ([]model.CommunityCommentEmoji, error) {
+	return l.svcCtx.Articles.ListEmojisPublic(ctx)
 }
 
-func (l *ArticleLogic) CreateEmoji(name, imageURL string, sort int, status int8) (*model.CommunityCommentEmoji, error) {
+func (l *ArticleLogic) CreateEmoji(ctx context.Context, name, imageURL string, sort int, status int8) (*model.CommunityCommentEmoji, error) {
 	name = strings.TrimSpace(name)
 	imageURL = strings.TrimSpace(imageURL)
 	if imageURL == "" {
@@ -898,14 +894,14 @@ func (l *ArticleLogic) CreateEmoji(name, imageURL string, sort int, status int8)
 		status = 1
 	}
 	e := &model.CommunityCommentEmoji{Name: name, ImageURL: imageURL, Sort: sort, Status: status}
-	if err := l.svcCtx.Articles.CreateEmoji(l.ctx, e); err != nil {
+	if err := l.svcCtx.Articles.CreateEmoji(ctx, e); err != nil {
 		return nil, err
 	}
 	return e, nil
 }
 
-func (l *ArticleLogic) UpdateEmoji(id uint64, name, imageURL string, sort *int, status *int8) error {
-	if _, err := l.svcCtx.Articles.GetEmoji(l.ctx, id); err != nil {
+func (l *ArticleLogic) UpdateEmoji(ctx context.Context, id uint64, name, imageURL string, sort *int, status *int8) error {
+	if _, err := l.svcCtx.Articles.GetEmoji(ctx, id); err != nil {
 		return errors.New("表情不存在")
 	}
 	updates := map[string]interface{}{}
@@ -924,9 +920,9 @@ func (l *ArticleLogic) UpdateEmoji(id uint64, name, imageURL string, sort *int, 
 	if len(updates) == 0 {
 		return nil
 	}
-	return l.svcCtx.Articles.UpdateEmoji(l.ctx, id, updates)
+	return l.svcCtx.Articles.UpdateEmoji(ctx, id, updates)
 }
 
-func (l *ArticleLogic) DeleteEmoji(id uint64) error {
-	return l.svcCtx.Articles.DeleteEmoji(l.ctx, id)
+func (l *ArticleLogic) DeleteEmoji(ctx context.Context, id uint64) error {
+	return l.svcCtx.Articles.DeleteEmoji(ctx, id)
 }

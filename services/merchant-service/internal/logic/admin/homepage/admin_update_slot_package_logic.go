@@ -2,28 +2,39 @@ package homepage
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	"mymall/services/merchant-service/internal/svc"
+	"mymall/services/merchant-service/internal/types"
+	hadmin "mymall/services/merchant-service/internal/app/admin"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	hadmin "mymall/services/merchant-service/internal/httpapi/admin"
-	"mymall/services/merchant-service/internal/svc"
 )
 
 type AdminUpdateSlotPackageLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminUpdateSlotPackageLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminUpdateSlotPackageLogic {
+func NewAdminUpdateSlotPackageLogic(svcCtx *svc.ServiceContext) *AdminUpdateSlotPackageLogic {
 	return &AdminUpdateSlotPackageLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *AdminUpdateSlotPackageLogic) AdminUpdateSlotPackage(w http.ResponseWriter, r *http.Request) {
-	hadmin.NewHomepageSlotHandler(l.svcCtx).AdminUpdateSlotPackage(w, r)
+func (l *AdminUpdateSlotPackageLogic) AdminUpdateSlotPackage(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+raw, err := httpinvoke.Run(ctx, "PUT", "/api/v1/admin/homepage-packages/:id", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, req, hadmin.NewHomepageSlotHandler(l.svcCtx).AdminUpdateSlotPackage)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

@@ -2,28 +2,39 @@ package order
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	hmerchant "mymall/services/order-service/internal/app/merchant"
+	"mymall/services/order-service/internal/svc"
+	"mymall/services/order-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	hmerchant "mymall/services/order-service/internal/httpapi/merchant"
-	"mymall/services/order-service/internal/svc"
 )
 
 type MerchantDetailLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewMerchantDetailLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantDetailLogic {
+func NewMerchantDetailLogic(svcCtx *svc.ServiceContext) *MerchantDetailLogic {
 	return &MerchantDetailLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *MerchantDetailLogic) MerchantDetail(w http.ResponseWriter, r *http.Request) {
-	hmerchant.NewOrderHandler(l.svcCtx).MerchantDetail(w, r)
+func (l *MerchantDetailLogic) MerchantDetail(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/merchant/orders/:id", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, nil, hmerchant.NewOrderHandler(l.svcCtx).MerchantDetail)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

@@ -1,0 +1,506 @@
+{
+  "AdminListSlotOrders": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewHomepageSlotHandler(l.svcCtx).AdminListSlotOrders",
+    "method": "AdminListSlotOrders"
+  },
+  "AdminUpdateSlotSettings": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewHomepageSlotHandler(l.svcCtx).AdminUpdateSlotSettings",
+    "method": "AdminUpdateSlotSettings"
+  },
+  "AdminCreateSlotPackage": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewHomepageSlotHandler(l.svcCtx).AdminCreateSlotPackage",
+    "method": "AdminCreateSlotPackage"
+  },
+  "AdminUpdateSlotPackage": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewHomepageSlotHandler(l.svcCtx).AdminUpdateSlotPackage",
+    "method": "AdminUpdateSlotPackage"
+  },
+  "AdminListSlotSettings": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewHomepageSlotHandler(l.svcCtx).AdminListSlotSettings",
+    "method": "AdminListSlotSettings"
+  },
+  "AdminGrantSlot": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewHomepageSlotHandler(l.svcCtx).AdminGrantSlot",
+    "method": "AdminGrantSlot"
+  },
+  "AdminListSlotPackages": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewHomepageSlotHandler(l.svcCtx).AdminListSlotPackages",
+    "method": "AdminListSlotPackages"
+  },
+  "AdminUpdateSeckillRule": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewSeckillHandler(l.svcCtx).AdminUpdateSeckillRule",
+    "method": "AdminUpdateSeckillRule"
+  },
+  "AdminListSeckillSessions": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewSeckillHandler(l.svcCtx).AdminListSeckillSessions",
+    "method": "AdminListSeckillSessions"
+  },
+  "AdminGetSeckillRule": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewSeckillHandler(l.svcCtx).AdminGetSeckillRule",
+    "method": "AdminGetSeckillRule"
+  },
+  "AdminListSeckillEntries": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewSeckillHandler(l.svcCtx).AdminListSeckillEntries",
+    "method": "AdminListSeckillEntries"
+  },
+  "AdminDisableShop": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewShopHandler(l.svcCtx).AdminDisableShop",
+    "method": "AdminDisableShop"
+  },
+  "AdminResetOwnerPassword": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewShopHandler(l.svcCtx).AdminResetOwnerPassword",
+    "method": "AdminResetOwnerPassword"
+  },
+  "AdminListShops": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewShopHandler(l.svcCtx).AdminListShops",
+    "method": "AdminListShops"
+  },
+  "AdminGetShop": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewShopHandler(l.svcCtx).AdminGetShop",
+    "method": "AdminGetShop"
+  },
+  "AdminUpdateShop": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewShopHandler(l.svcCtx).AdminUpdateShop",
+    "method": "AdminUpdateShop"
+  },
+  "AdminEnableShop": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewShopHandler(l.svcCtx).AdminEnableShop",
+    "method": "AdminEnableShop"
+  },
+  "AdminCreateShop": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewShopHandler(l.svcCtx).AdminCreateShop",
+    "method": "AdminCreateShop"
+  },
+  "AdminUpdateCoupon": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewCouponHandler(l.svcCtx).AdminUpdateCoupon",
+    "method": "AdminUpdateCoupon"
+  },
+  "AdminListCoupons": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewCouponHandler(l.svcCtx).AdminListCoupons",
+    "method": "AdminListCoupons"
+  },
+  "AdminCreateCoupon": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewCouponHandler(l.svcCtx).AdminCreateCoupon",
+    "method": "AdminCreateCoupon"
+  },
+  "AdminCopyCoupon": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewCouponHandler(l.svcCtx).AdminCopyCoupon",
+    "method": "AdminCopyCoupon"
+  },
+  "AdminCouponStats": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewCouponHandler(l.svcCtx).AdminCouponStats",
+    "method": "AdminCouponStats"
+  },
+  "AdminGrantCoupon": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewCouponHandler(l.svcCtx).AdminGrantCoupon",
+    "method": "AdminGrantCoupon"
+  },
+  "AdminCouponRedeems": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewCouponHandler(l.svcCtx).AdminCouponRedeems",
+    "method": "AdminCouponRedeems"
+  },
+  "AdminOffCoupon": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewCouponHandler(l.svcCtx).AdminOffCoupon",
+    "method": "AdminOffCoupon"
+  },
+  "AdminCouponClaims": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewCouponHandler(l.svcCtx).AdminCouponClaims",
+    "method": "AdminCouponClaims"
+  },
+  "AdminListThemeSlots": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewHomepageThemeHandler(l.svcCtx).AdminListThemeSlots",
+    "method": "AdminListThemeSlots"
+  },
+  "AdminListThemeOrders": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewHomepageThemeHandler(l.svcCtx).AdminListThemeOrders",
+    "method": "AdminListThemeOrders"
+  },
+  "AdminCreateThemePackage": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewHomepageThemeHandler(l.svcCtx).AdminCreateThemePackage",
+    "method": "AdminCreateThemePackage"
+  },
+  "AdminUpdateThemePackage": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewHomepageThemeHandler(l.svcCtx).AdminUpdateThemePackage",
+    "method": "AdminUpdateThemePackage"
+  },
+  "AdminUpdateThemeSlot": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewHomepageThemeHandler(l.svcCtx).AdminUpdateThemeSlot",
+    "method": "AdminUpdateThemeSlot"
+  },
+  "AdminListThemePackages": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewHomepageThemeHandler(l.svcCtx).AdminListThemePackages",
+    "method": "AdminListThemePackages"
+  },
+  "AdminGrantTheme": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewHomepageThemeHandler(l.svcCtx).AdminGrantTheme",
+    "method": "AdminGrantTheme"
+  },
+  "AdminAdjustWallet": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewWalletHandler(l.svcCtx).AdminAdjustWallet",
+    "method": "AdminAdjustWallet"
+  },
+  "AdminGetWallet": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewWalletHandler(l.svcCtx).AdminGetWallet",
+    "method": "AdminGetWallet"
+  },
+  "AdminWalletLogs": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewWalletHandler(l.svcCtx).AdminWalletLogs",
+    "method": "AdminWalletLogs"
+  },
+  "AdminListApplications": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewShopHandler(l.svcCtx).AdminListApplications",
+    "method": "AdminListApplications"
+  },
+  "AdminReject": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewShopHandler(l.svcCtx).AdminReject",
+    "method": "AdminReject"
+  },
+  "AdminApprove": {
+    "alias": "hadmin",
+    "import": "mymall/services/merchant-service/internal/app/admin",
+    "call": "hadmin.NewShopHandler(l.svcCtx).AdminApprove",
+    "method": "AdminApprove"
+  },
+  "ClaimCoupon": {
+    "alias": "huser",
+    "import": "mymall/services/merchant-service/internal/app/user",
+    "call": "huser.NewCouponHandler(l.svcCtx).ClaimCoupon",
+    "method": "ClaimCoupon"
+  },
+  "ListMyCoupons": {
+    "alias": "huser",
+    "import": "mymall/services/merchant-service/internal/app/user",
+    "call": "huser.NewCouponHandler(l.svcCtx).ListMyCoupons",
+    "method": "ListMyCoupons"
+  },
+  "PublicSeckillEntry": {
+    "alias": "hpublic",
+    "import": "mymall/services/merchant-service/internal/app/public",
+    "call": "hpublic.NewSeckillHandler(l.svcCtx).PublicSeckillEntry",
+    "method": "PublicSeckillEntry"
+  },
+  "PublicSeckillList": {
+    "alias": "hpublic",
+    "import": "mymall/services/merchant-service/internal/app/public",
+    "call": "hpublic.NewSeckillHandler(l.svcCtx).PublicSeckillList",
+    "method": "PublicSeckillList"
+  },
+  "PublicSeckillCurrent": {
+    "alias": "hpublic",
+    "import": "mymall/services/merchant-service/internal/app/public",
+    "call": "hpublic.NewSeckillHandler(l.svcCtx).PublicSeckillCurrent",
+    "method": "PublicSeckillCurrent"
+  },
+  "PublicThemeTiles": {
+    "alias": "hpublic",
+    "import": "mymall/services/merchant-service/internal/app/public",
+    "call": "hpublic.NewHomepageThemeHandler(l.svcCtx).PublicThemeTiles",
+    "method": "PublicThemeTiles"
+  },
+  "PublicHomeSlots": {
+    "alias": "hpublic",
+    "import": "mymall/services/merchant-service/internal/app/public",
+    "call": "hpublic.NewHomepageSlotHandler(l.svcCtx).PublicHomeSlots",
+    "method": "PublicHomeSlots"
+  },
+  "PublicGetShop": {
+    "alias": "hpublic",
+    "import": "mymall/services/merchant-service/internal/app/public",
+    "call": "hpublic.NewShopHandler(l.svcCtx).PublicGetShop",
+    "method": "PublicGetShop"
+  },
+  "PublicListShops": {
+    "alias": "hpublic",
+    "import": "mymall/services/merchant-service/internal/app/public",
+    "call": "hpublic.NewShopHandler(l.svcCtx).PublicListShops",
+    "method": "PublicListShops"
+  },
+  "PublicCouponCenter": {
+    "alias": "hpublic",
+    "import": "mymall/services/merchant-service/internal/app/public",
+    "call": "hpublic.NewCouponHandler(l.svcCtx).PublicCouponCenter",
+    "method": "PublicCouponCenter"
+  },
+  "PublicCouponPopup": {
+    "alias": "hpublic",
+    "import": "mymall/services/merchant-service/internal/app/public",
+    "call": "hpublic.NewCouponHandler(l.svcCtx).PublicCouponPopup",
+    "method": "PublicCouponPopup"
+  },
+  "SeckillRestore": {
+    "alias": "hinternal",
+    "import": "mymall/services/merchant-service/internal/app/internalapi",
+    "call": "hinternal.NewSeckillHandler(l.svcCtx).SeckillRestore",
+    "method": "SeckillRestore"
+  },
+  "SeckillConsume": {
+    "alias": "hinternal",
+    "import": "mymall/services/merchant-service/internal/app/internalapi",
+    "call": "hinternal.NewSeckillHandler(l.svcCtx).SeckillConsume",
+    "method": "SeckillConsume"
+  },
+  "InternalLockCoupon": {
+    "alias": "hinternal",
+    "import": "mymall/services/merchant-service/internal/app/internalapi",
+    "call": "hinternal.NewCouponHandler(l.svcCtx).InternalLockCoupon",
+    "method": "InternalLockCoupon"
+  },
+  "InternalRedeemCoupon": {
+    "alias": "hinternal",
+    "import": "mymall/services/merchant-service/internal/app/internalapi",
+    "call": "hinternal.NewCouponHandler(l.svcCtx).InternalRedeemCoupon",
+    "method": "InternalRedeemCoupon"
+  },
+  "InternalOrderGift": {
+    "alias": "hinternal",
+    "import": "mymall/services/merchant-service/internal/app/internalapi",
+    "call": "hinternal.NewCouponHandler(l.svcCtx).InternalOrderGift",
+    "method": "InternalOrderGift"
+  },
+  "InternalReturnCoupon": {
+    "alias": "hinternal",
+    "import": "mymall/services/merchant-service/internal/app/internalapi",
+    "call": "hinternal.NewCouponHandler(l.svcCtx).InternalReturnCoupon",
+    "method": "InternalReturnCoupon"
+  },
+  "InternalUnlockCoupon": {
+    "alias": "hinternal",
+    "import": "mymall/services/merchant-service/internal/app/internalapi",
+    "call": "hinternal.NewCouponHandler(l.svcCtx).InternalUnlockCoupon",
+    "method": "InternalUnlockCoupon"
+  },
+  "InternalMatchCoupons": {
+    "alias": "hinternal",
+    "import": "mymall/services/merchant-service/internal/app/internalapi",
+    "call": "hinternal.NewCouponHandler(l.svcCtx).InternalMatchCoupons",
+    "method": "InternalMatchCoupons"
+  },
+  "MerchantListSlotOrders": {
+    "alias": "hmerchant",
+    "import": "mymall/services/merchant-service/internal/app/merchant",
+    "call": "hmerchant.NewHomepageSlotHandler(l.svcCtx).MerchantListSlotOrders",
+    "method": "MerchantListSlotOrders"
+  },
+  "MerchantListSlotPackages": {
+    "alias": "hmerchant",
+    "import": "mymall/services/merchant-service/internal/app/merchant",
+    "call": "hmerchant.NewHomepageSlotHandler(l.svcCtx).MerchantListSlotPackages",
+    "method": "MerchantListSlotPackages"
+  },
+  "MerchantBuySlot": {
+    "alias": "hmerchant",
+    "import": "mymall/services/merchant-service/internal/app/merchant",
+    "call": "hmerchant.NewHomepageSlotHandler(l.svcCtx).MerchantBuySlot",
+    "method": "MerchantBuySlot"
+  },
+  "MerchantListSeckillEntries": {
+    "alias": "hmerchant",
+    "import": "mymall/services/merchant-service/internal/app/merchant",
+    "call": "hmerchant.NewSeckillHandler(l.svcCtx).MerchantListSeckillEntries",
+    "method": "MerchantListSeckillEntries"
+  },
+  "MerchantSeckillSessions": {
+    "alias": "hmerchant",
+    "import": "mymall/services/merchant-service/internal/app/merchant",
+    "call": "hmerchant.NewSeckillHandler(l.svcCtx).MerchantSeckillSessions",
+    "method": "MerchantSeckillSessions"
+  },
+  "MerchantSetSeckillAutoRenew": {
+    "alias": "hmerchant",
+    "import": "mymall/services/merchant-service/internal/app/merchant",
+    "call": "hmerchant.NewSeckillHandler(l.svcCtx).MerchantSetSeckillAutoRenew",
+    "method": "MerchantSetSeckillAutoRenew"
+  },
+  "MerchantApplySeckill": {
+    "alias": "hmerchant",
+    "import": "mymall/services/merchant-service/internal/app/merchant",
+    "call": "hmerchant.NewSeckillHandler(l.svcCtx).MerchantApplySeckill",
+    "method": "MerchantApplySeckill"
+  },
+  "Apply": {
+    "alias": "hmerchant",
+    "import": "mymall/services/merchant-service/internal/app/merchant",
+    "call": "hmerchant.NewShopHandler(l.svcCtx).Apply",
+    "method": "Apply"
+  },
+  "MyShops": {
+    "alias": "hmerchant",
+    "import": "mymall/services/merchant-service/internal/app/merchant",
+    "call": "hmerchant.NewShopHandler(l.svcCtx).MyShops",
+    "method": "MyShops"
+  },
+  "UpdateMyShop": {
+    "alias": "hmerchant",
+    "import": "mymall/services/merchant-service/internal/app/merchant",
+    "call": "hmerchant.NewShopHandler(l.svcCtx).UpdateMyShop",
+    "method": "UpdateMyShop"
+  },
+  "MerchantCreateCoupon": {
+    "alias": "hmerchant",
+    "import": "mymall/services/merchant-service/internal/app/merchant",
+    "call": "hmerchant.NewCouponHandler(l.svcCtx).MerchantCreateCoupon",
+    "method": "MerchantCreateCoupon"
+  },
+  "MerchantCopyCoupon": {
+    "alias": "hmerchant",
+    "import": "mymall/services/merchant-service/internal/app/merchant",
+    "call": "hmerchant.NewCouponHandler(l.svcCtx).MerchantCopyCoupon",
+    "method": "MerchantCopyCoupon"
+  },
+  "MerchantUpdateCoupon": {
+    "alias": "hmerchant",
+    "import": "mymall/services/merchant-service/internal/app/merchant",
+    "call": "hmerchant.NewCouponHandler(l.svcCtx).MerchantUpdateCoupon",
+    "method": "MerchantUpdateCoupon"
+  },
+  "MerchantCouponClaims": {
+    "alias": "hmerchant",
+    "import": "mymall/services/merchant-service/internal/app/merchant",
+    "call": "hmerchant.NewCouponHandler(l.svcCtx).MerchantCouponClaims",
+    "method": "MerchantCouponClaims"
+  },
+  "MerchantGrantCoupon": {
+    "alias": "hmerchant",
+    "import": "mymall/services/merchant-service/internal/app/merchant",
+    "call": "hmerchant.NewCouponHandler(l.svcCtx).MerchantGrantCoupon",
+    "method": "MerchantGrantCoupon"
+  },
+  "MerchantCouponStats": {
+    "alias": "hmerchant",
+    "import": "mymall/services/merchant-service/internal/app/merchant",
+    "call": "hmerchant.NewCouponHandler(l.svcCtx).MerchantCouponStats",
+    "method": "MerchantCouponStats"
+  },
+  "MerchantOffCoupon": {
+    "alias": "hmerchant",
+    "import": "mymall/services/merchant-service/internal/app/merchant",
+    "call": "hmerchant.NewCouponHandler(l.svcCtx).MerchantOffCoupon",
+    "method": "MerchantOffCoupon"
+  },
+  "MerchantCouponRedeems": {
+    "alias": "hmerchant",
+    "import": "mymall/services/merchant-service/internal/app/merchant",
+    "call": "hmerchant.NewCouponHandler(l.svcCtx).MerchantCouponRedeems",
+    "method": "MerchantCouponRedeems"
+  },
+  "MerchantListCoupons": {
+    "alias": "hmerchant",
+    "import": "mymall/services/merchant-service/internal/app/merchant",
+    "call": "hmerchant.NewCouponHandler(l.svcCtx).MerchantListCoupons",
+    "method": "MerchantListCoupons"
+  },
+  "MerchantBuyTheme": {
+    "alias": "hmerchant",
+    "import": "mymall/services/merchant-service/internal/app/merchant",
+    "call": "hmerchant.NewHomepageThemeHandler(l.svcCtx).MerchantBuyTheme",
+    "method": "MerchantBuyTheme"
+  },
+  "MerchantListThemePackages": {
+    "alias": "hmerchant",
+    "import": "mymall/services/merchant-service/internal/app/merchant",
+    "call": "hmerchant.NewHomepageThemeHandler(l.svcCtx).MerchantListThemePackages",
+    "method": "MerchantListThemePackages"
+  },
+  "MerchantListThemeSlots": {
+    "alias": "hmerchant",
+    "import": "mymall/services/merchant-service/internal/app/merchant",
+    "call": "hmerchant.NewHomepageThemeHandler(l.svcCtx).MerchantListThemeSlots",
+    "method": "MerchantListThemeSlots"
+  },
+  "MerchantListThemeOrders": {
+    "alias": "hmerchant",
+    "import": "mymall/services/merchant-service/internal/app/merchant",
+    "call": "hmerchant.NewHomepageThemeHandler(l.svcCtx).MerchantListThemeOrders",
+    "method": "MerchantListThemeOrders"
+  },
+  "MerchantGetWallet": {
+    "alias": "hmerchant",
+    "import": "mymall/services/merchant-service/internal/app/merchant",
+    "call": "hmerchant.NewWalletHandler(l.svcCtx).MerchantGetWallet",
+    "method": "MerchantGetWallet"
+  },
+  "MerchantWalletLogs": {
+    "alias": "hmerchant",
+    "import": "mymall/services/merchant-service/internal/app/merchant",
+    "call": "hmerchant.NewWalletHandler(l.svcCtx).MerchantWalletLogs",
+    "method": "MerchantWalletLogs"
+  }
+}

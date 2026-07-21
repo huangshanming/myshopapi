@@ -2,28 +2,39 @@ package product
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	hadmin "mymall/services/catalog-service/internal/product/app/admin"
+	"mymall/services/catalog-service/internal/svc"
+	"mymall/services/catalog-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	padmin "mymall/services/catalog-service/internal/product/httpapi/admin"
-	"mymall/services/catalog-service/internal/svc"
 )
 
 type AdminOffSaleProductLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminOffSaleProductLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminOffSaleProductLogic {
+func NewAdminOffSaleProductLogic(svcCtx *svc.ServiceContext) *AdminOffSaleProductLogic {
 	return &AdminOffSaleProductLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *AdminOffSaleProductLogic) AdminOffSaleProduct(w http.ResponseWriter, r *http.Request) {
-	padmin.NewPlatformProductHandler(l.svcCtx).OffSale(w, r)
+func (l *AdminOffSaleProductLogic) AdminOffSaleProduct(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+	raw, err := httpinvoke.Run(ctx, "PUT", "/api/v1/admin/products/:id/off_sale", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, req, hadmin.NewPlatformProductHandler(l.svcCtx).OffSale)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

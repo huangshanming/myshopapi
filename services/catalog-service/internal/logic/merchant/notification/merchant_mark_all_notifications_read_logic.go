@@ -2,28 +2,39 @@ package notification
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	hhandler "mymall/services/catalog-service/internal/notify/handler"
+	"mymall/services/catalog-service/internal/svc"
+	"mymall/services/catalog-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	notifyhandler "mymall/services/catalog-service/internal/notify/handler"
-	"mymall/services/catalog-service/internal/svc"
 )
 
 type MerchantMarkAllNotificationsReadLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewMerchantMarkAllNotificationsReadLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantMarkAllNotificationsReadLogic {
+func NewMerchantMarkAllNotificationsReadLogic(svcCtx *svc.ServiceContext) *MerchantMarkAllNotificationsReadLogic {
 	return &MerchantMarkAllNotificationsReadLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *MerchantMarkAllNotificationsReadLogic) MerchantMarkAllNotificationsRead(w http.ResponseWriter, r *http.Request) {
-	notifyhandler.NewNotificationHandler(l.svcCtx).MarkAllRead(w, r)
+func (l *MerchantMarkAllNotificationsReadLogic) MerchantMarkAllNotificationsRead(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/merchant/notifications/read-all", nil, nil, req, hhandler.NewNotificationHandler(l.svcCtx).MarkAllRead)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

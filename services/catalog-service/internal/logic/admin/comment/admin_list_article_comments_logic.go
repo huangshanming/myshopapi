@@ -2,28 +2,43 @@ package comment
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	hadmin "mymall/services/catalog-service/internal/content/app/admin"
+	"mymall/services/catalog-service/internal/svc"
+	"mymall/services/catalog-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	cadmin "mymall/services/catalog-service/internal/content/httpapi/admin"
-	"mymall/services/catalog-service/internal/svc"
 )
 
 type AdminListArticleCommentsLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminListArticleCommentsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminListArticleCommentsLogic {
+func NewAdminListArticleCommentsLogic(svcCtx *svc.ServiceContext) *AdminListArticleCommentsLogic {
 	return &AdminListArticleCommentsLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *AdminListArticleCommentsLogic) AdminListArticleComments(w http.ResponseWriter, r *http.Request) {
-	cadmin.NewArticleHandler(l.svcCtx).CommentList(w, r)
+func (l *AdminListArticleCommentsLogic) AdminListArticleComments(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/admin/article-comments", nil, url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}, nil, hadmin.NewArticleHandler(l.svcCtx).CommentList)
+	if err != nil {
+		return nil, err
+	}
+	var out types.PageListResp
+	if err := httpinvoke.Decode(raw, &out); err != nil {
+		var list interface{}
+		if err2 := httpinvoke.Decode(raw, &list); err2 == nil {
+			return &types.PageListResp{List: list}, nil
+		}
+		return nil, err
+	}
+	return &out, nil
 }

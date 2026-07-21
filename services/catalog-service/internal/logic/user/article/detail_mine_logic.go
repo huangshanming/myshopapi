@@ -2,28 +2,39 @@ package article
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	hpublic "mymall/services/catalog-service/internal/content/app/public"
+	"mymall/services/catalog-service/internal/svc"
+	"mymall/services/catalog-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	cpublic "mymall/services/catalog-service/internal/content/httpapi/public"
-	"mymall/services/catalog-service/internal/svc"
 )
 
 type DetailMineLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewDetailMineLogic(ctx context.Context, svcCtx *svc.ServiceContext) *DetailMineLogic {
+func NewDetailMineLogic(svcCtx *svc.ServiceContext) *DetailMineLogic {
 	return &DetailMineLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *DetailMineLogic) DetailMine(w http.ResponseWriter, r *http.Request) {
-	cpublic.NewArticleHandler(l.svcCtx).DetailMine(w, r)
+func (l *DetailMineLogic) DetailMine(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/user/articles/:id", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, nil, hpublic.NewArticleHandler(l.svcCtx).DetailMine)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

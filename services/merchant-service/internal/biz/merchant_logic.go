@@ -12,19 +12,15 @@ import (
 )
 
 type MerchantLogic struct {
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewMerchantLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantLogic {
-	return &MerchantLogic{
-		ctx:    ctx,
-		svcCtx: svcCtx,
-	}
+func NewMerchantLogic(svcCtx *svc.ServiceContext) *MerchantLogic {
+	return &MerchantLogic{svcCtx: svcCtx}
 }
 
-func (l *MerchantLogic) Apply(userID uint64, in types.ApplyReq) (*model.ShopApplication, error) {
-	if _, err := l.svcCtx.Repo.FindPendingAppByUser(l.ctx, userID); err == nil {
+func (l *MerchantLogic) Apply(ctx context.Context, userID uint64, in types.ApplyReq) (*model.ShopApplication, error) {
+	if _, err := l.svcCtx.Repo.FindPendingAppByUser(ctx, userID); err == nil {
 		return nil, errors.New("已有待审核的入驻申请")
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
@@ -46,24 +42,24 @@ func (l *MerchantLogic) Apply(userID uint64, in types.ApplyReq) (*model.ShopAppl
 		StorefrontImage:   in.StorefrontImage,
 		Status:            model.AppPending,
 	}
-	if err := l.svcCtx.Repo.CreateApplication(l.ctx, app); err != nil {
+	if err := l.svcCtx.Repo.CreateApplication(ctx, app); err != nil {
 		return nil, err
 	}
 	return app, nil
 }
 
-func (l *MerchantLogic) ListApplications(status string, page, pageSize int) ([]model.ShopApplication, int64, error) {
+func (l *MerchantLogic) ListApplications(ctx context.Context, status string, page, pageSize int) ([]model.ShopApplication, int64, error) {
 	if page < 1 {
 		page = 1
 	}
 	if pageSize < 1 {
 		pageSize = 10
 	}
-	return l.svcCtx.Repo.ListApplications(l.ctx, status, page, pageSize)
+	return l.svcCtx.Repo.ListApplications(ctx, status, page, pageSize)
 }
 
-func (l *MerchantLogic) Approve(appID, adminID uint64) (*model.Shop, error) {
-	shop, err := l.svcCtx.Repo.ApproveApplication(l.ctx, appID, adminID)
+func (l *MerchantLogic) Approve(ctx context.Context, appID, adminID uint64) (*model.Shop, error) {
+	shop, err := l.svcCtx.Repo.ApproveApplication(ctx, appID, adminID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrInvalidData) {
 			return nil, errors.New("申请状态不可审核")
@@ -73,21 +69,21 @@ func (l *MerchantLogic) Approve(appID, adminID uint64) (*model.Shop, error) {
 	return shop, nil
 }
 
-func (l *MerchantLogic) Reject(appID, adminID uint64, reason string) error {
-	return l.svcCtx.Repo.RejectApplication(l.ctx, appID, adminID, reason)
+func (l *MerchantLogic) Reject(ctx context.Context, appID, adminID uint64, reason string) error {
+	return l.svcCtx.Repo.RejectApplication(ctx, appID, adminID, reason)
 }
 
-func (l *MerchantLogic) ListShops(status, name string, page, pageSize int) ([]model.Shop, int64, error) {
+func (l *MerchantLogic) ListShops(ctx context.Context, status, name string, page, pageSize int) ([]model.Shop, int64, error) {
 	if page < 1 {
 		page = 1
 	}
 	if pageSize < 1 {
 		pageSize = 10
 	}
-	return l.svcCtx.Repo.ListShops(l.ctx, status, name, page, pageSize)
+	return l.svcCtx.Repo.ListShops(ctx, status, name, page, pageSize)
 }
 
-func (l *MerchantLogic) ListPublicShops(page, pageSize int) ([]model.Shop, int64, error) {
+func (l *MerchantLogic) ListPublicShops(ctx context.Context, page, pageSize int) ([]model.Shop, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -97,15 +93,15 @@ func (l *MerchantLogic) ListPublicShops(page, pageSize int) ([]model.Shop, int64
 	if pageSize > 50 {
 		pageSize = 50
 	}
-	return l.svcCtx.Repo.ListPublicShops(l.ctx, page, pageSize)
+	return l.svcCtx.Repo.ListPublicShops(ctx, page, pageSize)
 }
 
-func (l *MerchantLogic) GetShop(id uint64) (*model.Shop, error) {
-	return l.svcCtx.Repo.FindShop(l.ctx, id)
+func (l *MerchantLogic) GetShop(ctx context.Context, id uint64) (*model.Shop, error) {
+	return l.svcCtx.Repo.FindShop(ctx, id)
 }
 
-func (l *MerchantLogic) GetPublicShop(id uint64) (*model.Shop, error) {
-	shop, err := l.svcCtx.Repo.FindShop(l.ctx, id)
+func (l *MerchantLogic) GetPublicShop(ctx context.Context, id uint64) (*model.Shop, error) {
+	shop, err := l.svcCtx.Repo.FindShop(ctx, id)
 	if err != nil {
 		return nil, errors.New("店铺不存在")
 	}
@@ -115,15 +111,15 @@ func (l *MerchantLogic) GetPublicShop(id uint64) (*model.Shop, error) {
 	return shop, nil
 }
 
-func (l *MerchantLogic) DisableShop(id uint64, reason string) error {
-	return l.svcCtx.Repo.UpdateShopStatus(l.ctx, id, model.ShopDisabled, reason)
+func (l *MerchantLogic) DisableShop(ctx context.Context, id uint64, reason string) error {
+	return l.svcCtx.Repo.UpdateShopStatus(ctx, id, model.ShopDisabled, reason)
 }
 
-func (l *MerchantLogic) EnableShop(id uint64) error {
-	return l.svcCtx.Repo.UpdateShopStatus(l.ctx, id, model.ShopApproved, "")
+func (l *MerchantLogic) EnableShop(ctx context.Context, id uint64) error {
+	return l.svcCtx.Repo.UpdateShopStatus(ctx, id, model.ShopApproved, "")
 }
 
-func (l *MerchantLogic) CreateShop(req types.AdminCreateShopReq) (*model.Shop, error) {
+func (l *MerchantLogic) CreateShop(ctx context.Context, req types.AdminCreateShopReq) (*model.Shop, error) {
 	if req.Name == "" {
 		return nil, errors.New("店铺名称不能为空")
 	}
@@ -149,11 +145,11 @@ func (l *MerchantLogic) CreateShop(req types.AdminCreateShopReq) (*model.Shop, e
 	if shop.ContactPhone == "" {
 		shop.ContactPhone = req.OwnerMobile
 	}
-	return l.svcCtx.Repo.CreateShopWithOwner(l.ctx, shop, req.OwnerMobile, req.OwnerPassword, req.OwnerNickname)
+	return l.svcCtx.Repo.CreateShopWithOwner(ctx, shop, req.OwnerMobile, req.OwnerPassword, req.OwnerNickname)
 }
 
-func (l *MerchantLogic) AdminUpdateShop(id uint64, req types.AdminUpdateShopReq) error {
-	existing, err := l.svcCtx.Repo.FindShop(l.ctx, id)
+func (l *MerchantLogic) AdminUpdateShop(ctx context.Context, id uint64, req types.AdminUpdateShopReq) error {
+	existing, err := l.svcCtx.Repo.FindShop(ctx, id)
 	if err != nil {
 		return errors.New("店铺不存在")
 	}
@@ -171,25 +167,25 @@ func (l *MerchantLogic) AdminUpdateShop(id uint64, req types.AdminUpdateShopReq)
 	existing.LegalPerson = req.LegalPerson
 	existing.LicenseImage = req.LicenseImage
 	existing.StorefrontImage = req.StorefrontImage
-	return l.svcCtx.Repo.UpdateShop(l.ctx, existing)
+	return l.svcCtx.Repo.UpdateShop(ctx, existing)
 }
 
-func (l *MerchantLogic) ResetOwnerPassword(shopID uint64, plain string) error {
+func (l *MerchantLogic) ResetOwnerPassword(ctx context.Context, shopID uint64, plain string) error {
 	if plain == "" {
 		return errors.New("密码不能为空")
 	}
-	return l.svcCtx.Repo.ResetOwnerPassword(l.ctx, shopID, plain)
+	return l.svcCtx.Repo.ResetOwnerPassword(ctx, shopID, plain)
 }
 
-func (l *MerchantLogic) MyShops(userID uint64) ([]model.Shop, error) {
-	return l.svcCtx.Repo.ListShopsByUser(l.ctx, userID)
+func (l *MerchantLogic) MyShops(ctx context.Context, userID uint64) ([]model.Shop, error) {
+	return l.svcCtx.Repo.ListShopsByUser(ctx, userID)
 }
 
-func (l *MerchantLogic) UpdateMyShop(shopID, userID uint64, req types.UpdateShopReq) error {
-	if !l.svcCtx.Repo.IsShopMember(l.ctx, shopID, userID) {
+func (l *MerchantLogic) UpdateMyShop(ctx context.Context, shopID, userID uint64, req types.UpdateShopReq) error {
+	if !l.svcCtx.Repo.IsShopMember(ctx, shopID, userID) {
 		return errors.New("无权操作该店铺")
 	}
-	existing, err := l.svcCtx.Repo.FindShop(l.ctx, shopID)
+	existing, err := l.svcCtx.Repo.FindShop(ctx, shopID)
 	if err != nil {
 		return errors.New("店铺不存在")
 	}
@@ -204,5 +200,5 @@ func (l *MerchantLogic) UpdateMyShop(shopID, userID uint64, req types.UpdateShop
 	existing.District = req.District
 	existing.Address = req.Address
 	existing.StorefrontImage = req.StorefrontImage
-	return l.svcCtx.Repo.UpdateShopDisplay(l.ctx, existing)
+	return l.svcCtx.Repo.UpdateShopDisplay(ctx, existing)
 }

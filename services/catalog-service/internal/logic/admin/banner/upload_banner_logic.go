@@ -2,28 +2,39 @@ package banner
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	hadmin "mymall/services/catalog-service/internal/content/app/admin"
+	"mymall/services/catalog-service/internal/svc"
+	"mymall/services/catalog-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	cadmin "mymall/services/catalog-service/internal/content/httpapi/admin"
-	"mymall/services/catalog-service/internal/svc"
 )
 
 type UploadBannerLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewUploadBannerLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UploadBannerLogic {
+func NewUploadBannerLogic(svcCtx *svc.ServiceContext) *UploadBannerLogic {
 	return &UploadBannerLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *UploadBannerLogic) UploadBanner(w http.ResponseWriter, r *http.Request) {
-	cadmin.NewArticleHandler(l.svcCtx).UploadBanner(w, r)
+func (l *UploadBannerLogic) UploadBanner(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/admin/banners/upload", nil, nil, req, hadmin.NewArticleHandler(l.svcCtx).UploadBanner)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

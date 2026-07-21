@@ -2,28 +2,39 @@ package article
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	hadmin "mymall/services/catalog-service/internal/content/app/admin"
+	"mymall/services/catalog-service/internal/svc"
+	"mymall/services/catalog-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	cadmin "mymall/services/catalog-service/internal/content/httpapi/admin"
-	"mymall/services/catalog-service/internal/svc"
 )
 
 type AdminArticleStatsLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminArticleStatsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminArticleStatsLogic {
+func NewAdminArticleStatsLogic(svcCtx *svc.ServiceContext) *AdminArticleStatsLogic {
 	return &AdminArticleStatsLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *AdminArticleStatsLogic) AdminArticleStats(w http.ResponseWriter, r *http.Request) {
-	cadmin.NewArticleHandler(l.svcCtx).Stats(w, r)
+func (l *AdminArticleStatsLogic) AdminArticleStats(ctx context.Context) (resp *types.AnyResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/admin/articles/stats", nil, nil, nil, hadmin.NewArticleHandler(l.svcCtx).Stats)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

@@ -2,28 +2,30 @@ package task
 
 import (
 	"context"
-	"net/http"
+	"mymall/pkg/httpinvoke"
+	huser "mymall/services/user-service/internal/app/user"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	huser "mymall/services/user-service/internal/httpapi/user"
-	"mymall/services/user-service/internal/svc"
 )
 
 type UserReportEventLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewUserReportEventLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserReportEventLogic {
+func NewUserReportEventLogic(svcCtx *svc.ServiceContext) *UserReportEventLogic {
 	return &UserReportEventLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *UserReportEventLogic) UserReportEvent(w http.ResponseWriter, r *http.Request) {
-	huser.NewTaskHandler(l.svcCtx).UserReportEvent(w, r)
+func (l *UserReportEventLogic) UserReportEvent(ctx context.Context, req *types.TaskEventReq) error {
+	_, err := httpinvoke.Run(ctx, "POST", "/api/v1/user/tasks/events", nil, nil, req, huser.NewTaskHandler(l.svcCtx).UserReportEvent)
+	if err != nil {
+		return err
+	}
+	return nil
 }

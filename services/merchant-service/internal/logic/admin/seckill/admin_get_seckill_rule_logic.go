@@ -2,28 +2,39 @@ package seckill
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	"mymall/services/merchant-service/internal/svc"
+	"mymall/services/merchant-service/internal/types"
+	hadmin "mymall/services/merchant-service/internal/app/admin"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	hadmin "mymall/services/merchant-service/internal/httpapi/admin"
-	"mymall/services/merchant-service/internal/svc"
 )
 
 type AdminGetSeckillRuleLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminGetSeckillRuleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminGetSeckillRuleLogic {
+func NewAdminGetSeckillRuleLogic(svcCtx *svc.ServiceContext) *AdminGetSeckillRuleLogic {
 	return &AdminGetSeckillRuleLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *AdminGetSeckillRuleLogic) AdminGetSeckillRule(w http.ResponseWriter, r *http.Request) {
-	hadmin.NewSeckillHandler(l.svcCtx).AdminGetSeckillRule(w, r)
+func (l *AdminGetSeckillRuleLogic) AdminGetSeckillRule(ctx context.Context) (resp *types.AnyResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/admin/seckill/rule", nil, nil, nil, hadmin.NewSeckillHandler(l.svcCtx).AdminGetSeckillRule)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

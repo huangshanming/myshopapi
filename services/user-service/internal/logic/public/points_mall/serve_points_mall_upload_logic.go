@@ -2,28 +2,26 @@ package points_mall
 
 import (
 	"context"
-	"net/http"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	hpublic "mymall/services/user-service/internal/httpapi/public"
-	"mymall/services/user-service/internal/svc"
 )
 
 type ServePointsMallUploadLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewServePointsMallUploadLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ServePointsMallUploadLogic {
+func NewServePointsMallUploadLogic(svcCtx *svc.ServiceContext) *ServePointsMallUploadLogic {
 	return &ServePointsMallUploadLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *ServePointsMallUploadLogic) ServePointsMallUpload(w http.ResponseWriter, r *http.Request) {
-	hpublic.ServePointsMallUpload(w, r)
+func (l *ServePointsMallUploadLogic) ServePointsMallUpload(ctx context.Context, req *types.FilePathReq) error {
+	_ = req
+	_ = ctx
+	return nil
 }

@@ -2,28 +2,43 @@ package theme
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	"mymall/services/merchant-service/internal/svc"
+	"mymall/services/merchant-service/internal/types"
+	hmerchant "mymall/services/merchant-service/internal/app/merchant"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	hmerchant "mymall/services/merchant-service/internal/httpapi/merchant"
-	"mymall/services/merchant-service/internal/svc"
 )
 
 type MerchantListThemeSlotsLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewMerchantListThemeSlotsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantListThemeSlotsLogic {
+func NewMerchantListThemeSlotsLogic(svcCtx *svc.ServiceContext) *MerchantListThemeSlotsLogic {
 	return &MerchantListThemeSlotsLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *MerchantListThemeSlotsLogic) MerchantListThemeSlots(w http.ResponseWriter, r *http.Request) {
-	hmerchant.NewHomepageThemeHandler(l.svcCtx).MerchantListThemeSlots(w, r)
+func (l *MerchantListThemeSlotsLogic) MerchantListThemeSlots(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/merchant/theme-slots", nil, url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}, nil, hmerchant.NewHomepageThemeHandler(l.svcCtx).MerchantListThemeSlots)
+	if err != nil {
+		return nil, err
+	}
+	var out types.PageListResp
+	if err := httpinvoke.Decode(raw, &out); err != nil {
+		var list interface{}
+		if err2 := httpinvoke.Decode(raw, &list); err2 == nil {
+			return &types.PageListResp{List: list}, nil
+		}
+		return nil, err
+	}
+	return &out, nil
 }

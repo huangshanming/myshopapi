@@ -2,28 +2,43 @@ package banner
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	hadmin "mymall/services/catalog-service/internal/content/app/admin"
+	"mymall/services/catalog-service/internal/svc"
+	"mymall/services/catalog-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	cadmin "mymall/services/catalog-service/internal/content/httpapi/admin"
-	"mymall/services/catalog-service/internal/svc"
 )
 
 type AdminListBannersLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminListBannersLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminListBannersLogic {
+func NewAdminListBannersLogic(svcCtx *svc.ServiceContext) *AdminListBannersLogic {
 	return &AdminListBannersLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *AdminListBannersLogic) AdminListBanners(w http.ResponseWriter, r *http.Request) {
-	cadmin.NewArticleHandler(l.svcCtx).ListBanners(w, r)
+func (l *AdminListBannersLogic) AdminListBanners(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/admin/banners", nil, url.Values{"page": {fmt.Sprintf("%d", req.Page)}, "page_size": {fmt.Sprintf("%d", req.PageSize)}}, nil, hadmin.NewArticleHandler(l.svcCtx).ListBanners)
+	if err != nil {
+		return nil, err
+	}
+	var out types.PageListResp
+	if err := httpinvoke.Decode(raw, &out); err != nil {
+		var list interface{}
+		if err2 := httpinvoke.Decode(raw, &list); err2 == nil {
+			return &types.PageListResp{List: list}, nil
+		}
+		return nil, err
+	}
+	return &out, nil
 }

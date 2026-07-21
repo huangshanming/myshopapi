@@ -3,69 +3,171 @@ package coupon
 import (
 	"net/http"
 
+	"github.com/zeromicro/go-zero/rest/httpx"
+
 	"mymall/services/merchant-service/internal/logic/merchant/coupon"
 	"mymall/services/merchant-service/internal/svc"
+	"mymall/services/merchant-service/internal/types"
 )
 
 func MerchantCopyCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := coupon.NewMerchantCopyCouponLogic(r.Context(), svcCtx)
-		l.MerchantCopyCoupon(w, r)
+		var req types.IdPathReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := coupon.NewMerchantCopyCouponLogic(svcCtx)
+		resp, err := l.MerchantCopyCoupon(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func MerchantCouponClaimsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := coupon.NewMerchantCouponClaimsLogic(r.Context(), svcCtx)
-		l.MerchantCouponClaims(w, r)
+		var req types.IdPathReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := coupon.NewMerchantCouponClaimsLogic(svcCtx)
+		resp, err := l.MerchantCouponClaims(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func MerchantCouponRedeemsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := coupon.NewMerchantCouponRedeemsLogic(r.Context(), svcCtx)
-		l.MerchantCouponRedeems(w, r)
+		var req types.IdPathReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := coupon.NewMerchantCouponRedeemsLogic(svcCtx)
+		resp, err := l.MerchantCouponRedeems(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func MerchantCouponStatsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := coupon.NewMerchantCouponStatsLogic(r.Context(), svcCtx)
-		l.MerchantCouponStats(w, r)
+		var req types.IdPathReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := coupon.NewMerchantCouponStatsLogic(svcCtx)
+		resp, err := l.MerchantCouponStats(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func MerchantCreateCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := coupon.NewMerchantCreateCouponLogic(r.Context(), svcCtx)
-		l.MerchantCreateCoupon(w, r)
+		var req types.JSONBody
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := coupon.NewMerchantCreateCouponLogic(svcCtx)
+		resp, err := l.MerchantCreateCoupon(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func MerchantGrantCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := coupon.NewMerchantGrantCouponLogic(r.Context(), svcCtx)
-		l.MerchantGrantCoupon(w, r)
+		var req types.JSONBody
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := coupon.NewMerchantGrantCouponLogic(svcCtx)
+		resp, err := l.MerchantGrantCoupon(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func MerchantListCouponsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := coupon.NewMerchantListCouponsLogic(r.Context(), svcCtx)
-		l.MerchantListCoupons(w, r)
+		var req types.PageReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := coupon.NewMerchantListCouponsLogic(svcCtx)
+		resp, err := l.MerchantListCoupons(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func MerchantOffCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := coupon.NewMerchantOffCouponLogic(r.Context(), svcCtx)
-		l.MerchantOffCoupon(w, r)
+		var req types.IdPathReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := coupon.NewMerchantOffCouponLogic(svcCtx)
+		resp, err := l.MerchantOffCoupon(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func MerchantUpdateCouponHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := coupon.NewMerchantUpdateCouponLogic(r.Context(), svcCtx)
-		l.MerchantUpdateCoupon(w, r)
+		var req types.IdPathReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := coupon.NewMerchantUpdateCouponLogic(svcCtx)
+		resp, err := l.MerchantUpdateCoupon(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }

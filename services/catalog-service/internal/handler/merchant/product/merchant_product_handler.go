@@ -3,195 +3,483 @@ package product
 import (
 	"net/http"
 
+	"github.com/zeromicro/go-zero/rest/httpx"
+
 	"mymall/services/catalog-service/internal/logic/merchant/product"
 	"mymall/services/catalog-service/internal/svc"
+	"mymall/services/catalog-service/internal/types"
 )
 
 func AdjustStockHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := product.NewAdjustStockLogic(r.Context(), svcCtx)
-		l.AdjustStock(w, r)
+		var req types.IdPathReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := product.NewAdjustStockLogic(svcCtx)
+		resp, err := l.AdjustStock(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func BatchStockHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := product.NewBatchStockLogic(r.Context(), svcCtx)
-		l.BatchStock(w, r)
+		var req types.JSONBody
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := product.NewBatchStockLogic(svcCtx)
+		resp, err := l.BatchStock(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func CancelScheduleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := product.NewCancelScheduleLogic(r.Context(), svcCtx)
-		l.CancelSchedule(w, r)
+		var req types.IdPathReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := product.NewCancelScheduleLogic(svcCtx)
+		resp, err := l.CancelSchedule(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func DeleteAttrTemplateHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := product.NewDeleteAttrTemplateLogic(r.Context(), svcCtx)
-		l.DeleteAttrTemplate(w, r)
+		var req types.IdPathReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := product.NewDeleteAttrTemplateLogic(svcCtx)
+		resp, err := l.DeleteAttrTemplate(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func DeleteTagHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := product.NewDeleteTagLogic(r.Context(), svcCtx)
-		l.DeleteTag(w, r)
+		var req types.IdPathReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := product.NewDeleteTagLogic(svcCtx)
+		resp, err := l.DeleteTag(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func JobStatusHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := product.NewJobStatusLogic(r.Context(), svcCtx)
-		l.JobStatus(w, r)
+		var req types.IdPathReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := product.NewJobStatusLogic(svcCtx)
+		resp, err := l.JobStatus(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func ListAttrTemplatesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := product.NewListAttrTemplatesLogic(r.Context(), svcCtx)
-		l.ListAttrTemplates(w, r)
+		var req types.PageReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := product.NewListAttrTemplatesLogic(svcCtx)
+		resp, err := l.ListAttrTemplates(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func ListTagsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := product.NewListTagsLogic(r.Context(), svcCtx)
-		l.ListTags(w, r)
+		var req types.PageReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := product.NewListTagsLogic(svcCtx)
+		resp, err := l.ListTags(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func MerchantBatchProductsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := product.NewMerchantBatchProductsLogic(r.Context(), svcCtx)
-		l.MerchantBatchProducts(w, r)
+		var req types.JSONBody
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := product.NewMerchantBatchProductsLogic(svcCtx)
+		resp, err := l.MerchantBatchProducts(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func MerchantCopyProductHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := product.NewMerchantCopyProductLogic(r.Context(), svcCtx)
-		l.MerchantCopyProduct(w, r)
+		var req types.IdPathReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := product.NewMerchantCopyProductLogic(svcCtx)
+		resp, err := l.MerchantCopyProduct(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func MerchantCreateAttrTemplateHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := product.NewMerchantCreateAttrTemplateLogic(r.Context(), svcCtx)
-		l.MerchantCreateAttrTemplate(w, r)
+		var req types.JSONBody
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := product.NewMerchantCreateAttrTemplateLogic(svcCtx)
+		resp, err := l.MerchantCreateAttrTemplate(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func MerchantCreateProductHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := product.NewMerchantCreateProductLogic(r.Context(), svcCtx)
-		l.MerchantCreateProduct(w, r)
+		var req types.JSONBody
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := product.NewMerchantCreateProductLogic(svcCtx)
+		resp, err := l.MerchantCreateProduct(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func MerchantCreateTagHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := product.NewMerchantCreateTagLogic(r.Context(), svcCtx)
-		l.MerchantCreateTag(w, r)
+		var req types.JSONBody
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := product.NewMerchantCreateTagLogic(svcCtx)
+		resp, err := l.MerchantCreateTag(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func MerchantExportProductsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := product.NewMerchantExportProductsLogic(r.Context(), svcCtx)
-		l.MerchantExportProducts(w, r)
+		var req types.PageReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := product.NewMerchantExportProductsLogic(svcCtx)
+		resp, err := l.MerchantExportProducts(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func MerchantGetProductHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := product.NewMerchantGetProductLogic(r.Context(), svcCtx)
-		l.MerchantGetProduct(w, r)
+		var req types.IdPathReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := product.NewMerchantGetProductLogic(svcCtx)
+		resp, err := l.MerchantGetProduct(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func MerchantImportProductsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := product.NewMerchantImportProductsLogic(r.Context(), svcCtx)
-		l.MerchantImportProducts(w, r)
+		var req types.JSONBody
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := product.NewMerchantImportProductsLogic(svcCtx)
+		resp, err := l.MerchantImportProducts(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func MerchantListProductsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := product.NewMerchantListProductsLogic(r.Context(), svcCtx)
-		l.MerchantListProducts(w, r)
+		var req types.PageReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := product.NewMerchantListProductsLogic(svcCtx)
+		resp, err := l.MerchantListProducts(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func MerchantPurgeProductsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := product.NewMerchantPurgeProductsLogic(r.Context(), svcCtx)
-		l.MerchantPurgeProducts(w, r)
+		l := product.NewMerchantPurgeProductsLogic(svcCtx)
+		resp, err := l.MerchantPurgeProducts(r.Context())
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func MerchantRestoreProductsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := product.NewMerchantRestoreProductsLogic(r.Context(), svcCtx)
-		l.MerchantRestoreProducts(w, r)
+		var req types.JSONBody
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := product.NewMerchantRestoreProductsLogic(svcCtx)
+		resp, err := l.MerchantRestoreProducts(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func MerchantScheduleProductHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := product.NewMerchantScheduleProductLogic(r.Context(), svcCtx)
-		l.MerchantScheduleProduct(w, r)
+		var req types.IdPathReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := product.NewMerchantScheduleProductLogic(svcCtx)
+		resp, err := l.MerchantScheduleProduct(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func MerchantSetProductStatusHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := product.NewMerchantSetProductStatusLogic(r.Context(), svcCtx)
-		l.MerchantSetProductStatus(w, r)
+		var req types.IdPathReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := product.NewMerchantSetProductStatusLogic(svcCtx)
+		resp, err := l.MerchantSetProductStatus(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func MerchantUpdateAttrTemplateHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := product.NewMerchantUpdateAttrTemplateLogic(r.Context(), svcCtx)
-		l.MerchantUpdateAttrTemplate(w, r)
+		var req types.IdPathReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := product.NewMerchantUpdateAttrTemplateLogic(svcCtx)
+		resp, err := l.MerchantUpdateAttrTemplate(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func MerchantUpdateProductHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := product.NewMerchantUpdateProductLogic(r.Context(), svcCtx)
-		l.MerchantUpdateProduct(w, r)
+		var req types.IdPathReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := product.NewMerchantUpdateProductLogic(svcCtx)
+		resp, err := l.MerchantUpdateProduct(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func MerchantUpdateTagHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := product.NewMerchantUpdateTagLogic(r.Context(), svcCtx)
-		l.MerchantUpdateTag(w, r)
+		var req types.IdPathReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := product.NewMerchantUpdateTagLogic(svcCtx)
+		resp, err := l.MerchantUpdateTag(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func MerchantUploadImageHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := product.NewMerchantUploadImageLogic(r.Context(), svcCtx)
-		l.MerchantUploadImage(w, r)
+		var req types.JSONBody
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := product.NewMerchantUploadImageLogic(svcCtx)
+		resp, err := l.MerchantUploadImage(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func OpLogsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := product.NewOpLogsLogic(r.Context(), svcCtx)
-		l.OpLogs(w, r)
+		var req types.PageReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := product.NewOpLogsLogic(svcCtx)
+		resp, err := l.OpLogs(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func StockWarningsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := product.NewStockWarningsLogic(r.Context(), svcCtx)
-		l.StockWarnings(w, r)
+		l := product.NewStockWarningsLogic(svcCtx)
+		resp, err := l.StockWarnings(r.Context())
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }

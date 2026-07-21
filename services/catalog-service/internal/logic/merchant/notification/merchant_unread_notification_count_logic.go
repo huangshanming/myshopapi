@@ -2,28 +2,39 @@ package notification
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	hhandler "mymall/services/catalog-service/internal/notify/handler"
+	"mymall/services/catalog-service/internal/svc"
+	"mymall/services/catalog-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	notifyhandler "mymall/services/catalog-service/internal/notify/handler"
-	"mymall/services/catalog-service/internal/svc"
 )
 
 type MerchantUnreadNotificationCountLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewMerchantUnreadNotificationCountLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantUnreadNotificationCountLogic {
+func NewMerchantUnreadNotificationCountLogic(svcCtx *svc.ServiceContext) *MerchantUnreadNotificationCountLogic {
 	return &MerchantUnreadNotificationCountLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *MerchantUnreadNotificationCountLogic) MerchantUnreadNotificationCount(w http.ResponseWriter, r *http.Request) {
-	notifyhandler.NewNotificationHandler(l.svcCtx).UnreadCount(w, r)
+func (l *MerchantUnreadNotificationCountLogic) MerchantUnreadNotificationCount(ctx context.Context) (resp *types.AnyResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/merchant/notifications/unread-count", nil, nil, nil, hhandler.NewNotificationHandler(l.svcCtx).UnreadCount)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

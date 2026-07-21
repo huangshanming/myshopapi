@@ -2,28 +2,31 @@ package address
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"mymall/pkg/httpinvoke"
+	huser "mymall/services/user-service/internal/app/user"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	huser "mymall/services/user-service/internal/httpapi/user"
-	"mymall/services/user-service/internal/svc"
 )
 
 type SetDefaultLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewSetDefaultLogic(ctx context.Context, svcCtx *svc.ServiceContext) *SetDefaultLogic {
+func NewSetDefaultLogic(svcCtx *svc.ServiceContext) *SetDefaultLogic {
 	return &SetDefaultLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *SetDefaultLogic) SetDefault(w http.ResponseWriter, r *http.Request) {
-	huser.NewAddressHandler(l.svcCtx).SetDefault(w, r)
+func (l *SetDefaultLogic) SetDefault(ctx context.Context, req *types.IdPathReq) error {
+	_, err := httpinvoke.Run(ctx, "PUT", "/api/v1/user/addresses/{Id}/default", map[string]string{"id": fmt.Sprintf("%v", req.Id)}, nil, nil, huser.NewAddressHandler(l.svcCtx).SetDefault)
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -2,28 +2,34 @@ package task
 
 import (
 	"context"
-	"net/http"
+	"mymall/pkg/httpinvoke"
+	huser "mymall/services/user-service/internal/app/user"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	huser "mymall/services/user-service/internal/httpapi/user"
-	"mymall/services/user-service/internal/svc"
 )
 
 type UserCheckinLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewUserCheckinLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserCheckinLogic {
+func NewUserCheckinLogic(svcCtx *svc.ServiceContext) *UserCheckinLogic {
 	return &UserCheckinLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *UserCheckinLogic) UserCheckin(w http.ResponseWriter, r *http.Request) {
-	huser.NewTaskHandler(l.svcCtx).UserCheckin(w, r)
+func (l *UserCheckinLogic) UserCheckin(ctx context.Context) (resp *types.AnyResp, err error) {
+	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/user/tasks/checkin", nil, nil, nil, huser.NewTaskHandler(l.svcCtx).UserCheckin)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

@@ -2,28 +2,39 @@ package product
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	hpublic "mymall/services/catalog-service/internal/product/app/public"
+	"mymall/services/catalog-service/internal/svc"
+	"mymall/services/catalog-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	ppublic "mymall/services/catalog-service/internal/product/httpapi/public"
-	"mymall/services/catalog-service/internal/svc"
 )
 
 type GetProductDetailLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewGetProductDetailLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetProductDetailLogic {
+func NewGetProductDetailLogic(svcCtx *svc.ServiceContext) *GetProductDetailLogic {
 	return &GetProductDetailLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *GetProductDetailLogic) GetProductDetail(w http.ResponseWriter, r *http.Request) {
-	ppublic.NewCatalogHandler(l.svcCtx).GetProductDetail(w, r)
+func (l *GetProductDetailLogic) GetProductDetail(ctx context.Context) (resp *types.AnyResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/products/detail", nil, nil, nil, hpublic.NewCatalogHandler(l.svcCtx).GetProductDetail)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

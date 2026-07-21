@@ -2,28 +2,31 @@ package notification
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"mymall/pkg/httpinvoke"
+	huser "mymall/services/user-service/internal/app/user"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	huser "mymall/services/user-service/internal/httpapi/user"
-	"mymall/services/user-service/internal/svc"
 )
 
 type MarkNotificationReadLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewMarkNotificationReadLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MarkNotificationReadLogic {
+func NewMarkNotificationReadLogic(svcCtx *svc.ServiceContext) *MarkNotificationReadLogic {
 	return &MarkNotificationReadLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *MarkNotificationReadLogic) MarkNotificationRead(w http.ResponseWriter, r *http.Request) {
-	huser.NewUserHandler(l.svcCtx).MarkNotificationRead(w, r)
+func (l *MarkNotificationReadLogic) MarkNotificationRead(ctx context.Context, req *types.IdPathReq) error {
+	_, err := httpinvoke.Run(ctx, "POST", "/api/v1/user/notifications/{Id}/read", map[string]string{"id": fmt.Sprintf("%v", req.Id)}, nil, nil, huser.NewUserHandler(l.svcCtx).MarkNotificationRead)
+	if err != nil {
+		return err
+	}
+	return nil
 }

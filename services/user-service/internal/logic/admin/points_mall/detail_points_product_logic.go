@@ -2,28 +2,35 @@ package points_mall
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"mymall/pkg/httpinvoke"
+	hadmin "mymall/services/user-service/internal/app/admin"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	hadmin "mymall/services/user-service/internal/httpapi/admin"
-	"mymall/services/user-service/internal/svc"
 )
 
 type DetailPointsProductLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewDetailPointsProductLogic(ctx context.Context, svcCtx *svc.ServiceContext) *DetailPointsProductLogic {
+func NewDetailPointsProductLogic(svcCtx *svc.ServiceContext) *DetailPointsProductLogic {
 	return &DetailPointsProductLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *DetailPointsProductLogic) DetailPointsProduct(w http.ResponseWriter, r *http.Request) {
-	hadmin.NewPointsProductHandler(l.svcCtx).Detail(w, r)
+func (l *DetailPointsProductLogic) DetailPointsProduct(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/admin/points-products/{Id}", map[string]string{"id": fmt.Sprintf("%v", req.Id)}, nil, nil, hadmin.NewPointsProductHandler(l.svcCtx).Detail)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

@@ -76,7 +76,7 @@ func main() {
 		return sqlDB.PingContext(ctx)
 	})
 	svcCtx := svc.NewServiceContext(cfg, db, healthReg)
-	seckillLogic := biz.NewMerchantLogic(context.Background(), svcCtx)
+	seckillLogic := biz.NewMerchantLogic(svcCtx)
 	_, _, _ = seckillLogic.EnsureActiveSession()
 
 	go func() {

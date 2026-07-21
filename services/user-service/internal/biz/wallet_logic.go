@@ -9,25 +9,21 @@ import (
 )
 
 type WalletLogic struct {
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewWalletLogic(ctx context.Context, svcCtx *svc.ServiceContext) *WalletLogic {
-	return &WalletLogic{
-		ctx:    ctx,
-		svcCtx: svcCtx,
-	}
+func NewWalletLogic(svcCtx *svc.ServiceContext) *WalletLogic {
+	return &WalletLogic{svcCtx: svcCtx}
 }
 
-func (l *WalletLogic) GetWallet(userID uint64) (*model.UserWallet, error) {
+func (l *WalletLogic) GetWallet(ctx context.Context, userID uint64) (*model.UserWallet, error) {
 	if userID == 0 {
 		return nil, errors.New("用户无效")
 	}
-	return l.svcCtx.Repo.GetWallet(l.ctx, userID)
+	return l.svcCtx.Repo.GetWallet(ctx, userID)
 }
 
-func (l *WalletLogic) AdjustWallet(userID uint64, field string, amount float64, remark string, operatorID uint64) (*model.UserWallet, error) {
+func (l *WalletLogic) AdjustWallet(ctx context.Context, userID uint64, field string, amount float64, remark string, operatorID uint64) (*model.UserWallet, error) {
 	if userID == 0 {
 		return nil, errors.New("用户无效")
 	}
@@ -38,10 +34,10 @@ func (l *WalletLogic) AdjustWallet(userID uint64, field string, amount float64, 
 	if operatorID > 0 {
 		op = &operatorID
 	}
-	return l.svcCtx.Repo.AdjustWallet(l.ctx, userID, field, amount, remark, op)
+	return l.svcCtx.Repo.AdjustWallet(ctx, userID, field, amount, remark, op)
 }
 
-func (l *WalletLogic) ListWalletLogs(userID uint64, page, pageSize int) ([]model.UserWalletLog, int64, error) {
+func (l *WalletLogic) ListWalletLogs(ctx context.Context, userID uint64, page, pageSize int) ([]model.UserWalletLog, int64, error) {
 	if userID == 0 {
 		return nil, 0, errors.New("用户无效")
 	}
@@ -51,26 +47,26 @@ func (l *WalletLogic) ListWalletLogs(userID uint64, page, pageSize int) ([]model
 	if pageSize < 1 || pageSize > 100 {
 		pageSize = 20
 	}
-	return l.svcCtx.Repo.ListWalletLogs(l.ctx, userID, page, pageSize)
+	return l.svcCtx.Repo.ListWalletLogs(ctx, userID, page, pageSize)
 }
 
-func (l *WalletLogic) FreezeForOrder(userID uint64, amount float64, orderID uint64, orderNo string) error {
+func (l *WalletLogic) FreezeForOrder(ctx context.Context, userID uint64, amount float64, orderID uint64, orderNo string) error {
 	if userID == 0 || orderID == 0 {
 		return errors.New("参数无效")
 	}
-	return l.svcCtx.Repo.FreezeForOrder(l.ctx, userID, amount, orderID, orderNo)
+	return l.svcCtx.Repo.FreezeForOrder(ctx, userID, amount, orderID, orderNo)
 }
 
-func (l *WalletLogic) UnfreezeOrder(userID uint64, amount float64, orderID uint64, orderNo string) error {
+func (l *WalletLogic) UnfreezeOrder(ctx context.Context, userID uint64, amount float64, orderID uint64, orderNo string) error {
 	if userID == 0 || orderID == 0 {
 		return errors.New("参数无效")
 	}
-	return l.svcCtx.Repo.UnfreezeOrder(l.ctx, userID, amount, orderID, orderNo)
+	return l.svcCtx.Repo.UnfreezeOrder(ctx, userID, amount, orderID, orderNo)
 }
 
-func (l *WalletLogic) SettleOrder(userID uint64, amount float64, orderID uint64, orderNo string) error {
+func (l *WalletLogic) SettleOrder(ctx context.Context, userID uint64, amount float64, orderID uint64, orderNo string) error {
 	if userID == 0 || orderID == 0 {
 		return errors.New("参数无效")
 	}
-	return l.svcCtx.Repo.SettleOrder(l.ctx, userID, amount, orderID, orderNo)
+	return l.svcCtx.Repo.SettleOrder(ctx, userID, amount, orderID, orderNo)
 }

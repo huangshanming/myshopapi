@@ -20,25 +20,24 @@ import (
 )
 
 type ProductAdminLogic struct {
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 	guard  promotion.Guard
 }
 
-func NewProductAdminLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ProductAdminLogic {
-	return &ProductAdminLogic{ctx: ctx, svcCtx: svcCtx, guard: promotion.NewNoop()}
+func NewProductAdminLogic(svcCtx *svc.ServiceContext) *ProductAdminLogic {
+	return &ProductAdminLogic{svcCtx: svcCtx}
 }
 
-func (l *ProductAdminLogic) List(f repository.ProductListFilter) (map[string]interface{}, error) {
-	list, total, err := l.svcCtx.ProductAdmin.List(l.ctx, f)
+func (l *ProductAdminLogic) List(ctx context.Context, f repository.ProductListFilter) (map[string]interface{}, error) {
+	list, total, err := l.svcCtx.ProductAdmin.List(ctx, f)
 	if err != nil {
 		return nil, err
 	}
 	return map[string]interface{}{"total": total, "list": list}, nil
 }
 
-func (l *ProductAdminLogic) Detail(id, shopID uint64) (map[string]interface{}, error) {
-	p, skus, imgs, attrs, err := l.svcCtx.ProductAdmin.GetDetail(l.ctx, id, shopID)
+func (l *ProductAdminLogic) Detail(ctx context.Context, id, shopID uint64) (map[string]interface{}, error) {
+	p, skus, imgs, attrs, err := l.svcCtx.ProductAdmin.GetDetail(ctx, id, shopID)
 	if err != nil {
 		return nil, errors.New("商品不存在")
 	}
@@ -47,14 +46,14 @@ func (l *ProductAdminLogic) Detail(id, shopID uint64) (map[string]interface{}, e
 	}, nil
 }
 
-func (l *ProductAdminLogic) Save(shopID, operatorID, id uint64, req types.MerchantProductSaveReq) (*model.Product, error) {
+func (l *ProductAdminLogic) Save(ctx context.Context, shopID, operatorID, id uint64, req types.MerchantProductSaveReq) (*model.Product, error) {
 	if req.Name == "" || req.CategoryID == 0 {
 		return nil, errors.New("名称与分类必填")
 	}
-	return l.svcCtx.ProductAdmin.SaveProduct(l.ctx, shopID, operatorID, id, req)
+	return l.svcCtx.ProductAdmin.SaveProduct(ctx, shopID, operatorID, id, req)
 }
 
-func (l *ProductAdminLogic) SetStatus(shopID, operatorID, id uint64, status string) error {
+func (l *ProductAdminLogic) SetStatus(ctx context.Context, shopID, operatorID, id uint64, status string) error {
 	switch status {
 	case model.ProductOnSale, model.ProductOffSale, model.ProductDeleted, model.ProductDraft:
 	default:
@@ -65,26 +64,26 @@ func (l *ProductAdminLogic) SetStatus(shopID, operatorID, id uint64, status stri
 			return errors.New("商品参与活动中，不可下架/删除")
 		}
 	}
-	if err := l.svcCtx.ProductAdmin.SetStatus(l.ctx, id, shopID, status); err != nil {
+	if err := l.svcCtx.ProductAdmin.SetStatus(ctx, id, shopID, status); err != nil {
 		return err
 	}
 	pid := id
 	after, _ := json.Marshal(map[string]interface{}{"status": status})
-	_ = l.svcCtx.ProductAdmin.AddOpLog(l.ctx, shopID, &pid, operatorID, "status:"+status, "", string(after))
+	_ = l.svcCtx.ProductAdmin.AddOpLog(ctx, shopID, &pid, operatorID, "status:"+status, "", string(after))
 	return nil
 }
 
-func (l *ProductAdminLogic) Copy(shopID, operatorID, id uint64) (*model.Product, error) {
-	p, err := l.svcCtx.ProductAdmin.CopyProduct(l.ctx, id, shopID, operatorID)
+func (l *ProductAdminLogic) Copy(ctx context.Context, shopID, operatorID, id uint64) (*model.Product, error) {
+	p, err := l.svcCtx.ProductAdmin.CopyProduct(ctx, id, shopID, operatorID)
 	if err != nil {
 		return nil, err
 	}
 	after, _ := json.Marshal(map[string]interface{}{"copy_from": id, "new_id": p.ID, "name": p.Name})
-	_ = l.svcCtx.ProductAdmin.AddOpLog(l.ctx, shopID, &p.ID, operatorID, "copy", "", string(after))
+	_ = l.svcCtx.ProductAdmin.AddOpLog(ctx, shopID, &p.ID, operatorID, "copy", "", string(after))
 	return p, nil
 }
 
-func (l *ProductAdminLogic) Batch(shopID, operatorID uint64, req types.BatchProductReq) (*model.ProductBatchJob, error) {
+func (l *ProductAdminLogic) Batch(ctx context.Context, shopID, operatorID uint64, req types.BatchProductReq) (*model.ProductBatchJob, error) {
 	if len(req.ProductIDs) == 0 {
 		return nil, errors.New("未选择商品")
 	}
@@ -93,7 +92,7 @@ func (l *ProductAdminLogic) Batch(shopID, operatorID uint64, req types.BatchProd
 		ShopID: shopID, JobType: req.Action, PayloadJSON: string(payload),
 		Total: len(req.ProductIDs), Status: "pending", OperatorID: operatorID,
 	}
-	if err := l.svcCtx.ProductAdmin.CreateBatchJob(l.ctx, job); err != nil {
+	if err := l.svcCtx.ProductAdmin.CreateBatchJob(ctx, job); err != nil {
 		return nil, err
 	}
 	go l.runBatchJob(job.ID, shopID, operatorID, req)
@@ -115,16 +114,16 @@ func (l *ProductAdminLogic) runBatchJob(jobID, shopID, operatorID uint64, req ty
 			var err error
 			switch req.Action {
 			case "on_sale":
-				err = l.SetStatus(shopID, operatorID, id, model.ProductOnSale)
+				err = l.SetStatus(context.Background(), shopID, operatorID, id, model.ProductOnSale)
 			case "off_sale":
-				err = l.SetStatus(shopID, operatorID, id, model.ProductOffSale)
+				err = l.SetStatus(context.Background(), shopID, operatorID, id, model.ProductOffSale)
 			case "recycle":
-				err = l.SetStatus(shopID, operatorID, id, model.ProductDeleted)
+				err = l.SetStatus(context.Background(), shopID, operatorID, id, model.ProductDeleted)
 			case "category":
 				err = db.Model(&model.Product{}).Where("id = ? AND shop_id = ?", id, shopID).
 					Update("category_id", req.CategoryID).Error
 			case "price":
-				err = l.batchPrice(id, shopID, req)
+				err = l.batchPrice(context.Background(), id, shopID, req)
 			default:
 				err = errors.New("未知动作")
 			}
@@ -148,7 +147,7 @@ func (l *ProductAdminLogic) runBatchJob(jobID, shopID, operatorID uint64, req ty
 		Updates(map[string]interface{}{"status": st, "result_msg": msg, "progress": ok + fail}).Error
 }
 
-func (l *ProductAdminLogic) batchPrice(id, shopID uint64, req types.BatchProductReq) error {
+func (l *ProductAdminLogic) batchPrice(ctx context.Context, id, shopID uint64, req types.BatchProductReq) error {
 	var skus []model.ProductSku
 	if err := l.svcCtx.DB.Where("product_id = ? AND shop_id = ? AND deleted_at IS NULL", id, shopID).Find(&skus).Error; err != nil {
 		return err
@@ -165,47 +164,47 @@ func (l *ProductAdminLogic) batchPrice(id, shopID uint64, req types.BatchProduct
 		}
 		_ = l.svcCtx.DB.Model(&s).Update("sale_price", price).Error
 	}
-	return l.svcCtx.ProductAdmin.AggregatePublic(l.ctx, id)
+	return l.svcCtx.ProductAdmin.AggregatePublic(ctx, id)
 }
 
 func (l *ProductAdminLogic) Restore(shopID, operatorID uint64, ids []uint64) error {
 	for _, id := range ids {
-		if err := l.SetStatus(shopID, operatorID, id, model.ProductOffSale); err != nil {
+		if err := l.SetStatus(context.Background(), shopID, operatorID, id, model.ProductOffSale); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (l *ProductAdminLogic) PermanentDelete(shopID, operatorID uint64, ids []uint64) error {
+func (l *ProductAdminLogic) PermanentDelete(ctx context.Context, shopID, operatorID uint64, ids []uint64) error {
 	for _, id := range ids {
 		if !l.guard.CanDelete(id) {
 			return fmt.Errorf("商品 %d 参与活动不可删除", id)
 		}
 	}
-	if err := l.svcCtx.ProductAdmin.PermanentDelete(l.ctx, shopID, ids); err != nil {
+	if err := l.svcCtx.ProductAdmin.PermanentDelete(ctx, shopID, ids); err != nil {
 		return err
 	}
 	after, _ := json.Marshal(map[string]interface{}{"deleted_ids": ids})
-	_ = l.svcCtx.ProductAdmin.AddOpLog(l.ctx, shopID, nil, operatorID, "permanent_delete", "", string(after))
+	_ = l.svcCtx.ProductAdmin.AddOpLog(ctx, shopID, nil, operatorID, "permanent_delete", "", string(after))
 	return nil
 }
 
-func (l *ProductAdminLogic) AdjustStock(shopID uint64, req types.StockAdjustReq) error {
-	return l.svcCtx.ProductAdmin.AdjustSkuStock(l.ctx, shopID, req)
+func (l *ProductAdminLogic) AdjustStock(ctx context.Context, shopID uint64, req types.StockAdjustReq) error {
+	return l.svcCtx.ProductAdmin.AdjustSkuStock(ctx, shopID, req)
 }
 
-func (l *ProductAdminLogic) BatchStock(shopID uint64, req types.BatchStockReq) error {
+func (l *ProductAdminLogic) BatchStock(ctx context.Context, shopID uint64, req types.BatchStockReq) error {
 	for _, it := range req.Items {
-		if err := l.svcCtx.ProductAdmin.AdjustSkuStock(l.ctx, shopID, it); err != nil {
+		if err := l.svcCtx.ProductAdmin.AdjustSkuStock(ctx, shopID, it); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (l *ProductAdminLogic) StockWarnings(shopID uint64, page, pageSize int) (map[string]interface{}, error) {
-	list, total, err := l.svcCtx.ProductAdmin.ListStockWarnings(l.ctx, shopID, page, pageSize)
+func (l *ProductAdminLogic) StockWarnings(ctx context.Context, shopID uint64, page, pageSize int) (map[string]interface{}, error) {
+	list, total, err := l.svcCtx.ProductAdmin.ListStockWarnings(ctx, shopID, page, pageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +233,7 @@ func (l *ProductAdminLogic) SaveUpload(shopID uint64, filename string, data []by
 	return "/uploads/products/" + fmt.Sprintf("%d", shopID) + "/" + name, nil
 }
 
-func (l *ProductAdminLogic) CreateSchedule(shopID, operatorID, productID uint64, req types.ScheduleReq) error {
+func (l *ProductAdminLogic) CreateSchedule(ctx context.Context, shopID, operatorID, productID uint64, req types.ScheduleReq) error {
 	t, err := time.ParseInLocation("2006-01-02 15:04:05", req.RunAt, time.Local)
 	if err != nil {
 		return errors.New("时间格式应为 2006-01-02 15:04:05")
@@ -246,40 +245,40 @@ func (l *ProductAdminLogic) CreateSchedule(shopID, operatorID, productID uint64,
 		ProductID: productID, ShopID: shopID, Action: req.Action,
 		RunAt: common.LocalTime(t), Status: "pending",
 	}
-	if err := l.svcCtx.ProductAdmin.CreateSchedule(l.ctx, s); err != nil {
+	if err := l.svcCtx.ProductAdmin.CreateSchedule(ctx, s); err != nil {
 		return err
 	}
 	after, _ := json.Marshal(map[string]interface{}{"action": req.Action, "run_at": req.RunAt})
-	_ = l.svcCtx.ProductAdmin.AddOpLog(l.ctx, shopID, &productID, operatorID, "schedule", "", string(after))
+	_ = l.svcCtx.ProductAdmin.AddOpLog(ctx, shopID, &productID, operatorID, "schedule", "", string(after))
 	return nil
 }
 
-func (l *ProductAdminLogic) RunSchedules() {
-	list, err := l.svcCtx.ProductAdmin.ClaimDueSchedules(l.ctx, 20)
+func (l *ProductAdminLogic) RunSchedules(ctx context.Context) {
+	list, err := l.svcCtx.ProductAdmin.ClaimDueSchedules(ctx, 20)
 	if err != nil {
 		return
 	}
 	for _, s := range list {
-		err := l.svcCtx.ProductAdmin.SetStatus(l.ctx, s.ProductID, s.ShopID, s.Action)
-		_ = l.svcCtx.ProductAdmin.FinishSchedule(l.ctx, s.ID, err == nil)
+		err := l.svcCtx.ProductAdmin.SetStatus(ctx, s.ProductID, s.ShopID, s.Action)
+		_ = l.svcCtx.ProductAdmin.FinishSchedule(ctx, s.ID, err == nil)
 	}
 }
 
-func (l *ProductAdminLogic) OpLogs(shopID, productID uint64, page, pageSize int) (map[string]interface{}, error) {
-	list, total, err := l.svcCtx.ProductAdmin.ListOpLogs(l.ctx, shopID, productID, page, pageSize)
+func (l *ProductAdminLogic) OpLogs(ctx context.Context, shopID, productID uint64, page, pageSize int) (map[string]interface{}, error) {
+	list, total, err := l.svcCtx.ProductAdmin.ListOpLogs(ctx, shopID, productID, page, pageSize)
 	if err != nil {
 		return nil, err
 	}
 	return map[string]interface{}{"total": total, "list": list}, nil
 }
 
-func (l *ProductAdminLogic) Job(shopID, id uint64) (*model.ProductBatchJob, error) {
-	return l.svcCtx.ProductAdmin.GetBatchJob(l.ctx, id, shopID)
+func (l *ProductAdminLogic) Job(ctx context.Context, shopID, id uint64) (*model.ProductBatchJob, error) {
+	return l.svcCtx.ProductAdmin.GetBatchJob(ctx, id, shopID)
 }
 
 // 简易导出 CSV
-func (l *ProductAdminLogic) ExportCSV(shopID uint64) (string, error) {
-	list, _, err := l.svcCtx.ProductAdmin.List(l.ctx, repository.ProductListFilter{ShopID: shopID, Page: 1, PageSize: 5000})
+func (l *ProductAdminLogic) ExportCSV(ctx context.Context, shopID uint64) (string, error) {
+	list, _, err := l.svcCtx.ProductAdmin.List(ctx, repository.ProductListFilter{ShopID: shopID, Page: 1, PageSize: 5000})
 	if err != nil {
 		return "", err
 	}
@@ -346,7 +345,7 @@ func (l *ProductAdminLogic) ImportCSV(shopID, operatorID uint64, content string)
 			errs = append(errs, fmt.Sprintf("行%d价格或分类无效", i+1))
 			continue
 		}
-		_, err := l.Save(shopID, operatorID, 0, types.MerchantProductSaveReq{
+		_, err := l.Save(context.Background(), shopID, operatorID, 0, types.MerchantProductSaveReq{
 			Name: name, CategoryID: catID, SalePrice: price, Stock: stock,
 			Status: model.ProductDraft, ProductType: model.ProductTypePhysical,
 			Skus: []types.SkuInput{{SalePrice: price, Stock: stock, SpecValues: map[string]string{}, Status: model.SKUEnabled}},

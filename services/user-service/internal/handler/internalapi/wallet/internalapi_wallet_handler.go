@@ -3,27 +3,63 @@ package wallet
 import (
 	"net/http"
 
+	"github.com/zeromicro/go-zero/rest/httpx"
+
 	"mymall/services/user-service/internal/logic/internalapi/wallet"
 	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 )
 
 func InternalFreezeWalletHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := wallet.NewInternalFreezeWalletLogic(r.Context(), svcCtx)
-		l.InternalFreezeWallet(w, r)
+		var req types.WalletOrderOpReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := wallet.NewInternalFreezeWalletLogic(svcCtx)
+		err := l.InternalFreezeWallet(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.Ok(w)
+		}
 	}
 }
 
 func InternalSettleWalletHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := wallet.NewInternalSettleWalletLogic(r.Context(), svcCtx)
-		l.InternalSettleWallet(w, r)
+		var req types.WalletOrderOpReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := wallet.NewInternalSettleWalletLogic(svcCtx)
+		err := l.InternalSettleWallet(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.Ok(w)
+		}
 	}
 }
 
 func InternalUnfreezeWalletHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := wallet.NewInternalUnfreezeWalletLogic(r.Context(), svcCtx)
-		l.InternalUnfreezeWallet(w, r)
+		var req types.WalletOrderOpReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := wallet.NewInternalUnfreezeWalletLogic(svcCtx)
+		err := l.InternalUnfreezeWallet(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.Ok(w)
+		}
 	}
 }

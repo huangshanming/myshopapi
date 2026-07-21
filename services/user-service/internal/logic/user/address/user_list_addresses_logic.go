@@ -2,28 +2,34 @@ package address
 
 import (
 	"context"
-	"net/http"
+	"mymall/pkg/httpinvoke"
+	huser "mymall/services/user-service/internal/app/user"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	huser "mymall/services/user-service/internal/httpapi/user"
-	"mymall/services/user-service/internal/svc"
 )
 
 type UserListAddressesLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewUserListAddressesLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserListAddressesLogic {
+func NewUserListAddressesLogic(svcCtx *svc.ServiceContext) *UserListAddressesLogic {
 	return &UserListAddressesLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *UserListAddressesLogic) UserListAddresses(w http.ResponseWriter, r *http.Request) {
-	huser.NewAddressHandler(l.svcCtx).Create(w, r)
+func (l *UserListAddressesLogic) UserListAddresses(ctx context.Context) (resp *types.PageListResp, err error) {
+	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/user/addresses", nil, nil, nil, huser.NewAddressHandler(l.svcCtx).List)
+	if err != nil {
+		return nil, err
+	}
+	var list interface{}
+	if err := httpinvoke.Decode(raw, &list); err != nil {
+		return nil, err
+	}
+	return &types.PageListResp{List: list}, nil
 }

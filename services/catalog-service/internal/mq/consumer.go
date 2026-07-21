@@ -57,7 +57,7 @@ func (c *Consumer) handleOrderCreated(ctx context.Context, _ string, body []byte
 	items := toRepoItems(evt.Items)
 	result := mq.RoutingInventoryReserved
 	payload := InventoryResultEvent{OrderNo: evt.OrderNo}
-	if err := c.logic.ReserveStock(items); err != nil {
+	if err := c.logic.ReserveStock(ctx, items); err != nil {
 		c.logger.Warn("reserve stock failed", zap.String("order_no", evt.OrderNo), zap.Error(err))
 		result = mq.RoutingInventoryFailed
 		payload.Message = err.Error()
@@ -70,7 +70,7 @@ func (c *Consumer) handleOrderCancelled(ctx context.Context, _ string, body []by
 	if err := json.Unmarshal(body, &evt); err != nil {
 		return err
 	}
-	if err := c.logic.ReleaseStock(toRepoItems(evt.Items)); err != nil {
+	if err := c.logic.ReleaseStock(ctx, toRepoItems(evt.Items)); err != nil {
 		c.logger.Warn("release stock failed", zap.String("order_no", evt.OrderNo), zap.Error(err))
 		return err
 	}

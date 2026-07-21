@@ -2,28 +2,39 @@ package article
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	hpublic "mymall/services/catalog-service/internal/content/app/public"
+	"mymall/services/catalog-service/internal/svc"
+	"mymall/services/catalog-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	cpublic "mymall/services/catalog-service/internal/content/httpapi/public"
-	"mymall/services/catalog-service/internal/svc"
 )
 
 type UnfavoriteLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewUnfavoriteLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UnfavoriteLogic {
+func NewUnfavoriteLogic(svcCtx *svc.ServiceContext) *UnfavoriteLogic {
 	return &UnfavoriteLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *UnfavoriteLogic) Unfavorite(w http.ResponseWriter, r *http.Request) {
-	cpublic.NewArticleHandler(l.svcCtx).Unfavorite(w, r)
+func (l *UnfavoriteLogic) Unfavorite(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+	raw, err := httpinvoke.Run(ctx, "DELETE", "/api/v1/articles/:id/favorite", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, nil, hpublic.NewArticleHandler(l.svcCtx).Unfavorite)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

@@ -7,13 +7,19 @@ go install github.com/zeromicro/go-zero/tools/goctl@v1.8.5
 export PATH="$(go env GOPATH)/bin:$PATH"
 ```
 
-本仓库自定义模板：[`deploy/goctl-template`](../deploy/goctl-template)（handler 调用 `logic.Xxx(w,r)`，便于对接现有 JSON 契约，无需一次性补全所有 `.api` types）。
+本仓库自定义模板：[`deploy/goctl-template`](../deploy/goctl-template)
+
+- **handler**：唯一接触 `w`/`r`；`httpx.Parse` → 调 logic → `OkJsonCtx` / `ErrorCtx`
+- **logic**：不存 `ctx`、不接收 `w`/`r`；签名 `func (l *XxxLogic) Xxx(ctx context.Context, req *types.XxxReq) (*types.XxxResp, error)`
+- **禁止** `internal/httpapi`；业务在 `logic` / `biz` / domain
 
 ## 唯一正确流程
 
-1. 编辑服务 `api/*.api`（路由 / `@server` 中间件 / `group` / `@handler`）
+1. 编辑服务 `api/*.api`（路由 / `@server` 中间件 / `group` / `@handler` / **type + returns**）
    - **全服务统一**：`group` 必须写成 `<端>/<模块>`（禁止只写 `user` / `admin` 把无关业务挤进一个包）
-   - goctl 生成到 `internal/handler/<端>/<模块>/`、`internal/logic/<端>/<模块>/`（叶子目录为 Go package 名）
+   - 每个带参接口必须定义 `type XxxReq`，列表/详情等需 `returns (XxxResp)`；query 用 `form` tag，body 用 `json` tag
+   - 分页对齐现网：`page`、`page_size`（见 `pkg/middleware/pagination.go`）
+   - goctl 生成到 `internal/handler/<端>/<模块>/`、`internal/logic/<端>/<模块>/`、`internal/types/`
    - 同一中间件链下按模块拆多个 `@server`（只改 `group`）
    - `@handler` 名全服务唯一且语义化，**禁止** `Create2` / `Detail3`
    - 模块范本：
@@ -29,8 +35,10 @@ export PATH="$(go env GOPATH)/bin:$PATH"
 
    `gen-api.sh` 会在 goctl 之后把同一模块下「一接口一文件」合并为单个文件（如 `user/points_mall/` → `user_points_mall_handler.go`）。**不要**手拆回多文件；下次 gen 会再合并。
 
+   goctl **不会覆盖**已存在的 logic/handler 文件。需要按新模板重生成时，先删对应文件再跑 `gen-api.sh`（或使用 `FORCE_REGEN=1`）。
+
 3. **只改**业务实现：
-   - `internal/logic/<端>/<模块>/*_logic.go`（可委托 `internal/httpapi/<端>/` 或域内 httpapi）
+   - `internal/logic/<端>/<模块>/*_logic.go`（调 `biz` / `repository`，传方法入参 `ctx`）
    - `internal/middleware/*_middleware.go`（接 `pkg/middleware`）
    - `internal/svc/service_context.go`（`gen-api.sh` 会保留该文件不被覆盖）
 4. **禁止手改** `internal/handler/routes.go`（goctl 生成，带 `DO NOT EDIT`）
@@ -39,6 +47,17 @@ export PATH="$(go env GOPATH)/bin:$PATH"
 ```bash
 ./scripts/check-api-routes.sh merchant-service
 ./scripts/check-api-routes.sh all
+```
+
+## 分层门禁
+
+```bash
+# logic 不得出现 HTTP
+rg 'http\.ResponseWriter|\*http\.Request' services/<svc>/internal/logic
+# logic struct 不得存 ctx
+rg '^\s+ctx\s+context\.Context' services/<svc>/internal/logic --glob '*_logic.go'
+# 无 httpapi
+rg 'internal/httpapi' services/<svc>
 ```
 
 ## 启动方式（不变）
@@ -60,9 +79,9 @@ handler.RegisterHandlers(server, svcCtx)
 
 ## 参考
 
-- 嵌套 group 样板（四服务已对齐）：
+- 标准样板：[`services/inventory-sync-service`](../services/inventory-sync-service)
+- 嵌套 group：
   - [`services/catalog-service`](../services/catalog-service)
   - [`services/merchant-service`](../services/merchant-service)
   - [`services/order-service`](../services/order-service)
-  - [`services/user-service`](../services/user-service)（积分商城：`user/points_mall`、`admin/points_mall`）
-- 小型参考：[`services/inventory-sync-service`](../services/inventory-sync-service)
+  - [`services/user-service`](../services/user-service)

@@ -3,48 +3,117 @@ package banner
 import (
 	"net/http"
 
+	"github.com/zeromicro/go-zero/rest/httpx"
+
 	"mymall/services/catalog-service/internal/logic/admin/banner"
 	"mymall/services/catalog-service/internal/svc"
+	"mymall/services/catalog-service/internal/types"
 )
 
 func AdminListBannersHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := banner.NewAdminListBannersLogic(r.Context(), svcCtx)
-		l.AdminListBanners(w, r)
+		var req types.PageReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := banner.NewAdminListBannersLogic(svcCtx)
+		resp, err := l.AdminListBanners(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func CreateBannerHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := banner.NewCreateBannerLogic(r.Context(), svcCtx)
-		l.CreateBanner(w, r)
+		var req types.JSONBody
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := banner.NewCreateBannerLogic(svcCtx)
+		resp, err := l.CreateBanner(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func DeleteBannerHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := banner.NewDeleteBannerLogic(r.Context(), svcCtx)
-		l.DeleteBanner(w, r)
+		var req types.IdPathReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := banner.NewDeleteBannerLogic(svcCtx)
+		resp, err := l.DeleteBanner(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func GetBannerHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := banner.NewGetBannerLogic(r.Context(), svcCtx)
-		l.GetBanner(w, r)
+		var req types.IdPathReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := banner.NewGetBannerLogic(svcCtx)
+		resp, err := l.GetBanner(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func UpdateBannerHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := banner.NewUpdateBannerLogic(r.Context(), svcCtx)
-		l.UpdateBanner(w, r)
+		var req types.IdPathReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := banner.NewUpdateBannerLogic(svcCtx)
+		resp, err := l.UpdateBanner(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func UploadBannerHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := banner.NewUploadBannerLogic(r.Context(), svcCtx)
-		l.UploadBanner(w, r)
+		var req types.JSONBody
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := banner.NewUploadBannerLogic(svcCtx)
+		resp, err := l.UploadBanner(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }

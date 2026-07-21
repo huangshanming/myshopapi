@@ -2,28 +2,39 @@ package review
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	huser "mymall/services/order-service/internal/app/user"
+	"mymall/services/order-service/internal/svc"
+	"mymall/services/order-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	huser "mymall/services/order-service/internal/httpapi/user"
-	"mymall/services/order-service/internal/svc"
 )
 
 type UserCreateReviewLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewUserCreateReviewLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserCreateReviewLogic {
+func NewUserCreateReviewLogic(svcCtx *svc.ServiceContext) *UserCreateReviewLogic {
 	return &UserCreateReviewLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *UserCreateReviewLogic) UserCreateReview(w http.ResponseWriter, r *http.Request) {
-	huser.NewReviewHandler(l.svcCtx).Create(w, r)
+func (l *UserCreateReviewLogic) UserCreateReview(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/orders/:id/reviews", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, req, huser.NewReviewHandler(l.svcCtx).Create)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

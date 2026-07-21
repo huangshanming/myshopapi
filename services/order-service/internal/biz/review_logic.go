@@ -18,23 +18,19 @@ import (
 )
 
 type ReviewLogic struct {
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewReviewLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ReviewLogic {
-	return &ReviewLogic{
-		ctx:    ctx,
-		svcCtx: svcCtx,
-	}
+func NewReviewLogic(svcCtx *svc.ServiceContext) *ReviewLogic {
+	return &ReviewLogic{svcCtx: svcCtx}
 }
 
-func (l *ReviewLogic) ReviewEligible(userID, orderID uint64) (map[string]interface{}, error) {
-	order, err := l.svcCtx.Repo.FindByID(l.ctx, orderID, userID)
+func (l *ReviewLogic) ReviewEligible(ctx context.Context, userID, orderID uint64) (map[string]interface{}, error) {
+	order, err := l.svcCtx.Repo.FindByID(ctx, orderID, userID)
 	if err != nil {
 		return nil, errors.New("订单不存在")
 	}
-	exists, _ := l.svcCtx.Reviews.ExistsByOrderID(l.ctx, orderID)
+	exists, _ := l.svcCtx.Reviews.ExistsByOrderID(ctx, orderID)
 	return map[string]interface{}{
 		"eligible": order.Status == model.OrderStatusCompleted && !exists,
 		"reviewed": exists || order.Status == model.OrderStatusReviewed,
@@ -43,7 +39,7 @@ func (l *ReviewLogic) ReviewEligible(userID, orderID uint64) (map[string]interfa
 	}, nil
 }
 
-func (l *ReviewLogic) Create(userID, orderID uint64, req model.CreateReviewReq) (*model.ProductReview, error) {
+func (l *ReviewLogic) Create(ctx context.Context, userID, orderID uint64, req model.CreateReviewReq) (*model.ProductReview, error) {
 	if req.Rating < 1 || req.Rating > 5 {
 		return nil, errors.New("评分须为 1-5")
 	}
@@ -53,14 +49,14 @@ func (l *ReviewLogic) Create(userID, orderID uint64, req model.CreateReviewReq) 
 	if len(req.Images) > 9 {
 		return nil, errors.New("图片最多 9 张")
 	}
-	order, err := l.svcCtx.Repo.FindByID(l.ctx, orderID, userID)
+	order, err := l.svcCtx.Repo.FindByID(ctx, orderID, userID)
 	if err != nil {
 		return nil, errors.New("订单不存在")
 	}
 	if order.Status != model.OrderStatusCompleted {
 		return nil, errors.New("仅确认收货后的订单可评价")
 	}
-	exists, err := l.svcCtx.Reviews.ExistsByOrderID(l.ctx, orderID)
+	exists, err := l.svcCtx.Reviews.ExistsByOrderID(ctx, orderID)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +95,7 @@ func (l *ReviewLogic) Create(userID, orderID uint64, req model.CreateReviewReq) 
 		IsAnonymous: req.IsAnonymous,
 		Status:      model.ReviewStatusVisible,
 	}
-	if err := l.svcCtx.Reviews.Create(l.ctx, rev, req.Images); err != nil {
+	if err := l.svcCtx.Reviews.Create(ctx, rev, req.Images); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("订单状态已变更，请刷新后重试")
 		}
@@ -108,27 +104,27 @@ func (l *ReviewLogic) Create(userID, orderID uint64, req model.CreateReviewReq) 
 		}
 		return nil, err
 	}
-	_ = l.refreshProductStats(item.ProductID)
-	full, _ := l.svcCtx.Reviews.GetByOrderID(l.ctx, orderID)
+	_ = l.refreshProductStats(ctx, item.ProductID)
+	full, _ := l.svcCtx.Reviews.GetByOrderID(ctx, orderID)
 	if full != nil {
 		return full, nil
 	}
 	return rev, nil
 }
 
-func (l *ReviewLogic) refreshProductStats(productID uint64) error {
-	avg, count, goodRate, err := l.svcCtx.Reviews.ProductStats(l.ctx, productID)
+func (l *ReviewLogic) refreshProductStats(ctx context.Context, productID uint64) error {
+	avg, count, goodRate, err := l.svcCtx.Reviews.ProductStats(ctx, productID)
 	if err != nil {
 		return err
 	}
-	return l.svcCtx.Reviews.UpdateProductStats(l.ctx, productID, avg, count, goodRate)
+	return l.svcCtx.Reviews.UpdateProductStats(ctx, productID, avg, count, goodRate)
 }
 
-func (l *ReviewLogic) GetByOrder(userID, orderID uint64) (*model.ProductReview, error) {
-	if _, err := l.svcCtx.Repo.FindByID(l.ctx, orderID, userID); err != nil {
+func (l *ReviewLogic) GetByOrder(ctx context.Context, userID, orderID uint64) (*model.ProductReview, error) {
+	if _, err := l.svcCtx.Repo.FindByID(ctx, orderID, userID); err != nil {
 		return nil, errors.New("订单不存在")
 	}
-	rev, err := l.svcCtx.Reviews.GetByOrderID(l.ctx, orderID)
+	rev, err := l.svcCtx.Reviews.GetByOrderID(ctx, orderID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("暂无评价")
@@ -138,8 +134,8 @@ func (l *ReviewLogic) GetByOrder(userID, orderID uint64) (*model.ProductReview, 
 	return rev, nil
 }
 
-func (l *ReviewLogic) ListByProduct(productID uint64, page, pageSize int) ([]model.ProductReview, int64, error) {
-	list, total, err := l.svcCtx.Reviews.ListByProduct(l.ctx, productID, page, pageSize)
+func (l *ReviewLogic) ListByProduct(ctx context.Context, productID uint64, page, pageSize int) ([]model.ProductReview, int64, error) {
+	list, total, err := l.svcCtx.Reviews.ListByProduct(ctx, productID, page, pageSize)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -152,15 +148,15 @@ func (l *ReviewLogic) ListByProduct(productID uint64, page, pageSize int) ([]mod
 	return list, total, nil
 }
 
-func (l *ReviewLogic) MerchantList(shopID uint64, ratingLevel string, page, pageSize int) ([]model.ProductReview, int64, error) {
-	return l.svcCtx.Reviews.ListMerchant(l.ctx, shopID, ratingLevel, page, pageSize)
+func (l *ReviewLogic) MerchantList(ctx context.Context, shopID uint64, ratingLevel string, page, pageSize int) ([]model.ProductReview, int64, error) {
+	return l.svcCtx.Reviews.ListMerchant(ctx, shopID, ratingLevel, page, pageSize)
 }
 
-func (l *ReviewLogic) AdminList(shopID uint64, ratingLevel string, page, pageSize int) ([]model.ProductReview, int64, error) {
-	return l.svcCtx.Reviews.ListAdmin(l.ctx, shopID, ratingLevel, page, pageSize)
+func (l *ReviewLogic) AdminList(ctx context.Context, shopID uint64, ratingLevel string, page, pageSize int) ([]model.ProductReview, int64, error) {
+	return l.svcCtx.Reviews.ListAdmin(ctx, shopID, ratingLevel, page, pageSize)
 }
 
-func (l *ReviewLogic) Reply(shopID, reviewID uint64, reply string) error {
+func (l *ReviewLogic) Reply(ctx context.Context, shopID, reviewID uint64, reply string) error {
 	reply = strings.TrimSpace(reply)
 	if reply == "" {
 		return errors.New("回复不能为空")
@@ -168,7 +164,7 @@ func (l *ReviewLogic) Reply(shopID, reviewID uint64, reply string) error {
 	if utf8.RuneCountInString(reply) > 500 {
 		return errors.New("回复过长")
 	}
-	if err := l.svcCtx.Reviews.Reply(l.ctx, reviewID, shopID, reply); err != nil {
+	if err := l.svcCtx.Reviews.Reply(ctx, reviewID, shopID, reply); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("评价不存在")
 		}
@@ -177,18 +173,18 @@ func (l *ReviewLogic) Reply(shopID, reviewID uint64, reply string) error {
 	return nil
 }
 
-func (l *ReviewLogic) SoftDelete(reviewID uint64, shopID uint64) error {
-	rev, err := l.svcCtx.Reviews.GetByID(l.ctx, reviewID)
+func (l *ReviewLogic) SoftDelete(ctx context.Context, reviewID uint64, shopID uint64) error {
+	rev, err := l.svcCtx.Reviews.GetByID(ctx, reviewID)
 	if err != nil {
 		return errors.New("评价不存在")
 	}
-	if err := l.svcCtx.Reviews.SoftDelete(l.ctx, reviewID, shopID); err != nil {
+	if err := l.svcCtx.Reviews.SoftDelete(ctx, reviewID, shopID); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("评价不存在")
 		}
 		return err
 	}
-	_ = l.refreshProductStats(rev.ProductID)
+	_ = l.refreshProductStats(ctx, rev.ProductID)
 	return nil
 }
 

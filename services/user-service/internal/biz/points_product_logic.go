@@ -15,12 +15,11 @@ import (
 )
 
 type PointsProductLogic struct {
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewPointsProductLogic(ctx context.Context, svcCtx *svc.ServiceContext) *PointsProductLogic {
-	return &PointsProductLogic{ctx: ctx, svcCtx: svcCtx}
+func NewPointsProductLogic(svcCtx *svc.ServiceContext) *PointsProductLogic {
+	return &PointsProductLogic{svcCtx: svcCtx}
 }
 
 type PointsProductSaveReq struct {
@@ -34,25 +33,25 @@ type PointsProductSaveReq struct {
 	Sort         *int   `json:"sort"`
 }
 
-func (l *PointsProductLogic) List(page, pageSize int, status, keyword string) ([]model.PointsProduct, int64, error) {
+func (l *PointsProductLogic) List(ctx context.Context, page, pageSize int, status, keyword string) ([]model.PointsProduct, int64, error) {
 	if page < 1 {
 		page = 1
 	}
 	if pageSize < 1 || pageSize > 100 {
 		pageSize = 20
 	}
-	return l.svcCtx.PointsProducts.List(l.ctx, page, pageSize, status, keyword)
+	return l.svcCtx.PointsProducts.List(ctx, page, pageSize, status, keyword)
 }
 
-func (l *PointsProductLogic) Get(id uint64) (*model.PointsProduct, error) {
-	p, err := l.svcCtx.PointsProducts.GetByID(l.ctx, id)
+func (l *PointsProductLogic) Get(ctx context.Context, id uint64) (*model.PointsProduct, error) {
+	p, err := l.svcCtx.PointsProducts.GetByID(ctx, id)
 	if err != nil {
 		return nil, errors.New("商品不存在")
 	}
 	return p, nil
 }
 
-func (l *PointsProductLogic) Create(req PointsProductSaveReq) (*model.PointsProduct, error) {
+func (l *PointsProductLogic) Create(ctx context.Context, req PointsProductSaveReq) (*model.PointsProduct, error) {
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
 		return nil, errors.New("请填写商品名称")
@@ -88,14 +87,14 @@ func (l *PointsProductLogic) Create(req PointsProductSaveReq) (*model.PointsProd
 		}
 		p.Status = s
 	}
-	if err := l.svcCtx.PointsProducts.Create(l.ctx, p); err != nil {
+	if err := l.svcCtx.PointsProducts.Create(ctx, p); err != nil {
 		return nil, err
 	}
 	return p, nil
 }
 
-func (l *PointsProductLogic) Update(id uint64, req PointsProductSaveReq) (*model.PointsProduct, error) {
-	if _, err := l.svcCtx.PointsProducts.GetByID(l.ctx, id); err != nil {
+func (l *PointsProductLogic) Update(ctx context.Context, id uint64, req PointsProductSaveReq) (*model.PointsProduct, error) {
+	if _, err := l.svcCtx.PointsProducts.GetByID(ctx, id); err != nil {
 		return nil, errors.New("商品不存在")
 	}
 	name := strings.TrimSpace(req.Name)
@@ -132,34 +131,34 @@ func (l *PointsProductLogic) Update(id uint64, req PointsProductSaveReq) (*model
 		}
 		updates["status"] = s
 	}
-	if err := l.svcCtx.PointsProducts.Update(l.ctx, id, updates); err != nil {
+	if err := l.svcCtx.PointsProducts.Update(ctx, id, updates); err != nil {
 		return nil, err
 	}
-	return l.svcCtx.PointsProducts.GetByID(l.ctx, id)
+	return l.svcCtx.PointsProducts.GetByID(ctx, id)
 }
 
-func (l *PointsProductLogic) SetStatus(id uint64, status string) (*model.PointsProduct, error) {
+func (l *PointsProductLogic) SetStatus(ctx context.Context, id uint64, status string) (*model.PointsProduct, error) {
 	status = strings.TrimSpace(status)
 	if status != model.PointsProductStatusOn && status != model.PointsProductStatusOff {
 		return nil, errors.New("状态无效")
 	}
-	if _, err := l.svcCtx.PointsProducts.GetByID(l.ctx, id); err != nil {
+	if _, err := l.svcCtx.PointsProducts.GetByID(ctx, id); err != nil {
 		return nil, errors.New("商品不存在")
 	}
-	if err := l.svcCtx.PointsProducts.Update(l.ctx, id, map[string]interface{}{"status": status}); err != nil {
+	if err := l.svcCtx.PointsProducts.Update(ctx, id, map[string]interface{}{"status": status}); err != nil {
 		return nil, err
 	}
-	return l.svcCtx.PointsProducts.GetByID(l.ctx, id)
+	return l.svcCtx.PointsProducts.GetByID(ctx, id)
 }
 
-func (l *PointsProductLogic) Delete(id uint64) error {
-	if _, err := l.svcCtx.PointsProducts.GetByID(l.ctx, id); err != nil {
+func (l *PointsProductLogic) Delete(ctx context.Context, id uint64) error {
+	if _, err := l.svcCtx.PointsProducts.GetByID(ctx, id); err != nil {
 		return errors.New("商品不存在")
 	}
-	return l.svcCtx.PointsProducts.Delete(l.ctx, id)
+	return l.svcCtx.PointsProducts.Delete(ctx, id)
 }
 
-func (l *PointsProductLogic) SaveUpload(filename string, data []byte) (string, error) {
+func (l *PointsProductLogic) SaveUpload(ctx context.Context, filename string, data []byte) (string, error) {
 	if len(data) > 5*1024*1024 {
 		return "", errors.New("文件不能超过5MB")
 	}

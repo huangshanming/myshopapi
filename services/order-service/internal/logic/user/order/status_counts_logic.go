@@ -2,28 +2,39 @@ package order
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	huser "mymall/services/order-service/internal/app/user"
+	"mymall/services/order-service/internal/svc"
+	"mymall/services/order-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	huser "mymall/services/order-service/internal/httpapi/user"
-	"mymall/services/order-service/internal/svc"
 )
 
 type StatusCountsLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewStatusCountsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *StatusCountsLogic {
+func NewStatusCountsLogic(svcCtx *svc.ServiceContext) *StatusCountsLogic {
 	return &StatusCountsLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *StatusCountsLogic) StatusCounts(w http.ResponseWriter, r *http.Request) {
-	huser.NewOrderHandler(l.svcCtx).StatusCounts(w, r)
+func (l *StatusCountsLogic) StatusCounts(ctx context.Context) (resp *types.AnyResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/orders/status-counts", nil, nil, nil, huser.NewOrderHandler(l.svcCtx).StatusCounts)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

@@ -124,9 +124,9 @@ func main() {
 	} else {
 		logger.Info("shop menus seeded (layered)")
 	}
-	catalogLogic := productlogic.NewCatalogLogic(context.Background(), svcCtx)
-	productAdminLogic := productlogic.NewProductAdminLogic(context.Background(), svcCtx)
-	articleLogic := contentlogic.NewArticleLogic(context.Background(), svcCtx)
+	catalogLogic := productlogic.NewCatalogLogic(svcCtx)
+	productAdminLogic := productlogic.NewProductAdminLogic(svcCtx)
+	articleLogic := contentlogic.NewArticleLogic(svcCtx)
 
 	// 商品定时上下架 + 文章定时发布（同进程 Mutex 防叠跑）
 	go func() {
@@ -135,8 +135,8 @@ func main() {
 		defer t.Stop()
 		for range t.C {
 			scheduleMu.Lock()
-			productAdminLogic.RunSchedules()
-			articleLogic.RunPublishSchedules()
+			productAdminLogic.RunSchedules(context.Background())
+			articleLogic.RunPublishSchedules(context.Background())
 			scheduleMu.Unlock()
 		}
 	}()

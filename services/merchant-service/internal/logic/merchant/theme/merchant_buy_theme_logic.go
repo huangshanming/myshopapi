@@ -2,28 +2,39 @@ package theme
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	"mymall/services/merchant-service/internal/svc"
+	"mymall/services/merchant-service/internal/types"
+	hmerchant "mymall/services/merchant-service/internal/app/merchant"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	hmerchant "mymall/services/merchant-service/internal/httpapi/merchant"
-	"mymall/services/merchant-service/internal/svc"
 )
 
 type MerchantBuyThemeLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewMerchantBuyThemeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantBuyThemeLogic {
+func NewMerchantBuyThemeLogic(svcCtx *svc.ServiceContext) *MerchantBuyThemeLogic {
 	return &MerchantBuyThemeLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *MerchantBuyThemeLogic) MerchantBuyTheme(w http.ResponseWriter, r *http.Request) {
-	hmerchant.NewHomepageThemeHandler(l.svcCtx).MerchantBuyTheme(w, r)
+func (l *MerchantBuyThemeLogic) MerchantBuyTheme(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/merchant/theme-orders", nil, nil, req, hmerchant.NewHomepageThemeHandler(l.svcCtx).MerchantBuyTheme)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

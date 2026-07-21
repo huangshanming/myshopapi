@@ -1,5 +1,35 @@
 syntax = "v1"
 
+type PageReq {
+	Page     int `form:"page,default=1"`
+	PageSize int `form:"page_size,default=10"`
+}
+
+type IdPathReq {
+	Id uint64 `path:"id"`
+}
+
+type FilePathReq {
+	File string `path:"file"`
+}
+
+type CodePathReq {
+	Code string `path:"code"`
+}
+
+type EmptyResp {}
+
+type PageListResp {
+	Total int64       `json:"total"`
+	List  interface{} `json:"list"`
+}
+
+type AnyResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type JSONBody {}
+
 // Route table SSOT for order-service.
 // group: <role>/<module> → internal/handler/<role>/<module>/
 // Keep in sync with internal/handler/routes.go; run: scripts/check-api-routes.sh order-service
@@ -9,10 +39,10 @@ syntax = "v1"
 )
 service orderapi {
 	@handler Healthz
-	get /healthz
+	get /healthz returns (EmptyResp)
 
 	@handler Readyz
-	get /readyz
+	get /readyz returns (EmptyResp)
 
 	@handler Metrics
 	get /metrics
@@ -24,7 +54,7 @@ service orderapi {
 )
 service orderapi {
 	@handler PublicListProductReviews
-	get /api/v1/products/:id/reviews
+	get /api/v1/products/:id/reviews (IdPathReq) returns (PageListResp)
 }
 
 @server (
@@ -33,31 +63,31 @@ service orderapi {
 )
 service orderapi {
 	@handler UserCreateOrder
-	post /api/v1/orders
+	post /api/v1/orders (JSONBody) returns (AnyResp)
 
 	@handler CouponPreview
-	post /api/v1/orders/coupon-preview
+	post /api/v1/orders/coupon-preview (JSONBody) returns (AnyResp)
 
 	@handler StatusCounts
-	get /api/v1/orders/status-counts
+	get /api/v1/orders/status-counts returns (AnyResp)
 
 	@handler UserAfterSales
-	get /api/v1/orders/after-sales
+	get /api/v1/orders/after-sales returns (AnyResp)
 
 	@handler UserListOrders
-	get /api/v1/orders
+	get /api/v1/orders (PageReq) returns (PageListResp)
 
 	@handler UserGetOrder
-	get /api/v1/orders/:id
+	get /api/v1/orders/:id (IdPathReq) returns (AnyResp)
 
 	@handler Cancel
-	put /api/v1/orders/:id/cancel
+	put /api/v1/orders/:id/cancel (IdPathReq) returns (AnyResp)
 
 	@handler ConfirmReceive
-	put /api/v1/orders/:id/confirm-receive
+	put /api/v1/orders/:id/confirm-receive (IdPathReq) returns (AnyResp)
 
 	@handler CreateAfterSale
-	post /api/v1/orders/:id/after-sales
+	post /api/v1/orders/:id/after-sales (IdPathReq) returns (AnyResp)
 }
 
 @server (
@@ -66,16 +96,16 @@ service orderapi {
 )
 service orderapi {
 	@handler Eligible
-	get /api/v1/orders/:id/review-eligible
+	get /api/v1/orders/:id/review-eligible (IdPathReq) returns (AnyResp)
 
 	@handler UserCreateReview
-	post /api/v1/orders/:id/reviews
+	post /api/v1/orders/:id/reviews (IdPathReq) returns (AnyResp)
 
 	@handler GetByOrder
-	get /api/v1/orders/:id/review
+	get /api/v1/orders/:id/review (IdPathReq) returns (AnyResp)
 
 	@handler UserUploadReview
-	post /api/v1/user/review-uploads
+	post /api/v1/user/review-uploads (JSONBody) returns (AnyResp)
 }
 
 @server (
@@ -84,13 +114,13 @@ service orderapi {
 )
 service orderapi {
 	@handler MerchantListReviews
-	get /api/v1/merchant/reviews
+	get /api/v1/merchant/reviews (PageReq) returns (PageListResp)
 
 	@handler MerchantReply
-	put /api/v1/merchant/reviews/:id/reply
+	put /api/v1/merchant/reviews/:id/reply (IdPathReq) returns (AnyResp)
 
 	@handler MerchantDelete
-	delete /api/v1/merchant/reviews/:id
+	delete /api/v1/merchant/reviews/:id (IdPathReq) returns (AnyResp)
 }
 
 @server (
@@ -99,25 +129,25 @@ service orderapi {
 )
 service orderapi {
 	@handler MerchantListOrders
-	get /api/v1/merchant/orders
+	get /api/v1/merchant/orders (PageReq) returns (PageListResp)
 
 	@handler MerchantDetail
-	get /api/v1/merchant/orders/:id
+	get /api/v1/merchant/orders/:id (IdPathReq) returns (AnyResp)
 
 	@handler MerchantShip
-	put /api/v1/merchant/orders/:id/ship
+	put /api/v1/merchant/orders/:id/ship (IdPathReq) returns (AnyResp)
 
 	@handler MerchantComplete
-	put /api/v1/merchant/orders/:id/complete
+	put /api/v1/merchant/orders/:id/complete (IdPathReq) returns (AnyResp)
 
 	@handler MerchantRemark
-	put /api/v1/merchant/orders/:id/remark
+	put /api/v1/merchant/orders/:id/remark (IdPathReq) returns (AnyResp)
 
 	@handler MerchantAfterSales
-	get /api/v1/merchant/after-sales
+	get /api/v1/merchant/after-sales returns (AnyResp)
 
 	@handler MerchantHandleAfterSale
-	put /api/v1/merchant/after-sales/:id/handle
+	put /api/v1/merchant/after-sales/:id/handle (IdPathReq) returns (AnyResp)
 }
 
 @server (
@@ -126,7 +156,7 @@ service orderapi {
 )
 service orderapi {
 	@handler LogisticsOptions
-	get /api/v1/logistics/options
+	get /api/v1/logistics/options returns (AnyResp)
 }
 
 @server (
@@ -135,10 +165,10 @@ service orderapi {
 )
 service orderapi {
 	@handler AdminListReviews
-	get /api/v1/admin/reviews
+	get /api/v1/admin/reviews (PageReq) returns (PageListResp)
 
 	@handler AdminDelete
-	delete /api/v1/admin/reviews/:id
+	delete /api/v1/admin/reviews/:id (IdPathReq) returns (AnyResp)
 }
 
 @server (
@@ -147,25 +177,25 @@ service orderapi {
 )
 service orderapi {
 	@handler AdminListOrders
-	get /api/v1/admin/orders
+	get /api/v1/admin/orders (PageReq) returns (PageListResp)
 
 	@handler AdminDetail
-	get /api/v1/admin/orders/:id
+	get /api/v1/admin/orders/:id (IdPathReq) returns (AnyResp)
 
 	@handler AdminShip
-	put /api/v1/admin/orders/:id/ship
+	put /api/v1/admin/orders/:id/ship (IdPathReq) returns (AnyResp)
 
 	@handler AdminComplete
-	put /api/v1/admin/orders/:id/complete
+	put /api/v1/admin/orders/:id/complete (IdPathReq) returns (AnyResp)
 
 	@handler AdminRemark
-	put /api/v1/admin/orders/:id/remark
+	put /api/v1/admin/orders/:id/remark (IdPathReq) returns (AnyResp)
 
 	@handler AdminAfterSales
-	get /api/v1/admin/after-sales
+	get /api/v1/admin/after-sales returns (AnyResp)
 
 	@handler AdminHandleAfterSale
-	put /api/v1/admin/after-sales/:id/handle
+	put /api/v1/admin/after-sales/:id/handle (IdPathReq) returns (AnyResp)
 }
 
 @server (
@@ -174,18 +204,18 @@ service orderapi {
 )
 service orderapi {
 	@handler AdminListLogistics
-	get /api/v1/admin/logistics
+	get /api/v1/admin/logistics (PageReq) returns (PageListResp)
 
 	@handler AdminCreateLogistics
-	post /api/v1/admin/logistics
+	post /api/v1/admin/logistics (JSONBody) returns (AnyResp)
 
 	@handler AdminUpdateLogistics
-	put /api/v1/admin/logistics/:id
+	put /api/v1/admin/logistics/:id (IdPathReq) returns (AnyResp)
 
 	@handler UpdateStatus
-	put /api/v1/admin/logistics/:id/status
+	put /api/v1/admin/logistics/:id/status (IdPathReq) returns (AnyResp)
 
 	@handler AdminDeleteLogistics
-	delete /api/v1/admin/logistics/:id
+	delete /api/v1/admin/logistics/:id (IdPathReq) returns (AnyResp)
 }
 

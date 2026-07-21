@@ -7,37 +7,33 @@ import (
 )
 
 type NotificationLogic struct {
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewNotificationLogic(ctx context.Context, svcCtx *svc.ServiceContext) *NotificationLogic {
-	return &NotificationLogic{
-		ctx:    ctx,
-		svcCtx: svcCtx,
-	}
+func NewNotificationLogic(svcCtx *svc.ServiceContext) *NotificationLogic {
+	return &NotificationLogic{svcCtx: svcCtx}
 }
 
-func (l *NotificationLogic) List(f repository.NotificationListFilter) (map[string]interface{}, error) {
-	list, total, err := l.svcCtx.Notifications.List(l.ctx, f)
+func (l *NotificationLogic) List(ctx context.Context, f repository.NotificationListFilter) (map[string]interface{}, error) {
+	list, total, err := l.svcCtx.Notifications.List(ctx, f)
 	if err != nil {
 		return nil, err
 	}
 	return map[string]interface{}{"list": list, "total": total}, nil
 }
 
-func (l *NotificationLogic) UnreadCount(shopID uint64) (map[string]interface{}, error) {
-	cnt, err := l.svcCtx.Notifications.UnreadCount(l.ctx, shopID)
+func (l *NotificationLogic) UnreadCount(ctx context.Context, shopID uint64) (map[string]interface{}, error) {
+	cnt, err := l.svcCtx.Notifications.UnreadCount(ctx, shopID)
 	if err != nil {
 		return nil, err
 	}
 	return map[string]interface{}{"count": cnt}, nil
 }
 
-func (l *NotificationLogic) MarkRead(id, shopID uint64) error {
-	return l.svcCtx.Notifications.MarkRead(l.ctx, id, shopID)
+func (l *NotificationLogic) MarkRead(ctx context.Context, id, shopID uint64) error {
+	return l.svcCtx.Notifications.MarkRead(ctx, id, shopID)
 }
 
-func (l *NotificationLogic) MarkAllRead(shopID uint64) error {
-	return l.svcCtx.Notifications.MarkAllRead(l.ctx, shopID)
+func (l *NotificationLogic) MarkAllRead(ctx context.Context, shopID uint64) error {
+	return l.svcCtx.Notifications.MarkAllRead(ctx, shopID)
 }

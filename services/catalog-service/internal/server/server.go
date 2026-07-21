@@ -25,7 +25,7 @@ func NewCatalogGRPCServer(l *logic.CatalogLogic) *CatalogGRPCServer {
 }
 
 func (s *CatalogGRPCServer) BatchGetProducts(ctx context.Context, req *catalogv1.BatchGetProductsRequest) (*catalogv1.BatchGetProductsResponse, error) {
-	products, err := s.logic.BatchGetProducts(req.GetProductIds())
+	products, err := s.logic.BatchGetProducts(ctx, req.GetProductIds())
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +39,7 @@ func (s *CatalogGRPCServer) BatchGetProducts(ctx context.Context, req *catalogv1
 			Stock:        int32(p.Stock),
 			Status:       p.Status,
 			ShopId:       p.ShopID,
-			DefaultSkuId: s.logic.DefaultSkuID(p.ID),
+			DefaultSkuId: s.logic.DefaultSkuID(ctx, p.ID),
 		})
 	}
 	return resp, nil
@@ -50,7 +50,7 @@ func (s *CatalogGRPCServer) ReserveStock(ctx context.Context, req *catalogv1.Res
 	for _, it := range req.GetItems() {
 		items = append(items, repository.StockItem{ProductID: it.GetProductId(), SkuID: it.GetSkuId(), Quantity: int(it.GetQuantity())})
 	}
-	if err := s.logic.ReserveStock(items); err != nil {
+	if err := s.logic.ReserveStock(ctx, items); err != nil {
 		return &catalogv1.ReserveStockResponse{Success: false, Message: err.Error()}, nil
 	}
 	return &catalogv1.ReserveStockResponse{Success: true, Message: "ok"}, nil
@@ -61,7 +61,7 @@ func (s *CatalogGRPCServer) ReleaseStock(ctx context.Context, req *catalogv1.Rel
 	for _, it := range req.GetItems() {
 		items = append(items, repository.StockItem{ProductID: it.GetProductId(), SkuID: it.GetSkuId(), Quantity: int(it.GetQuantity())})
 	}
-	if err := s.logic.ReleaseStock(items); err != nil {
+	if err := s.logic.ReleaseStock(ctx, items); err != nil {
 		return &catalogv1.ReleaseStockResponse{Success: false, Message: err.Error()}, nil
 	}
 	return &catalogv1.ReleaseStockResponse{Success: true, Message: "ok"}, nil

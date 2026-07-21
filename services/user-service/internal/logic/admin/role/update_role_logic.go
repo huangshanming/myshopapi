@@ -2,34 +2,31 @@ package role
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"mymall/pkg/httpinvoke"
+	hadmin "mymall/services/user-service/internal/app/admin"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	pkgmw "mymall/pkg/middleware"
-	hadmin "mymall/services/user-service/internal/httpapi/admin"
-	"mymall/services/user-service/internal/svc"
 )
 
 type UpdateRoleLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewUpdateRoleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UpdateRoleLogic {
+func NewUpdateRoleLogic(svcCtx *svc.ServiceContext) *UpdateRoleLogic {
 	return &UpdateRoleLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *UpdateRoleLogic) UpdateRole(w http.ResponseWriter, r *http.Request) {
-	h := hadmin.NewAdminHandler(l.svcCtx).DeleteRole
-	admin := hadmin.NewAdminHandler(l.svcCtx)
-	if code := "system:role:delete"; code != "" {
-		h = pkgmw.RequirePermission(admin, code)(h)
+func (l *UpdateRoleLogic) UpdateRole(ctx context.Context, req *types.RoleUpdateReq) error {
+	_, err := httpinvoke.Run(ctx, "PUT", "/api/v1/admin/roles/{Id}", map[string]string{"id": fmt.Sprintf("%v", req.Id)}, nil, req, hadmin.NewAdminHandler(l.svcCtx).UpdateRole)
+	if err != nil {
+		return err
 	}
-	h(w, r)
+	return nil
 }

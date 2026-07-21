@@ -2,34 +2,31 @@ package user
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"mymall/pkg/httpinvoke"
+	hadmin "mymall/services/user-service/internal/app/admin"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	pkgmw "mymall/pkg/middleware"
-	hadmin "mymall/services/user-service/internal/httpapi/admin"
-	"mymall/services/user-service/internal/svc"
 )
 
 type SetUserStatusLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewSetUserStatusLogic(ctx context.Context, svcCtx *svc.ServiceContext) *SetUserStatusLogic {
+func NewSetUserStatusLogic(svcCtx *svc.ServiceContext) *SetUserStatusLogic {
 	return &SetUserStatusLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *SetUserStatusLogic) SetUserStatus(w http.ResponseWriter, r *http.Request) {
-	h := hadmin.NewAdminHandler(l.svcCtx).SetUserStatus
-	admin := hadmin.NewAdminHandler(l.svcCtx)
-	if code := "system:user:status"; code != "" {
-		h = pkgmw.RequirePermission(admin, code)(h)
+func (l *SetUserStatusLogic) SetUserStatus(ctx context.Context, req *types.UserStatusReq) error {
+	_, err := httpinvoke.Run(ctx, "PUT", "/api/v1/admin/users/{Id}/status", map[string]string{"id": fmt.Sprintf("%v", req.Id)}, nil, req, hadmin.NewAdminHandler(l.svcCtx).SetUserStatus)
+	if err != nil {
+		return err
 	}
-	h(w, r)
+	return nil
 }

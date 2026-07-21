@@ -2,28 +2,34 @@ package region
 
 import (
 	"context"
-	"net/http"
+	"mymall/pkg/httpinvoke"
+	hpublic "mymall/services/user-service/internal/app/public"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	hpublic "mymall/services/user-service/internal/httpapi/public"
-	"mymall/services/user-service/internal/svc"
 )
 
 type RegionTreeLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewRegionTreeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *RegionTreeLogic {
+func NewRegionTreeLogic(svcCtx *svc.ServiceContext) *RegionTreeLogic {
 	return &RegionTreeLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *RegionTreeLogic) RegionTree(w http.ResponseWriter, r *http.Request) {
-	hpublic.NewRegionHandler(l.svcCtx).Tree(w, r)
+func (l *RegionTreeLogic) RegionTree(ctx context.Context) (resp *types.AnyResp, err error) {
+	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/regions/tree", nil, nil, nil, hpublic.NewRegionHandler(l.svcCtx).Tree)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

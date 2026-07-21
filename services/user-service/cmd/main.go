@@ -89,7 +89,7 @@ func main() {
 			logger.Info("regions seeded from pca-code.json")
 		}
 	}
-	userLogic := biz.NewUserLogic(context.Background(), svcCtx)
+	userLogic := biz.NewUserLogic(svcCtx)
 	healthReg := health.NewRegistry()
 	healthReg.Register("mysql", func(ctx context.Context) error {
 		sqlDB, err := db.DB()

@@ -3,34 +3,81 @@ package review
 import (
 	"net/http"
 
+	"github.com/zeromicro/go-zero/rest/httpx"
+
 	"mymall/services/order-service/internal/logic/user/review"
 	"mymall/services/order-service/internal/svc"
+	"mymall/services/order-service/internal/types"
 )
 
 func EligibleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := review.NewEligibleLogic(r.Context(), svcCtx)
-		l.Eligible(w, r)
+		var req types.IdPathReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := review.NewEligibleLogic(svcCtx)
+		resp, err := l.Eligible(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func GetByOrderHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := review.NewGetByOrderLogic(r.Context(), svcCtx)
-		l.GetByOrder(w, r)
+		var req types.IdPathReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := review.NewGetByOrderLogic(svcCtx)
+		resp, err := l.GetByOrder(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func UserCreateReviewHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := review.NewUserCreateReviewLogic(r.Context(), svcCtx)
-		l.UserCreateReview(w, r)
+		var req types.IdPathReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := review.NewUserCreateReviewLogic(svcCtx)
+		resp, err := l.UserCreateReview(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }
 
 func UserUploadReviewHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		l := review.NewUserUploadReviewLogic(r.Context(), svcCtx)
-		l.UserUploadReview(w, r)
+		var req types.JSONBody
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+
+		l := review.NewUserUploadReviewLogic(svcCtx)
+		resp, err := l.UserUploadReview(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
 	}
 }

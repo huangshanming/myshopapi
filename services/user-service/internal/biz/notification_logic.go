@@ -29,7 +29,7 @@ type AdminSendReq struct {
 	LinkID   uint64   `json:"link_id"`
 }
 
-func (l *UserLogic) CreateNotification(req NotifyCreateReq) (*model.UserNotification, error) {
+func (l *UserLogic) CreateNotification(ctx context.Context, req NotifyCreateReq) (*model.UserNotification, error) {
 	if req.UserID == 0 {
 		return nil, errors.New("缺少用户")
 	}
@@ -61,29 +61,29 @@ func (l *UserLogic) CreateNotification(req NotifyCreateReq) (*model.UserNotifica
 		SenderType: model.SenderSystem,
 		SenderID:   0,
 	}
-	if err := l.svcCtx.Repo.CreateNotification(context.Background(), n); err != nil {
+	if err := l.svcCtx.Repo.CreateNotification(ctx, n); err != nil {
 		return nil, err
 	}
 	return n, nil
 }
 
-func (l *UserLogic) ListMyNotifications(userID uint64, page, pageSize int) ([]model.UserNotification, int64, error) {
-	return l.svcCtx.Repo.ListNotifications(context.Background(), userID, page, pageSize)
+func (l *UserLogic) ListMyNotifications(ctx context.Context, userID uint64, page, pageSize int) ([]model.UserNotification, int64, error) {
+	return l.svcCtx.Repo.ListNotifications(ctx, userID, page, pageSize)
 }
 
-func (l *UserLogic) UnreadCount(userID uint64) (int64, error) {
-	return l.svcCtx.Repo.UnreadNotificationCount(context.Background(), userID)
+func (l *UserLogic) UnreadCount(ctx context.Context, userID uint64) (int64, error) {
+	return l.svcCtx.Repo.UnreadNotificationCount(ctx, userID)
 }
 
-func (l *UserLogic) MarkRead(userID, id uint64) error {
-	return l.svcCtx.Repo.MarkNotificationRead(context.Background(), userID, id)
+func (l *UserLogic) MarkRead(ctx context.Context, userID, id uint64) error {
+	return l.svcCtx.Repo.MarkNotificationRead(ctx, userID, id)
 }
 
-func (l *UserLogic) MarkAllRead(userID uint64) error {
-	return l.svcCtx.Repo.MarkAllNotificationsRead(context.Background(), userID)
+func (l *UserLogic) MarkAllRead(ctx context.Context, userID uint64) error {
+	return l.svcCtx.Repo.MarkAllNotificationsRead(ctx, userID)
 }
 
-func (l *UserLogic) AdminSend(adminID uint64, req AdminSendReq) (*model.UserNotificationBatch, error) {
+func (l *UserLogic) AdminSend(ctx context.Context, adminID uint64, req AdminSendReq) (*model.UserNotificationBatch, error) {
 	title := strings.TrimSpace(req.Title)
 	if title == "" {
 		return nil, errors.New("标题不能为空")
@@ -101,7 +101,7 @@ func (l *UserLogic) AdminSend(adminID uint64, req AdminSendReq) (*model.UserNoti
 		const batchSize = 500
 		offset := 0
 		for {
-			ids, err := l.svcCtx.Repo.ListActiveUserIDs(context.Background(), offset, batchSize)
+			ids, err := l.svcCtx.Repo.ListActiveUserIDs(ctx, offset, batchSize)
 			if err != nil {
 				return nil, err
 			}
@@ -141,7 +141,7 @@ func (l *UserLogic) AdminSend(adminID uint64, req AdminSendReq) (*model.UserNoti
 		Title: title, Content: strings.TrimSpace(req.Content), Target: target,
 		UserCount: len(userIDs), LinkType: linkType, LinkID: req.LinkID, SenderID: adminID,
 	}
-	if err := l.svcCtx.Repo.CreateNotificationBatch(context.Background(), batch); err != nil {
+	if err := l.svcCtx.Repo.CreateNotificationBatch(ctx, batch); err != nil {
 		return nil, err
 	}
 	list := make([]model.UserNotification, 0, len(userIDs))
@@ -153,24 +153,24 @@ func (l *UserLogic) AdminSend(adminID uint64, req AdminSendReq) (*model.UserNoti
 			SenderType: model.SenderAdmin, SenderID: adminID, BatchID: batch.ID,
 		})
 	}
-	if err := l.svcCtx.Repo.CreateNotifications(context.Background(), list); err != nil {
+	if err := l.svcCtx.Repo.CreateNotifications(ctx, list); err != nil {
 		return nil, err
 	}
 	batch.SuccessCount = len(list)
-	_ = l.svcCtx.Repo.UpdateNotificationBatchSuccess(context.Background(), batch.ID, batch.SuccessCount)
+	_ = l.svcCtx.Repo.UpdateNotificationBatchSuccess(ctx, batch.ID, batch.SuccessCount)
 	return batch, nil
 }
 
-func (l *UserLogic) ListSendBatches(page, pageSize int) ([]model.UserNotificationBatch, int64, error) {
-	return l.svcCtx.Repo.ListNotificationBatches(context.Background(), page, pageSize)
+func (l *UserLogic) ListSendBatches(ctx context.Context, page, pageSize int) ([]model.UserNotificationBatch, int64, error) {
+	return l.svcCtx.Repo.ListNotificationBatches(ctx, page, pageSize)
 }
 
-func (l *UserLogic) GetSendBatch(id uint64) (*model.UserNotificationBatch, error) {
-	return l.svcCtx.Repo.GetNotificationBatch(context.Background(), id)
+func (l *UserLogic) GetSendBatch(ctx context.Context, id uint64) (*model.UserNotificationBatch, error) {
+	return l.svcCtx.Repo.GetNotificationBatch(ctx, id)
 }
 
-func (l *UserLogic) ListBatchRecipients(batchID uint64, page, pageSize int) ([]repository.BatchRecipientRow, int64, error) {
-	return l.svcCtx.Repo.ListBatchRecipients(context.Background(), batchID, page, pageSize)
+func (l *UserLogic) ListBatchRecipients(ctx context.Context, batchID uint64, page, pageSize int) ([]repository.BatchRecipientRow, int64, error) {
+	return l.svcCtx.Repo.ListBatchRecipients(ctx, batchID, page, pageSize)
 }
 
 // ExtraJSON helper for order service callers via internal API

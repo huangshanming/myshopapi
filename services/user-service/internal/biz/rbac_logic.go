@@ -12,23 +12,19 @@ import (
 )
 
 type RBACLogic struct {
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewRBACLogic(ctx context.Context, svcCtx *svc.ServiceContext) *RBACLogic {
-	return &RBACLogic{
-		ctx:    ctx,
-		svcCtx: svcCtx,
-	}
+func NewRBACLogic(svcCtx *svc.ServiceContext) *RBACLogic {
+	return &RBACLogic{svcCtx: svcCtx}
 }
 
-func (l *RBACLogic) IsSuperAdmin(userID uint64) bool {
-	return l.svcCtx.RBAC.IsSuperAdmin(l.ctx, userID)
+func (l *RBACLogic) IsSuperAdmin(ctx context.Context, userID uint64) bool {
+	return l.svcCtx.RBAC.IsSuperAdmin(ctx, userID)
 }
 
-func (l *RBACLogic) HasPerm(userID uint64, code string) bool {
-	perms, err := l.svcCtx.RBAC.ListUserPerms(l.ctx, userID)
+func (l *RBACLogic) HasPerm(ctx context.Context, userID uint64, code string) bool {
+	perms, err := l.svcCtx.RBAC.ListUserPerms(ctx, userID)
 	if err != nil {
 		return false
 	}
@@ -73,16 +69,16 @@ func BuildMenuTree(menus []model.SysMenu, onlyVisible bool) []*types.MenuTreeNod
 	return roots
 }
 
-func (l *RBACLogic) AuthMe(userID uint64) (*types.AuthMeResp, error) {
-	roles, err := l.svcCtx.RBAC.ListRoleCodes(l.ctx, userID)
+func (l *RBACLogic) AuthMe(ctx context.Context, userID uint64) (*types.AuthMeResp, error) {
+	roles, err := l.svcCtx.RBAC.ListRoleCodes(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	perms, err := l.svcCtx.RBAC.ListUserPerms(l.ctx, userID)
+	perms, err := l.svcCtx.RBAC.ListUserPerms(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	menus, err := l.svcCtx.RBAC.ListUserMenus(l.ctx, userID)
+	menus, err := l.svcCtx.RBAC.ListUserMenus(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -93,15 +89,15 @@ func (l *RBACLogic) AuthMe(userID uint64) (*types.AuthMeResp, error) {
 	}, nil
 }
 
-func (l *RBACLogic) MenuTreeAll() ([]*types.MenuTreeNode, error) {
-	menus, err := l.svcCtx.RBAC.ListAllMenus(l.ctx)
+func (l *RBACLogic) MenuTreeAll(ctx context.Context) ([]*types.MenuTreeNode, error) {
+	menus, err := l.svcCtx.RBAC.ListAllMenus(ctx)
 	if err != nil {
 		return nil, err
 	}
 	return BuildMenuTree(menus, false), nil
 }
 
-func (l *RBACLogic) CreateMenu(req types.MenuReq) (*model.SysMenu, error) {
+func (l *RBACLogic) CreateMenu(ctx context.Context, req types.MenuReq) (*model.SysMenu, error) {
 	if strings.TrimSpace(req.Name) == "" {
 		return nil, errors.New("名称不能为空")
 	}
@@ -120,14 +116,14 @@ func (l *RBACLogic) CreateMenu(req types.MenuReq) (*model.SysMenu, error) {
 	if m.Status == 0 {
 		m.Status = 1
 	}
-	if err := l.svcCtx.RBAC.CreateMenu(l.ctx, m); err != nil {
+	if err := l.svcCtx.RBAC.CreateMenu(ctx, m); err != nil {
 		return nil, err
 	}
 	return m, nil
 }
 
-func (l *RBACLogic) UpdateMenu(id uint64, req types.MenuReq) error {
-	m, err := l.svcCtx.RBAC.GetMenu(l.ctx, id)
+func (l *RBACLogic) UpdateMenu(ctx context.Context, id uint64, req types.MenuReq) error {
+	m, err := l.svcCtx.RBAC.GetMenu(ctx, id)
 	if err != nil {
 		return errors.New("菜单不存在")
 	}
@@ -148,21 +144,21 @@ func (l *RBACLogic) UpdateMenu(id uint64, req types.MenuReq) error {
 	if m.Status == 0 && req.Status == 0 {
 		// allow disabled
 	}
-	return l.svcCtx.RBAC.UpdateMenu(l.ctx, m)
+	return l.svcCtx.RBAC.UpdateMenu(ctx, m)
 }
 
-func (l *RBACLogic) DeleteMenu(id uint64) error {
-	if err := l.svcCtx.RBAC.DeleteMenu(l.ctx, id); err != nil {
+func (l *RBACLogic) DeleteMenu(ctx context.Context, id uint64) error {
+	if err := l.svcCtx.RBAC.DeleteMenu(ctx, id); err != nil {
 		return errors.New("请先删除子菜单")
 	}
 	return nil
 }
 
-func (l *RBACLogic) ListRoles() ([]model.SysRole, error) {
-	return l.svcCtx.RBAC.ListRoles(l.ctx)
+func (l *RBACLogic) ListRoles(ctx context.Context) ([]model.SysRole, error) {
+	return l.svcCtx.RBAC.ListRoles(ctx)
 }
 
-func (l *RBACLogic) CreateRole(req types.RoleReq) (*model.SysRole, error) {
+func (l *RBACLogic) CreateRole(ctx context.Context, req types.RoleReq) (*model.SysRole, error) {
 	if req.Code == "" || req.Name == "" {
 		return nil, errors.New("编码和名称不能为空")
 	}
@@ -170,14 +166,14 @@ func (l *RBACLogic) CreateRole(req types.RoleReq) (*model.SysRole, error) {
 	if role.Status == 0 {
 		role.Status = 1
 	}
-	if err := l.svcCtx.RBAC.CreateRole(l.ctx, role); err != nil {
+	if err := l.svcCtx.RBAC.CreateRole(ctx, role); err != nil {
 		return nil, err
 	}
 	return role, nil
 }
 
-func (l *RBACLogic) UpdateRole(id uint64, req types.RoleReq) error {
-	role, err := l.svcCtx.RBAC.GetRole(l.ctx, id)
+func (l *RBACLogic) UpdateRole(ctx context.Context, id uint64, req types.RoleReq) error {
+	role, err := l.svcCtx.RBAC.GetRole(ctx, id)
 	if err != nil {
 		return errors.New("角色不存在")
 	}
@@ -192,85 +188,85 @@ func (l *RBACLogic) UpdateRole(id uint64, req types.RoleReq) error {
 	}
 	role.Status = req.Status
 	role.Remark = req.Remark
-	return l.svcCtx.RBAC.UpdateRole(l.ctx, role)
+	return l.svcCtx.RBAC.UpdateRole(ctx, role)
 }
 
-func (l *RBACLogic) DeleteRole(id uint64) error {
-	role, err := l.svcCtx.RBAC.GetRole(l.ctx, id)
+func (l *RBACLogic) DeleteRole(ctx context.Context, id uint64) error {
+	role, err := l.svcCtx.RBAC.GetRole(ctx, id)
 	if err != nil {
 		return errors.New("角色不存在")
 	}
 	if role.Code == model.RoleCodeSuperAdmin {
 		return errors.New("不可删除超级管理员角色")
 	}
-	return l.svcCtx.RBAC.DeleteRole(l.ctx, id)
+	return l.svcCtx.RBAC.DeleteRole(ctx, id)
 }
 
-func (l *RBACLogic) GetRoleMenus(id uint64) ([]uint64, error) {
-	return l.svcCtx.RBAC.ListRoleMenuIDs(l.ctx, id)
+func (l *RBACLogic) GetRoleMenus(ctx context.Context, id uint64) ([]uint64, error) {
+	return l.svcCtx.RBAC.ListRoleMenuIDs(ctx, id)
 }
 
-func (l *RBACLogic) AssignRoleMenus(id uint64, menuIDs []uint64) error {
-	if _, err := l.svcCtx.RBAC.GetRole(l.ctx, id); err != nil {
+func (l *RBACLogic) AssignRoleMenus(ctx context.Context, id uint64, menuIDs []uint64) error {
+	if _, err := l.svcCtx.RBAC.GetRole(ctx, id); err != nil {
 		return errors.New("角色不存在")
 	}
-	return l.svcCtx.RBAC.ReplaceRoleMenus(l.ctx, id, menuIDs)
+	return l.svcCtx.RBAC.ReplaceRoleMenus(ctx, id, menuIDs)
 }
 
-func (l *RBACLogic) ListUsers(page, pageSize int, mobile string) ([]model.User, int64, error) {
+func (l *RBACLogic) ListUsers(ctx context.Context, page, pageSize int, mobile string) ([]model.User, int64, error) {
 	if page < 1 {
 		page = 1
 	}
 	if pageSize < 1 || pageSize > 100 {
 		pageSize = 20
 	}
-	return l.svcCtx.RBAC.ListUsers(l.ctx, page, pageSize, mobile)
+	return l.svcCtx.RBAC.ListUsers(ctx, page, pageSize, mobile)
 }
 
-func (l *RBACLogic) SetUserStatus(id uint64, status int) error {
+func (l *RBACLogic) SetUserStatus(ctx context.Context, id uint64, status int) error {
 	if status != 0 && status != 1 {
 		return errors.New("status 无效")
 	}
-	return l.svcCtx.RBAC.UpdateUserStatus(l.ctx, id, status)
+	return l.svcCtx.RBAC.UpdateUserStatus(ctx, id, status)
 }
 
-func (l *RBACLogic) GetUser(id uint64) (*model.User, error) {
-	user, err := l.svcCtx.Repo.FindByID(l.ctx, id)
+func (l *RBACLogic) GetUser(ctx context.Context, id uint64) (*model.User, error) {
+	user, err := l.svcCtx.Repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, errors.New("用户不存在")
 	}
 	return user, nil
 }
 
-func (l *RBACLogic) UpdateUser(id uint64, req types.UserUpdateReq) error {
-	if _, err := l.svcCtx.Repo.FindByID(l.ctx, id); err != nil {
+func (l *RBACLogic) UpdateUser(ctx context.Context, id uint64, req types.UserUpdateReq) error {
+	if _, err := l.svcCtx.Repo.FindByID(ctx, id); err != nil {
 		return errors.New("用户不存在")
 	}
 	if len(req.Mobile) != 11 {
 		return errors.New("手机号无效")
 	}
-	if l.svcCtx.Repo.MobileTakenByOther(l.ctx, req.Mobile, id) {
+	if l.svcCtx.Repo.MobileTakenByOther(ctx, req.Mobile, id) {
 		return errors.New("手机号已被占用")
 	}
 	if req.Gender < 0 || req.Gender > 2 {
 		return errors.New("性别无效")
 	}
-	return l.svcCtx.Repo.UpdateProfile(l.ctx, id, req.Nickname, req.Avatar, req.Mobile, req.Gender)
+	return l.svcCtx.Repo.UpdateProfile(ctx, id, req.Nickname, req.Avatar, req.Mobile, req.Gender)
 }
 
-func (l *RBACLogic) ResetUserPassword(id uint64, plain string) error {
+func (l *RBACLogic) ResetUserPassword(ctx context.Context, id uint64, plain string) error {
 	if plain == "" {
 		return errors.New("密码不能为空")
 	}
-	if _, err := l.svcCtx.Repo.FindByID(l.ctx, id); err != nil {
+	if _, err := l.svcCtx.Repo.FindByID(ctx, id); err != nil {
 		return errors.New("用户不存在")
 	}
-	return l.svcCtx.Repo.UpdatePassword(l.ctx, id, plain)
+	return l.svcCtx.Repo.UpdatePassword(ctx, id, plain)
 }
 
 // GenerateUserToken 为指定用户签发与登录一致的 JWT（并发压测 / 调试用）。
-func (l *RBACLogic) GenerateUserToken(id uint64) (map[string]interface{}, error) {
-	user, err := l.svcCtx.Repo.FindByID(l.ctx, id)
+func (l *RBACLogic) GenerateUserToken(ctx context.Context, id uint64) (map[string]interface{}, error) {
+	user, err := l.svcCtx.Repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, errors.New("用户不存在")
 	}
@@ -280,7 +276,7 @@ func (l *RBACLogic) GenerateUserToken(id uint64) (map[string]interface{}, error)
 	role := ResolveLoginRole(l.svcCtx, user)
 	var shopID uint64
 	if jwt.IsMerchant(role) {
-		shopID = l.svcCtx.Repo.FirstShopID(l.ctx, user.ID)
+		shopID = l.svcCtx.Repo.FirstShopID(ctx, user.ID)
 	}
 	token, err := jwt.GenerateTokenWithShop(user.ID, role, shopID, l.svcCtx.JWT)
 	if err != nil {
@@ -301,60 +297,60 @@ func (l *RBACLogic) GenerateUserToken(id uint64) (map[string]interface{}, error)
 	}, nil
 }
 
-func (l *RBACLogic) ListAdmins(page, pageSize int) ([]model.User, int64, error) {
+func (l *RBACLogic) ListAdmins(ctx context.Context, page, pageSize int) ([]model.User, int64, error) {
 	if page < 1 {
 		page = 1
 	}
 	if pageSize < 1 || pageSize > 100 {
 		pageSize = 20
 	}
-	return l.svcCtx.RBAC.ListAdmins(l.ctx, page, pageSize)
+	return l.svcCtx.RBAC.ListAdmins(ctx, page, pageSize)
 }
 
-func (l *RBACLogic) CreateAdmin(req types.AdminCreateReq) (*model.User, error) {
+func (l *RBACLogic) CreateAdmin(ctx context.Context, req types.AdminCreateReq) (*model.User, error) {
 	if len(req.Mobile) != 11 || req.Password == "" {
 		return nil, errors.New("手机号或密码无效")
 	}
-	user, err := l.svcCtx.Repo.CreateAdmin(l.ctx, req.Mobile, req.Password, req.Nickname)
+	user, err := l.svcCtx.Repo.CreateAdmin(ctx, req.Mobile, req.Password, req.Nickname)
 	if err != nil {
 		return nil, err
 	}
 	if len(req.RoleIDs) > 0 {
-		if err := l.svcCtx.RBAC.ReplaceUserRoles(l.ctx, user.ID, req.RoleIDs); err != nil {
+		if err := l.svcCtx.RBAC.ReplaceUserRoles(ctx, user.ID, req.RoleIDs); err != nil {
 			return nil, err
 		}
 	}
 	return user, nil
 }
 
-func (l *RBACLogic) AssignAdminRoles(userID uint64, roleIDs []uint64) error {
-	if _, err := l.svcCtx.Repo.FindByID(l.ctx, userID); err != nil {
+func (l *RBACLogic) AssignAdminRoles(ctx context.Context, userID uint64, roleIDs []uint64) error {
+	if _, err := l.svcCtx.Repo.FindByID(ctx, userID); err != nil {
 		return errors.New("用户不存在")
 	}
-	return l.svcCtx.RBAC.ReplaceUserRoles(l.ctx, userID, roleIDs)
+	return l.svcCtx.RBAC.ReplaceUserRoles(ctx, userID, roleIDs)
 }
 
-func (l *RBACLogic) AdminRoleIDs(userID uint64) ([]uint64, error) {
-	return l.svcCtx.RBAC.ListUserRoleIDs(l.ctx, userID)
+func (l *RBACLogic) AdminRoleIDs(ctx context.Context, userID uint64) ([]uint64, error) {
+	return l.svcCtx.RBAC.ListUserRoleIDs(ctx, userID)
 }
 
-func (l *RBACLogic) ResetAdminPassword(userID uint64, password string) error {
+func (l *RBACLogic) ResetAdminPassword(ctx context.Context, userID uint64, password string) error {
 	if password == "" {
 		return errors.New("密码不能为空")
 	}
-	return l.svcCtx.Repo.UpdatePassword(l.ctx, userID, password)
+	return l.svcCtx.Repo.UpdatePassword(ctx, userID, password)
 }
 
-func (l *RBACLogic) ListConfigs() ([]model.SysConfig, error) {
-	return l.svcCtx.RBAC.ListConfigs(l.ctx)
+func (l *RBACLogic) ListConfigs(ctx context.Context) ([]model.SysConfig, error) {
+	return l.svcCtx.RBAC.ListConfigs(ctx)
 }
 
-func (l *RBACLogic) SaveConfigs(items []types.ConfigItemReq) error {
+func (l *RBACLogic) SaveConfigs(ctx context.Context, items []types.ConfigItemReq) error {
 	for _, it := range items {
 		if it.ConfigKey == "" {
 			continue
 		}
-		if err := l.svcCtx.RBAC.UpsertConfig(l.ctx, it.ConfigKey, it.ConfigValue, it.Remark); err != nil {
+		if err := l.svcCtx.RBAC.UpsertConfig(ctx, it.ConfigKey, it.ConfigValue, it.Remark); err != nil {
 			return err
 		}
 	}

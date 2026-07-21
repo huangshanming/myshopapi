@@ -38,6 +38,16 @@ if [[ -f "$SVC" ]]; then
   cp "$SVC" "$SVC_BAK"
 fi
 
+# FORCE_REGEN=1: drop generated handler/logic/types so new templates apply.
+# Hand-written types (non goctl) under internal/types/ survive if named != types.go.
+if [[ "${FORCE_REGEN:-}" == "1" ]]; then
+  echo "==> FORCE_REGEN: removing handler (except keep dir), logic stubs, types.go"
+  find "$DIR/internal/handler" -name '*.go' ! -name 'routes.go' -delete 2>/dev/null || true
+  rm -f "$DIR/internal/handler/routes.go"
+  find "$DIR/internal/logic" -name '*.go' -delete 2>/dev/null || true
+  rm -f "$DIR/internal/types/types.go"
+fi
+
 echo "==> goctl api go ($SERVICE)"
 (
   cd "$DIR"

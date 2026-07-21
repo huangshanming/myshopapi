@@ -1,18 +1,357 @@
 syntax = "v1"
 
-// Route table SSOT for user-service.
-// group: <role>/<module> → internal/handler/<role>/<module>/
-// Keep in sync with internal/handler/routes.go; run: scripts/check-api-routes.sh user-service
+// ---- shared DTOs (goctl types) ----
+type PageReq {
+	Page     int `form:"page,default=1"`
+	PageSize int `form:"page_size,default=10"`
+}
+
+type IdPathReq {
+	Id uint64 `path:"id"`
+}
+
+type CodePathReq {
+	Code string `path:"code"`
+}
+
+type FilePathReq {
+	File string `path:"file"`
+}
+
+type EmptyResp {}
+
+type PageListResp {
+	Total int64       `json:"total"`
+	List  interface{} `json:"list"`
+}
+
+type CountResp {
+	Count int64 `json:"count"`
+}
+
+type URLResp {
+	Url string `json:"url"`
+}
+
+type TokenResp {
+	Token string `json:"token"`
+}
+
+type PointsResp {
+	Points int64 `json:"points"`
+}
+
+type LoginReq {
+	Mobile   string `json:"mobile"`
+	Password string `json:"password"`
+	ShopID   uint64 `json:"shop_id,optional"`
+}
+
+type LoginResp {
+	Token string      `json:"token"`
+	User  interface{} `json:"user"`
+}
+
+type RegisterReq {
+	Mobile   string `json:"mobile"`
+	Password string `json:"password"`
+}
+
+type AddressReq {
+	ReceiverName  string `json:"receiver_name"`
+	ReceiverPhone string `json:"receiver_phone"`
+	Province      string `json:"province"`
+	City          string `json:"city"`
+	District      string `json:"district"`
+	Detail        string `json:"detail"`
+	ProvinceCode  string `json:"province_code"`
+	CityCode      string `json:"city_code"`
+	DistrictCode  string `json:"district_code"`
+	IsDefault     int    `json:"is_default,optional"`
+}
+
+type AddressUpdateReq {
+	Id            uint64 `path:"id"`
+	ReceiverName  string `json:"receiver_name,optional"`
+	ReceiverPhone string `json:"receiver_phone,optional"`
+	Province      string `json:"province,optional"`
+	City          string `json:"city,optional"`
+	District      string `json:"district,optional"`
+	Detail        string `json:"detail,optional"`
+	ProvinceCode  string `json:"province_code,optional"`
+	CityCode      string `json:"city_code,optional"`
+	DistrictCode  string `json:"district_code,optional"`
+	IsDefault     int    `json:"is_default,optional"`
+}
+
+type WalletOrderOpReq {
+	UserID  uint64  `json:"user_id"`
+	Amount  float64 `json:"amount"`
+	OrderID uint64  `json:"order_id"`
+	OrderNo string  `json:"order_no"`
+}
+
+type WalletAdjustReq {
+	Id     uint64  `path:"id"`
+	Field  string  `json:"field"`
+	Amount float64 `json:"amount"`
+	Remark string  `json:"remark,optional"`
+}
+
+type InternalAddressReq {
+	Id     uint64 `form:"id"`
+	UserID uint64 `form:"user_id"`
+}
+
+type MenuReq {
+	ParentID  uint64 `json:"parent_id,optional"`
+	Name      string `json:"name"`
+	Type      string `json:"type"`
+	Path      string `json:"path,optional"`
+	Component string `json:"component,optional"`
+	Icon      string `json:"icon,optional"`
+	Perms     string `json:"perms,optional"`
+	Sort      int    `json:"sort,optional"`
+	Visible   int    `json:"visible,optional"`
+	Status    int    `json:"status,optional"`
+}
+
+type MenuUpdateReq {
+	Id        uint64 `path:"id"`
+	ParentID  uint64 `json:"parent_id,optional"`
+	Name      string `json:"name,optional"`
+	Type      string `json:"type,optional"`
+	Path      string `json:"path,optional"`
+	Component string `json:"component,optional"`
+	Icon      string `json:"icon,optional"`
+	Perms     string `json:"perms,optional"`
+	Sort      int    `json:"sort,optional"`
+	Visible   int    `json:"visible,optional"`
+	Status    int    `json:"status,optional"`
+}
+
+type RoleReq {
+	Code   string `json:"code"`
+	Name   string `json:"name"`
+	Status int    `json:"status,optional"`
+	Remark string `json:"remark,optional"`
+}
+
+type RoleUpdateReq {
+	Id     uint64 `path:"id"`
+	Code   string `json:"code,optional"`
+	Name   string `json:"name,optional"`
+	Status int    `json:"status,optional"`
+	Remark string `json:"remark,optional"`
+}
+
+type RoleMenusReq {
+	Id      uint64   `path:"id"`
+	MenuIDs []uint64 `json:"menu_ids"`
+}
+
+type UserStatusReq {
+	Id     uint64 `path:"id"`
+	Status int    `json:"status"`
+}
+
+type UserUpdateReq {
+	Id       uint64 `path:"id"`
+	Nickname string `json:"nickname,optional"`
+	Avatar   string `json:"avatar,optional"`
+	Gender   int    `json:"gender,optional"`
+	Mobile   string `json:"mobile,optional"`
+}
+
+type UserResetPwdReq {
+	Id       uint64 `path:"id"`
+	Password string `json:"password"`
+}
+
+type AdminCreateReq {
+	Mobile   string   `json:"mobile"`
+	Password string   `json:"password"`
+	Nickname string   `json:"nickname,optional"`
+	RoleIDs  []uint64 `json:"role_ids,optional"`
+}
+
+type AdminRolesReq {
+	Id      uint64   `path:"id"`
+	RoleIDs []uint64 `json:"role_ids"`
+}
+
+type AdminResetPwdReq {
+	Id       uint64 `path:"id"`
+	Password string `json:"password"`
+}
+
+type ConfigItemReq {
+	ConfigKey   string `json:"config_key"`
+	ConfigValue string `json:"config_value"`
+	Remark      string `json:"remark,optional"`
+}
+
+type ConfigBatchReq {
+	Items []ConfigItemReq `json:"items"`
+}
+
+type ListUsersReq {
+	Mobile   string `form:"mobile,optional"`
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+}
+
+type ListAdminsReq {
+	Page     int `form:"page,default=1"`
+	PageSize int `form:"page_size,default=10"`
+}
+
+type RegionListReq {
+	ParentCode string `form:"parent_code,optional"`
+}
+
+type NotifyCreateReq {
+	UserID  uint64 `json:"user_id"`
+	Title   string `json:"title"`
+	Content string `json:"content"`
+	Type    string `json:"type,optional"`
+}
+
+type AdminSendReq {
+	Title   string   `json:"title"`
+	Content string   `json:"content"`
+	UserIDs []uint64 `json:"user_ids,optional"`
+	SendAll bool     `json:"send_all,optional"`
+}
+
+type TaskEventReq {
+	Event string `json:"event"`
+	RefId string `json:"ref_id,optional"`
+}
+
+type PointsLedgerReq {
+	UserID uint64 `json:"user_id"`
+	Points int64  `json:"points"`
+	Reason string `json:"reason,optional"`
+	RefNo  string `json:"ref_no,optional"`
+}
+
+type UpdateTaskReq {
+	Id          uint64 `path:"id"`
+	Name        string `json:"name,optional"`
+	Points      int64  `json:"points,optional"`
+	Status      string `json:"status,optional"`
+	Description string `json:"description,optional"`
+}
+
+type ExchangeReq {
+	ProductID uint64 `json:"product_id"`
+	AddressID uint64 `json:"address_id,optional"`
+	Remark    string `json:"remark,optional"`
+}
+
+type PointsProductSaveReq {
+	Name         string `json:"name"`
+	CoverURL     string `json:"cover_url,optional"`
+	Description  string `json:"description,optional"`
+	PointsPrice  int    `json:"points_price,optional"`
+	Stock        int    `json:"stock,optional"`
+	PerUserLimit int    `json:"per_user_limit,optional"`
+	Status       string `json:"status,optional"`
+	Sort         int    `json:"sort,optional"`
+}
+
+type PointsProductUpdateReq {
+	Id           uint64 `path:"id"`
+	Name         string `json:"name,optional"`
+	CoverURL     string `json:"cover_url,optional"`
+	Description  string `json:"description,optional"`
+	PointsPrice  int    `json:"points_price,optional"`
+	Stock        int    `json:"stock,optional"`
+	PerUserLimit int    `json:"per_user_limit,optional"`
+	Status       string `json:"status,optional"`
+	Sort         int    `json:"sort,optional"`
+}
+
+type PointsProductStatusReq {
+	Id     uint64 `path:"id"`
+	Status string `json:"status"`
+}
+
+type ListPointsProductsReq {
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+	Status   string `form:"status,optional"`
+	Keyword  string `form:"keyword,optional"`
+}
+
+type ListPointsOrdersReq {
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+	Status   string `form:"status,optional"`
+	OrderNo  string `form:"order_no,optional"`
+	Keyword  string `form:"keyword,optional"`
+	UserID   uint64 `form:"user_id,optional"`
+}
+
+type ShipReq {
+	Id             uint64 `path:"id"`
+	ExpressCompany string `json:"express_company"`
+	ExpressNo      string `json:"express_no"`
+}
+
+type RemarkReq {
+	Id     uint64 `path:"id"`
+	Remark string `json:"remark"`
+}
+
+type AdminWalletLogsReq {
+	Id       uint64 `path:"id"`
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+}
+
+type NotificationRecipientsReq {
+	Id       uint64 `path:"id"`
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+}
+
+type AnyResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type MenuTreeNode {
+	ID        uint64          `json:"id"`
+	ParentID  uint64          `json:"parent_id"`
+	Name      string          `json:"name"`
+	Type      string          `json:"type"`
+	Path      string          `json:"path"`
+	Component string          `json:"component"`
+	Icon      string          `json:"icon"`
+	Perms     string          `json:"perms"`
+	Sort      int             `json:"sort"`
+	Visible   int             `json:"visible"`
+	Status    int             `json:"status"`
+	Children  []*MenuTreeNode `json:"children,optional"`
+}
+
+type AuthMeResp {
+	Roles    []string        `json:"roles"`
+	Perms    []string        `json:"perms"`
+	MenuTree []*MenuTreeNode `json:"menu_tree"`
+}
+
 @server (
 	middleware: RequestID
 	group:      public/health
 )
 service userapi {
 	@handler Healthz
-	get /healthz
+	get /healthz returns (EmptyResp)
 
 	@handler Readyz
-	get /readyz
+	get /readyz returns (EmptyResp)
 
 	@handler Metrics
 	get /metrics
@@ -24,10 +363,10 @@ service userapi {
 )
 service userapi {
 	@handler Login
-	post /api/v1/user/login
+	post /api/v1/user/login (LoginReq) returns (LoginResp)
 
 	@handler Register
-	post /api/v1/user/register
+	post /api/v1/user/register (RegisterReq) returns (AnyResp)
 }
 
 @server (
@@ -36,10 +375,10 @@ service userapi {
 )
 service userapi {
 	@handler ListRegions
-	get /api/v1/regions
+	get /api/v1/regions (RegionListReq) returns (PageListResp)
 
 	@handler RegionTree
-	get /api/v1/regions/tree
+	get /api/v1/regions/tree returns (AnyResp)
 }
 
 @server (
@@ -48,13 +387,13 @@ service userapi {
 )
 service userapi {
 	@handler InternalFreezeWallet
-	post /api/v1/user/wallet/freeze
+	post /api/v1/user/wallet/freeze (WalletOrderOpReq)
 
 	@handler InternalUnfreezeWallet
-	post /api/v1/user/wallet/unfreeze
+	post /api/v1/user/wallet/unfreeze (WalletOrderOpReq)
 
 	@handler InternalSettleWallet
-	post /api/v1/user/wallet/settle
+	post /api/v1/user/wallet/settle (WalletOrderOpReq)
 }
 
 @server (
@@ -63,7 +402,7 @@ service userapi {
 )
 service userapi {
 	@handler InternalGet
-	get /api/v1/user/addresses/internal
+	get /api/v1/user/addresses/internal (InternalAddressReq) returns (AnyResp)
 }
 
 @server (
@@ -72,7 +411,7 @@ service userapi {
 )
 service userapi {
 	@handler InternalCreateNotification
-	post /api/v1/internal/notifications
+	post /api/v1/internal/notifications (NotifyCreateReq) returns (AnyResp)
 }
 
 @server (
@@ -81,7 +420,7 @@ service userapi {
 )
 service userapi {
 	@handler InternalEvent
-	post /api/v1/internal/tasks/events
+	post /api/v1/internal/tasks/events (TaskEventReq)
 }
 
 @server (
@@ -90,10 +429,10 @@ service userapi {
 )
 service userapi {
 	@handler InternalDeductPoints
-	post /api/v1/internal/points/deduct
+	post /api/v1/internal/points/deduct (PointsLedgerReq) returns (PointsResp)
 
 	@handler InternalRefundPoints
-	post /api/v1/internal/points/refund
+	post /api/v1/internal/points/refund (PointsLedgerReq) returns (PointsResp)
 }
 
 @server (
@@ -102,7 +441,7 @@ service userapi {
 )
 service userapi {
 	@handler UserProfile
-	get /api/v1/user/profile
+	get /api/v1/user/profile returns (AnyResp)
 }
 
 @server (
@@ -111,10 +450,10 @@ service userapi {
 )
 service userapi {
 	@handler UserGetWallet
-	get /api/v1/user/wallet
+	get /api/v1/user/wallet returns (AnyResp)
 
 	@handler UserWalletLogs
-	get /api/v1/user/wallet/logs
+	get /api/v1/user/wallet/logs (PageReq) returns (PageListResp)
 }
 
 @server (
@@ -123,19 +462,19 @@ service userapi {
 )
 service userapi {
 	@handler UserListAddresses
-	get /api/v1/user/addresses
+	get /api/v1/user/addresses returns (PageListResp)
 
 	@handler UserCreateAddress
-	post /api/v1/user/addresses
+	post /api/v1/user/addresses (AddressReq) returns (AnyResp)
 
 	@handler UserUpdateAddress
-	put /api/v1/user/addresses/:id
+	put /api/v1/user/addresses/:id (AddressUpdateReq)
 
 	@handler UserDeleteAddress
-	delete /api/v1/user/addresses/:id
+	delete /api/v1/user/addresses/:id (IdPathReq)
 
 	@handler SetDefault
-	put /api/v1/user/addresses/:id/default
+	put /api/v1/user/addresses/:id/default (IdPathReq)
 }
 
 @server (
@@ -144,13 +483,13 @@ service userapi {
 )
 service userapi {
 	@handler ListNotifications
-	get /api/v1/user/notifications
+	get /api/v1/user/notifications (PageReq) returns (PageListResp)
 
 	@handler UnreadNotificationCount
-	get /api/v1/user/notifications/unread-count
+	get /api/v1/user/notifications/unread-count returns (CountResp)
 
 	@handler MarkNotificationRead
-	post /api/v1/user/notifications/:id/read
+	post /api/v1/user/notifications/:id/read (IdPathReq)
 
 	@handler MarkAllNotificationsRead
 	post /api/v1/user/notifications/read-all
@@ -162,10 +501,10 @@ service userapi {
 )
 service userapi {
 	@handler UserPoints
-	get /api/v1/user/points
+	get /api/v1/user/points returns (PointsResp)
 
 	@handler UserPointLogs
-	get /api/v1/user/points/logs
+	get /api/v1/user/points/logs (PageReq) returns (PageListResp)
 }
 
 @server (
@@ -174,16 +513,16 @@ service userapi {
 )
 service userapi {
 	@handler UserListTasks
-	get /api/v1/user/tasks
+	get /api/v1/user/tasks returns (PageListResp)
 
 	@handler UserCheckin
-	post /api/v1/user/tasks/checkin
+	post /api/v1/user/tasks/checkin returns (AnyResp)
 
 	@handler UserClaim
-	post /api/v1/user/tasks/:code/claim
+	post /api/v1/user/tasks/:code/claim (CodePathReq) returns (PointsResp)
 
 	@handler UserReportEvent
-	post /api/v1/user/tasks/events
+	post /api/v1/user/tasks/events (TaskEventReq)
 }
 
 @server (
@@ -192,7 +531,7 @@ service userapi {
 )
 service userapi {
 	@handler AuthMe
-	get /api/v1/admin/auth/me
+	get /api/v1/admin/auth/me returns (AnyResp)
 }
 
 @server (
@@ -201,16 +540,16 @@ service userapi {
 )
 service userapi {
 	@handler MenuTree
-	get /api/v1/admin/menus
+	get /api/v1/admin/menus returns (AnyResp)
 
 	@handler CreateMenu
-	post /api/v1/admin/menus
+	post /api/v1/admin/menus (MenuReq) returns (AnyResp)
 
 	@handler UpdateMenu
-	put /api/v1/admin/menus/:id
+	put /api/v1/admin/menus/:id (MenuUpdateReq)
 
 	@handler DeleteMenu
-	delete /api/v1/admin/menus/:id
+	delete /api/v1/admin/menus/:id (IdPathReq)
 }
 
 @server (
@@ -219,22 +558,22 @@ service userapi {
 )
 service userapi {
 	@handler ListRoles
-	get /api/v1/admin/roles
+	get /api/v1/admin/roles returns (PageListResp)
 
 	@handler CreateRole
-	post /api/v1/admin/roles
+	post /api/v1/admin/roles (RoleReq) returns (AnyResp)
 
 	@handler UpdateRole
-	put /api/v1/admin/roles/:id
+	put /api/v1/admin/roles/:id (RoleUpdateReq)
 
 	@handler DeleteRole
-	delete /api/v1/admin/roles/:id
+	delete /api/v1/admin/roles/:id (IdPathReq)
 
 	@handler GetRoleMenus
-	get /api/v1/admin/roles/:id/menus
+	get /api/v1/admin/roles/:id/menus (IdPathReq) returns (AnyResp)
 
 	@handler AssignRoleMenus
-	put /api/v1/admin/roles/:id/menus
+	put /api/v1/admin/roles/:id/menus (RoleMenusReq)
 }
 
 @server (
@@ -243,34 +582,34 @@ service userapi {
 )
 service userapi {
 	@handler ListUsers
-	get /api/v1/admin/users
+	get /api/v1/admin/users (ListUsersReq) returns (PageListResp)
 
 	@handler GetUser
-	get /api/v1/admin/users/:id
+	get /api/v1/admin/users/:id (IdPathReq) returns (AnyResp)
 
 	@handler UpdateUser
-	put /api/v1/admin/users/:id
+	put /api/v1/admin/users/:id (UserUpdateReq)
 
 	@handler SetUserStatus
-	put /api/v1/admin/users/:id/status
+	put /api/v1/admin/users/:id/status (UserStatusReq)
 
 	@handler ResetUserPassword
-	put /api/v1/admin/users/:id/password
+	put /api/v1/admin/users/:id/password (UserResetPwdReq)
 
 	@handler GenerateUserToken
-	post /api/v1/admin/users/:id/token
+	post /api/v1/admin/users/:id/token (IdPathReq) returns (AnyResp)
 
 	@handler AdminGetWallet
-	get /api/v1/admin/users/:id/wallet
+	get /api/v1/admin/users/:id/wallet (IdPathReq) returns (AnyResp)
 
 	@handler AdminAdjustWallet
-	post /api/v1/admin/users/:id/wallet/adjust
+	post /api/v1/admin/users/:id/wallet/adjust (WalletAdjustReq) returns (AnyResp)
 
 	@handler AdminWalletLogs
-	get /api/v1/admin/users/:id/wallet/logs
+	get /api/v1/admin/users/:id/wallet/logs (AdminWalletLogsReq) returns (PageListResp)
 
 	@handler AdminListUserAddresses
-	get /api/v1/admin/users/:id/addresses
+	get /api/v1/admin/users/:id/addresses (IdPathReq) returns (PageListResp)
 }
 
 @server (
@@ -279,19 +618,19 @@ service userapi {
 )
 service userapi {
 	@handler ListAdmins
-	get /api/v1/admin/admins
+	get /api/v1/admin/admins (ListAdminsReq) returns (PageListResp)
 
 	@handler CreateAdmin
-	post /api/v1/admin/admins
+	post /api/v1/admin/admins (AdminCreateReq) returns (AnyResp)
 
 	@handler GetAdminRoles
-	get /api/v1/admin/admins/:id/roles
+	get /api/v1/admin/admins/:id/roles (IdPathReq) returns (AnyResp)
 
 	@handler AssignAdminRoles
-	put /api/v1/admin/admins/:id/roles
+	put /api/v1/admin/admins/:id/roles (AdminRolesReq)
 
 	@handler ResetAdminPassword
-	put /api/v1/admin/admins/:id/password
+	put /api/v1/admin/admins/:id/password (AdminResetPwdReq)
 }
 
 @server (
@@ -300,10 +639,10 @@ service userapi {
 )
 service userapi {
 	@handler ListConfigs
-	get /api/v1/admin/configs
+	get /api/v1/admin/configs returns (PageListResp)
 
 	@handler SaveConfigs
-	put /api/v1/admin/configs
+	put /api/v1/admin/configs (ConfigBatchReq)
 }
 
 @server (
@@ -312,13 +651,13 @@ service userapi {
 )
 service userapi {
 	@handler AdminSendNotification
-	post /api/v1/admin/notifications/send
+	post /api/v1/admin/notifications/send (AdminSendReq) returns (AnyResp)
 
 	@handler AdminListNotificationSends
-	get /api/v1/admin/notifications/sends
+	get /api/v1/admin/notifications/sends (PageReq) returns (PageListResp)
 
 	@handler AdminListNotificationRecipients
-	get /api/v1/admin/notifications/sends/:id/recipients
+	get /api/v1/admin/notifications/sends/:id/recipients (NotificationRecipientsReq) returns (AnyResp)
 }
 
 @server (
@@ -327,10 +666,10 @@ service userapi {
 )
 service userapi {
 	@handler AdminListTasks
-	get /api/v1/admin/tasks
+	get /api/v1/admin/tasks returns (PageListResp)
 
 	@handler AdminUpdateTask
-	put /api/v1/admin/tasks/:id
+	put /api/v1/admin/tasks/:id (UpdateTaskReq) returns (AnyResp)
 }
 
 @server (
@@ -339,7 +678,7 @@ service userapi {
 )
 service userapi {
 	@handler ServePointsMallUpload
-	get /uploads/points-mall/:file
+	get /uploads/points-mall/:file (FilePathReq)
 }
 
 @server (
@@ -348,13 +687,13 @@ service userapi {
 )
 service userapi {
 	@handler Exchange
-	post /api/v1/user/points-mall/exchange
+	post /api/v1/user/points-mall/exchange (ExchangeReq) returns (AnyResp)
 
 	@handler ListUserPointsOrders
-	get /api/v1/user/points-mall/orders
+	get /api/v1/user/points-mall/orders (PageReq) returns (PageListResp)
 
 	@handler DetailUserPointsOrder
-	get /api/v1/user/points-mall/orders/:id
+	get /api/v1/user/points-mall/orders/:id (IdPathReq) returns (AnyResp)
 }
 
 @server (
@@ -363,42 +702,42 @@ service userapi {
 )
 service userapi {
 	@handler ListPointsProducts
-	get /api/v1/admin/points-products
+	get /api/v1/admin/points-products (ListPointsProductsReq) returns (PageListResp)
 
 	@handler CreatePointsProduct
-	post /api/v1/admin/points-products
+	post /api/v1/admin/points-products (PointsProductSaveReq) returns (AnyResp)
 
 	@handler UploadPointsProduct
-	post /api/v1/admin/points-products/upload
+	post /api/v1/admin/points-products/upload returns (URLResp)
 
 	@handler DetailPointsProduct
-	get /api/v1/admin/points-products/:id
+	get /api/v1/admin/points-products/:id (IdPathReq) returns (AnyResp)
 
 	@handler UpdatePointsProduct
-	put /api/v1/admin/points-products/:id
+	put /api/v1/admin/points-products/:id (PointsProductUpdateReq) returns (AnyResp)
 
 	@handler SetPointsProductStatus
-	put /api/v1/admin/points-products/:id/status
+	put /api/v1/admin/points-products/:id/status (PointsProductStatusReq) returns (AnyResp)
 
 	@handler DeletePointsProduct
-	delete /api/v1/admin/points-products/:id
+	delete /api/v1/admin/points-products/:id (IdPathReq)
 
 	@handler ListPointsOrders
-	get /api/v1/admin/points-orders
+	get /api/v1/admin/points-orders (ListPointsOrdersReq) returns (PageListResp)
 
 	@handler DetailPointsOrder
-	get /api/v1/admin/points-orders/:id
+	get /api/v1/admin/points-orders/:id (IdPathReq) returns (AnyResp)
 
 	@handler ShipPointsOrder
-	post /api/v1/admin/points-orders/:id/ship
+	post /api/v1/admin/points-orders/:id/ship (ShipReq) returns (AnyResp)
 
 	@handler CompletePointsOrder
-	post /api/v1/admin/points-orders/:id/complete
+	post /api/v1/admin/points-orders/:id/complete (IdPathReq) returns (AnyResp)
 
 	@handler CancelPointsOrder
-	post /api/v1/admin/points-orders/:id/cancel
+	post /api/v1/admin/points-orders/:id/cancel (RemarkReq) returns (AnyResp)
 
 	@handler RemarkPointsOrder
-	put /api/v1/admin/points-orders/:id/remark
+	put /api/v1/admin/points-orders/:id/remark (RemarkReq) returns (AnyResp)
 }
 

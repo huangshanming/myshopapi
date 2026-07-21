@@ -1,5 +1,35 @@
 syntax = "v1"
 
+type PageReq {
+	Page     int `form:"page,default=1"`
+	PageSize int `form:"page_size,default=10"`
+}
+
+type IdPathReq {
+	Id uint64 `path:"id"`
+}
+
+type FilePathReq {
+	File string `path:"file"`
+}
+
+type CodePathReq {
+	Code string `path:"code"`
+}
+
+type EmptyResp {}
+
+type PageListResp {
+	Total int64       `json:"total"`
+	List  interface{} `json:"list"`
+}
+
+type AnyResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type JSONBody {}
+
 // Route table SSOT for catalog-service.
 // Keep in sync with internal/handler/routes.go; run: scripts/check-api-routes.sh catalog-service
 // group: <role>/<module> → internal/handler/<role>/<module>/
@@ -9,10 +39,10 @@ syntax = "v1"
 )
 service catalogapi {
 	@handler Healthz
-	get /healthz
+	get /healthz returns (EmptyResp)
 
 	@handler Readyz
-	get /readyz
+	get /readyz returns (EmptyResp)
 
 	@handler Metrics
 	get /metrics
@@ -24,16 +54,16 @@ service catalogapi {
 )
 service catalogapi {
 	@handler GetProductList
-	get /api/v1/products/list
+	get /api/v1/products/list (PageReq) returns (PageListResp)
 
 	@handler GetProductDetail
-	get /api/v1/products/detail
+	get /api/v1/products/detail returns (AnyResp)
 
 	@handler GetSalesRank
-	get /api/v1/products/sales-rank
+	get /api/v1/products/sales-rank returns (AnyResp)
 
 	@handler Count
-	get /api/v1/products/:id/favorite-count
+	get /api/v1/products/:id/favorite-count (IdPathReq) returns (AnyResp)
 }
 
 @server (
@@ -42,10 +72,10 @@ service catalogapi {
 )
 service catalogapi {
 	@handler GetCategoryList
-	get /api/v1/product_category/list
+	get /api/v1/product_category/list (PageReq) returns (PageListResp)
 
 	@handler GetCategoryDetail
-	get /api/v1/product_category/detail
+	get /api/v1/product_category/detail returns (AnyResp)
 }
 
 @server (
@@ -54,7 +84,7 @@ service catalogapi {
 )
 service catalogapi {
 	@handler ListBanners
-	get /api/v1/banners
+	get /api/v1/banners (PageReq) returns (PageListResp)
 }
 
 @server (
@@ -63,16 +93,16 @@ service catalogapi {
 )
 service catalogapi {
 	@handler PublicListArticles
-	get /api/v1/articles/list
+	get /api/v1/articles/list (PageReq) returns (PageListResp)
 
 	@handler PublicGetArticle
-	get /api/v1/articles/:id
+	get /api/v1/articles/:id (IdPathReq) returns (AnyResp)
 
 	@handler ListComments
-	get /api/v1/articles/:id/comments
+	get /api/v1/articles/:id/comments (IdPathReq) returns (PageListResp)
 
 	@handler ListEmojis
-	get /api/v1/comment-emojis
+	get /api/v1/comment-emojis (PageReq) returns (PageListResp)
 }
 
 @server (
@@ -81,46 +111,46 @@ service catalogapi {
 )
 service catalogapi {
 	@handler CreateComment
-	post /api/v1/articles/:id/comments
+	post /api/v1/articles/:id/comments (IdPathReq) returns (AnyResp)
 
 	@handler Like
-	post /api/v1/articles/:id/like
+	post /api/v1/articles/:id/like (IdPathReq) returns (AnyResp)
 
 	@handler Unlike
-	delete /api/v1/articles/:id/like
+	delete /api/v1/articles/:id/like (IdPathReq) returns (AnyResp)
 
 	@handler Favorite
-	post /api/v1/articles/:id/favorite
+	post /api/v1/articles/:id/favorite (IdPathReq) returns (AnyResp)
 
 	@handler Unfavorite
-	delete /api/v1/articles/:id/favorite
+	delete /api/v1/articles/:id/favorite (IdPathReq) returns (AnyResp)
 
 	@handler UserArticleEngagement
-	get /api/v1/articles/:id/engagement
+	get /api/v1/articles/:id/engagement (IdPathReq) returns (AnyResp)
 
 	@handler ListMyFavorites
-	get /api/v1/user/article-favorites
+	get /api/v1/user/article-favorites (PageReq) returns (PageListResp)
 
 	@handler ListMyLikes
-	get /api/v1/user/article-likes
+	get /api/v1/user/article-likes (PageReq) returns (PageListResp)
 
 	@handler ListMine
-	get /api/v1/user/articles
+	get /api/v1/user/articles (PageReq) returns (PageListResp)
 
 	@handler CreateMine
-	post /api/v1/user/articles
+	post /api/v1/user/articles (JSONBody) returns (AnyResp)
 
 	@handler DetailMine
-	get /api/v1/user/articles/:id
+	get /api/v1/user/articles/:id (IdPathReq) returns (AnyResp)
 
 	@handler UpdateMine
-	put /api/v1/user/articles/:id
+	put /api/v1/user/articles/:id (IdPathReq) returns (AnyResp)
 
 	@handler DeleteMine
-	delete /api/v1/user/articles/:id
+	delete /api/v1/user/articles/:id (IdPathReq) returns (AnyResp)
 
 	@handler UploadMine
-	post /api/v1/user/article-uploads
+	post /api/v1/user/article-uploads (JSONBody) returns (AnyResp)
 }
 
 @server (
@@ -129,19 +159,19 @@ service catalogapi {
 )
 service catalogapi {
 	@handler UserAddFavorite
-	post /api/v1/user/favorites
+	post /api/v1/user/favorites (JSONBody) returns (AnyResp)
 
 	@handler UserRemoveFavorite
-	delete /api/v1/user/favorites/:product_id
+	delete /api/v1/user/favorites/:product_id returns (AnyResp)
 
 	@handler RemoveBatch
-	post /api/v1/user/favorites/batch-remove
+	post /api/v1/user/favorites/batch-remove (JSONBody) returns (AnyResp)
 
 	@handler UserListFavorites
-	get /api/v1/user/favorites
+	get /api/v1/user/favorites (PageReq) returns (PageListResp)
 
 	@handler UserFavoriteStatus
-	get /api/v1/products/:id/favorite
+	get /api/v1/products/:id/favorite (IdPathReq) returns (AnyResp)
 }
 
 @server (
@@ -150,85 +180,85 @@ service catalogapi {
 )
 service catalogapi {
 	@handler MerchantListProducts
-	get /api/v1/merchant/products
+	get /api/v1/merchant/products (PageReq) returns (PageListResp)
 
 	@handler MerchantCreateProduct
-	post /api/v1/merchant/products
+	post /api/v1/merchant/products (JSONBody) returns (AnyResp)
 
 	@handler MerchantBatchProducts
-	post /api/v1/merchant/products/batch
+	post /api/v1/merchant/products/batch (JSONBody) returns (AnyResp)
 
 	@handler JobStatus
-	get /api/v1/merchant/products/jobs/:id
+	get /api/v1/merchant/products/jobs/:id (IdPathReq) returns (AnyResp)
 
 	@handler MerchantRestoreProducts
-	post /api/v1/merchant/products/recycle/restore
+	post /api/v1/merchant/products/recycle/restore (JSONBody) returns (AnyResp)
 
 	@handler MerchantPurgeProducts
-	delete /api/v1/merchant/products/recycle
+	delete /api/v1/merchant/products/recycle returns (AnyResp)
 
 	@handler MerchantExportProducts
-	get /api/v1/merchant/products/export
+	get /api/v1/merchant/products/export (PageReq) returns (PageListResp)
 
 	@handler MerchantImportProducts
-	post /api/v1/merchant/products/import
+	post /api/v1/merchant/products/import (JSONBody) returns (AnyResp)
 
 	@handler OpLogs
-	get /api/v1/merchant/products/op-logs
+	get /api/v1/merchant/products/op-logs (PageReq) returns (PageListResp)
 
 	@handler MerchantGetProduct
-	get /api/v1/merchant/products/:id
+	get /api/v1/merchant/products/:id (IdPathReq) returns (AnyResp)
 
 	@handler MerchantUpdateProduct
-	put /api/v1/merchant/products/:id
+	put /api/v1/merchant/products/:id (IdPathReq) returns (AnyResp)
 
 	@handler MerchantSetProductStatus
-	put /api/v1/merchant/products/:id/status
+	put /api/v1/merchant/products/:id/status (IdPathReq) returns (AnyResp)
 
 	@handler MerchantCopyProduct
-	post /api/v1/merchant/products/:id/copy
+	post /api/v1/merchant/products/:id/copy (IdPathReq) returns (AnyResp)
 
 	@handler MerchantScheduleProduct
-	post /api/v1/merchant/products/:id/schedules
+	post /api/v1/merchant/products/:id/schedules (IdPathReq) returns (AnyResp)
 
 	@handler AdjustStock
-	put /api/v1/merchant/skus/:id/stock
+	put /api/v1/merchant/skus/:id/stock (IdPathReq) returns (AnyResp)
 
 	@handler BatchStock
-	post /api/v1/merchant/skus/batch-stock
+	post /api/v1/merchant/skus/batch-stock (JSONBody) returns (AnyResp)
 
 	@handler StockWarnings
-	get /api/v1/merchant/stocks/warnings
+	get /api/v1/merchant/stocks/warnings returns (AnyResp)
 
 	@handler MerchantUploadImage
-	post /api/v1/merchant/uploads/images
+	post /api/v1/merchant/uploads/images (JSONBody) returns (AnyResp)
 
 	@handler CancelSchedule
-	delete /api/v1/merchant/schedules/:id
+	delete /api/v1/merchant/schedules/:id (IdPathReq) returns (AnyResp)
 
 	@handler ListTags
-	get /api/v1/merchant/tags
+	get /api/v1/merchant/tags (PageReq) returns (PageListResp)
 
 	@handler MerchantCreateTag
-	post /api/v1/merchant/tags
+	post /api/v1/merchant/tags (JSONBody) returns (AnyResp)
 
 	@handler MerchantUpdateTag
-	put /api/v1/merchant/tags/:id
+	put /api/v1/merchant/tags/:id (IdPathReq) returns (AnyResp)
 
 	@handler DeleteTag
-	delete /api/v1/merchant/tags/:id
+	delete /api/v1/merchant/tags/:id (IdPathReq) returns (AnyResp)
 
 	@handler ListAttrTemplates
-	get /api/v1/merchant/attr-templates
+	get /api/v1/merchant/attr-templates (PageReq) returns (PageListResp)
 
 	@handler MerchantCreateAttrTemplate
-	post /api/v1/merchant/attr-templates
+	post /api/v1/merchant/attr-templates (JSONBody) returns (AnyResp)
 
 	@handler MerchantUpdateAttrTemplate
-	put /api/v1/merchant/attr-templates/:id
+	put /api/v1/merchant/attr-templates/:id (IdPathReq) returns (AnyResp)
 
 	@handler DeleteAttrTemplate
-	delete /api/v1/merchant/attr-templates/:id
+	delete /api/v1/merchant/attr-templates/:id (IdPathReq) returns (AnyResp)
 }
 
 @server (
@@ -237,28 +267,28 @@ service catalogapi {
 )
 service catalogapi {
 	@handler MerchantAuthMe
-	get /api/v1/merchant/auth/me
+	get /api/v1/merchant/auth/me returns (AnyResp)
 
 	@handler ListRoles
-	get /api/v1/merchant/shop/roles
+	get /api/v1/merchant/shop/roles (PageReq) returns (PageListResp)
 
 	@handler RoleMenus
-	get /api/v1/merchant/shop/roles/:id/menus
+	get /api/v1/merchant/shop/roles/:id/menus (IdPathReq) returns (AnyResp)
 
 	@handler MerchantCreateRole
-	post /api/v1/merchant/shop/roles
+	post /api/v1/merchant/shop/roles (JSONBody) returns (AnyResp)
 
 	@handler MerchantUpdateRole
-	put /api/v1/merchant/shop/roles/:id
+	put /api/v1/merchant/shop/roles/:id (IdPathReq) returns (AnyResp)
 
 	@handler ListMenus
-	get /api/v1/merchant/shop/menus
+	get /api/v1/merchant/shop/menus (PageReq) returns (PageListResp)
 
 	@handler ListStaff
-	get /api/v1/merchant/shop/staff
+	get /api/v1/merchant/shop/staff (PageReq) returns (PageListResp)
 
 	@handler BindStaff
-	post /api/v1/merchant/shop/staff
+	post /api/v1/merchant/shop/staff (JSONBody) returns (AnyResp)
 }
 
 @server (
@@ -267,34 +297,34 @@ service catalogapi {
 )
 service catalogapi {
 	@handler MerchantListArticles
-	get /api/v1/merchant/articles
+	get /api/v1/merchant/articles (PageReq) returns (PageListResp)
 
 	@handler MerchantCreateArticle
-	post /api/v1/merchant/articles
+	post /api/v1/merchant/articles (JSONBody) returns (AnyResp)
 
 	@handler MerchantGetArticle
-	get /api/v1/merchant/articles/:id
+	get /api/v1/merchant/articles/:id (IdPathReq) returns (AnyResp)
 
 	@handler MerchantUpdateArticle
-	put /api/v1/merchant/articles/:id
+	put /api/v1/merchant/articles/:id (IdPathReq) returns (AnyResp)
 
 	@handler MerchantDeleteArticle
-	delete /api/v1/merchant/articles/:id
+	delete /api/v1/merchant/articles/:id (IdPathReq) returns (AnyResp)
 
 	@handler MerchantListArticleCategories
-	get /api/v1/merchant/article-categories
+	get /api/v1/merchant/article-categories (PageReq) returns (PageListResp)
 
 	@handler MerchantListArticleComments
-	get /api/v1/merchant/article-comments
+	get /api/v1/merchant/article-comments (PageReq) returns (PageListResp)
 
 	@handler MerchantPatchArticleComment
-	patch /api/v1/merchant/article-comments/:id
+	patch /api/v1/merchant/article-comments/:id (IdPathReq) returns (AnyResp)
 
 	@handler MerchantDeleteArticleComment
-	delete /api/v1/merchant/article-comments/:id
+	delete /api/v1/merchant/article-comments/:id (IdPathReq) returns (AnyResp)
 
 	@handler MerchantUploadArticle
-	post /api/v1/merchant/article-uploads
+	post /api/v1/merchant/article-uploads (JSONBody) returns (AnyResp)
 }
 
 @server (
@@ -303,16 +333,16 @@ service catalogapi {
 )
 service catalogapi {
 	@handler MerchantUnreadNotificationCount
-	get /api/v1/merchant/notifications/unread-count
+	get /api/v1/merchant/notifications/unread-count returns (AnyResp)
 
 	@handler MerchantMarkAllNotificationsRead
-	post /api/v1/merchant/notifications/read-all
+	post /api/v1/merchant/notifications/read-all (JSONBody) returns (AnyResp)
 
 	@handler MerchantListNotifications
-	get /api/v1/merchant/notifications
+	get /api/v1/merchant/notifications (PageReq) returns (PageListResp)
 
 	@handler MerchantMarkNotificationRead
-	post /api/v1/merchant/notifications/:id/read
+	post /api/v1/merchant/notifications/:id/read (IdPathReq) returns (AnyResp)
 }
 
 @server (
@@ -321,7 +351,7 @@ service catalogapi {
 )
 service catalogapi {
 	@handler AdminListUserFavorites
-	get /api/v1/admin/users/:id/favorites
+	get /api/v1/admin/users/:id/favorites (IdPathReq) returns (PageListResp)
 }
 
 @server (
@@ -330,13 +360,13 @@ service catalogapi {
 )
 service catalogapi {
 	@handler AdminListProducts
-	get /api/v1/admin/products
+	get /api/v1/admin/products (PageReq) returns (PageListResp)
 
 	@handler AdminOffSaleProduct
-	put /api/v1/admin/products/:id/off_sale
+	put /api/v1/admin/products/:id/off_sale (IdPathReq) returns (AnyResp)
 
 	@handler AdminDeleteProduct
-	delete /api/v1/admin/products/:id
+	delete /api/v1/admin/products/:id (IdPathReq) returns (AnyResp)
 }
 
 @server (
@@ -345,16 +375,16 @@ service catalogapi {
 )
 service catalogapi {
 	@handler AdminListCategories
-	get /api/v1/admin/categories
+	get /api/v1/admin/categories (PageReq) returns (PageListResp)
 
 	@handler AdminCreateCategory
-	post /api/v1/admin/categories
+	post /api/v1/admin/categories (JSONBody) returns (AnyResp)
 
 	@handler AdminUpdateCategory
-	put /api/v1/admin/categories/:id
+	put /api/v1/admin/categories/:id (IdPathReq) returns (AnyResp)
 
 	@handler AdminDeleteCategory
-	delete /api/v1/admin/categories/:id
+	delete /api/v1/admin/categories/:id (IdPathReq) returns (AnyResp)
 }
 
 @server (
@@ -363,58 +393,58 @@ service catalogapi {
 )
 service catalogapi {
 	@handler AdminArticleStats
-	get /api/v1/admin/articles/stats
+	get /api/v1/admin/articles/stats returns (AnyResp)
 
 	@handler AdminListArticleRecycle
-	get /api/v1/admin/articles/recycle
+	get /api/v1/admin/articles/recycle (PageReq) returns (PageListResp)
 
 	@handler AdminRestoreArticleRecycle
-	post /api/v1/admin/articles/recycle/restore
+	post /api/v1/admin/articles/recycle/restore (JSONBody) returns (AnyResp)
 
 	@handler AdminPurgeArticleRecycle
-	delete /api/v1/admin/articles/recycle
+	delete /api/v1/admin/articles/recycle returns (AnyResp)
 
 	@handler AdminBatchAuditArticles
-	post /api/v1/admin/articles/batch-audit
+	post /api/v1/admin/articles/batch-audit (JSONBody) returns (AnyResp)
 
 	@handler AdminListArticles
-	get /api/v1/admin/articles
+	get /api/v1/admin/articles (PageReq) returns (PageListResp)
 
 	@handler AdminCreateArticle
-	post /api/v1/admin/articles
+	post /api/v1/admin/articles (JSONBody) returns (AnyResp)
 
 	@handler AdminGetArticle
-	get /api/v1/admin/articles/:id
+	get /api/v1/admin/articles/:id (IdPathReq) returns (AnyResp)
 
 	@handler AdminUpdateArticle
-	put /api/v1/admin/articles/:id
+	put /api/v1/admin/articles/:id (IdPathReq) returns (AnyResp)
 
 	@handler AdminSoftDeleteArticle
-	delete /api/v1/admin/articles/:id
+	delete /api/v1/admin/articles/:id (IdPathReq) returns (AnyResp)
 
 	@handler AdminAuditArticle
-	post /api/v1/admin/articles/:id/audit
+	post /api/v1/admin/articles/:id/audit (IdPathReq) returns (AnyResp)
 
 	@handler AdminTopArticle
-	post /api/v1/admin/articles/:id/top
+	post /api/v1/admin/articles/:id/top (IdPathReq) returns (AnyResp)
 
 	@handler AdminOfflineArticle
-	post /api/v1/admin/articles/:id/offline
+	post /api/v1/admin/articles/:id/offline (IdPathReq) returns (AnyResp)
 
 	@handler AdminListArticleCategories
-	get /api/v1/admin/article-categories
+	get /api/v1/admin/article-categories (PageReq) returns (PageListResp)
 
 	@handler AdminCreateArticleCategory
-	post /api/v1/admin/article-categories
+	post /api/v1/admin/article-categories (JSONBody) returns (AnyResp)
 
 	@handler AdminUpdateArticleCategory
-	put /api/v1/admin/article-categories/:id
+	put /api/v1/admin/article-categories/:id (IdPathReq) returns (AnyResp)
 
 	@handler AdminDeleteArticleCategory
-	delete /api/v1/admin/article-categories/:id
+	delete /api/v1/admin/article-categories/:id (IdPathReq) returns (AnyResp)
 
 	@handler AdminUploadArticle
-	post /api/v1/admin/article-uploads
+	post /api/v1/admin/article-uploads (JSONBody) returns (AnyResp)
 }
 
 @server (
@@ -423,25 +453,25 @@ service catalogapi {
 )
 service catalogapi {
 	@handler AdminListArticleComments
-	get /api/v1/admin/article-comments
+	get /api/v1/admin/article-comments (PageReq) returns (PageListResp)
 
 	@handler AdminPatchArticleComment
-	patch /api/v1/admin/article-comments/:id
+	patch /api/v1/admin/article-comments/:id (IdPathReq) returns (AnyResp)
 
 	@handler AdminDeleteArticleComment
-	delete /api/v1/admin/article-comments/:id
+	delete /api/v1/admin/article-comments/:id (IdPathReq) returns (AnyResp)
 
 	@handler EmojiList
-	get /api/v1/admin/comment-emojis
+	get /api/v1/admin/comment-emojis (PageReq) returns (PageListResp)
 
 	@handler EmojiCreate
-	post /api/v1/admin/comment-emojis
+	post /api/v1/admin/comment-emojis (JSONBody) returns (AnyResp)
 
 	@handler EmojiUpdate
-	put /api/v1/admin/comment-emojis/:id
+	put /api/v1/admin/comment-emojis/:id (IdPathReq) returns (AnyResp)
 
 	@handler EmojiDelete
-	delete /api/v1/admin/comment-emojis/:id
+	delete /api/v1/admin/comment-emojis/:id (IdPathReq) returns (AnyResp)
 }
 
 @server (
@@ -450,22 +480,22 @@ service catalogapi {
 )
 service catalogapi {
 	@handler AdminListBanners
-	get /api/v1/admin/banners
+	get /api/v1/admin/banners (PageReq) returns (PageListResp)
 
 	@handler CreateBanner
-	post /api/v1/admin/banners
+	post /api/v1/admin/banners (JSONBody) returns (AnyResp)
 
 	@handler UploadBanner
-	post /api/v1/admin/banners/upload
+	post /api/v1/admin/banners/upload (JSONBody) returns (AnyResp)
 
 	@handler GetBanner
-	get /api/v1/admin/banners/:id
+	get /api/v1/admin/banners/:id (IdPathReq) returns (AnyResp)
 
 	@handler UpdateBanner
-	put /api/v1/admin/banners/:id
+	put /api/v1/admin/banners/:id (IdPathReq) returns (AnyResp)
 
 	@handler DeleteBanner
-	delete /api/v1/admin/banners/:id
+	delete /api/v1/admin/banners/:id (IdPathReq) returns (AnyResp)
 }
 
 @server (
@@ -474,6 +504,6 @@ service catalogapi {
 )
 service catalogapi {
 	@handler AdminUploadShop
-	post /api/v1/admin/shop-uploads
+	post /api/v1/admin/shop-uploads (JSONBody) returns (AnyResp)
 }
 

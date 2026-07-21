@@ -2,28 +2,39 @@ package homepage
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	"mymall/services/merchant-service/internal/svc"
+	"mymall/services/merchant-service/internal/types"
+	hadmin "mymall/services/merchant-service/internal/app/admin"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	hadmin "mymall/services/merchant-service/internal/httpapi/admin"
-	"mymall/services/merchant-service/internal/svc"
 )
 
 type AdminUpdateSlotSettingsLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewAdminUpdateSlotSettingsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AdminUpdateSlotSettingsLogic {
+func NewAdminUpdateSlotSettingsLogic(svcCtx *svc.ServiceContext) *AdminUpdateSlotSettingsLogic {
 	return &AdminUpdateSlotSettingsLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *AdminUpdateSlotSettingsLogic) AdminUpdateSlotSettings(w http.ResponseWriter, r *http.Request) {
-	hadmin.NewHomepageSlotHandler(l.svcCtx).AdminUpdateSlotSettings(w, r)
+func (l *AdminUpdateSlotSettingsLogic) AdminUpdateSlotSettings(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+raw, err := httpinvoke.Run(ctx, "PUT", "/api/v1/admin/homepage-settings", nil, nil, req, hadmin.NewHomepageSlotHandler(l.svcCtx).AdminUpdateSlotSettings)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

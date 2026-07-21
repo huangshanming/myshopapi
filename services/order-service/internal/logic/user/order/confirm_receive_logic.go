@@ -2,28 +2,39 @@ package order
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	huser "mymall/services/order-service/internal/app/user"
+	"mymall/services/order-service/internal/svc"
+	"mymall/services/order-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	huser "mymall/services/order-service/internal/httpapi/user"
-	"mymall/services/order-service/internal/svc"
 )
 
 type ConfirmReceiveLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewConfirmReceiveLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ConfirmReceiveLogic {
+func NewConfirmReceiveLogic(svcCtx *svc.ServiceContext) *ConfirmReceiveLogic {
 	return &ConfirmReceiveLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *ConfirmReceiveLogic) ConfirmReceive(w http.ResponseWriter, r *http.Request) {
-	huser.NewOrderHandler(l.svcCtx).ConfirmReceive(w, r)
+func (l *ConfirmReceiveLogic) ConfirmReceive(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+	raw, err := httpinvoke.Run(ctx, "PUT", "/api/v1/orders/:id/confirm-receive", map[string]string{"id": fmt.Sprintf("%d", req.Id)}, nil, req, huser.NewOrderHandler(l.svcCtx).ConfirmReceive)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

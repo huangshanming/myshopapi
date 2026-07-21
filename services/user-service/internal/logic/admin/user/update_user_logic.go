@@ -2,34 +2,31 @@ package user
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"mymall/pkg/httpinvoke"
+	hadmin "mymall/services/user-service/internal/app/admin"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	pkgmw "mymall/pkg/middleware"
-	hadmin "mymall/services/user-service/internal/httpapi/admin"
-	"mymall/services/user-service/internal/svc"
 )
 
 type UpdateUserLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewUpdateUserLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UpdateUserLogic {
+func NewUpdateUserLogic(svcCtx *svc.ServiceContext) *UpdateUserLogic {
 	return &UpdateUserLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *UpdateUserLogic) UpdateUser(w http.ResponseWriter, r *http.Request) {
-	h := hadmin.NewAdminHandler(l.svcCtx).UpdateUser
-	admin := hadmin.NewAdminHandler(l.svcCtx)
-	if code := "system:user:edit"; code != "" {
-		h = pkgmw.RequirePermission(admin, code)(h)
+func (l *UpdateUserLogic) UpdateUser(ctx context.Context, req *types.UserUpdateReq) error {
+	_, err := httpinvoke.Run(ctx, "PUT", "/api/v1/admin/users/{Id}", map[string]string{"id": fmt.Sprintf("%v", req.Id)}, nil, req, hadmin.NewAdminHandler(l.svcCtx).UpdateUser)
+	if err != nil {
+		return err
 	}
-	h(w, r)
+	return nil
 }

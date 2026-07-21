@@ -2,28 +2,39 @@ package article
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	hmerchant "mymall/services/catalog-service/internal/content/app/merchant"
+	"mymall/services/catalog-service/internal/svc"
+	"mymall/services/catalog-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	cmerchant "mymall/services/catalog-service/internal/content/httpapi/merchant"
-	"mymall/services/catalog-service/internal/svc"
 )
 
 type MerchantCreateArticleLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewMerchantCreateArticleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantCreateArticleLogic {
+func NewMerchantCreateArticleLogic(svcCtx *svc.ServiceContext) *MerchantCreateArticleLogic {
 	return &MerchantCreateArticleLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *MerchantCreateArticleLogic) MerchantCreateArticle(w http.ResponseWriter, r *http.Request) {
-	cmerchant.NewArticleHandler(l.svcCtx).Create(w, r)
+func (l *MerchantCreateArticleLogic) MerchantCreateArticle(ctx context.Context, req *types.JSONBody) (resp *types.AnyResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+	raw, err := httpinvoke.Run(ctx, "POST", "/api/v1/merchant/articles", nil, nil, req, hmerchant.NewArticleHandler(l.svcCtx).Create)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

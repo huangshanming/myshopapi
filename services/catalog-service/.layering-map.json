@@ -1,0 +1,716 @@
+{
+  "AdminArticleStats": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/content/app/admin",
+    "call": "hadmin.NewArticleHandler(l.svcCtx).Stats",
+    "method": "Stats"
+  },
+  "AdminAuditArticle": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/content/app/admin",
+    "call": "hadmin.NewArticleHandler(l.svcCtx).Audit",
+    "method": "Audit"
+  },
+  "AdminBatchAuditArticles": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/content/app/admin",
+    "call": "hadmin.NewArticleHandler(l.svcCtx).BatchAudit",
+    "method": "BatchAudit"
+  },
+  "AdminCreateArticleCategory": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/content/app/admin",
+    "call": "hadmin.NewArticleHandler(l.svcCtx).CategoryCreate",
+    "method": "CategoryCreate"
+  },
+  "AdminCreateArticle": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/content/app/admin",
+    "call": "hadmin.NewArticleHandler(l.svcCtx).Create",
+    "method": "Create"
+  },
+  "AdminDeleteArticleCategory": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/content/app/admin",
+    "call": "hadmin.NewArticleHandler(l.svcCtx).CategoryDelete",
+    "method": "CategoryDelete"
+  },
+  "AdminGetArticle": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/content/app/admin",
+    "call": "hadmin.NewArticleHandler(l.svcCtx).Detail",
+    "method": "Detail"
+  },
+  "AdminListArticleCategories": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/content/app/admin",
+    "call": "hadmin.NewArticleHandler(l.svcCtx).CategoryList",
+    "method": "CategoryList"
+  },
+  "AdminListArticleRecycle": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/content/app/admin",
+    "call": "hadmin.NewArticleHandler(l.svcCtx).List",
+    "method": "List"
+  },
+  "AdminListArticles": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/content/app/admin",
+    "call": "hadmin.NewArticleHandler(l.svcCtx).List",
+    "method": "List"
+  },
+  "AdminOfflineArticle": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/content/app/admin",
+    "call": "hadmin.NewArticleHandler(l.svcCtx).Offline",
+    "method": "Offline"
+  },
+  "AdminPurgeArticleRecycle": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/content/app/admin",
+    "call": "hadmin.NewArticleHandler(l.svcCtx).RecycleDelete",
+    "method": "RecycleDelete"
+  },
+  "AdminRestoreArticleRecycle": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/content/app/admin",
+    "call": "hadmin.NewArticleHandler(l.svcCtx).RecycleRestore",
+    "method": "RecycleRestore"
+  },
+  "AdminSoftDeleteArticle": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/content/app/admin",
+    "call": "hadmin.NewArticleHandler(l.svcCtx).SoftDelete",
+    "method": "SoftDelete"
+  },
+  "AdminTopArticle": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/content/app/admin",
+    "call": "hadmin.NewArticleHandler(l.svcCtx).Top",
+    "method": "Top"
+  },
+  "AdminUpdateArticleCategory": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/content/app/admin",
+    "call": "hadmin.NewArticleHandler(l.svcCtx).CategoryUpdate",
+    "method": "CategoryUpdate"
+  },
+  "AdminUpdateArticle": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/content/app/admin",
+    "call": "hadmin.NewArticleHandler(l.svcCtx).Update",
+    "method": "Update"
+  },
+  "AdminUploadArticle": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/content/app/admin",
+    "call": "hadmin.NewArticleHandler(l.svcCtx).Upload",
+    "method": "Upload"
+  },
+  "AdminListBanners": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/content/app/admin",
+    "call": "hadmin.NewArticleHandler(l.svcCtx).ListBanners",
+    "method": "ListBanners"
+  },
+  "CreateBanner": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/content/app/admin",
+    "call": "hadmin.NewArticleHandler(l.svcCtx).CreateBanner",
+    "method": "CreateBanner"
+  },
+  "DeleteBanner": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/content/app/admin",
+    "call": "hadmin.NewArticleHandler(l.svcCtx).DeleteBanner",
+    "method": "DeleteBanner"
+  },
+  "GetBanner": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/content/app/admin",
+    "call": "hadmin.NewArticleHandler(l.svcCtx).GetBanner",
+    "method": "GetBanner"
+  },
+  "UpdateBanner": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/content/app/admin",
+    "call": "hadmin.NewArticleHandler(l.svcCtx).UpdateBanner",
+    "method": "UpdateBanner"
+  },
+  "UploadBanner": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/content/app/admin",
+    "call": "hadmin.NewArticleHandler(l.svcCtx).UploadBanner",
+    "method": "UploadBanner"
+  },
+  "AdminCreateCategory": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/product/app/admin",
+    "call": "hadmin.NewCatalogHandler(l.svcCtx).AdminCreateCategory",
+    "method": "AdminCreateCategory"
+  },
+  "AdminDeleteCategory": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/product/app/admin",
+    "call": "hadmin.NewCatalogHandler(l.svcCtx).AdminDeleteCategory",
+    "method": "AdminDeleteCategory"
+  },
+  "AdminListCategories": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/product/app/admin",
+    "call": "hadmin.NewCatalogHandler(l.svcCtx).AdminListCategories",
+    "method": "AdminListCategories"
+  },
+  "AdminUpdateCategory": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/product/app/admin",
+    "call": "hadmin.NewCatalogHandler(l.svcCtx).AdminUpdateCategory",
+    "method": "AdminUpdateCategory"
+  },
+  "AdminDeleteArticleComment": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/content/app/admin",
+    "call": "hadmin.NewArticleHandler(l.svcCtx).CommentDelete",
+    "method": "CommentDelete"
+  },
+  "AdminListArticleComments": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/content/app/admin",
+    "call": "hadmin.NewArticleHandler(l.svcCtx).CommentList",
+    "method": "CommentList"
+  },
+  "AdminPatchArticleComment": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/content/app/admin",
+    "call": "hadmin.NewArticleHandler(l.svcCtx).CommentPatch",
+    "method": "CommentPatch"
+  },
+  "EmojiCreate": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/content/app/admin",
+    "call": "hadmin.NewArticleHandler(l.svcCtx).EmojiCreate",
+    "method": "EmojiCreate"
+  },
+  "EmojiDelete": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/content/app/admin",
+    "call": "hadmin.NewArticleHandler(l.svcCtx).EmojiDelete",
+    "method": "EmojiDelete"
+  },
+  "EmojiList": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/content/app/admin",
+    "call": "hadmin.NewArticleHandler(l.svcCtx).EmojiList",
+    "method": "EmojiList"
+  },
+  "EmojiUpdate": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/content/app/admin",
+    "call": "hadmin.NewArticleHandler(l.svcCtx).EmojiUpdate",
+    "method": "EmojiUpdate"
+  },
+  "AdminDeleteProduct": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/product/app/admin",
+    "call": "hadmin.NewPlatformProductHandler(l.svcCtx).Delete",
+    "method": "Delete"
+  },
+  "AdminListProducts": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/product/app/admin",
+    "call": "hadmin.NewPlatformProductHandler(l.svcCtx).List",
+    "method": "List"
+  },
+  "AdminOffSaleProduct": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/product/app/admin",
+    "call": "hadmin.NewPlatformProductHandler(l.svcCtx).OffSale",
+    "method": "OffSale"
+  },
+  "AdminListUserFavorites": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/product/app/admin",
+    "call": "hadmin.NewFavoriteHandler(l.svcCtx).AdminUserList",
+    "method": "AdminUserList"
+  },
+  "MerchantCreateArticle": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/content/app/merchant",
+    "call": "hmerchant.NewArticleHandler(l.svcCtx).Create",
+    "method": "Create"
+  },
+  "MerchantDeleteArticleComment": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/content/app/merchant",
+    "call": "hmerchant.NewArticleHandler(l.svcCtx).CommentDelete",
+    "method": "CommentDelete"
+  },
+  "MerchantDeleteArticle": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/content/app/merchant",
+    "call": "hmerchant.NewArticleHandler(l.svcCtx).Delete",
+    "method": "Delete"
+  },
+  "MerchantGetArticle": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/content/app/merchant",
+    "call": "hmerchant.NewArticleHandler(l.svcCtx).Detail",
+    "method": "Detail"
+  },
+  "MerchantListArticleCategories": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/content/app/merchant",
+    "call": "hmerchant.NewArticleHandler(l.svcCtx).CategoryList",
+    "method": "CategoryList"
+  },
+  "MerchantListArticleComments": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/content/app/merchant",
+    "call": "hmerchant.NewArticleHandler(l.svcCtx).CommentList",
+    "method": "CommentList"
+  },
+  "MerchantListArticles": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/content/app/merchant",
+    "call": "hmerchant.NewArticleHandler(l.svcCtx).List",
+    "method": "List"
+  },
+  "MerchantPatchArticleComment": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/content/app/merchant",
+    "call": "hmerchant.NewArticleHandler(l.svcCtx).CommentPatch",
+    "method": "CommentPatch"
+  },
+  "MerchantUpdateArticle": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/content/app/merchant",
+    "call": "hmerchant.NewArticleHandler(l.svcCtx).Update",
+    "method": "Update"
+  },
+  "MerchantUploadArticle": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/content/app/merchant",
+    "call": "hmerchant.NewArticleHandler(l.svcCtx).Upload",
+    "method": "Upload"
+  },
+  "MerchantListNotifications": {
+    "alias": "hhandler",
+    "import": "mymall/services/catalog-service/internal/notify/handler",
+    "call": "hhandler.NewNotificationHandler(l.svcCtx).List",
+    "method": "List"
+  },
+  "MerchantMarkAllNotificationsRead": {
+    "alias": "hhandler",
+    "import": "mymall/services/catalog-service/internal/notify/handler",
+    "call": "hhandler.NewNotificationHandler(l.svcCtx).MarkAllRead",
+    "method": "MarkAllRead"
+  },
+  "MerchantMarkNotificationRead": {
+    "alias": "hhandler",
+    "import": "mymall/services/catalog-service/internal/notify/handler",
+    "call": "hhandler.NewNotificationHandler(l.svcCtx).MarkRead",
+    "method": "MarkRead"
+  },
+  "MerchantUnreadNotificationCount": {
+    "alias": "hhandler",
+    "import": "mymall/services/catalog-service/internal/notify/handler",
+    "call": "hhandler.NewNotificationHandler(l.svcCtx).UnreadCount",
+    "method": "UnreadCount"
+  },
+  "AdjustStock": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/product/app/merchant",
+    "call": "hmerchant.NewProductHandler(l.svcCtx).AdjustStock",
+    "method": "AdjustStock"
+  },
+  "BatchStock": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/product/app/merchant",
+    "call": "hmerchant.NewProductHandler(l.svcCtx).BatchStock",
+    "method": "BatchStock"
+  },
+  "CancelSchedule": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/product/app/merchant",
+    "call": "hmerchant.NewProductHandler(l.svcCtx).CancelSchedule",
+    "method": "CancelSchedule"
+  },
+  "DeleteAttrTemplate": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/product/app/merchant",
+    "call": "hmerchant.NewProductHandler(l.svcCtx).DeleteAttrTemplate",
+    "method": "DeleteAttrTemplate"
+  },
+  "DeleteTag": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/product/app/merchant",
+    "call": "hmerchant.NewProductHandler(l.svcCtx).DeleteTag",
+    "method": "DeleteTag"
+  },
+  "JobStatus": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/product/app/merchant",
+    "call": "hmerchant.NewProductHandler(l.svcCtx).JobStatus",
+    "method": "JobStatus"
+  },
+  "ListAttrTemplates": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/product/app/merchant",
+    "call": "hmerchant.NewProductHandler(l.svcCtx).ListAttrTemplates",
+    "method": "ListAttrTemplates"
+  },
+  "ListTags": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/product/app/merchant",
+    "call": "hmerchant.NewProductHandler(l.svcCtx).ListTags",
+    "method": "ListTags"
+  },
+  "MerchantBatchProducts": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/product/app/merchant",
+    "call": "hmerchant.NewProductHandler(l.svcCtx).Batch",
+    "method": "Batch"
+  },
+  "MerchantCopyProduct": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/product/app/merchant",
+    "call": "hmerchant.NewProductHandler(l.svcCtx).Copy",
+    "method": "Copy"
+  },
+  "MerchantCreateAttrTemplate": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/product/app/merchant",
+    "call": "hmerchant.NewProductHandler(l.svcCtx).SaveAttrTemplate",
+    "method": "SaveAttrTemplate"
+  },
+  "MerchantCreateProduct": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/product/app/merchant",
+    "call": "hmerchant.NewProductHandler(l.svcCtx).Create",
+    "method": "Create"
+  },
+  "MerchantCreateTag": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/product/app/merchant",
+    "call": "hmerchant.NewProductHandler(l.svcCtx).SaveTag",
+    "method": "SaveTag"
+  },
+  "MerchantExportProducts": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/product/app/merchant",
+    "call": "hmerchant.NewProductHandler(l.svcCtx).Export",
+    "method": "Export"
+  },
+  "MerchantGetProduct": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/product/app/merchant",
+    "call": "hmerchant.NewProductHandler(l.svcCtx).Detail",
+    "method": "Detail"
+  },
+  "MerchantImportProducts": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/product/app/merchant",
+    "call": "hmerchant.NewProductHandler(l.svcCtx).Import",
+    "method": "Import"
+  },
+  "MerchantListProducts": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/product/app/merchant",
+    "call": "hmerchant.NewProductHandler(l.svcCtx).List",
+    "method": "List"
+  },
+  "MerchantPurgeProducts": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/product/app/merchant",
+    "call": "hmerchant.NewProductHandler(l.svcCtx).RecycleDelete",
+    "method": "RecycleDelete"
+  },
+  "MerchantRestoreProducts": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/product/app/merchant",
+    "call": "hmerchant.NewProductHandler(l.svcCtx).RecycleRestore",
+    "method": "RecycleRestore"
+  },
+  "MerchantScheduleProduct": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/product/app/merchant",
+    "call": "hmerchant.NewProductHandler(l.svcCtx).Schedule",
+    "method": "Schedule"
+  },
+  "MerchantSetProductStatus": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/product/app/merchant",
+    "call": "hmerchant.NewProductHandler(l.svcCtx).SetStatus",
+    "method": "SetStatus"
+  },
+  "MerchantUpdateAttrTemplate": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/product/app/merchant",
+    "call": "hmerchant.NewProductHandler(l.svcCtx).SaveAttrTemplate",
+    "method": "SaveAttrTemplate"
+  },
+  "MerchantUpdateProduct": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/product/app/merchant",
+    "call": "hmerchant.NewProductHandler(l.svcCtx).Update",
+    "method": "Update"
+  },
+  "MerchantUpdateTag": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/product/app/merchant",
+    "call": "hmerchant.NewProductHandler(l.svcCtx).SaveTag",
+    "method": "SaveTag"
+  },
+  "MerchantUploadImage": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/product/app/merchant",
+    "call": "hmerchant.NewProductHandler(l.svcCtx).Upload",
+    "method": "Upload"
+  },
+  "OpLogs": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/product/app/merchant",
+    "call": "hmerchant.NewProductHandler(l.svcCtx).OpLogs",
+    "method": "OpLogs"
+  },
+  "StockWarnings": {
+    "alias": "hmerchant",
+    "import": "mymall/services/catalog-service/internal/product/app/merchant",
+    "call": "hmerchant.NewProductHandler(l.svcCtx).StockWarnings",
+    "method": "StockWarnings"
+  },
+  "BindStaff": {
+    "alias": "hhandler",
+    "import": "mymall/services/catalog-service/internal/shopops/handler",
+    "call": "hhandler.NewShopOpsHandler(l.svcCtx).BindStaff",
+    "method": "BindStaff"
+  },
+  "ListMenus": {
+    "alias": "hhandler",
+    "import": "mymall/services/catalog-service/internal/shopops/handler",
+    "call": "hhandler.NewShopOpsHandler(l.svcCtx).ListMenus",
+    "method": "ListMenus"
+  },
+  "ListRoles": {
+    "alias": "hhandler",
+    "import": "mymall/services/catalog-service/internal/shopops/handler",
+    "call": "hhandler.NewShopOpsHandler(l.svcCtx).ListRoles",
+    "method": "ListRoles"
+  },
+  "ListStaff": {
+    "alias": "hhandler",
+    "import": "mymall/services/catalog-service/internal/shopops/handler",
+    "call": "hhandler.NewShopOpsHandler(l.svcCtx).ListStaff",
+    "method": "ListStaff"
+  },
+  "MerchantAuthMe": {
+    "alias": "hhandler",
+    "import": "mymall/services/catalog-service/internal/shopops/handler",
+    "call": "hhandler.NewShopOpsHandler(l.svcCtx).AuthMe",
+    "method": "AuthMe"
+  },
+  "MerchantCreateRole": {
+    "alias": "hhandler",
+    "import": "mymall/services/catalog-service/internal/shopops/handler",
+    "call": "hhandler.NewShopOpsHandler(l.svcCtx).SaveRole",
+    "method": "SaveRole"
+  },
+  "MerchantUpdateRole": {
+    "alias": "hhandler",
+    "import": "mymall/services/catalog-service/internal/shopops/handler",
+    "call": "hhandler.NewShopOpsHandler(l.svcCtx).SaveRole",
+    "method": "SaveRole"
+  },
+  "RoleMenus": {
+    "alias": "hhandler",
+    "import": "mymall/services/catalog-service/internal/shopops/handler",
+    "call": "hhandler.NewShopOpsHandler(l.svcCtx).RoleMenus",
+    "method": "RoleMenus"
+  },
+  "ListComments": {
+    "alias": "hpublic",
+    "import": "mymall/services/catalog-service/internal/content/app/public",
+    "call": "hpublic.NewArticleHandler(l.svcCtx).ListComments",
+    "method": "ListComments"
+  },
+  "ListEmojis": {
+    "alias": "hpublic",
+    "import": "mymall/services/catalog-service/internal/content/app/public",
+    "call": "hpublic.NewArticleHandler(l.svcCtx).ListEmojis",
+    "method": "ListEmojis"
+  },
+  "PublicGetArticle": {
+    "alias": "hpublic",
+    "import": "mymall/services/catalog-service/internal/content/app/public",
+    "call": "hpublic.NewArticleHandler(l.svcCtx).Detail",
+    "method": "Detail"
+  },
+  "PublicListArticles": {
+    "alias": "hpublic",
+    "import": "mymall/services/catalog-service/internal/content/app/public",
+    "call": "hpublic.NewArticleHandler(l.svcCtx).List",
+    "method": "List"
+  },
+  "ListBanners": {
+    "alias": "hpublic",
+    "import": "mymall/services/catalog-service/internal/content/app/public",
+    "call": "hpublic.NewArticleHandler(l.svcCtx).ListBanners",
+    "method": "ListBanners"
+  },
+  "GetCategoryDetail": {
+    "alias": "hpublic",
+    "import": "mymall/services/catalog-service/internal/product/app/public",
+    "call": "hpublic.NewCatalogHandler(l.svcCtx).GetCategoryDetail",
+    "method": "GetCategoryDetail"
+  },
+  "GetCategoryList": {
+    "alias": "hpublic",
+    "import": "mymall/services/catalog-service/internal/product/app/public",
+    "call": "hpublic.NewCatalogHandler(l.svcCtx).GetCategoryList",
+    "method": "GetCategoryList"
+  },
+  "Count": {
+    "alias": "huser",
+    "import": "mymall/services/catalog-service/internal/product/app/user",
+    "call": "huser.NewFavoriteHandler(l.svcCtx).Count",
+    "method": "Count"
+  },
+  "GetProductDetail": {
+    "alias": "hpublic",
+    "import": "mymall/services/catalog-service/internal/product/app/public",
+    "call": "hpublic.NewCatalogHandler(l.svcCtx).GetProductDetail",
+    "method": "GetProductDetail"
+  },
+  "GetProductList": {
+    "alias": "hpublic",
+    "import": "mymall/services/catalog-service/internal/product/app/public",
+    "call": "hpublic.NewCatalogHandler(l.svcCtx).GetProductList",
+    "method": "GetProductList"
+  },
+  "GetSalesRank": {
+    "alias": "hpublic",
+    "import": "mymall/services/catalog-service/internal/product/app/public",
+    "call": "hpublic.NewCatalogHandler(l.svcCtx).GetSalesRank",
+    "method": "GetSalesRank"
+  },
+  "CreateComment": {
+    "alias": "hpublic",
+    "import": "mymall/services/catalog-service/internal/content/app/public",
+    "call": "hpublic.NewArticleHandler(l.svcCtx).CreateComment",
+    "method": "CreateComment"
+  },
+  "CreateMine": {
+    "alias": "hpublic",
+    "import": "mymall/services/catalog-service/internal/content/app/public",
+    "call": "hpublic.NewArticleHandler(l.svcCtx).CreateMine",
+    "method": "CreateMine"
+  },
+  "DeleteMine": {
+    "alias": "hpublic",
+    "import": "mymall/services/catalog-service/internal/content/app/public",
+    "call": "hpublic.NewArticleHandler(l.svcCtx).DeleteMine",
+    "method": "DeleteMine"
+  },
+  "DetailMine": {
+    "alias": "hpublic",
+    "import": "mymall/services/catalog-service/internal/content/app/public",
+    "call": "hpublic.NewArticleHandler(l.svcCtx).DetailMine",
+    "method": "DetailMine"
+  },
+  "Favorite": {
+    "alias": "hpublic",
+    "import": "mymall/services/catalog-service/internal/content/app/public",
+    "call": "hpublic.NewArticleHandler(l.svcCtx).Favorite",
+    "method": "Favorite"
+  },
+  "Like": {
+    "alias": "hpublic",
+    "import": "mymall/services/catalog-service/internal/content/app/public",
+    "call": "hpublic.NewArticleHandler(l.svcCtx).Like",
+    "method": "Like"
+  },
+  "ListMine": {
+    "alias": "hpublic",
+    "import": "mymall/services/catalog-service/internal/content/app/public",
+    "call": "hpublic.NewArticleHandler(l.svcCtx).ListMine",
+    "method": "ListMine"
+  },
+  "ListMyFavorites": {
+    "alias": "hpublic",
+    "import": "mymall/services/catalog-service/internal/content/app/public",
+    "call": "hpublic.NewArticleHandler(l.svcCtx).ListMyFavorites",
+    "method": "ListMyFavorites"
+  },
+  "ListMyLikes": {
+    "alias": "hpublic",
+    "import": "mymall/services/catalog-service/internal/content/app/public",
+    "call": "hpublic.NewArticleHandler(l.svcCtx).ListMyLikes",
+    "method": "ListMyLikes"
+  },
+  "Unfavorite": {
+    "alias": "hpublic",
+    "import": "mymall/services/catalog-service/internal/content/app/public",
+    "call": "hpublic.NewArticleHandler(l.svcCtx).Unfavorite",
+    "method": "Unfavorite"
+  },
+  "Unlike": {
+    "alias": "hpublic",
+    "import": "mymall/services/catalog-service/internal/content/app/public",
+    "call": "hpublic.NewArticleHandler(l.svcCtx).Unlike",
+    "method": "Unlike"
+  },
+  "UpdateMine": {
+    "alias": "hpublic",
+    "import": "mymall/services/catalog-service/internal/content/app/public",
+    "call": "hpublic.NewArticleHandler(l.svcCtx).UpdateMine",
+    "method": "UpdateMine"
+  },
+  "UploadMine": {
+    "alias": "hpublic",
+    "import": "mymall/services/catalog-service/internal/content/app/public",
+    "call": "hpublic.NewArticleHandler(l.svcCtx).UploadMine",
+    "method": "UploadMine"
+  },
+  "UserArticleEngagement": {
+    "alias": "hpublic",
+    "import": "mymall/services/catalog-service/internal/content/app/public",
+    "call": "hpublic.NewArticleHandler(l.svcCtx).Status",
+    "method": "Status"
+  },
+  "RemoveBatch": {
+    "alias": "huser",
+    "import": "mymall/services/catalog-service/internal/product/app/user",
+    "call": "huser.NewFavoriteHandler(l.svcCtx).RemoveBatch",
+    "method": "RemoveBatch"
+  },
+  "UserAddFavorite": {
+    "alias": "huser",
+    "import": "mymall/services/catalog-service/internal/product/app/user",
+    "call": "huser.NewFavoriteHandler(l.svcCtx).Add",
+    "method": "Add"
+  },
+  "UserFavoriteStatus": {
+    "alias": "huser",
+    "import": "mymall/services/catalog-service/internal/product/app/user",
+    "call": "huser.NewFavoriteHandler(l.svcCtx).Status",
+    "method": "Status"
+  },
+  "UserListFavorites": {
+    "alias": "huser",
+    "import": "mymall/services/catalog-service/internal/product/app/user",
+    "call": "huser.NewFavoriteHandler(l.svcCtx).List",
+    "method": "List"
+  },
+  "UserRemoveFavorite": {
+    "alias": "huser",
+    "import": "mymall/services/catalog-service/internal/product/app/user",
+    "call": "huser.NewFavoriteHandler(l.svcCtx).Remove",
+    "method": "Remove"
+  },
+  "AdminUploadShop": {
+    "alias": "hadmin",
+    "import": "mymall/services/catalog-service/internal/product/app/admin",
+    "call": "hadmin.NewShopUploadHandler().Upload",
+    "method": "Upload"
+  }
+}

@@ -2,34 +2,34 @@ package menu
 
 import (
 	"context"
-	"net/http"
+	"mymall/pkg/httpinvoke"
+	hadmin "mymall/services/user-service/internal/app/admin"
+	"mymall/services/user-service/internal/svc"
+	"mymall/services/user-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	pkgmw "mymall/pkg/middleware"
-	hadmin "mymall/services/user-service/internal/httpapi/admin"
-	"mymall/services/user-service/internal/svc"
 )
 
 type MenuTreeLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewMenuTreeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MenuTreeLogic {
+func NewMenuTreeLogic(svcCtx *svc.ServiceContext) *MenuTreeLogic {
 	return &MenuTreeLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *MenuTreeLogic) MenuTree(w http.ResponseWriter, r *http.Request) {
-	h := hadmin.NewAdminHandler(l.svcCtx).CreateMenu
-	admin := hadmin.NewAdminHandler(l.svcCtx)
-	if code := "system:menu:add"; code != "" {
-		h = pkgmw.RequirePermission(admin, code)(h)
+func (l *MenuTreeLogic) MenuTree(ctx context.Context) (resp *types.AnyResp, err error) {
+	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/admin/menus", nil, nil, nil, hadmin.NewAdminHandler(l.svcCtx).MenuTree)
+	if err != nil {
+		return nil, err
 	}
-	h(w, r)
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

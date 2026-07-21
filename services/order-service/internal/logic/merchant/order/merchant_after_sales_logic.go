@@ -2,28 +2,39 @@ package order
 
 import (
 	"context"
-	"net/http"
+	"fmt"
+	"net/url"
+
+	"mymall/pkg/httpinvoke"
+	hmerchant "mymall/services/order-service/internal/app/merchant"
+	"mymall/services/order-service/internal/svc"
+	"mymall/services/order-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-
-	hmerchant "mymall/services/order-service/internal/httpapi/merchant"
-	"mymall/services/order-service/internal/svc"
 )
 
 type MerchantAfterSalesLogic struct {
 	logx.Logger
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewMerchantAfterSalesLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MerchantAfterSalesLogic {
+func NewMerchantAfterSalesLogic(svcCtx *svc.ServiceContext) *MerchantAfterSalesLogic {
 	return &MerchantAfterSalesLogic{
-		Logger: logx.WithContext(ctx),
-		ctx:    ctx,
+		Logger: logx.WithContext(context.Background()),
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *MerchantAfterSalesLogic) MerchantAfterSales(w http.ResponseWriter, r *http.Request) {
-	hmerchant.NewOrderHandler(l.svcCtx).MerchantAfterSales(w, r)
+func (l *MerchantAfterSalesLogic) MerchantAfterSales(ctx context.Context) (resp *types.AnyResp, err error) {
+	_ = fmt.Sprintf
+	_ = url.Values{}
+	raw, err := httpinvoke.Run(ctx, "GET", "/api/v1/merchant/after-sales", nil, nil, nil, hmerchant.NewOrderHandler(l.svcCtx).MerchantAfterSales)
+	if err != nil {
+		return nil, err
+	}
+	var data interface{}
+	if err := httpinvoke.Decode(raw, &data); err != nil {
+		return nil, err
+	}
+	return &types.AnyResp{Data: data}, nil
 }

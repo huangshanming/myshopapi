@@ -7,21 +7,17 @@ import (
 )
 
 type RegionLogic struct {
-	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewRegionLogic(ctx context.Context, svcCtx *svc.ServiceContext) *RegionLogic {
-	return &RegionLogic{
-		ctx:    ctx,
-		svcCtx: svcCtx,
-	}
+func NewRegionLogic(svcCtx *svc.ServiceContext) *RegionLogic {
+	return &RegionLogic{svcCtx: svcCtx}
 }
 
-func (l *RegionLogic) ListChildren(parentCode string) ([]model.Region, error) {
-	return l.svcCtx.Repo.ListRegionsByParent(l.ctx, parentCode)
+func (l *RegionLogic) ListChildren(ctx context.Context, parentCode string) ([]model.Region, error) {
+	return l.svcCtx.Repo.ListRegionsByParent(ctx, parentCode)
 }
 
-func (l *RegionLogic) Tree() ([]model.RegionTreeNode, error) {
-	return l.svcCtx.Repo.BuildRegionTree(l.ctx)
+func (l *RegionLogic) Tree(ctx context.Context) ([]model.RegionTreeNode, error) {
+	return l.svcCtx.Repo.BuildRegionTree(ctx)
 }

@@ -26,7 +26,7 @@ func NewUserServer(l *biz.UserLogic) *UserServer {
 }
 
 func (s *UserServer) GetUser(ctx context.Context, req *userv1.GetUserRequest) (*userv1.GetUserResponse, error) {
-	user, err := s.logic.GetProfile(req.GetUserId())
+	user, err := s.logic.GetProfile(ctx, req.GetUserId())
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "user not found")
 	}
