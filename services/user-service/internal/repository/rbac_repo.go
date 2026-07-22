@@ -9,9 +9,9 @@ import (
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
-const menuColumns = "id, created_at, updated_at, parent_id, name, type, path, component, icon, perms, sort, visible, status"
-const roleColumns = "id, created_at, updated_at, code, name, status, remark"
-const configColumns = "id, created_at, updated_at, config_key, config_value, remark"
+const menuColumns = "id, created_at, updated_at, parent_id, IFNULL(name,'') AS name, IFNULL(type,'') AS type, IFNULL(path,'') AS path, IFNULL(component,'') AS component, IFNULL(icon,'') AS icon, IFNULL(perms,'') AS perms, sort, visible, status"
+const roleColumns = "id, created_at, updated_at, IFNULL(code,'') AS code, IFNULL(name,'') AS name, status, IFNULL(remark,'') AS remark"
+const configColumns = "id, created_at, updated_at, IFNULL(config_key,'') AS config_key, IFNULL(config_value,'') AS config_value, IFNULL(remark,'') AS remark"
 
 type RBACRepository struct {
 	conn sqlx.SqlConn
@@ -43,7 +43,7 @@ func (r *RBACRepository) ListRoleCodes(ctx context.Context, userID uint64) ([]st
 		Code string `db:"code"`
 	}
 	var rows []row
-	err := r.conn.QueryRowsCtx(ctx, &rows,
+	err := r.conn.QueryRowsPartialCtx(ctx, &rows,
 		`SELECT r.code FROM sys_user_role ur
 		 JOIN sys_role r ON r.id = ur.role_id
 		 WHERE ur.user_id=? AND r.status=1`,
@@ -65,7 +65,7 @@ func (r *RBACRepository) ListUserPerms(ctx context.Context, userID uint64) ([]st
 			Perms string `db:"perms"`
 		}
 		var rows []row
-		err := r.conn.QueryRowsCtx(ctx, &rows,
+		err := r.conn.QueryRowsPartialCtx(ctx, &rows,
 			"SELECT perms FROM sys_menu WHERE status=1 AND perms<>''",
 		)
 		if err != nil {
@@ -81,7 +81,7 @@ func (r *RBACRepository) ListUserPerms(ctx context.Context, userID uint64) ([]st
 		Perms string `db:"perms"`
 	}
 	var rows []row
-	err := r.conn.QueryRowsCtx(ctx, &rows,
+	err := r.conn.QueryRowsPartialCtx(ctx, &rows,
 		`SELECT DISTINCT m.perms FROM sys_user_role ur
 		 JOIN sys_role_menu rm ON rm.role_id = ur.role_id
 		 JOIN sys_menu m ON m.id = rm.menu_id
@@ -101,7 +101,7 @@ func (r *RBACRepository) ListUserPerms(ctx context.Context, userID uint64) ([]st
 func (r *RBACRepository) ListUserMenus(ctx context.Context, userID uint64) ([]model.SysMenu, error) {
 	var menus []model.SysMenu
 	if !r.IsSuperAdmin(ctx, userID) {
-		err := r.conn.QueryRowsCtx(ctx, &menus,
+		err := r.conn.QueryRowsPartialCtx(ctx, &menus,
 			`SELECT DISTINCT `+menuColumns+` FROM sys_menu m
 			 JOIN sys_role_menu rm ON rm.menu_id = m.id
 			 JOIN sys_user_role ur ON ur.role_id = rm.role_id
@@ -111,7 +111,7 @@ func (r *RBACRepository) ListUserMenus(ctx context.Context, userID uint64) ([]mo
 		)
 		return menus, err
 	}
-	err := r.conn.QueryRowsCtx(ctx, &menus,
+	err := r.conn.QueryRowsPartialCtx(ctx, &menus,
 		"SELECT "+menuColumns+" FROM sys_menu WHERE status=1 AND type IN (?, ?) ORDER BY sort ASC, id ASC",
 		model.MenuTypeDir, model.MenuTypeMenu,
 	)
@@ -120,7 +120,7 @@ func (r *RBACRepository) ListUserMenus(ctx context.Context, userID uint64) ([]mo
 
 func (r *RBACRepository) ListAllMenus(ctx context.Context) ([]model.SysMenu, error) {
 	var menus []model.SysMenu
-	err := r.conn.QueryRowsCtx(ctx, &menus,
+	err := r.conn.QueryRowsPartialCtx(ctx, &menus,
 		"SELECT "+menuColumns+" FROM sys_menu ORDER BY sort ASC, id ASC",
 	)
 	return menus, err
@@ -128,7 +128,7 @@ func (r *RBACRepository) ListAllMenus(ctx context.Context) ([]model.SysMenu, err
 
 func (r *RBACRepository) GetMenu(ctx context.Context, id uint64) (*model.SysMenu, error) {
 	var m model.SysMenu
-	err := r.conn.QueryRowCtx(ctx, &m,
+	err := r.conn.QueryRowPartialCtx(ctx, &m,
 		"SELECT "+menuColumns+" FROM sys_menu WHERE id=? LIMIT 1", id,
 	)
 	if err != nil {
@@ -181,7 +181,7 @@ func (r *RBACRepository) DeleteMenu(ctx context.Context, id uint64) error {
 
 func (r *RBACRepository) ListRoles(ctx context.Context) ([]model.SysRole, error) {
 	var roles []model.SysRole
-	err := r.conn.QueryRowsCtx(ctx, &roles,
+	err := r.conn.QueryRowsPartialCtx(ctx, &roles,
 		"SELECT "+roleColumns+" FROM sys_role ORDER BY id ASC",
 	)
 	return roles, err
@@ -189,7 +189,7 @@ func (r *RBACRepository) ListRoles(ctx context.Context) ([]model.SysRole, error)
 
 func (r *RBACRepository) GetRole(ctx context.Context, id uint64) (*model.SysRole, error) {
 	var role model.SysRole
-	err := r.conn.QueryRowCtx(ctx, &role,
+	err := r.conn.QueryRowPartialCtx(ctx, &role,
 		"SELECT "+roleColumns+" FROM sys_role WHERE id=? LIMIT 1", id,
 	)
 	if err != nil {
@@ -240,7 +240,7 @@ func (r *RBACRepository) ListRoleMenuIDs(ctx context.Context, roleID uint64) ([]
 		MenuID uint64 `db:"menu_id"`
 	}
 	var rows []row
-	err := r.conn.QueryRowsCtx(ctx, &rows,
+	err := r.conn.QueryRowsPartialCtx(ctx, &rows,
 		"SELECT menu_id FROM sys_role_menu WHERE role_id=?", roleID,
 	)
 	if err != nil {
@@ -282,7 +282,7 @@ func (r *RBACRepository) ListUsers(ctx context.Context, page, pageSize int, mobi
 	}
 	listArgs := append(append([]any{}, args...), pageSize, (page-1)*pageSize)
 	var list []model.User
-	err = r.conn.QueryRowsCtx(ctx, &list,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+userColumns+" FROM users WHERE "+where+" ORDER BY id DESC LIMIT ? OFFSET ?",
 		listArgs...,
 	)
@@ -305,7 +305,7 @@ func (r *RBACRepository) ListAdmins(ctx context.Context, page, pageSize int) ([]
 		return nil, 0, err
 	}
 	var list []model.User
-	err = r.conn.QueryRowsCtx(ctx, &list,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+userColumns+" FROM users WHERE "+where+" ORDER BY id DESC LIMIT ? OFFSET ?",
 		"platform_admin", pageSize, (page-1)*pageSize,
 	)
@@ -317,7 +317,7 @@ func (r *RBACRepository) ListUserRoleIDs(ctx context.Context, userID uint64) ([]
 		RoleID uint64 `db:"role_id"`
 	}
 	var rows []row
-	err := r.conn.QueryRowsCtx(ctx, &rows,
+	err := r.conn.QueryRowsPartialCtx(ctx, &rows,
 		"SELECT role_id FROM sys_user_role WHERE user_id=?", userID,
 	)
 	if err != nil {
@@ -355,7 +355,7 @@ func (r *RBACRepository) ReplaceUserRoles(ctx context.Context, userID uint64, ro
 
 func (r *RBACRepository) ListConfigs(ctx context.Context) ([]model.SysConfig, error) {
 	var list []model.SysConfig
-	err := r.conn.QueryRowsCtx(ctx, &list,
+	err := r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+configColumns+" FROM sys_config ORDER BY id ASC",
 	)
 	return list, err
@@ -363,7 +363,7 @@ func (r *RBACRepository) ListConfigs(ctx context.Context) ([]model.SysConfig, er
 
 func (r *RBACRepository) UpsertConfig(ctx context.Context, key, value, remark string) error {
 	var c model.SysConfig
-	err := r.conn.QueryRowCtx(ctx, &c,
+	err := r.conn.QueryRowPartialCtx(ctx, &c,
 		"SELECT "+configColumns+" FROM sys_config WHERE config_key=? LIMIT 1", key,
 	)
 	if errors.Is(err, sqlx.ErrNotFound) {

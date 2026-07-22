@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	shopRoleColumns = "id, shop_id, code, name, status, remark, created_at, updated_at"
-	shopMenuColumns = "id, parent_id, name, type, path, component, icon, perms, sort, visible, status, created_at, updated_at"
+	shopRoleColumns = "id, shop_id, IFNULL(code,'') AS code, IFNULL(name,'') AS name, status, IFNULL(remark,'') AS remark, created_at, updated_at"
+	shopMenuColumns = "id, parent_id, IFNULL(name,'') AS name, IFNULL(type,'') AS type, IFNULL(path,'') AS path, IFNULL(component,'') AS component, IFNULL(icon,'') AS icon, IFNULL(perms,'') AS perms, sort, visible, status, created_at, updated_at"
 )
 
 type ShopRBACRepository struct {
@@ -27,7 +27,7 @@ func NewShopRBACRepository(conn sqlx.SqlConn) *ShopRBACRepository {
 func (r *ShopRBACRepository) EnsureOwnerRole(ctx context.Context, shopID, userID uint64) error {
 	_ = r.EnsureShopMenus(ctx)
 	var role model.ShopRole
-	err := r.conn.QueryRowCtx(ctx, &role,
+	err := r.conn.QueryRowPartialCtx(ctx, &role,
 		"SELECT "+shopRoleColumns+" FROM shop_roles WHERE shop_id=? AND code=? LIMIT 1",
 		shopID, "shop_owner",
 	)
@@ -44,7 +44,7 @@ func (r *ShopRBACRepository) EnsureOwnerRole(ctx context.Context, shopID, userID
 		return err
 	}
 	var menus []model.ShopMenu
-	_ = r.conn.QueryRowsCtx(ctx, &menus, "SELECT "+shopMenuColumns+" FROM shop_menus WHERE status=1")
+	_ = r.conn.QueryRowsPartialCtx(ctx, &menus, "SELECT "+shopMenuColumns+" FROM shop_menus WHERE status=1")
 	for _, m := range menus {
 		cnt, _ := countCtx(ctx, r.conn,
 			"SELECT COUNT(*) FROM shop_role_menus WHERE role_id=? AND menu_id=?", role.ID, m.ID)
@@ -54,7 +54,7 @@ func (r *ShopRBACRepository) EnsureOwnerRole(ctx context.Context, shopID, userID
 		}
 	}
 	var ur model.ShopUserRole
-	err = r.conn.QueryRowCtx(ctx, &ur,
+	err = r.conn.QueryRowPartialCtx(ctx, &ur,
 		"SELECT shop_id, user_id, role_id FROM shop_user_roles WHERE shop_id=? AND user_id=? AND role_id=? LIMIT 1",
 		shopID, userID, role.ID,
 	)
@@ -119,7 +119,7 @@ func (r *ShopRBACRepository) EnsureShopMenus(ctx context.Context) error {
 	}
 	for _, m := range seed {
 		var exists model.ShopMenu
-		err := r.conn.QueryRowCtx(ctx, &exists, "SELECT id FROM shop_menus WHERE id=? LIMIT 1", m.ID)
+		err := r.conn.QueryRowPartialCtx(ctx, &exists, "SELECT id FROM shop_menus WHERE id=? LIMIT 1", m.ID)
 		if errors.Is(err, sqlx.ErrNotFound) {
 			_, err = r.conn.ExecCtx(ctx,
 				`INSERT INTO shop_menus (id, parent_id, name, type, path, component, icon, perms, sort, visible, status)
@@ -155,7 +155,7 @@ func (r *ShopRBACRepository) ListRoleMenuIDs(ctx context.Context, roleID uint64)
 		MenuID uint64 `db:"menu_id"`
 	}
 	var rows []row
-	err := r.conn.QueryRowsCtx(ctx, &rows, "SELECT menu_id FROM shop_role_menus WHERE role_id=?", roleID)
+	err := r.conn.QueryRowsPartialCtx(ctx, &rows, "SELECT menu_id FROM shop_role_menus WHERE role_id=?", roleID)
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +196,7 @@ func (r *ShopRBACRepository) ListPerms(ctx context.Context, shopID, userID uint6
 	}
 	if r.IsOwner(ctx, shopID, userID) {
 		var rows []row
-		err := r.conn.QueryRowsCtx(ctx, &rows, "SELECT perms FROM shop_menus WHERE status=1 AND perms<>''")
+		err := r.conn.QueryRowsPartialCtx(ctx, &rows, "SELECT perms FROM shop_menus WHERE status=1 AND perms<>''")
 		if err != nil {
 			return nil, err
 		}
@@ -207,7 +207,7 @@ func (r *ShopRBACRepository) ListPerms(ctx context.Context, shopID, userID uint6
 		return out, nil
 	}
 	var rows []row
-	err := r.conn.QueryRowsCtx(ctx, &rows,
+	err := r.conn.QueryRowsPartialCtx(ctx, &rows,
 		`SELECT DISTINCT m.perms FROM shop_user_roles ur
 		 JOIN shop_role_menus rm ON rm.role_id = ur.role_id
 		 JOIN shop_menus m ON m.id = rm.menu_id
@@ -226,7 +226,7 @@ func (r *ShopRBACRepository) ListPerms(ctx context.Context, shopID, userID uint6
 
 func (r *ShopRBACRepository) MenuTree(ctx context.Context) ([]model.ShopMenu, error) {
 	var list []model.ShopMenu
-	err := r.conn.QueryRowsCtx(ctx, &list,
+	err := r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+shopMenuColumns+" FROM shop_menus WHERE status=1 ORDER BY sort ASC, id ASC",
 	)
 	return list, err
@@ -237,7 +237,7 @@ func (r *ShopRBACRepository) ListMenusForUser(ctx context.Context, shopID, userI
 		return r.MenuTree(ctx)
 	}
 	var list []model.ShopMenu
-	err := r.conn.QueryRowsCtx(ctx, &list,
+	err := r.conn.QueryRowsPartialCtx(ctx, &list,
 		`SELECT DISTINCT m.id, m.parent_id, m.name, m.type, m.path, m.component, m.icon, m.perms, m.sort, m.visible, m.status, m.created_at, m.updated_at
 		 FROM shop_menus m
 		 JOIN shop_role_menus rm ON rm.menu_id = m.id
@@ -266,7 +266,7 @@ func (r *ShopRBACRepository) withAncestors(ctx context.Context, list []model.Sho
 			}
 			need = append(need, pid)
 			var p model.ShopMenu
-			err := r.conn.QueryRowCtx(ctx, &p,
+			err := r.conn.QueryRowPartialCtx(ctx, &p,
 				"SELECT "+shopMenuColumns+" FROM shop_menus WHERE id=? AND status=1 LIMIT 1", pid,
 			)
 			if errors.Is(err, sqlx.ErrNotFound) {
@@ -320,7 +320,7 @@ func BuildShopMenuTree(menus []model.ShopMenu) []map[string]interface{} {
 
 func (r *ShopRBACRepository) ListRoles(ctx context.Context, shopID uint64) ([]model.ShopRole, error) {
 	var list []model.ShopRole
-	err := r.conn.QueryRowsCtx(ctx, &list,
+	err := r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+shopRoleColumns+" FROM shop_roles WHERE shop_id=? ORDER BY id ASC", shopID,
 	)
 	return list, err
@@ -400,7 +400,7 @@ func (r *ShopRBACRepository) EnsureShopMember(ctx context.Context, shopID, userI
 
 func (r *ShopRBACRepository) FindUserIDByMobile(ctx context.Context, mobile string) (uint64, error) {
 	var id uint64
-	err := r.conn.QueryRowCtx(ctx, &id,
+	err := r.conn.QueryRowPartialCtx(ctx, &id,
 		"SELECT id FROM users WHERE mobile=? AND (deleted_at IS NULL OR deleted_at='0000-00-00 00:00:00') LIMIT 1",
 		mobile,
 	)
@@ -422,7 +422,7 @@ func (r *ShopRBACRepository) CreateStaffUser(ctx context.Context, mobile, plainP
 		return 0, errors.New("密码至少 6 位")
 	}
 	var id uint64
-	err := r.conn.QueryRowCtx(ctx, &id, "SELECT id FROM users WHERE mobile=? LIMIT 1", mobile)
+	err := r.conn.QueryRowPartialCtx(ctx, &id, "SELECT id FROM users WHERE mobile=? LIMIT 1", mobile)
 	if err == nil && id > 0 {
 		return id, errors.New("该手机号已注册，请改用「绑定已有账号」")
 	}
@@ -456,7 +456,7 @@ type staffRow struct {
 
 func (r *ShopRBACRepository) ListStaff(ctx context.Context, shopID uint64) ([]map[string]interface{}, error) {
 	var rows []staffRow
-	err := r.conn.QueryRowsCtx(ctx, &rows,
+	err := r.conn.QueryRowsPartialCtx(ctx, &rows,
 		`SELECT ur.user_id, ur.role_id, r.name AS role_name, u.mobile, u.nickname
 		 FROM shop_user_roles ur
 		 JOIN shop_roles r ON r.id = ur.role_id

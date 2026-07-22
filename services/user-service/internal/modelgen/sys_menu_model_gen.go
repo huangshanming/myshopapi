@@ -37,19 +37,19 @@ type (
 	}
 
 	SysMenu struct {
-		ID        uint64    `db:"id"`
-		ParentID  uint64    `db:"parent_id"`
-		Name      string    `db:"name"`
-		Type      string    `db:"type"` // dir|menu|button
-		Path      string    `db:"path"`
-		Component string    `db:"component"`
-		Icon      string    `db:"icon"`
-		Perms     string    `db:"perms"` // 权限码，空则仅导航
-		Sort      int     `db:"sort"`
-		Visible   int     `db:"visible"`
-		Status    int     `db:"status"`
-		CreatedAt common.LocalTime `db:"created_at"`
-		UpdatedAt common.LocalTime `db:"updated_at"`
+		ID        uint64    `db:"id" json:"id"`
+		ParentID  uint64    `db:"parent_id" json:"parent_id"`
+		Name      string    `db:"name" json:"name"`
+		Type      string    `db:"type" json:"type"` // dir|menu|button
+		Path      string    `db:"path" json:"path"`
+		Component string    `db:"component" json:"component"`
+		Icon      string    `db:"icon" json:"icon"`
+		Perms     string    `db:"perms" json:"perms"` // 权限码，空则仅导航
+		Sort      int     `db:"sort" json:"sort"`
+		Visible   int     `db:"visible" json:"visible"`
+		Status    int     `db:"status" json:"status"`
+		CreatedAt common.LocalTime `db:"created_at" json:"created_at"`
+		UpdatedAt common.LocalTime `db:"updated_at" json:"updated_at"`
 	}
 )
 

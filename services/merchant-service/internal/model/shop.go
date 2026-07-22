@@ -59,9 +59,10 @@ type ShopApplication struct {
 	StorefrontImage   string            `gorm:"column:storefront_image;type:varchar(500)" db:"storefront_image" json:"storefront_image"`
 	Status            string            `gorm:"column:status;type:enum('pending','approved','rejected');default:pending" db:"status" json:"status"`
 	RejectReason      string            `gorm:"column:reject_reason;type:varchar(255)" db:"reject_reason" json:"reject_reason"`
-	ReviewedBy        *uint64           `gorm:"column:reviewed_by" db:"reviewed_by" json:"reviewed_by,omitempty"`
+	// Non-pointer: go-zero sqlx pre-allocates *uint64 so NULL cannot scan; use IFNULL in SELECT.
+	ReviewedBy        uint64            `gorm:"column:reviewed_by" db:"reviewed_by" json:"reviewed_by,omitempty"`
 	ReviewedAt        *common.LocalTime `gorm:"column:reviewed_at" db:"reviewed_at" json:"reviewed_at,omitempty"`
-	ShopID            *uint64           `gorm:"column:shop_id" db:"shop_id" json:"shop_id,omitempty"`
+	ShopID            uint64            `gorm:"column:shop_id" db:"shop_id" json:"shop_id,omitempty"`
 	CreatedAt         common.LocalTime  `gorm:"column:created_at" db:"created_at" json:"created_at"`
 	UpdatedAt         common.LocalTime  `gorm:"column:updated_at" db:"updated_at" json:"updated_at"`
 }

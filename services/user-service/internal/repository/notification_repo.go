@@ -7,8 +7,8 @@ import (
 	"mymall/services/user-service/internal/model"
 )
 
-const notificationColumns = "id, user_id, title, content, msg_type, link_type, link_id, extra, is_read, sender_type, sender_id, batch_id, created_at"
-const notificationBatchColumns = "id, title, content, target, user_count, success_count, link_type, link_id, sender_id, created_at"
+const notificationColumns = "id, user_id, IFNULL(title,'') AS title, IFNULL(content,'') AS content, IFNULL(msg_type,'') AS msg_type, IFNULL(link_type,'') AS link_type, IFNULL(link_id,0) AS link_id, IFNULL(extra,'') AS extra, is_read, IFNULL(sender_type,'') AS sender_type, IFNULL(sender_id,0) AS sender_id, IFNULL(batch_id,0) AS batch_id, created_at"
+const notificationBatchColumns = "id, IFNULL(title,'') AS title, IFNULL(content,'') AS content, IFNULL(target,'') AS target, user_count, success_count, IFNULL(link_type,'') AS link_type, IFNULL(link_id,0) AS link_id, IFNULL(sender_id,0) AS sender_id, created_at"
 
 func (r *UserRepository) CreateNotification(ctx context.Context, n *model.UserNotification) error {
 	res, err := r.conn.ExecCtx(ctx,
@@ -61,7 +61,7 @@ func (r *UserRepository) ListNotifications(ctx context.Context, userID uint64, p
 		return nil, 0, err
 	}
 	var list []model.UserNotification
-	err = r.conn.QueryRowsCtx(ctx, &list,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+notificationColumns+" FROM user_notifications WHERE user_id=? ORDER BY id DESC LIMIT ? OFFSET ?",
 		userID, pageSize, (page-1)*pageSize,
 	)
@@ -99,7 +99,7 @@ func (r *UserRepository) ListActiveUserIDs(ctx context.Context, offset, limit in
 		ID uint64 `db:"id"`
 	}
 	var rows []row
-	err := r.conn.QueryRowsCtx(ctx, &rows,
+	err := r.conn.QueryRowsPartialCtx(ctx, &rows,
 		"SELECT id FROM users WHERE status=1 AND deleted_at IS NULL ORDER BY id ASC LIMIT ? OFFSET ?",
 		limit, offset,
 	)
@@ -149,7 +149,7 @@ func (r *UserRepository) ListNotificationBatches(ctx context.Context, page, page
 		return nil, 0, err
 	}
 	var list []model.UserNotificationBatch
-	err = r.conn.QueryRowsCtx(ctx, &list,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+notificationBatchColumns+" FROM user_notification_batches ORDER BY id DESC LIMIT ? OFFSET ?",
 		pageSize, (page-1)*pageSize,
 	)
@@ -158,7 +158,7 @@ func (r *UserRepository) ListNotificationBatches(ctx context.Context, page, page
 
 func (r *UserRepository) GetNotificationBatch(ctx context.Context, id uint64) (*model.UserNotificationBatch, error) {
 	var b model.UserNotificationBatch
-	err := r.conn.QueryRowCtx(ctx, &b,
+	err := r.conn.QueryRowPartialCtx(ctx, &b,
 		"SELECT "+notificationBatchColumns+" FROM user_notification_batches WHERE id=? LIMIT 1", id,
 	)
 	if err != nil {
@@ -188,7 +188,7 @@ func (r *UserRepository) ListBatchRecipients(ctx context.Context, batchID uint64
 		return nil, 0, err
 	}
 	var list []BatchRecipientRow
-	err = r.conn.QueryRowsCtx(ctx, &list,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		`SELECT n.user_id, COALESCE(u.nickname,'') AS nickname, COALESCE(u.mobile,'') AS mobile, n.is_read
 		 FROM user_notifications n
 		 LEFT JOIN users u ON u.id = n.user_id

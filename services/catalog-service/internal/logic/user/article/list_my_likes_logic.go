@@ -35,5 +35,5 @@ func (l *ListMyLikesLogic) ListMyLikes(ctx context.Context, req *types.PageReq) 
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.PageListResp{List: data}, nil
+	return types.FromPaged(data), nil
 }

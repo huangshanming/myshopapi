@@ -37,17 +37,17 @@ type (
 	}
 
 	PointsProduct struct {
-		ID           uint64    `db:"id"`
-		Name         string    `db:"name"`           // 商品名称
-		CoverURL     string    `db:"cover_url"`      // 封面图
-		Description  string    `db:"description"`    // 说明
-		PointsPrice  int     `db:"points_price"`   // 兑换所需积分
-		Stock        int     `db:"stock"`          // 库存
-		PerUserLimit int     `db:"per_user_limit"` // 每人限兑次数,0=不限
-		Status       string    `db:"status"`         // on|off
-		Sort         int     `db:"sort"`           // 排序,越大越靠前
-		CreatedAt    common.LocalTime `db:"created_at"`
-		UpdatedAt    common.LocalTime `db:"updated_at"`
+		ID           uint64    `db:"id" json:"id"`
+		Name         string    `db:"name" json:"name"`           // 商品名称
+		CoverURL     string    `db:"cover_url" json:"cover_url"`      // 封面图
+		Description  string    `db:"description" json:"description"`    // 说明
+		PointsPrice  int     `db:"points_price" json:"points_price"`   // 兑换所需积分
+		Stock        int     `db:"stock" json:"stock"`          // 库存
+		PerUserLimit int     `db:"per_user_limit" json:"per_user_limit"` // 每人限兑次数,0=不限
+		Status       string    `db:"status" json:"status"`         // on|off
+		Sort         int     `db:"sort" json:"sort"`           // 排序,越大越靠前
+		CreatedAt    common.LocalTime `db:"created_at" json:"created_at"`
+		UpdatedAt    common.LocalTime `db:"updated_at" json:"updated_at"`
 	}
 )
 

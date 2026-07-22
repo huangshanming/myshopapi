@@ -17,14 +17,14 @@ import (
 )
 
 const (
-	productSkuColumns = "id, product_id, shop_id, sku_no, spec_values, spec_key, sale_price, market_price, cost_price, stock, stock_warn, barcode, status, sold_count, created_at, updated_at, deleted_at"
-	productImageColumns = "id, product_id, shop_id, url, typ, sort, created_at, updated_at"
-	productAttrColumns = "id, product_id, template_id, attr_key, attr_label, attr_value"
-	productTagColumns = "id, shop_id, name, color, status, created_at, updated_at"
-	productAttrTemplateColumns = "id, shop_id, name, attrs_json, status, created_at, updated_at"
-	productScheduleColumns = "id, product_id, shop_id, action, run_at, status, locked_at, created_at, updated_at"
-	productBatchJobColumns = "id, shop_id, job_type, payload_json, progress, total, status, result_msg, operator_id, created_at, updated_at"
-	productOpLogColumns = "id, shop_id, product_id, operator_id, action, before_json, after_json, ip, created_at"
+	productSkuColumns          = "id, product_id, shop_id, IFNULL(sku_no,'') AS sku_no, IFNULL(spec_values,'') AS spec_values, IFNULL(spec_key,'') AS spec_key, sale_price, IFNULL(market_price,0) AS market_price, IFNULL(cost_price,0) AS cost_price, stock, stock_warn, IFNULL(barcode,'') AS barcode, status, sold_count, created_at, updated_at, deleted_at"
+	productImageColumns        = "id, product_id, shop_id, IFNULL(url,'') AS url, IFNULL(typ,'') AS typ, sort, created_at, updated_at"
+	productAttrColumns         = "id, product_id, IFNULL(template_id,0) AS template_id, IFNULL(attr_key,'') AS attr_key, IFNULL(attr_label,'') AS attr_label, IFNULL(attr_value,'') AS attr_value"
+	productTagColumns          = "id, shop_id, IFNULL(name,'') AS name, IFNULL(color,'') AS color, status, created_at, updated_at"
+	productAttrTemplateColumns = "id, shop_id, IFNULL(name,'') AS name, IFNULL(attrs_json,'') AS attrs_json, status, created_at, updated_at"
+	productScheduleColumns     = "id, product_id, shop_id, action, run_at, status, locked_at, created_at, updated_at"
+	productBatchJobColumns     = "id, shop_id, IFNULL(job_type,'') AS job_type, IFNULL(payload_json,'') AS payload_json, progress, total, status, IFNULL(result_msg,'') AS result_msg, operator_id, created_at, updated_at"
+	productOpLogColumns        = "id, shop_id, IFNULL(product_id,0) AS product_id, operator_id, IFNULL(action,'') AS action, IFNULL(before_json,'') AS before_json, IFNULL(after_json,'') AS after_json, IFNULL(ip,'') AS ip, created_at"
 )
 
 type ProductAdminRepository struct {
@@ -143,7 +143,7 @@ func (r *ProductAdminRepository) List(ctx context.Context, f ProductListFilter) 
 	}
 	var list []model.Product
 	qArgs := append(args, f.PageSize, (f.Page-1)*f.PageSize)
-	err = r.conn.QueryRowsCtx(ctx, &list,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+productColumns+" FROM products WHERE "+whereSQL+" ORDER BY "+order+" LIMIT ? OFFSET ?",
 		qArgs...,
 	)
@@ -152,15 +152,15 @@ func (r *ProductAdminRepository) List(ctx context.Context, f ProductListFilter) 
 
 func (r *ProductAdminRepository) GetDetail(ctx context.Context, id, shopID uint64) (*model.Product, []model.ProductSku, []model.ProductImage, []model.ProductAttr, error) {
 	var p model.Product
-	if err := r.conn.QueryRowCtx(ctx, &p, "SELECT "+productColumns+" FROM products WHERE id=? AND shop_id=? LIMIT 1", id, shopID); err != nil {
+	if err := r.conn.QueryRowPartialCtx(ctx, &p, "SELECT "+productColumns+" FROM products WHERE id=? AND shop_id=? LIMIT 1", id, shopID); err != nil {
 		return nil, nil, nil, nil, err
 	}
 	var skus []model.ProductSku
-	_ = r.conn.QueryRowsCtx(ctx, &skus, "SELECT "+productSkuColumns+" FROM product_skus WHERE product_id=? AND deleted_at IS NULL", id)
+	_ = r.conn.QueryRowsPartialCtx(ctx, &skus, "SELECT "+productSkuColumns+" FROM product_skus WHERE product_id=? AND deleted_at IS NULL", id)
 	var imgs []model.ProductImage
-	_ = r.conn.QueryRowsCtx(ctx, &imgs, "SELECT "+productImageColumns+" FROM product_images WHERE product_id=? ORDER BY sort ASC, id ASC", id)
+	_ = r.conn.QueryRowsPartialCtx(ctx, &imgs, "SELECT "+productImageColumns+" FROM product_images WHERE product_id=? ORDER BY sort ASC, id ASC", id)
 	var attrs []model.ProductAttr
-	_ = r.conn.QueryRowsCtx(ctx, &attrs, "SELECT "+productAttrColumns+" FROM product_attrs WHERE product_id=?", id)
+	_ = r.conn.QueryRowsPartialCtx(ctx, &attrs, "SELECT "+productAttrColumns+" FROM product_attrs WHERE product_id=?", id)
 	return &p, skus, imgs, attrs, nil
 }
 
@@ -219,7 +219,7 @@ func (r *ProductAdminRepository) SaveProduct(ctx context.Context, shopID, operat
 			product.ID = newID
 		} else {
 			var existing model.Product
-			if err := session.QueryRowCtx(ctx, &existing, "SELECT "+productColumns+" FROM products WHERE id=? AND shop_id=? LIMIT 1", id, shopID); err != nil {
+			if err := session.QueryRowPartialCtx(ctx, &existing, "SELECT "+productColumns+" FROM products WHERE id=? AND shop_id=? LIMIT 1", id, shopID); err != nil {
 				return errors.New("商品不存在")
 			}
 			if existing.Status == model.ProductDeleted {
@@ -309,7 +309,7 @@ func (r *ProductAdminRepository) syncSKUs(ctx context.Context, session sqlx.Sess
 	}
 
 	var existing []model.ProductSku
-	_ = session.QueryRowsCtx(ctx, &existing, "SELECT "+productSkuColumns+" FROM product_skus WHERE product_id=? AND deleted_at IS NULL", product.ID)
+	_ = session.QueryRowsPartialCtx(ctx, &existing, "SELECT "+productSkuColumns+" FROM product_skus WHERE product_id=? AND deleted_at IS NULL", product.ID)
 	byKey := map[string]model.ProductSku{}
 	for _, e := range existing {
 		byKey[e.SpecKey] = e
@@ -428,7 +428,7 @@ func (r *ProductAdminRepository) syncTags(ctx context.Context, session sqlx.Sess
 
 func (r *ProductAdminRepository) aggregateFromSKUs(ctx context.Context, session sqlx.Session, productID uint64) error {
 	var skus []model.ProductSku
-	if err := session.QueryRowsCtx(ctx, &skus,
+	if err := session.QueryRowsPartialCtx(ctx, &skus,
 		"SELECT "+productSkuColumns+" FROM product_skus WHERE product_id=? AND deleted_at IS NULL AND status=?",
 		productID, model.SKUEnabled,
 	); err != nil {
@@ -479,7 +479,7 @@ func (r *ProductAdminRepository) SetStatus(ctx context.Context, id, shopID uint6
 
 func (r *ProductAdminRepository) GetByID(ctx context.Context, id uint64) (*model.Product, error) {
 	var p model.Product
-	if err := r.conn.QueryRowCtx(ctx, &p, "SELECT "+productColumns+" FROM products WHERE id=? LIMIT 1", id); err != nil {
+	if err := r.conn.QueryRowPartialCtx(ctx, &p, "SELECT "+productColumns+" FROM products WHERE id=? LIMIT 1", id); err != nil {
 		return nil, err
 	}
 	return &p, nil
@@ -539,7 +539,7 @@ func (r *ProductAdminRepository) PermanentDelete(ctx context.Context, shopID uin
 	return r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		for _, id := range ids {
 			var p model.Product
-			if err := session.QueryRowCtx(ctx, &p, "SELECT "+productColumns+" FROM products WHERE id=? AND shop_id=? AND status=? LIMIT 1", id, shopID, model.ProductDeleted); err != nil {
+			if err := session.QueryRowPartialCtx(ctx, &p, "SELECT "+productColumns+" FROM products WHERE id=? AND shop_id=? AND status=? LIMIT 1", id, shopID, model.ProductDeleted); err != nil {
 				return fmt.Errorf("商品 %d 不在回收站", id)
 			}
 			_, _ = session.ExecCtx(ctx, "DELETE FROM product_skus WHERE product_id=?", id)
@@ -558,7 +558,7 @@ func (r *ProductAdminRepository) PermanentDelete(ctx context.Context, shopID uin
 
 func (r *ProductAdminRepository) AdjustSkuStock(ctx context.Context, shopID uint64, req types.StockAdjustReq) error {
 	var sku model.ProductSku
-	if err := r.conn.QueryRowCtx(ctx, &sku, "SELECT "+productSkuColumns+" FROM product_skus WHERE id=? AND shop_id=? AND deleted_at IS NULL LIMIT 1", req.SkuID, shopID); err != nil {
+	if err := r.conn.QueryRowPartialCtx(ctx, &sku, "SELECT "+productSkuColumns+" FROM product_skus WHERE id=? AND shop_id=? AND deleted_at IS NULL LIMIT 1", req.SkuID, shopID); err != nil {
 		return errors.New("SKU不存在")
 	}
 	newStock := sku.Stock
@@ -586,7 +586,7 @@ func (r *ProductAdminRepository) ListStockWarnings(ctx context.Context, shopID u
 		pageSize = 20
 	}
 	var list []model.ProductSku
-	err := r.conn.QueryRowsCtx(ctx, &list,
+	err := r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+productSkuColumns+" FROM product_skus WHERE "+where+" ORDER BY stock ASC LIMIT ? OFFSET ?",
 		shopID, pageSize, (page-1)*pageSize,
 	)
@@ -608,7 +608,7 @@ func (r *ProductAdminRepository) CreateBatchJob(ctx context.Context, job *model.
 
 func (r *ProductAdminRepository) GetBatchJob(ctx context.Context, id, shopID uint64) (*model.ProductBatchJob, error) {
 	var j model.ProductBatchJob
-	err := r.conn.QueryRowCtx(ctx, &j, "SELECT "+productBatchJobColumns+" FROM product_batch_jobs WHERE id=? AND shop_id=? LIMIT 1", id, shopID)
+	err := r.conn.QueryRowPartialCtx(ctx, &j, "SELECT "+productBatchJobColumns+" FROM product_batch_jobs WHERE id=? AND shop_id=? LIMIT 1", id, shopID)
 	return &j, err
 }
 
@@ -628,7 +628,7 @@ func (r *ProductAdminRepository) UpdateProductCategory(ctx context.Context, id, 
 
 func (r *ProductAdminRepository) ListSkusByProductShop(ctx context.Context, productID, shopID uint64) ([]model.ProductSku, error) {
 	var skus []model.ProductSku
-	err := r.conn.QueryRowsCtx(ctx, &skus,
+	err := r.conn.QueryRowsPartialCtx(ctx, &skus,
 		"SELECT "+productSkuColumns+" FROM product_skus WHERE product_id=? AND shop_id=? AND deleted_at IS NULL",
 		productID, shopID,
 	)
@@ -666,7 +666,7 @@ func jsonOrNull(s string) string {
 type OpLogItem struct {
 	ID           uint64           `json:"id"`
 	ShopID       uint64           `json:"shop_id"`
-	ProductID    *uint64          `json:"product_id,omitempty"`
+	ProductID    uint64           `json:"product_id,omitempty"`
 	ProductName  string           `json:"product_name"`
 	OperatorID   uint64           `json:"operator_id"`
 	OperatorName string           `json:"operator_name"`
@@ -692,7 +692,7 @@ func (r *ProductAdminRepository) ListOpLogs(ctx context.Context, shopID uint64, 
 	total, _ := countCtx(ctx, r.conn, "SELECT COUNT(*) FROM product_op_logs WHERE "+whereSQL, args...)
 	var logs []model.ProductOpLog
 	qArgs := append(args, pageSize, (page-1)*pageSize)
-	err := r.conn.QueryRowsCtx(ctx, &logs,
+	err := r.conn.QueryRowsPartialCtx(ctx, &logs,
 		"SELECT "+productOpLogColumns+" FROM product_op_logs WHERE "+whereSQL+" ORDER BY id DESC LIMIT ? OFFSET ?",
 		qArgs...,
 	)
@@ -704,10 +704,10 @@ func (r *ProductAdminRepository) ListOpLogs(ctx context.Context, shopID uint64, 
 	operatorIDs := make([]uint64, 0)
 	seenP, seenO := map[uint64]struct{}{}, map[uint64]struct{}{}
 	for _, lg := range logs {
-		if lg.ProductID != nil && *lg.ProductID > 0 {
-			if _, ok := seenP[*lg.ProductID]; !ok {
-				seenP[*lg.ProductID] = struct{}{}
-				productIDs = append(productIDs, *lg.ProductID)
+		if lg.ProductID > 0 {
+			if _, ok := seenP[lg.ProductID]; !ok {
+				seenP[lg.ProductID] = struct{}{}
+				productIDs = append(productIDs, lg.ProductID)
 			}
 		}
 		if lg.OperatorID > 0 {
@@ -725,7 +725,7 @@ func (r *ProductAdminRepository) ListOpLogs(ctx context.Context, shopID uint64, 
 			Name string `db:"name"`
 		}
 		var rows []row
-		_ = r.conn.QueryRowsCtx(ctx, &rows, "SELECT id, name FROM products WHERE id IN ("+placeholders(len(productIDs))+")", inArgs(productIDs)...)
+		_ = r.conn.QueryRowsPartialCtx(ctx, &rows, "SELECT id, name FROM products WHERE id IN ("+placeholders(len(productIDs))+")", inArgs(productIDs)...)
 		for _, x := range rows {
 			nameByProduct[x.ID] = x.Name
 		}
@@ -738,7 +738,7 @@ func (r *ProductAdminRepository) ListOpLogs(ctx context.Context, shopID uint64, 
 			Mobile   string `db:"mobile"`
 		}
 		var rows []row
-		_ = r.conn.QueryRowsCtx(ctx, &rows, "SELECT id, nickname, mobile FROM users WHERE id IN ("+placeholders(len(operatorIDs))+")", inArgs(operatorIDs)...)
+		_ = r.conn.QueryRowsPartialCtx(ctx, &rows, "SELECT id, nickname, mobile FROM users WHERE id IN ("+placeholders(len(operatorIDs))+")", inArgs(operatorIDs)...)
 		for _, x := range rows {
 			n := strings.TrimSpace(x.Nickname)
 			if n == "" {
@@ -762,13 +762,13 @@ func (r *ProductAdminRepository) ListOpLogs(ctx context.Context, shopID uint64, 
 		if item.OperatorName == "" && lg.OperatorID > 0 {
 			item.OperatorName = fmt.Sprintf("用户#%d", lg.OperatorID)
 		}
-		if lg.ProductID != nil && *lg.ProductID > 0 {
-			item.ProductName = nameByProduct[*lg.ProductID]
+		if lg.ProductID > 0 {
+			item.ProductName = nameByProduct[lg.ProductID]
 			if item.ProductName == "" {
 				item.ProductName = pickJSONString(lg.AfterJSON, "name")
 			}
 			if item.ProductName == "" {
-				item.ProductName = fmt.Sprintf("商品#%d", *lg.ProductID)
+				item.ProductName = fmt.Sprintf("商品#%d", lg.ProductID)
 			}
 			item.TargetName = item.ProductName
 		} else if lg.Action == "permanent_delete" {
@@ -901,7 +901,7 @@ func (r *ProductAdminRepository) ReserveSkuStock(ctx context.Context, items []Sk
 					return fmt.Errorf("SKU %d 库存不足", it.SkuID)
 				}
 				var sku model.ProductSku
-				_ = session.QueryRowCtx(ctx, &sku, "SELECT product_id FROM product_skus WHERE id=? LIMIT 1", it.SkuID)
+				_ = session.QueryRowPartialCtx(ctx, &sku, "SELECT product_id FROM product_skus WHERE id=? LIMIT 1", it.SkuID)
 				_ = r.aggregateFromSKUs(ctx, session, sku.ProductID)
 				continue
 			}
@@ -945,7 +945,7 @@ func (r *ProductAdminRepository) ReleaseSkuStock(ctx context.Context, items []Sk
 					return err
 				}
 				var sku model.ProductSku
-				_ = session.QueryRowCtx(ctx, &sku, "SELECT product_id FROM product_skus WHERE id=? LIMIT 1", skuID)
+				_ = session.QueryRowPartialCtx(ctx, &sku, "SELECT product_id FROM product_skus WHERE id=? LIMIT 1", skuID)
 				_ = r.aggregateFromSKUs(ctx, session, sku.ProductID)
 				continue
 			}
@@ -963,7 +963,7 @@ type SkuStockItem struct {
 
 func (r *ProductAdminRepository) ListTags(ctx context.Context, shopID uint64) ([]model.ProductTag, error) {
 	var list []model.ProductTag
-	err := r.conn.QueryRowsCtx(ctx, &list, "SELECT "+productTagColumns+" FROM product_tags WHERE shop_id IN (0, ?) ORDER BY id DESC", shopID)
+	err := r.conn.QueryRowsPartialCtx(ctx, &list, "SELECT "+productTagColumns+" FROM product_tags WHERE shop_id IN (0, ?) ORDER BY id DESC", shopID)
 	return list, err
 }
 
@@ -992,7 +992,7 @@ func (r *ProductAdminRepository) DeleteTag(ctx context.Context, id, shopID uint6
 
 func (r *ProductAdminRepository) ListAttrTemplates(ctx context.Context, shopID uint64) ([]model.ProductAttrTemplate, error) {
 	var list []model.ProductAttrTemplate
-	err := r.conn.QueryRowsCtx(ctx, &list, "SELECT "+productAttrTemplateColumns+" FROM product_attr_templates WHERE shop_id IN (0, ?) ORDER BY id DESC", shopID)
+	err := r.conn.QueryRowsPartialCtx(ctx, &list, "SELECT "+productAttrTemplateColumns+" FROM product_attr_templates WHERE shop_id IN (0, ?) ORDER BY id DESC", shopID)
 	return list, err
 }
 
@@ -1043,7 +1043,7 @@ func (r *ProductAdminRepository) CancelSchedule(ctx context.Context, id, shopID 
 func (r *ProductAdminRepository) ClaimDueSchedules(ctx context.Context, limit int) ([]model.ProductSchedule, error) {
 	var list []model.ProductSchedule
 	now := time.Now()
-	err := r.conn.QueryRowsCtx(ctx, &list,
+	err := r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+productScheduleColumns+" FROM product_schedules WHERE status='pending' AND run_at<=? AND locked_at IS NULL LIMIT ?",
 		now, limit,
 	)
@@ -1079,14 +1079,14 @@ func (r *ProductAdminRepository) FirstSkuID(ctx context.Context, productID uint6
 
 func (r *ProductAdminRepository) firstSkuIDSession(ctx context.Context, session sqlx.Session, productID uint64) uint64 {
 	var id uint64
-	_ = session.QueryRowCtx(ctx, &id,
+	_ = session.QueryRowPartialCtx(ctx, &id,
 		"SELECT id FROM product_skus WHERE product_id=? AND deleted_at IS NULL ORDER BY id ASC LIMIT 1", productID)
 	return id
 }
 
 func (r *ProductAdminRepository) GetSku(ctx context.Context, id uint64) (*model.ProductSku, error) {
 	var s model.ProductSku
-	err := r.conn.QueryRowCtx(ctx, &s, "SELECT "+productSkuColumns+" FROM product_skus WHERE id=? AND deleted_at IS NULL LIMIT 1", id)
+	err := r.conn.QueryRowPartialCtx(ctx, &s, "SELECT "+productSkuColumns+" FROM product_skus WHERE id=? AND deleted_at IS NULL LIMIT 1", id)
 	return &s, err
 }
 

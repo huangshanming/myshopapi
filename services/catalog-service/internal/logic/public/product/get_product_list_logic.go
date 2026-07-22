@@ -28,5 +28,5 @@ func (l *GetProductListLogic) GetProductList(ctx context.Context, req *types.Pub
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, "查询失败")
 	}
-	return &types.PageListResp{List: data}, nil
+	return types.FromPaged(data), nil
 }

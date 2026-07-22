@@ -11,6 +11,7 @@ type MatchCouponsResp = DataResp
 type SeckillConsumeResp = DataResp
 type SeckillCurrentResp = DataResp
 type SeckillEntryResp = DataResp
+type SeckillListResp = DataResp
 type SeckillRuleResp = DataResp
 type SeckillSessionsResp = DataResp
 type ShopApplicationResp = DataResp

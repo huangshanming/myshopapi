@@ -37,11 +37,11 @@ type (
 	}
 
 	UserWallet struct {
-		UserID        uint64    `db:"user_id"`        // 用户ID
-		Balance       float64   `db:"balance"`        // 可用余额
-		FrozenBalance float64   `db:"frozen_balance"` // 冻结余额
-		CreatedAt     common.LocalTime `db:"created_at"`
-		UpdatedAt     common.LocalTime `db:"updated_at"`
+		UserID        uint64    `db:"user_id" json:"user_id"`        // 用户ID
+		Balance       float64   `db:"balance" json:"balance"`        // 可用余额
+		FrozenBalance float64   `db:"frozen_balance" json:"frozen_balance"` // 冻结余额
+		CreatedAt     common.LocalTime `db:"created_at" json:"created_at"`
+		UpdatedAt     common.LocalTime `db:"updated_at" json:"updated_at"`
 	}
 )
 

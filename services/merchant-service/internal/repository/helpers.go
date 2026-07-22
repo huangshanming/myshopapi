@@ -11,7 +11,7 @@ import (
 
 func countQuery(ctx context.Context, session sqlx.Session, query string, args ...any) (int64, error) {
 	var n int64
-	err := session.QueryRowCtx(ctx, &n, query, args...)
+	err := session.QueryRowPartialCtx(ctx, &n, query, args...)
 	return n, err
 }
 

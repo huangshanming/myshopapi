@@ -31,7 +31,7 @@ Auth:
   ConsumerKey: mymall-user-key
   Issuer: mymall
 
-Telemetry:
+AppTelemetry:
   Enabled: false
   Endpoint: jaeger-collector.mymall:4318
   Service: user-service

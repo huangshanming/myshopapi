@@ -14,9 +14,9 @@ import (
 )
 
 const (
-	couponColumns = "id, name, issuer_type, shop_id, coupon_type, threshold_amount, discount_amount, discount_rate, max_discount_amount, scope_type, total_count, claimed_count, per_user_limit, valid_type, valid_start, valid_end, valid_days, stackable, user_identity, channels, status, remark, created_by, created_at, updated_at"
+	couponColumns      = "id, IFNULL(name,'') AS name, issuer_type, shop_id, coupon_type, threshold_amount, discount_amount, discount_rate, max_discount_amount, scope_type, total_count, claimed_count, per_user_limit, valid_type, valid_start, valid_end, valid_days, stackable, user_identity, IFNULL(channels,'') AS channels, status, IFNULL(remark,'') AS remark, created_by, created_at, updated_at"
 	couponScopeColumns = "id, coupon_id, ref_type, ref_id"
-	userCouponColumns = "id, coupon_id, user_id, shop_id, status, source, valid_start, valid_end, order_id, locked_at, used_at, claim_batch_no, discount_amount, created_at, updated_at"
+	userCouponColumns  = "id, coupon_id, user_id, shop_id, status, source, valid_start, valid_end, order_id, locked_at, used_at, IFNULL(claim_batch_no,'') AS claim_batch_no, discount_amount, created_at, updated_at"
 )
 
 func (r *MerchantRepository) CreateCoupon(ctx context.Context, c *model.Coupon, scopes []model.CouponScope) error {
@@ -82,7 +82,7 @@ func (r *MerchantRepository) UpdateCoupon(ctx context.Context, id uint64, update
 
 func (r *MerchantRepository) GetCoupon(ctx context.Context, id uint64) (*model.Coupon, error) {
 	var c model.Coupon
-	if err := r.conn.QueryRowCtx(ctx, &c,
+	if err := r.conn.QueryRowPartialCtx(ctx, &c,
 		"SELECT "+couponColumns+" FROM coupons WHERE id=? LIMIT 1", id,
 	); err != nil {
 		return nil, err
@@ -94,7 +94,7 @@ func (r *MerchantRepository) GetCoupon(ctx context.Context, id uint64) (*model.C
 
 func (r *MerchantRepository) ListCouponScopes(ctx context.Context, couponID uint64) ([]model.CouponScope, error) {
 	var list []model.CouponScope
-	err := r.conn.QueryRowsCtx(ctx, &list,
+	err := r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+couponScopeColumns+" FROM coupon_scopes WHERE coupon_id=?", couponID,
 	)
 	return list, err
@@ -133,7 +133,7 @@ func (r *MerchantRepository) ListCoupons(ctx context.Context, issuerType string,
 	}
 	listArgs := append(append([]any{}, args...), pageSize, (page-1)*pageSize)
 	var list []model.Coupon
-	if err := r.conn.QueryRowsCtx(ctx, &list,
+	if err := r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+couponColumns+" FROM coupons WHERE "+where+" ORDER BY id DESC LIMIT ? OFFSET ?",
 		listArgs...,
 	); err != nil {
@@ -188,7 +188,7 @@ func (r *MerchantRepository) CountUserClaims(ctx context.Context, couponID, user
 
 func (r *MerchantRepository) UserCreatedAt(ctx context.Context, userID uint64) (time.Time, error) {
 	var createdAt time.Time
-	err := r.conn.QueryRowCtx(ctx, &createdAt,
+	err := r.conn.QueryRowPartialCtx(ctx, &createdAt,
 		"SELECT created_at FROM users WHERE id=? LIMIT 1", userID,
 	)
 	return createdAt, err
@@ -222,7 +222,7 @@ func (r *MerchantRepository) GetProductsLite(ctx context.Context, ids []uint64) 
 		CategoryID uint64 `db:"category_id"`
 		Status     string `db:"status"`
 	}
-	if err := r.conn.QueryRowsCtx(ctx, &rows, query, args...); err != nil {
+	if err := r.conn.QueryRowsPartialCtx(ctx, &rows, query, args...); err != nil {
 		return nil, err
 	}
 	for _, row := range rows {
@@ -235,7 +235,7 @@ func (r *MerchantRepository) ClaimCoupon(ctx context.Context, userID uint64, c *
 	var uc model.UserCoupon
 	err := r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		var locked model.Coupon
-		if err := session.QueryRowCtx(ctx, &locked,
+		if err := session.QueryRowPartialCtx(ctx, &locked,
 			"SELECT "+couponColumns+" FROM coupons WHERE id=? FOR UPDATE", c.ID,
 		); err != nil {
 			return errors.New("优惠券不存在")
@@ -346,7 +346,7 @@ func (r *MerchantRepository) ListUserCoupons(ctx context.Context, userID uint64,
 	}
 	listArgs := append(append([]any{}, args...), pageSize, (page-1)*pageSize)
 	var list []model.UserCoupon
-	if err := r.conn.QueryRowsCtx(ctx, &list,
+	if err := r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+userCouponColumns+" FROM user_coupons WHERE "+where+" ORDER BY id DESC LIMIT ? OFFSET ?",
 		listArgs...,
 	); err != nil {
@@ -378,7 +378,7 @@ func (r *MerchantRepository) ExpireUserCoupons(ctx context.Context, userID uint6
 
 func (r *MerchantRepository) GetUserCoupon(ctx context.Context, id uint64) (*model.UserCoupon, error) {
 	var uc model.UserCoupon
-	if err := r.conn.QueryRowCtx(ctx, &uc,
+	if err := r.conn.QueryRowPartialCtx(ctx, &uc,
 		"SELECT "+userCouponColumns+" FROM user_coupons WHERE id=? LIMIT 1", id,
 	); err != nil {
 		return nil, err
@@ -393,7 +393,7 @@ func (r *MerchantRepository) GetUserCoupon(ctx context.Context, id uint64) (*mod
 func (r *MerchantRepository) LockUserCoupon(ctx context.Context, userCouponID, userID, orderID uint64, discount float64) error {
 	return r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		var uc model.UserCoupon
-		if err := session.QueryRowCtx(ctx, &uc,
+		if err := session.QueryRowPartialCtx(ctx, &uc,
 			"SELECT "+userCouponColumns+" FROM user_coupons WHERE id=? FOR UPDATE", userCouponID,
 		); err != nil {
 			return errors.New("优惠券不存在")
@@ -421,7 +421,7 @@ func (r *MerchantRepository) LockUserCoupon(ctx context.Context, userCouponID, u
 func (r *MerchantRepository) UnlockUserCoupon(ctx context.Context, userCouponID, orderID uint64, action string) error {
 	return r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		var uc model.UserCoupon
-		if err := session.QueryRowCtx(ctx, &uc,
+		if err := session.QueryRowPartialCtx(ctx, &uc,
 			"SELECT "+userCouponColumns+" FROM user_coupons WHERE id=? FOR UPDATE", userCouponID,
 		); err != nil {
 			return errors.New("优惠券不存在")
@@ -455,7 +455,7 @@ func (r *MerchantRepository) UnlockUserCoupon(ctx context.Context, userCouponID,
 func (r *MerchantRepository) RedeemUserCoupon(ctx context.Context, userCouponID, orderID uint64, discount float64) error {
 	return r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		var uc model.UserCoupon
-		if err := session.QueryRowCtx(ctx, &uc,
+		if err := session.QueryRowPartialCtx(ctx, &uc,
 			"SELECT "+userCouponColumns+" FROM user_coupons WHERE id=? FOR UPDATE", userCouponID,
 		); err != nil {
 			return errors.New("优惠券不存在")
@@ -496,7 +496,7 @@ func (r *MerchantRepository) ListClaims(ctx context.Context, couponID uint64, pa
 		return nil, 0, err
 	}
 	var list []model.UserCoupon
-	err = r.conn.QueryRowsCtx(ctx, &list,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+userCouponColumns+" FROM user_coupons WHERE coupon_id=? ORDER BY id DESC LIMIT ? OFFSET ?",
 		couponID, pageSize, (page-1)*pageSize,
 	)
@@ -518,7 +518,7 @@ func (r *MerchantRepository) ListRedeems(ctx context.Context, couponID uint64, p
 		return nil, 0, err
 	}
 	var list []model.CouponRedeemLog
-	err = r.conn.QueryRowsCtx(ctx, &list,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		`SELECT id, user_coupon_id, coupon_id, user_id, order_id, shop_id, discount_amount, action, created_at
 		 FROM coupon_redeem_logs WHERE coupon_id=? AND action=? ORDER BY id DESC LIMIT ? OFFSET ?`,
 		couponID, model.CouponActionRedeem, pageSize, (page-1)*pageSize,
@@ -534,7 +534,7 @@ func (r *MerchantRepository) CouponStats(ctx context.Context, couponID uint64) (
 		"SELECT COUNT(*) FROM user_coupons WHERE coupon_id=? AND status=?", couponID, model.UserCouponUsed,
 	)
 	var sum float64
-	_ = r.conn.QueryRowCtx(ctx, &sum,
+	_ = r.conn.QueryRowPartialCtx(ctx, &sum,
 		"SELECT COALESCE(SUM(discount_amount),0) FROM coupon_redeem_logs WHERE coupon_id=? AND action=?",
 		couponID, model.CouponActionRedeem,
 	)
@@ -579,7 +579,7 @@ func (r *MerchantRepository) ListCenterCoupons(ctx context.Context, shopID uint6
 		args = append(args, model.CouponIssuerPlatform)
 	}
 	var list []model.Coupon
-	if err := r.conn.QueryRowsCtx(ctx, &list,
+	if err := r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+couponColumns+" FROM coupons WHERE "+where+" ORDER BY id DESC LIMIT 100",
 		args...,
 	); err != nil {
@@ -639,7 +639,7 @@ func (r *MerchantRepository) ListPopupCoupons(ctx context.Context) ([]model.Coup
 func (r *MerchantRepository) ListUserUnusedCoupons(ctx context.Context, userID uint64) ([]model.UserCoupon, error) {
 	r.ExpireUserCoupons(ctx, userID)
 	var list []model.UserCoupon
-	err := r.conn.QueryRowsCtx(ctx, &list,
+	err := r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+userCouponColumns+" FROM user_coupons WHERE user_id=? AND status=? ORDER BY valid_end ASC",
 		userID, model.UserCouponUnused,
 	)
@@ -658,7 +658,7 @@ func (r *MerchantRepository) ListUserUnusedCoupons(ctx context.Context, userID u
 func (r *MerchantRepository) ListOrderGiftCoupons(ctx context.Context, shopID uint64) ([]model.Coupon, error) {
 	now := time.Now()
 	var list []model.Coupon
-	err := r.conn.QueryRowsCtx(ctx, &list,
+	err := r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+couponColumns+" FROM coupons WHERE status=? AND ((issuer_type=? AND shop_id=0) OR (issuer_type=? AND shop_id=?))",
 		model.CouponStatusOn, model.CouponIssuerPlatform, model.CouponIssuerShop, shopID,
 	)

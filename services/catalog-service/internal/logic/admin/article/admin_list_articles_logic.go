@@ -54,5 +54,5 @@ func (l *AdminListArticlesLogic) AdminListArticles(ctx context.Context, req *typ
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.PageListResp{List: data}, nil
+	return types.FromPaged(data), nil
 }

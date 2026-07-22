@@ -57,6 +57,7 @@
 import { onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { createMenu, deleteMenu, fetchMenus, updateMenu } from '../../../api/system'
+import { pickList } from '../../../utils/list'
 
 const loading = ref(false)
 const tree = ref([])
@@ -67,7 +68,7 @@ async function load() {
   loading.value = true
   try {
     const res = await fetchMenus()
-    tree.value = res || []
+    tree.value = pickList(res)
   } catch (e) {
     ElMessage.error(e.message)
   } finally {

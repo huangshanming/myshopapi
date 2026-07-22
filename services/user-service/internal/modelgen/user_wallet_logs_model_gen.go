@@ -37,17 +37,17 @@ type (
 	}
 
 	UserWalletLog struct {
-		ID             uint64        `db:"id"`
-		UserID         uint64        `db:"user_id"`
-		ChangeType     string        `db:"change_type"` // admin_adjust/order_freeze/order_unfreeze/order_settle
-		Amount         float64       `db:"amount"`      // 变动金额
-		BalanceAfter   float64       `db:"balance_after"`
-		FrozenAfter    float64       `db:"frozen_after"`
-		Remark         string        `db:"remark"`
-		OperatorUserID sql.NullInt64 `db:"operator_user_id"`
-		RefType        string        `db:"ref_type"`
-		RefID          uint64        `db:"ref_id"`
-		CreatedAt      common.LocalTime     `db:"created_at"`
+		ID             uint64        `db:"id" json:"id"`
+		UserID         uint64        `db:"user_id" json:"user_id"`
+		ChangeType     string        `db:"change_type" json:"change_type"` // admin_adjust/order_freeze/order_unfreeze/order_settle
+		Amount         float64       `db:"amount" json:"amount"`      // 变动金额
+		BalanceAfter   float64       `db:"balance_after" json:"balance_after"`
+		FrozenAfter    float64       `db:"frozen_after" json:"frozen_after"`
+		Remark         string        `db:"remark" json:"remark"`
+		OperatorUserID uint64 `db:"operator_user_id" json:"operator_user_id"`
+		RefType        string        `db:"ref_type" json:"ref_type"`
+		RefID          uint64        `db:"ref_id" json:"ref_id"`
+		CreatedAt      common.LocalTime     `db:"created_at" json:"created_at"`
 	}
 )
 

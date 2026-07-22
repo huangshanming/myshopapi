@@ -11,7 +11,7 @@ import (
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
-const regionColumns = "id, code, name, parent_code, level, sort, created_at"
+const regionColumns = "id, IFNULL(code,'') AS code, IFNULL(name,'') AS name, IFNULL(parent_code,'') AS parent_code, level, sort, created_at"
 
 type pcaNode struct {
 	Code     string    `json:"code"`
@@ -80,7 +80,7 @@ func (r *UserRepository) SeedRegionsFromPCA(ctx context.Context, raw []byte) err
 
 func (r *UserRepository) ListRegionsByParent(ctx context.Context, parentCode string) ([]model.Region, error) {
 	var list []model.Region
-	err := r.conn.QueryRowsCtx(ctx, &list,
+	err := r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+regionColumns+" FROM regions WHERE parent_code=? ORDER BY sort ASC, code ASC",
 		parentCode,
 	)
@@ -89,7 +89,7 @@ func (r *UserRepository) ListRegionsByParent(ctx context.Context, parentCode str
 
 func (r *UserRepository) ListRegionsByLevel(ctx context.Context, level int) ([]model.Region, error) {
 	var list []model.Region
-	err := r.conn.QueryRowsCtx(ctx, &list,
+	err := r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+regionColumns+" FROM regions WHERE level=? ORDER BY sort ASC, code ASC",
 		level,
 	)
@@ -98,7 +98,7 @@ func (r *UserRepository) ListRegionsByLevel(ctx context.Context, level int) ([]m
 
 func (r *UserRepository) GetRegionByCode(ctx context.Context, code string) (*model.Region, error) {
 	var reg model.Region
-	err := r.conn.QueryRowCtx(ctx, &reg,
+	err := r.conn.QueryRowPartialCtx(ctx, &reg,
 		"SELECT "+regionColumns+" FROM regions WHERE code=? LIMIT 1", code,
 	)
 	if err != nil {
@@ -109,7 +109,7 @@ func (r *UserRepository) GetRegionByCode(ctx context.Context, code string) (*mod
 
 func (r *UserRepository) BuildRegionTree(ctx context.Context) ([]model.RegionTreeNode, error) {
 	var all []model.Region
-	if err := r.conn.QueryRowsCtx(ctx, &all,
+	if err := r.conn.QueryRowsPartialCtx(ctx, &all,
 		"SELECT "+regionColumns+" FROM regions ORDER BY level ASC, sort ASC, code ASC",
 	); err != nil {
 		return nil, err

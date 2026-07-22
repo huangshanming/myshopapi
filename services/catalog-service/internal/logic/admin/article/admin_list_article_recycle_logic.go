@@ -54,5 +54,5 @@ func (l *AdminListArticleRecycleLogic) AdminListArticleRecycle(ctx context.Conte
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.PageListResp{List: data}, nil
+	return types.FromPaged(data), nil
 }

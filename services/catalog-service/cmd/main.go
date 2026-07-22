@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"sync"
@@ -56,7 +57,7 @@ func main() {
 	defer logger.Sync()
 
 	ctx := context.Background()
-	shutdownTrace, err := telemetry.Init(ctx, c.Telemetry.ToPkg())
+	shutdownTrace, err := telemetry.Init(ctx, c.AppTelemetry.ToPkg())
 	if err != nil {
 		logger.Warn("telemetry init skipped")
 	}
@@ -135,16 +136,18 @@ func main() {
 	}()
 	defer rpcServer.Stop()
 
-	serverHTTP := rest.MustNewServer(c.RestConf, rest.WithCors())
+	_ = os.MkdirAll(uploadpath.Root(), 0o755)
+	serverHTTP := rest.MustNewServer(c.RestConf,
+		rest.WithCors(),
+		rest.WithFileServer("/uploads", http.Dir(uploadpath.Root())),
+	)
 	defer serverHTTP.Stop()
 
 	svcCtx.Health = healthReg
 	handler.RegisterHandlers(serverHTTP, svcCtx)
 
-	_ = os.MkdirAll(uploadpath.Root(), 0o755)
-
 	go func() {
-		logger.Info(fmt.Sprintf("catalog-service HTTP(go-zero) 启动 :%d", c.Port))
+		logger.Info(fmt.Sprintf("catalog-service HTTP(go-zero) 启动 :%d uploads=%s", c.Port, uploadpath.Root()))
 		serverHTTP.Start()
 	}()
 

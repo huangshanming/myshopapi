@@ -38,26 +38,26 @@ type (
 	}
 
 	PointsExchangeOrder struct {
-		ID              uint64       `db:"id"`
-		OrderNo         string       `db:"order_no"` // 兑换单号
-		UserID          uint64       `db:"user_id"`
-		ProductID       uint64       `db:"product_id"`
-		ProductName     string       `db:"product_name"`
-		ProductCover    string       `db:"product_cover"`
-		Quantity        int        `db:"quantity"`
-		PointsCost      int        `db:"points_cost"` // 消耗积分
-		Status          string       `db:"status"`      // pending|shipped|completed|cancelled
-		ReceiverName    string       `db:"receiver_name"`
-		ReceiverPhone   string       `db:"receiver_phone"`
-		ReceiverAddress string       `db:"receiver_address"`
-		ShipCompany     string       `db:"ship_company"`
-		ShipNo          string       `db:"ship_no"`
-		AdminRemark     string       `db:"admin_remark"`
-		ShippedAt       common.LocalTime `db:"shipped_at"`
-		CompletedAt     common.LocalTime `db:"completed_at"`
-		CancelledAt     common.LocalTime `db:"cancelled_at"`
-		CreatedAt       common.LocalTime    `db:"created_at"`
-		UpdatedAt       common.LocalTime    `db:"updated_at"`
+		ID              uint64       `db:"id" json:"id"`
+		OrderNo         string       `db:"order_no" json:"order_no"` // 兑换单号
+		UserID          uint64       `db:"user_id" json:"user_id"`
+		ProductID       uint64       `db:"product_id" json:"product_id"`
+		ProductName     string       `db:"product_name" json:"product_name"`
+		ProductCover    string       `db:"product_cover" json:"product_cover"`
+		Quantity        int        `db:"quantity" json:"quantity"`
+		PointsCost      int        `db:"points_cost" json:"points_cost"` // 消耗积分
+		Status          string       `db:"status" json:"status"`      // pending|shipped|completed|cancelled
+		ReceiverName    string       `db:"receiver_name" json:"receiver_name"`
+		ReceiverPhone   string       `db:"receiver_phone" json:"receiver_phone"`
+		ReceiverAddress string       `db:"receiver_address" json:"receiver_address"`
+		ShipCompany     string       `db:"ship_company" json:"ship_company"`
+		ShipNo          string       `db:"ship_no" json:"ship_no"`
+		AdminRemark     string       `db:"admin_remark" json:"admin_remark"`
+		ShippedAt       common.LocalTime `db:"shipped_at" json:"shipped_at"`
+		CompletedAt     common.LocalTime `db:"completed_at" json:"completed_at"`
+		CancelledAt     common.LocalTime `db:"cancelled_at" json:"cancelled_at"`
+		CreatedAt       common.LocalTime    `db:"created_at" json:"created_at"`
+		UpdatedAt       common.LocalTime    `db:"updated_at" json:"updated_at"`
 	}
 )
 

@@ -43,7 +43,7 @@ func main() {
 	defer logger.Sync()
 
 	ctx := context.Background()
-	shutdownTrace, err := telemetry.Init(ctx, c.Telemetry.ToPkg())
+	shutdownTrace, err := telemetry.Init(ctx, c.AppTelemetry.ToPkg())
 	if err != nil {
 		logger.Warn("telemetry init skipped")
 	}

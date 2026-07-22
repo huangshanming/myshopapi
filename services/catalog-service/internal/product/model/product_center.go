@@ -132,7 +132,8 @@ func (ProductBatchJob) TableName() string { return "product_batch_jobs" }
 type ProductOpLog struct {
 	ID         uint64           `db:"id" json:"id"`
 	ShopID     uint64           `db:"shop_id" json:"shop_id"`
-	ProductID  *uint64          `db:"product_id" json:"product_id,omitempty"`
+	// Non-pointer: go-zero sqlx pre-allocates *uint64 so NULL cannot scan; use IFNULL in SELECT.
+	ProductID  uint64           `db:"product_id" json:"product_id,omitempty"`
 	OperatorID uint64           `db:"operator_id" json:"operator_id"`
 	Action     string           `db:"action" json:"action"`
 	BeforeJSON string           `db:"before_json" json:"before_json,omitempty"`

@@ -38,16 +38,16 @@ type (
 	}
 
 	UserTaskProgress struct {
-		ID         uint64       `db:"id"`
-		UserID     uint64       `db:"user_id"`
-		TaskCode   string       `db:"task_code"`
-		BizDate    common.LocalTime    `db:"biz_date"` // 日任务按自然日; once=1970-01-01
-		Progress   int        `db:"progress"`
-		ClaimCount int        `db:"claim_count"` // 当日已领取次数
-		Status     string       `db:"status"`      // ongoing|claimable|claimed
-		ClaimedAt  common.LocalTime `db:"claimed_at"`
-		CreatedAt  common.LocalTime    `db:"created_at"`
-		UpdatedAt  common.LocalTime    `db:"updated_at"`
+		ID         uint64       `db:"id" json:"id"`
+		UserID     uint64       `db:"user_id" json:"user_id"`
+		TaskCode   string       `db:"task_code" json:"task_code"`
+		BizDate    common.LocalTime    `db:"biz_date" json:"biz_date"` // 日任务按自然日; once=1970-01-01
+		Progress   int        `db:"progress" json:"progress"`
+		ClaimCount int        `db:"claim_count" json:"claim_count"` // 当日已领取次数
+		Status     string       `db:"status" json:"status"`      // ongoing|claimable|claimed
+		ClaimedAt  common.LocalTime `db:"claimed_at" json:"claimed_at"`
+		CreatedAt  common.LocalTime    `db:"created_at" json:"created_at"`
+		UpdatedAt  common.LocalTime    `db:"updated_at" json:"updated_at"`
 	}
 )
 

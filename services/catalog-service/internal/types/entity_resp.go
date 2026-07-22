@@ -13,10 +13,12 @@ type ImportResultResp = DataResp
 type ProductJobResp = DataResp
 type ProductResp = DataResp
 type RoleMenuIdsResp = DataResp
-type SalesRankResp = DataResp
 type ShopRoleResp = DataResp
 type StockWarningsResp = DataResp
 type TagResp = DataResp
+
+// SalesRankResp matches mall-uni: { total, list: [...] } (not nested under data).
+type SalesRankResp = PageListResp
 
 
 type ShopAuthMeResp struct {

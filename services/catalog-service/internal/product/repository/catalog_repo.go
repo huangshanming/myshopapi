@@ -13,9 +13,10 @@ import (
 )
 
 const (
-	productColumns = "id, shop_id, product_no, name, subtitle, description, main_image, image_list, video_url, market_price, sale_price, cost_price, discount, discount_price, stock, stock_warn, sold_count, view_count, collect_count, avg_rating, review_count, good_rate, pet_type, pet_age, pet_size, weight, unit, brand_id, category_id, product_type, spec_json, tags, nutrition_info, ingredients, feeding_guide, shelf_life, storage_condition, status, is_hot, is_new, is_recommend, is_prescription, is_imported, is_organic, is_grain_free, publish_time, schedule_on_at, schedule_off_at, copy_from_id, deleted_at, created_at, updated_at"
-	productListColumns = "id, shop_id, product_no, name, subtitle, main_image, market_price, sale_price, discount, stock, sold_count, collect_count, avg_rating, review_count, good_rate, category_id, brand_id, pet_type, tags, status, is_hot, is_new, is_recommend, is_prescription, publish_time, created_at"
-	productCategoryColumns = "id, parent_id, name, icon, image, description, sort_order, level, is_show, product_count, created_at, updated_at"
+	// copy_from_id / numeric nullables use IFNULL: go-zero sqlx pre-allocates *T so NULL cannot scan into *uint64.
+	productColumns = "id, shop_id, product_no, name, IFNULL(subtitle,'') AS subtitle, IFNULL(description,'') AS description, IFNULL(main_image,'') AS main_image, image_list, IFNULL(video_url,'') AS video_url, IFNULL(market_price,0) AS market_price, sale_price, IFNULL(cost_price,0) AS cost_price, discount, IFNULL(discount_price,0) AS discount_price, stock, stock_warn, sold_count, view_count, collect_count, avg_rating, review_count, good_rate, pet_type, pet_age, pet_size, IFNULL(weight,0) AS weight, IFNULL(unit,'') AS unit, IFNULL(brand_id,0) AS brand_id, category_id, product_type, IFNULL(spec_json,'') AS spec_json, tags, nutrition_info, IFNULL(ingredients,'') AS ingredients, IFNULL(feeding_guide,'') AS feeding_guide, IFNULL(shelf_life,0) AS shelf_life, IFNULL(storage_condition,'') AS storage_condition, status, is_hot, is_new, is_recommend, is_prescription, is_imported, is_organic, is_grain_free, publish_time, schedule_on_at, schedule_off_at, IFNULL(copy_from_id,0) AS copy_from_id, deleted_at, created_at, updated_at"
+	productListColumns = "id, shop_id, product_no, name, IFNULL(subtitle,'') AS subtitle, IFNULL(main_image,'') AS main_image, IFNULL(market_price,0) AS market_price, sale_price, discount, stock, sold_count, collect_count, avg_rating, review_count, good_rate, category_id, IFNULL(brand_id,0) AS brand_id, pet_type, tags, status, is_hot, is_new, is_recommend, is_prescription, publish_time, created_at"
+	productCategoryColumns = "id, parent_id, name, IFNULL(icon,'') AS icon, IFNULL(image,'') AS image, IFNULL(description,'') AS description, sort_order, level, is_show, product_count, created_at, updated_at"
 )
 
 type StockItem struct {
@@ -46,11 +47,11 @@ func (r *ProductRepository) categoryIDsIncludingChildren(ctx context.Context, ca
 	}
 	ids := []uint64{categoryID}
 	var children []uint64
-	_ = r.conn.QueryRowsCtx(ctx, &children, "SELECT id FROM product_categories WHERE parent_id=?", categoryID)
+	_ = r.conn.QueryRowsPartialCtx(ctx, &children, "SELECT id FROM product_categories WHERE parent_id=?", categoryID)
 	ids = append(ids, children...)
 	if len(children) > 0 {
 		var grand []uint64
-		_ = r.conn.QueryRowsCtx(ctx, &grand,
+		_ = r.conn.QueryRowsPartialCtx(ctx, &grand,
 			"SELECT id FROM product_categories WHERE parent_id IN ("+placeholders(len(children))+")",
 			inArgs(children)...,
 		)
@@ -101,7 +102,7 @@ func (r *ProductRepository) GetListFiltered(ctx context.Context, page *paginatio
 
 	var list []model.ProductListResp
 	qArgs := append(args, pageSize, offset)
-	err = r.conn.QueryRowsCtx(ctx, &list,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+productListColumns+" FROM products WHERE "+whereSQL+" ORDER BY "+order+" LIMIT ? OFFSET ?",
 		qArgs...,
 	)
@@ -153,7 +154,7 @@ func (r *ProductRepository) ForceOffSale(ctx context.Context, id uint64) error {
 
 func (r *ProductRepository) GetDetail(ctx context.Context, id uint64) (*model.Product, error) {
 	var product model.Product
-	err := r.conn.QueryRowCtx(ctx, &product, "SELECT "+productColumns+" FROM products WHERE id=? LIMIT 1", id)
+	err := r.conn.QueryRowPartialCtx(ctx, &product, "SELECT "+productColumns+" FROM products WHERE id=? LIMIT 1", id)
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +163,7 @@ func (r *ProductRepository) GetDetail(ctx context.Context, id uint64) (*model.Pr
 
 func (r *ProductRepository) GetCollectCount(ctx context.Context, productID uint64) (int64, error) {
 	var n int64
-	err := r.conn.QueryRowCtx(ctx, &n, "SELECT collect_count FROM products WHERE id=? LIMIT 1", productID)
+	err := r.conn.QueryRowPartialCtx(ctx, &n, "SELECT collect_count FROM products WHERE id=? LIMIT 1", productID)
 	return int64(n), err
 }
 
@@ -171,7 +172,7 @@ func (r *ProductRepository) BatchGetByIDs(ctx context.Context, ids []uint64) ([]
 		return []model.Product{}, nil
 	}
 	var products []model.Product
-	err := r.conn.QueryRowsCtx(ctx, &products,
+	err := r.conn.QueryRowsPartialCtx(ctx, &products,
 		"SELECT "+productColumns+" FROM products WHERE id IN ("+placeholders(len(ids))+") AND status='on_sale'",
 		inArgs(ids)...,
 	)
@@ -198,7 +199,7 @@ func (r *ProductRepository) ListSalesRank(ctx context.Context, page, pageSize in
 	}
 
 	var list []model.ProductSalesRankItem
-	err = r.conn.QueryRowsCtx(ctx, &list, `
+	err = r.conn.QueryRowsPartialCtx(ctx, &list, `
 SELECT p.id, p.shop_id, p.name, COALESCE(s.name,'') AS shop_name,
        COALESCE(p.main_image,'') AS main_image, p.sale_price,
        p.sold_count, COALESCE(t.today_sold, 0) AS today_sold
@@ -260,7 +261,7 @@ func (r *CategoryRepository) GetList(ctx context.Context, page *pagination.PageR
 
 	pg, pageSize, offset := pagination.Normalize(page)
 	var list []model.ProductCategory
-	err = r.conn.QueryRowsCtx(ctx, &list,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+productCategoryColumns+" FROM product_categories WHERE is_show=1 ORDER BY sort_order ASC, id ASC LIMIT ? OFFSET ?",
 		pageSize, offset,
 	)
@@ -278,14 +279,14 @@ func (r *CategoryRepository) GetList(ctx context.Context, page *pagination.PageR
 
 func (r *CategoryRepository) ListAll(ctx context.Context) ([]model.ProductCategory, error) {
 	var list []model.ProductCategory
-	err := r.conn.QueryRowsCtx(ctx, &list,
+	err := r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+productCategoryColumns+" FROM product_categories ORDER BY sort_order ASC, id ASC")
 	return list, err
 }
 
 func (r *CategoryRepository) GetDetail(ctx context.Context, id uint64) (*model.ProductCategory, error) {
 	var category model.ProductCategory
-	err := r.conn.QueryRowCtx(ctx, &category, "SELECT "+productCategoryColumns+" FROM product_categories WHERE id=? LIMIT 1", id)
+	err := r.conn.QueryRowPartialCtx(ctx, &category, "SELECT "+productCategoryColumns+" FROM product_categories WHERE id=? LIMIT 1", id)
 	if err != nil {
 		return nil, err
 	}

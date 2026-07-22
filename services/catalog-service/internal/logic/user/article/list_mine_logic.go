@@ -35,5 +35,5 @@ func (l *ListMineLogic) ListMine(ctx context.Context, req *types.PageReq) (resp 
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.PageListResp{List: data}, nil
+	return types.FromPaged(data), nil
 }

@@ -9,7 +9,7 @@ import (
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
-const logisticsColumns = "id, name, code, sort, status, created_at, updated_at"
+const logisticsColumns = "id, IFNULL(name,'') AS name, IFNULL(code,'') AS code, sort, status, created_at, updated_at"
 
 type LogisticsListFilter struct {
 	Name        string
@@ -64,7 +64,7 @@ func (r *LogisticsRepository) List(ctx context.Context, f LogisticsListFilter) (
 	}
 	listArgs := append(append([]any{}, args...), (f.Page-1)*f.PageSize, f.PageSize)
 	var list []model.LogisticsCompany
-	err = r.conn.QueryRowsCtx(ctx, &list,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+logisticsColumns+" FROM logistics_companies WHERE "+w+" ORDER BY sort ASC, id ASC LIMIT ?, ?",
 		listArgs...,
 	)
@@ -84,7 +84,7 @@ func (r *LogisticsRepository) Options(ctx context.Context, keyword string, limit
 	}
 	args = append(args, limit)
 	var list []model.LogisticsCompany
-	err := r.conn.QueryRowsCtx(ctx, &list,
+	err := r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+logisticsColumns+" FROM logistics_companies WHERE "+strings.Join(where, " AND ")+" ORDER BY sort ASC, id ASC LIMIT ?",
 		args...,
 	)
@@ -141,7 +141,7 @@ func (r *LogisticsRepository) Delete(ctx context.Context, id uint64) error {
 
 func (r *LogisticsRepository) FindByCode(ctx context.Context, code string) (*model.LogisticsCompany, error) {
 	var c model.LogisticsCompany
-	err := r.conn.QueryRowCtx(ctx, &c, "SELECT "+logisticsColumns+" FROM logistics_companies WHERE code=? LIMIT 1", code)
+	err := r.conn.QueryRowPartialCtx(ctx, &c, "SELECT "+logisticsColumns+" FROM logistics_companies WHERE code=? LIMIT 1", code)
 	if err != nil {
 		return nil, err
 	}

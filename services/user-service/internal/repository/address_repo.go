@@ -9,11 +9,11 @@ import (
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
-const addressColumns = "id, user_id, receiver_name, receiver_phone, province, city, district, detail, province_code, city_code, district_code, is_default, created_at, updated_at"
+const addressColumns = "id, user_id, IFNULL(receiver_name,'') AS receiver_name, IFNULL(receiver_phone,'') AS receiver_phone, IFNULL(province,'') AS province, IFNULL(city,'') AS city, IFNULL(district,'') AS district, IFNULL(detail,'') AS detail, IFNULL(province_code,'') AS province_code, IFNULL(city_code,'') AS city_code, IFNULL(district_code,'') AS district_code, is_default, created_at, updated_at"
 
 func (r *UserRepository) ListAddresses(ctx context.Context, userID uint64) ([]model.UserAddress, error) {
 	var list []model.UserAddress
-	err := r.conn.QueryRowsCtx(ctx, &list,
+	err := r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+addressColumns+" FROM user_addresses WHERE user_id=? ORDER BY is_default DESC, id DESC",
 		userID,
 	)
@@ -22,7 +22,7 @@ func (r *UserRepository) ListAddresses(ctx context.Context, userID uint64) ([]mo
 
 func (r *UserRepository) GetAddress(ctx context.Context, userID, id uint64) (*model.UserAddress, error) {
 	var a model.UserAddress
-	err := r.conn.QueryRowCtx(ctx, &a,
+	err := r.conn.QueryRowPartialCtx(ctx, &a,
 		"SELECT "+addressColumns+" FROM user_addresses WHERE id=? AND user_id=? LIMIT 1", id, userID,
 	)
 	if err != nil {
@@ -71,7 +71,7 @@ func (r *UserRepository) CreateAddress(ctx context.Context, a *model.UserAddress
 func (r *UserRepository) UpdateAddress(ctx context.Context, userID, id uint64, a *model.UserAddress) error {
 	return r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		var existing model.UserAddress
-		if err := session.QueryRowCtx(ctx, &existing,
+		if err := session.QueryRowPartialCtx(ctx, &existing,
 			"SELECT "+addressColumns+" FROM user_addresses WHERE id=? AND user_id=? LIMIT 1", id, userID,
 		); err != nil {
 			return err
@@ -109,7 +109,7 @@ func (r *UserRepository) DeleteAddress(ctx context.Context, userID, id uint64) e
 func (r *UserRepository) SetDefaultAddress(ctx context.Context, userID, id uint64) error {
 	return r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		var existing model.UserAddress
-		if err := session.QueryRowCtx(ctx, &existing,
+		if err := session.QueryRowPartialCtx(ctx, &existing,
 			"SELECT "+addressColumns+" FROM user_addresses WHERE id=? AND user_id=? LIMIT 1", id, userID,
 		); err != nil {
 			return err

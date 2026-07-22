@@ -9,7 +9,7 @@ import (
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
-const pointsProductColumns = "id, name, cover_url, description, points_price, stock, per_user_limit, status, sort, created_at, updated_at"
+const pointsProductColumns = "id, IFNULL(name,'') AS name, IFNULL(cover_url,'') AS cover_url, IFNULL(description,'') AS description, points_price, stock, per_user_limit, status, sort, created_at, updated_at"
 
 type PointsProductRepository struct {
 	conn sqlx.SqlConn
@@ -36,7 +36,7 @@ func (r *PointsProductRepository) List(ctx context.Context, page, pageSize int, 
 	}
 	listArgs := append(append([]any{}, args...), pageSize, (page-1)*pageSize)
 	var list []model.PointsProduct
-	err = r.conn.QueryRowsCtx(ctx, &list,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+pointsProductColumns+" FROM points_products WHERE "+where+" ORDER BY sort DESC, id DESC LIMIT ? OFFSET ?",
 		listArgs...,
 	)
@@ -45,7 +45,7 @@ func (r *PointsProductRepository) List(ctx context.Context, page, pageSize int, 
 
 func (r *PointsProductRepository) GetByID(ctx context.Context, id uint64) (*model.PointsProduct, error) {
 	var p model.PointsProduct
-	err := r.conn.QueryRowCtx(ctx, &p,
+	err := r.conn.QueryRowPartialCtx(ctx, &p,
 		"SELECT "+pointsProductColumns+" FROM points_products WHERE id=? LIMIT 1", id,
 	)
 	if err != nil {

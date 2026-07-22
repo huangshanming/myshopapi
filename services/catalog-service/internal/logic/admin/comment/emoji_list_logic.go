@@ -30,5 +30,5 @@ func (l *EmojiListLogic) EmojiList(ctx context.Context, req *types.PageReq) (res
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.PageListResp{List: data}, nil
+	return types.FromPaged(data), nil
 }

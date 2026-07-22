@@ -21,7 +21,8 @@ type Config struct {
 	MySQL     MySQLConf
 	Redis     RedisConf
 	RabbitMQ  RabbitMQConf
-	Telemetry TelemetryConf
+	// AppTelemetry is our OTel init config. Named to avoid clash with rest.RestConf / ServiceConf.Telemetry.
+	AppTelemetry TelemetryConf
 }
 
 type EtcdConf struct {
@@ -58,8 +59,8 @@ type RabbitMQConf struct {
 }
 
 type TelemetryConf struct {
-	Enabled  bool
-	Endpoint string
+	Enabled  bool   `json:",default=false"`
+	Endpoint string `json:",optional"`
 	Service  string `json:",default=catalog-service"`
 }
 
@@ -136,13 +137,13 @@ func (c *Config) OverlayFromEnv() {
 		c.Etcd.Hosts = splitHosts(v)
 	}
 	if v := strings.TrimSpace(os.Getenv("MYMALL_TELEMETRY_ENABLED")); v != "" {
-		c.Telemetry.Enabled = v == "1" || strings.EqualFold(v, "true")
+		c.AppTelemetry.Enabled = v == "1" || strings.EqualFold(v, "true")
 	}
 	if v := strings.TrimSpace(os.Getenv("MYMALL_TELEMETRY_ENDPOINT")); v != "" {
-		c.Telemetry.Endpoint = v
+		c.AppTelemetry.Endpoint = v
 	}
 	if v := strings.TrimSpace(os.Getenv("MYMALL_TELEMETRY_SERVICE")); v != "" {
-		c.Telemetry.Service = v
+		c.AppTelemetry.Service = v
 	}
 }
 

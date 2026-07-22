@@ -16,6 +16,7 @@
 import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { fetchConfigs, saveConfigs } from '../../../api/system'
+import { pickList } from '../../../utils/list'
 
 const list = ref([])
 const loading = ref(false)
@@ -24,7 +25,7 @@ async function load() {
   loading.value = true
   try {
     const res = await fetchConfigs()
-    list.value = res || []
+    list.value = pickList(res)
   } catch (e) {
     ElMessage.error(e.message)
   } finally {

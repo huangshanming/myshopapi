@@ -171,7 +171,7 @@ async function loadShop() {
 async function loadAddresses() {
   try {
     const res = await listAddresses()
-    const list = res || []
+    const list = res?.list || []
     const picked = uni.getStorageSync('mymall_picked_address_id')
     if (picked) {
       addressId.value = Number(picked)

@@ -30,7 +30,7 @@ func inArgs(ids []uint64) []any {
 
 func countCtx(ctx context.Context, conn sqlx.SqlConn, query string, args ...any) (int64, error) {
 	var n int64
-	err := conn.QueryRowCtx(ctx, &n, query, args...)
+	err := conn.QueryRowPartialCtx(ctx, &n, query, args...)
 	return n, err
 }
 

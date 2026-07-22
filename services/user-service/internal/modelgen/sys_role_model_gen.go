@@ -38,13 +38,13 @@ type (
 	}
 
 	SysRole struct {
-		ID        uint64    `db:"id"`
-		Code      string    `db:"code"`
-		Name      string    `db:"name"`
-		Status    int     `db:"status"`
-		Remark    string    `db:"remark"`
-		CreatedAt common.LocalTime `db:"created_at"`
-		UpdatedAt common.LocalTime `db:"updated_at"`
+		ID        uint64    `db:"id" json:"id"`
+		Code      string    `db:"code" json:"code"`
+		Name      string    `db:"name" json:"name"`
+		Status    int     `db:"status" json:"status"`
+		Remark    string    `db:"remark" json:"remark"`
+		CreatedAt common.LocalTime `db:"created_at" json:"created_at"`
+		UpdatedAt common.LocalTime `db:"updated_at" json:"updated_at"`
 	}
 )
 

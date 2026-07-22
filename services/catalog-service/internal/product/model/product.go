@@ -63,7 +63,8 @@ type Product struct {
 	PublishTime    common.LocalTime  `db:"publish_time" json:"publish_time,omitempty"`
 	ScheduleOnAt   *common.LocalTime `db:"schedule_on_at" json:"schedule_on_at,omitempty"`
 	ScheduleOffAt  *common.LocalTime `db:"schedule_off_at" json:"schedule_off_at,omitempty"`
-	CopyFromID     *uint64           `db:"copy_from_id" json:"copy_from_id,omitempty"`
+	// Non-pointer: go-zero sqlx pre-allocates *uint64 so NULL cannot scan; use IFNULL in SELECT.
+	CopyFromID     uint64            `db:"copy_from_id" json:"copy_from_id,omitempty"`
 	DeletedAt      common.LocalTime  `db:"deleted_at" json:"deleted_at"`
 }
 

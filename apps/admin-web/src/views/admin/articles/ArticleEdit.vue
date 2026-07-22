@@ -69,6 +69,7 @@ import { fetchShops } from '../../../api/merchant'
 import {
   createArticle, updateArticle, getArticle, listArticleCategories, uploadArticleImage,
 } from '../../../api/admin-article'
+import { pickList } from '../../../utils/list'
 
 const route = useRoute()
 const router = useRouter()
@@ -103,7 +104,7 @@ async function searchShops(keyword) {
 
 async function loadCats() {
   const res = await listArticleCategories()
-  catTree.value = res || []
+  catTree.value = pickList(res)
 }
 
 async function loadDetail() {

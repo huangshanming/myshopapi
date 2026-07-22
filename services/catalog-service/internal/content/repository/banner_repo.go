@@ -22,7 +22,7 @@ func (r *ArticleRepository) ListBannersAdmin(ctx context.Context, page, pageSize
 		return nil, 0, err
 	}
 	var list []model.HomepageBanner
-	err = r.conn.QueryRowsCtx(ctx, &list,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+homepageBannerColumns+" FROM homepage_banners ORDER BY sort ASC, id DESC LIMIT ? OFFSET ?",
 		pageSize, (page-1)*pageSize,
 	)
@@ -32,7 +32,7 @@ func (r *ArticleRepository) ListBannersAdmin(ctx context.Context, page, pageSize
 func (r *ArticleRepository) ListBannersPublic(ctx context.Context) ([]model.HomepageBanner, error) {
 	now := time.Now()
 	var list []model.HomepageBanner
-	err := r.conn.QueryRowsCtx(ctx, &list,
+	err := r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+homepageBannerColumns+` FROM homepage_banners
 WHERE status=? AND (start_at IS NULL OR start_at<=?) AND (end_at IS NULL OR end_at>?)
 ORDER BY sort ASC, id DESC`,
@@ -43,7 +43,7 @@ ORDER BY sort ASC, id DESC`,
 
 func (r *ArticleRepository) GetBanner(ctx context.Context, id uint64) (*model.HomepageBanner, error) {
 	var b model.HomepageBanner
-	err := r.conn.QueryRowCtx(ctx, &b, "SELECT "+homepageBannerColumns+" FROM homepage_banners WHERE id=? LIMIT 1", id)
+	err := r.conn.QueryRowPartialCtx(ctx, &b, "SELECT "+homepageBannerColumns+" FROM homepage_banners WHERE id=? LIMIT 1", id)
 	if err != nil {
 		return nil, err
 	}
@@ -97,14 +97,14 @@ func (r *ArticleRepository) FillBannerLinkNames(ctx context.Context, list []mode
 				continue
 			}
 			var name string
-			_ = r.conn.QueryRowCtx(ctx, &name, "SELECT name FROM products WHERE id=? LIMIT 1", list[i].LinkID)
+			_ = r.conn.QueryRowPartialCtx(ctx, &name, "SELECT name FROM products WHERE id=? LIMIT 1", list[i].LinkID)
 			list[i].LinkName = name
 		case model.BannerLinkArticle:
 			if list[i].LinkID == 0 {
 				continue
 			}
 			var title string
-			_ = r.conn.QueryRowCtx(ctx, &title, "SELECT title FROM community_article WHERE id=? LIMIT 1", list[i].LinkID)
+			_ = r.conn.QueryRowPartialCtx(ctx, &title, "SELECT title FROM community_article WHERE id=? LIMIT 1", list[i].LinkID)
 			list[i].LinkName = title
 		}
 	}

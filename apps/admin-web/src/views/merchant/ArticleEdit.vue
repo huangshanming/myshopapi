@@ -49,6 +49,7 @@ import {
   createMyArticle, updateMyArticle, getMyArticle,
   listMyArticleCategories, uploadMyArticleImage,
 } from '../../api/merchant-article'
+import { pickList } from '../../utils/list'
 
 const route = useRoute()
 const router = useRouter()
@@ -74,7 +75,7 @@ const readonlyTip = computed(() => {
 
 async function load() {
   const cats = await listMyArticleCategories()
-  catTree.value = cats || []
+  catTree.value = pickList(cats)
   if (!id.value) return
   const res = await getMyArticle(id.value)
   const a = res?.article || {}

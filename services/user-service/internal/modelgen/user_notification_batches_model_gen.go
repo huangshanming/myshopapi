@@ -37,16 +37,16 @@ type (
 	}
 
 	UserNotificationBatch struct {
-		ID           uint64    `db:"id"`
-		Title        string    `db:"title"`
-		Content      string    `db:"content"`
-		Target       string    `db:"target"`
-		UserCount    int     `db:"user_count"`
-		SuccessCount int     `db:"success_count"`
-		LinkType     string    `db:"link_type"`
-		LinkID       uint64    `db:"link_id"`
-		SenderID     uint64    `db:"sender_id"`
-		CreatedAt    common.LocalTime `db:"created_at"`
+		ID           uint64    `db:"id" json:"id"`
+		Title        string    `db:"title" json:"title"`
+		Content      string    `db:"content" json:"content"`
+		Target       string    `db:"target" json:"target"`
+		UserCount    int     `db:"user_count" json:"user_count"`
+		SuccessCount int     `db:"success_count" json:"success_count"`
+		LinkType     string    `db:"link_type" json:"link_type"`
+		LinkID       uint64    `db:"link_id" json:"link_id"`
+		SenderID     uint64    `db:"sender_id" json:"sender_id"`
+		CreatedAt    common.LocalTime `db:"created_at" json:"created_at"`
 	}
 )
 

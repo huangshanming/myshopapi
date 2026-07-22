@@ -35,6 +35,6 @@ func (l *UserListFavoritesLogic) UserListFavorites(ctx context.Context, req *typ
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.PageListResp{List: map[string]interface{}{"list": list, "total": total}}, nil
+	return types.FromPaged(map[string]interface{}{"list": list, "total": total}), nil
 
 }

@@ -42,6 +42,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   listArticleCategories, createArticleCategory, updateArticleCategory, deleteArticleCategory,
 } from '../../../api/admin-article'
+import { pickList } from '../../../utils/list'
 
 const tree = ref([])
 const flat = ref([])
@@ -59,7 +60,7 @@ function flatten(nodes, out = []) {
 
 async function load() {
   const res = await listArticleCategories()
-  tree.value = res || []
+  tree.value = pickList(res)
   flat.value = flatten(tree.value)
 }
 

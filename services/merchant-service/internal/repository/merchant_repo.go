@@ -11,8 +11,10 @@ import (
 )
 
 const (
-	shopColumns = "id, name, logo, contact_name, contact_phone, description, category, province, city, district, address, business_license_no, legal_person, license_image, storefront_image, owner_user_id, status, reject_reason, created_at, updated_at"
-	shopAppColumns = "id, user_id, shop_name, contact_name, contact_phone, description, category, province, city, district, address, business_license_no, legal_person, license_image, storefront_image, status, reject_reason, reviewed_by, reviewed_at, shop_id, created_at, updated_at"
+	shopColumns = "id, name, IFNULL(logo,'') AS logo, IFNULL(contact_name,'') AS contact_name, IFNULL(contact_phone,'') AS contact_phone, IFNULL(description,'') AS description, IFNULL(category,'') AS category, IFNULL(province,'') AS province, IFNULL(city,'') AS city, IFNULL(district,'') AS district, IFNULL(address,'') AS address, IFNULL(business_license_no,'') AS business_license_no, IFNULL(legal_person,'') AS legal_person, IFNULL(license_image,'') AS license_image, IFNULL(storefront_image,'') AS storefront_image, owner_user_id, status, IFNULL(reject_reason,'') AS reject_reason, created_at, updated_at"
+	// shopColumnsS is shopColumns with table alias s. for JOIN queries.
+	shopColumnsS = "s.id, s.name, IFNULL(s.logo,'') AS logo, IFNULL(s.contact_name,'') AS contact_name, IFNULL(s.contact_phone,'') AS contact_phone, IFNULL(s.description,'') AS description, IFNULL(s.category,'') AS category, IFNULL(s.province,'') AS province, IFNULL(s.city,'') AS city, IFNULL(s.district,'') AS district, IFNULL(s.address,'') AS address, IFNULL(s.business_license_no,'') AS business_license_no, IFNULL(s.legal_person,'') AS legal_person, IFNULL(s.license_image,'') AS license_image, IFNULL(s.storefront_image,'') AS storefront_image, s.owner_user_id, s.status, IFNULL(s.reject_reason,'') AS reject_reason, s.created_at, s.updated_at"
+	shopAppColumns = "id, user_id, shop_name, IFNULL(contact_name,'') AS contact_name, IFNULL(contact_phone,'') AS contact_phone, IFNULL(description,'') AS description, IFNULL(category,'') AS category, IFNULL(province,'') AS province, IFNULL(city,'') AS city, IFNULL(district,'') AS district, IFNULL(address,'') AS address, IFNULL(business_license_no,'') AS business_license_no, IFNULL(legal_person,'') AS legal_person, IFNULL(license_image,'') AS license_image, IFNULL(storefront_image,'') AS storefront_image, status, IFNULL(reject_reason,'') AS reject_reason, IFNULL(reviewed_by,0) AS reviewed_by, reviewed_at, IFNULL(shop_id,0) AS shop_id, created_at, updated_at"
 )
 
 type MerchantRepository struct {
@@ -44,7 +46,7 @@ func (r *MerchantRepository) CreateApplication(ctx context.Context, app *model.S
 
 func (r *MerchantRepository) FindPendingAppByUser(ctx context.Context, userID uint64) (*model.ShopApplication, error) {
 	var app model.ShopApplication
-	err := r.conn.QueryRowCtx(ctx, &app,
+	err := r.conn.QueryRowPartialCtx(ctx, &app,
 		"SELECT "+shopAppColumns+" FROM shop_applications WHERE user_id=? AND status=? LIMIT 1",
 		userID, model.AppPending,
 	)
@@ -67,7 +69,7 @@ func (r *MerchantRepository) ListApplications(ctx context.Context, status string
 	}
 	listArgs := append(append([]any{}, args...), pageSize, (page-1)*pageSize)
 	var list []model.ShopApplication
-	err = r.conn.QueryRowsCtx(ctx, &list,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+shopAppColumns+" FROM shop_applications WHERE "+where+" ORDER BY id DESC LIMIT ? OFFSET ?",
 		listArgs...,
 	)
@@ -76,7 +78,7 @@ func (r *MerchantRepository) ListApplications(ctx context.Context, status string
 
 func (r *MerchantRepository) FindApplication(ctx context.Context, id uint64) (*model.ShopApplication, error) {
 	var app model.ShopApplication
-	err := r.conn.QueryRowCtx(ctx, &app,
+	err := r.conn.QueryRowPartialCtx(ctx, &app,
 		"SELECT "+shopAppColumns+" FROM shop_applications WHERE id=? LIMIT 1", id,
 	)
 	if err != nil {
@@ -89,7 +91,7 @@ func (r *MerchantRepository) ApproveApplication(ctx context.Context, appID, admi
 	var shop *model.Shop
 	err := r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		var app model.ShopApplication
-		if err := session.QueryRowCtx(ctx, &app,
+		if err := session.QueryRowPartialCtx(ctx, &app,
 			"SELECT "+shopAppColumns+" FROM shop_applications WHERE id=? LIMIT 1", appID,
 		); err != nil {
 			return err
@@ -174,7 +176,7 @@ func (r *MerchantRepository) ListShops(ctx context.Context, status, name string,
 	}
 	listArgs := append(append([]any{}, args...), pageSize, (page-1)*pageSize)
 	var list []model.Shop
-	err = r.conn.QueryRowsCtx(ctx, &list,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+shopColumns+" FROM shops WHERE "+where+" ORDER BY id DESC LIMIT ? OFFSET ?",
 		listArgs...,
 	)
@@ -187,7 +189,7 @@ func (r *MerchantRepository) ListPublicShops(ctx context.Context, page, pageSize
 		return nil, 0, err
 	}
 	var list []model.Shop
-	err = r.conn.QueryRowsCtx(ctx, &list,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+shopColumns+" FROM shops WHERE status=? ORDER BY id ASC LIMIT ? OFFSET ?",
 		model.ShopApproved, pageSize, (page-1)*pageSize,
 	)
@@ -196,7 +198,7 @@ func (r *MerchantRepository) ListPublicShops(ctx context.Context, page, pageSize
 
 func (r *MerchantRepository) FindShop(ctx context.Context, id uint64) (*model.Shop, error) {
 	var shop model.Shop
-	err := r.conn.QueryRowCtx(ctx, &shop,
+	err := r.conn.QueryRowPartialCtx(ctx, &shop,
 		"SELECT "+shopColumns+" FROM shops WHERE id=? LIMIT 1", id,
 	)
 	if err != nil {
@@ -238,7 +240,7 @@ func (r *MerchantRepository) UpdateShopDisplay(ctx context.Context, shop *model.
 func (r *MerchantRepository) CreateShopWithOwner(ctx context.Context, shop *model.Shop, mobile, plainPwd, nickname string) (*model.Shop, error) {
 	err := r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		var ownerID uint64
-		err := session.QueryRowCtx(ctx, &ownerID,
+		err := session.QueryRowPartialCtx(ctx, &ownerID,
 			"SELECT id FROM users WHERE mobile=? LIMIT 1", mobile,
 		)
 		if err == nil {
@@ -314,7 +316,7 @@ func (r *MerchantRepository) ResetOwnerPassword(ctx context.Context, shopID uint
 
 func (r *MerchantRepository) ListShopsByUser(ctx context.Context, userID uint64) ([]model.Shop, error) {
 	var shops []model.Shop
-	err := r.conn.QueryRowsCtx(ctx, &shops,
+	err := r.conn.QueryRowsPartialCtx(ctx, &shops,
 		"SELECT "+shopColumns+" FROM shops s JOIN shop_members sm ON sm.shop_id=s.id WHERE sm.user_id=?",
 		userID,
 	)

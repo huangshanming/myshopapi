@@ -42,5 +42,5 @@ func (l *OpLogsLogic) OpLogs(ctx context.Context, req *types.OpLogsReq) (resp *t
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.PageListResp{List: data}, nil
+	return types.FromPaged(data), nil
 }

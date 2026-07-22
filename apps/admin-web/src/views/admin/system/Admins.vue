@@ -61,6 +61,7 @@ import { ElMessage } from 'element-plus'
 import {
   assignAdminRoles, createAdmin, fetchAdminRoles, fetchAdmins, fetchRoles, resetAdminPassword,
 } from '../../../api/system'
+import { pickList } from '../../../utils/list'
 
 const list = ref([])
 const roles = ref([])
@@ -78,7 +79,7 @@ async function load() {
   try {
     const [adminsRes, rolesRes] = await Promise.all([fetchAdmins({ page: 1, page_size: 50 }), fetchRoles()])
     list.value = adminsRes?.list || []
-    roles.value = rolesRes || []
+    roles.value = pickList(rolesRes)
   } catch (e) {
     ElMessage.error(e.message)
   } finally {
@@ -105,7 +106,7 @@ async function saveCreate() {
 async function openRoles(row) {
   currentId.value = row.id
   const res = await fetchAdminRoles(row.id)
-  selectedRoles.value = res || []
+  selectedRoles.value = pickList(res)
   roleVisible.value = true
 }
 

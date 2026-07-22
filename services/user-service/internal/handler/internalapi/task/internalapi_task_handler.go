@@ -1,9 +1,12 @@
 package task
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/zeromicro/go-zero/rest/httpx"
+
+	"mymall/pkg/xerr"
 	"mymall/services/user-service/internal/logic/internalapi/task"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/types"
@@ -12,8 +15,10 @@ import (
 func InternalEventHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req types.TaskEventReq
-		if err := httpx.Parse(r, &req); err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
+		dec := json.NewDecoder(r.Body)
+		dec.UseNumber()
+		if err := dec.Decode(&req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, xerr.New(http.StatusBadRequest, "参数错误"))
 			return
 		}
 

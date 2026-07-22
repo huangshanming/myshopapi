@@ -182,6 +182,7 @@ import {
 } from '../../api/homepage'
 import { fetchShops } from '../../api/merchant'
 import { listArticles } from '../../api/admin-article'
+import { pickList } from '../../utils/list'
 
 const tab = ref('pkg')
 const slotType = ref('brand_shop')
@@ -226,7 +227,7 @@ async function loadPkgs() {
   loading.value = true
   try {
     const res = await listHomepagePackages({ slot_type: slotType.value })
-    pkgs.value = res || []
+    pkgs.value = pickList(res)
   } finally {
     loading.value = false
   }
@@ -236,7 +237,7 @@ async function loadSettings() {
   loading.value = true
   try {
     const res = await listHomepageSettings()
-    settings.value = res || []
+    settings.value = pickList(res)
   } finally {
     loading.value = false
   }
@@ -273,7 +274,7 @@ async function savePkg() {
     pkgVisible.value = false
     loadPkgs()
     const res = await listHomepagePackages({})
-    allPkgs.value = (res || []).filter((p) => p.status === 'on' || !p.status)
+    allPkgs.value = pickList(res).filter((p) => p.status === 'on' || !p.status)
   } catch (e) {
     ElMessage.error(e.message)
   }
@@ -374,7 +375,7 @@ async function doGrant() {
 onMounted(async () => {
   loadPkgs()
   const res = await listHomepagePackages({})
-  allPkgs.value = res || []
+  allPkgs.value = pickList(res)
 })
 </script>
 

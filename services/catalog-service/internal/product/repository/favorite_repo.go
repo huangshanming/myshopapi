@@ -22,7 +22,7 @@ func NewFavoriteRepository(conn sqlx.SqlConn) *FavoriteRepository {
 func (r *FavoriteRepository) Add(ctx context.Context, userID, productID uint64) (created bool, err error) {
 	err = r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		var id uint64
-		if err := session.QueryRowCtx(ctx, &id, "SELECT id FROM products WHERE id=? LIMIT 1", productID); err != nil {
+		if err := session.QueryRowPartialCtx(ctx, &id, "SELECT id FROM products WHERE id=? LIMIT 1", productID); err != nil {
 			if errors.Is(err, sqlx.ErrNotFound) {
 				return errors.New("商品不存在")
 			}
@@ -104,7 +104,7 @@ func (r *FavoriteRepository) List(ctx context.Context, userID uint64, page, page
 		return nil, 0, err
 	}
 	var favs []model.ProductFavorite
-	if err := r.conn.QueryRowsCtx(ctx, &favs,
+	if err := r.conn.QueryRowsPartialCtx(ctx, &favs,
 		"SELECT "+productFavoriteColumns+" FROM product_favorites WHERE user_id=? ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?",
 		userID, pageSize, (page-1)*pageSize,
 	); err != nil {
@@ -118,10 +118,12 @@ func (r *FavoriteRepository) List(ctx context.Context, userID uint64, page, page
 		ids[i] = f.ProductID
 	}
 	var products []model.Product
-	_ = r.conn.QueryRowsCtx(ctx, &products,
-		"SELECT id, name, main_image, sale_price, status, collect_count FROM products WHERE id IN ("+placeholders(len(ids))+")",
+	if err := r.conn.QueryRowsPartialCtx(ctx, &products,
+		"SELECT id, name, IFNULL(main_image,'') AS main_image, sale_price, status, collect_count FROM products WHERE id IN ("+placeholders(len(ids))+")",
 		inArgs(ids)...,
-	)
+	); err != nil {
+		return nil, 0, err
+	}
 	pmap := make(map[uint64]model.Product, len(products))
 	for _, p := range products {
 		pmap[p.ID] = p

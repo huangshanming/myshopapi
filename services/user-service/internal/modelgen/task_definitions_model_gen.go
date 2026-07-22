@@ -38,20 +38,20 @@ type (
 	}
 
 	TaskDefinition struct {
-		ID           uint64    `db:"id"`
-		Code         string    `db:"code"` // 任务编码
-		Title        string    `db:"title"`
-		Description  string    `db:"description"`
-		Icon         string    `db:"icon"`
-		Period       string    `db:"period"` // daily|once
-		Enabled      int     `db:"enabled"`
-		RewardPoints int     `db:"reward_points"` // 0=不奖励积分
-		TargetCount  int     `db:"target_count"`  // 完成所需进度
-		DailyLimit   int     `db:"daily_limit"`   // 每日最多领取次数,0=不限; once任务忽略
-		Sort         int     `db:"sort"`
-		RulesJSON    string    `db:"rules_json"`
-		CreatedAt    common.LocalTime `db:"created_at"`
-		UpdatedAt    common.LocalTime `db:"updated_at"`
+		ID           uint64    `db:"id" json:"id"`
+		Code         string    `db:"code" json:"code"` // 任务编码
+		Title        string    `db:"title" json:"title"`
+		Description  string    `db:"description" json:"description"`
+		Icon         string    `db:"icon" json:"icon"`
+		Period       string    `db:"period" json:"period"` // daily|once
+		Enabled      int     `db:"enabled" json:"enabled"`
+		RewardPoints int     `db:"reward_points" json:"reward_points"` // 0=不奖励积分
+		TargetCount  int     `db:"target_count" json:"target_count"`  // 完成所需进度
+		DailyLimit   int     `db:"daily_limit" json:"daily_limit"`   // 每日最多领取次数,0=不限; once任务忽略
+		Sort         int     `db:"sort" json:"sort"`
+		RulesJSON    string    `db:"rules_json" json:"rules_json"`
+		CreatedAt    common.LocalTime `db:"created_at" json:"created_at"`
+		UpdatedAt    common.LocalTime `db:"updated_at" json:"updated_at"`
 	}
 )
 

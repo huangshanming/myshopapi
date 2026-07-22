@@ -14,12 +14,50 @@ import (
 )
 
 const (
-	communityArticleColumns = "id, shop_id, author_user_id, category_id, title, cover_url, content, audit_status, reject_reason, status, schedule_publish_at, is_top, view_count, like_count, audience_count, read_count, collect_count, comment_count, published_at, deleted_at, created_by, created_at, updated_at"
 	communityArticleCategoryColumns = "id, parent_id, name, sort, status, created_at, updated_at"
-	communityArticleCommentColumns = "id, article_id, shop_id, user_id, parent_id, root_id, reply_to_user_id, content, status, created_at, updated_at"
-	communityArticleImgColumns = "id, article_id, shop_id, url, sort, created_at"
-	communityCommentEmojiColumns = "id, name, image_url, sort, status, created_at, updated_at"
+	communityArticleCommentColumns  = "id, article_id, shop_id, user_id, parent_id, root_id, reply_to_user_id, IFNULL(content,'') AS content, status, created_at, updated_at"
+	communityArticleImgColumns      = "id, article_id, shop_id, IFNULL(url,'') AS url, sort, created_at"
+	communityCommentEmojiColumns    = "id, name, IFNULL(image_url,'') AS image_url, sort, status, created_at, updated_at"
 )
+
+// communityArticleColNames is the physical column order for community_article.
+var communityArticleColNames = []string{
+	"id", "shop_id", "author_user_id", "category_id", "title", "cover_url", "content",
+	"audit_status", "reject_reason", "status", "schedule_publish_at", "is_top",
+	"view_count", "like_count", "audience_count", "read_count", "collect_count", "comment_count",
+	"published_at", "deleted_at", "created_by", "created_at", "updated_at",
+}
+
+var communityArticleNullEmpty = map[string]struct{}{
+	"title": {}, "cover_url": {}, "content": {}, "reject_reason": {},
+}
+
+// communityArticleColumns / articleColumnsAliased build NULL-safe SELECT lists
+// (IFNULL) so database/sql can scan into non-pointer string fields.
+func communityArticleColumns() string {
+	return articleSelectExpr("")
+}
+
+func articleColumnsAliased(alias string) string {
+	return articleSelectExpr(alias)
+}
+
+func articleSelectExpr(alias string) string {
+	prefix := ""
+	if alias != "" {
+		prefix = alias + "."
+	}
+	parts := make([]string, 0, len(communityArticleColNames))
+	for _, name := range communityArticleColNames {
+		col := prefix + name
+		if _, ok := communityArticleNullEmpty[name]; ok {
+			parts = append(parts, fmt.Sprintf("IFNULL(%s,'') AS %s", col, name))
+			continue
+		}
+		parts = append(parts, col)
+	}
+	return strings.Join(parts, ", ")
+}
 
 type ArticleRepository struct {
 	conn sqlx.SqlConn
@@ -101,8 +139,8 @@ func (r *ArticleRepository) List(ctx context.Context, f ArticleListFilter) ([]mo
 	}
 	var list []model.CommunityArticle
 	qArgs := append(append([]any{}, args...), f.PageSize, (f.Page-1)*f.PageSize)
-	err = r.conn.QueryRowsCtx(ctx, &list,
-		"SELECT "+communityArticleColumns+" FROM community_article WHERE "+whereSQL+" ORDER BY is_top DESC, id DESC LIMIT ? OFFSET ?",
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
+		"SELECT "+communityArticleColumns()+" FROM community_article WHERE "+whereSQL+" ORDER BY is_top DESC, id DESC LIMIT ? OFFSET ?",
 		qArgs...,
 	)
 	return list, total, err
@@ -110,7 +148,7 @@ func (r *ArticleRepository) List(ctx context.Context, f ArticleListFilter) ([]mo
 
 func (r *ArticleRepository) GetByID(ctx context.Context, id uint64) (*model.CommunityArticle, error) {
 	var a model.CommunityArticle
-	err := r.conn.QueryRowCtx(ctx, &a, "SELECT "+communityArticleColumns+" FROM community_article WHERE id=? LIMIT 1", id)
+	err := r.conn.QueryRowPartialCtx(ctx, &a, "SELECT "+communityArticleColumns()+" FROM community_article WHERE id=? LIMIT 1", id)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +157,7 @@ func (r *ArticleRepository) GetByID(ctx context.Context, id uint64) (*model.Comm
 
 func (r *ArticleRepository) GetByIDShop(ctx context.Context, id, shopID uint64) (*model.CommunityArticle, error) {
 	var a model.CommunityArticle
-	err := r.conn.QueryRowCtx(ctx, &a, "SELECT "+communityArticleColumns+" FROM community_article WHERE id=? AND shop_id=? LIMIT 1", id, shopID)
+	err := r.conn.QueryRowPartialCtx(ctx, &a, "SELECT "+communityArticleColumns()+" FROM community_article WHERE id=? AND shop_id=? LIMIT 1", id, shopID)
 	if err != nil {
 		return nil, err
 	}
@@ -128,8 +166,8 @@ func (r *ArticleRepository) GetByIDShop(ctx context.Context, id, shopID uint64) 
 
 func (r *ArticleRepository) GetByIDAuthor(ctx context.Context, id, userID uint64) (*model.CommunityArticle, error) {
 	var a model.CommunityArticle
-	err := r.conn.QueryRowCtx(ctx, &a,
-		"SELECT "+communityArticleColumns+" FROM community_article WHERE id=? AND author_user_id=? AND shop_id=0 LIMIT 1",
+	err := r.conn.QueryRowPartialCtx(ctx, &a,
+		"SELECT "+communityArticleColumns()+" FROM community_article WHERE id=? AND author_user_id=? AND shop_id=0 LIMIT 1",
 		id, userID,
 	)
 	if err != nil {
@@ -152,8 +190,8 @@ func (r *ArticleRepository) ListByAuthor(ctx context.Context, userID uint64, pag
 		pageSize = 20
 	}
 	var list []model.CommunityArticle
-	err = r.conn.QueryRowsCtx(ctx, &list,
-		"SELECT "+communityArticleColumns+" FROM community_article WHERE "+whereSQL+" ORDER BY id DESC LIMIT ? OFFSET ?",
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
+		"SELECT "+communityArticleColumns()+" FROM community_article WHERE "+whereSQL+" ORDER BY id DESC LIMIT ? OFFSET ?",
 		userID, model.ArticleDeleted, pageSize, (page-1)*pageSize,
 	)
 	return list, total, err
@@ -282,7 +320,7 @@ func (r *ArticleRepository) ReplaceImages(ctx context.Context, articleID, shopID
 
 func (r *ArticleRepository) ListImages(ctx context.Context, articleID uint64) ([]model.CommunityArticleImg, error) {
 	var list []model.CommunityArticleImg
-	err := r.conn.QueryRowsCtx(ctx, &list,
+	err := r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+communityArticleImgColumns+" FROM community_article_img WHERE article_id=? ORDER BY sort ASC, id ASC",
 		articleID,
 	)
@@ -292,8 +330,8 @@ func (r *ArticleRepository) ListImages(ctx context.Context, articleID uint64) ([
 func (r *ArticleRepository) ClaimDuePublish(ctx context.Context, limit int) ([]model.CommunityArticle, error) {
 	now := time.Now()
 	var list []model.CommunityArticle
-	err := r.conn.QueryRowsCtx(ctx, &list,
-		"SELECT "+communityArticleColumns+` FROM community_article
+	err := r.conn.QueryRowsPartialCtx(ctx, &list,
+		"SELECT "+communityArticleColumns()+` FROM community_article
 WHERE status=? AND audit_status=? AND schedule_publish_at IS NOT NULL AND schedule_publish_at<=?
 LIMIT ?`,
 		model.ArticleScheduled, model.ArticleAuditApproved, now, limit,
@@ -324,7 +362,7 @@ func (r *ArticleRepository) Stats(ctx context.Context) (map[string]interface{}, 
 		Cnt    int64  `db:"cnt"`
 	}
 	var rows []statusRow
-	_ = r.conn.QueryRowsCtx(ctx, &rows,
+	_ = r.conn.QueryRowsPartialCtx(ctx, &rows,
 		"SELECT status, COUNT(*) AS cnt FROM community_article WHERE status<>? GROUP BY status",
 		model.ArticleDeleted,
 	)
@@ -340,11 +378,11 @@ func (r *ArticleRepository) Stats(ctx context.Context) (map[string]interface{}, 
 	)
 
 	var viewSum, likeSum int64
-	_ = r.conn.QueryRowCtx(ctx, &viewSum,
+	_ = r.conn.QueryRowPartialCtx(ctx, &viewSum,
 		"SELECT COALESCE(SUM(view_count),0) FROM community_article WHERE status<>?",
 		model.ArticleDeleted,
 	)
-	_ = r.conn.QueryRowCtx(ctx, &likeSum,
+	_ = r.conn.QueryRowPartialCtx(ctx, &likeSum,
 		"SELECT COALESCE(SUM(like_count),0) FROM community_article WHERE status<>?",
 		model.ArticleDeleted,
 	)
@@ -354,7 +392,7 @@ func (r *ArticleRepository) Stats(ctx context.Context) (map[string]interface{}, 
 		Cnt int64  `db:"cnt" json:"cnt"`
 	}
 	var recent []dayRow
-	_ = r.conn.QueryRowsCtx(ctx, &recent, `
+	_ = r.conn.QueryRowsPartialCtx(ctx, &recent, `
 		SELECT DATE(created_at) AS day, COUNT(*) AS cnt
 		FROM community_article
 		WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND status <> ?
@@ -374,7 +412,7 @@ func (r *ArticleRepository) Stats(ctx context.Context) (map[string]interface{}, 
 
 func (r *ArticleRepository) ListCategories(ctx context.Context) ([]model.CommunityArticleCategory, error) {
 	var list []model.CommunityArticleCategory
-	err := r.conn.QueryRowsCtx(ctx, &list,
+	err := r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+communityArticleCategoryColumns+" FROM community_article_category ORDER BY sort ASC, id ASC",
 	)
 	return list, err
@@ -462,7 +500,7 @@ func (r *ArticleRepository) ListComments(ctx context.Context, f CommentListFilte
 	}
 	var list []model.CommunityArticleComment
 	qArgs := append(append([]any{}, args...), f.PageSize, (f.Page-1)*f.PageSize)
-	err = r.conn.QueryRowsCtx(ctx, &list,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+communityArticleCommentColumns+" FROM community_article_comment WHERE "+whereSQL+" ORDER BY id DESC LIMIT ? OFFSET ?",
 		qArgs...,
 	)
@@ -492,7 +530,7 @@ func (r *ArticleRepository) DeleteComment(ctx context.Context, id uint64, shopID
 
 func (r *ArticleRepository) GetComment(ctx context.Context, id uint64) (*model.CommunityArticleComment, error) {
 	var c model.CommunityArticleComment
-	err := r.conn.QueryRowCtx(ctx, &c,
+	err := r.conn.QueryRowPartialCtx(ctx, &c,
 		"SELECT "+communityArticleCommentColumns+" FROM community_article_comment WHERE id=? AND status=? LIMIT 1",
 		id, model.CommentVisible,
 	)
@@ -540,7 +578,7 @@ func (r *ArticleRepository) MapUserBriefs(ctx context.Context, ids []uint64) map
 		return out
 	}
 	var rows []CommentUserBrief
-	_ = r.conn.QueryRowsCtx(ctx, &rows,
+	_ = r.conn.QueryRowsPartialCtx(ctx, &rows,
 		"SELECT id, nickname, COALESCE(avatar,'') AS avatar, mobile FROM users WHERE id IN ("+placeholders(len(ids))+")",
 		inArgs(ids)...,
 	)
@@ -562,7 +600,7 @@ func (r *ArticleRepository) MapShopBriefs(ctx context.Context, ids []uint64) map
 		return out
 	}
 	var rows []ShopBrief
-	_ = r.conn.QueryRowsCtx(ctx, &rows,
+	_ = r.conn.QueryRowsPartialCtx(ctx, &rows,
 		"SELECT id, name, COALESCE(logo,'') AS logo FROM shops WHERE id IN ("+placeholders(len(ids))+")",
 		inArgs(ids)...,
 	)
@@ -585,7 +623,7 @@ func (r *ArticleRepository) ListPublicCommentRoots(ctx context.Context, articleI
 		return nil, 0, err
 	}
 	var list []model.CommunityArticleComment
-	err = r.conn.QueryRowsCtx(ctx, &list,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+communityArticleCommentColumns+" FROM community_article_comment WHERE "+whereSQL+" ORDER BY id DESC LIMIT ? OFFSET ?",
 		articleID, model.CommentVisible, pageSize, (page-1)*pageSize,
 	)
@@ -599,7 +637,7 @@ func (r *ArticleRepository) ListPublicCommentChildren(ctx context.Context, artic
 	args := append([]any{articleID}, inArgs(rootIDs)...)
 	args = append(args, model.CommentVisible)
 	var list []model.CommunityArticleComment
-	err := r.conn.QueryRowsCtx(ctx, &list,
+	err := r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+communityArticleCommentColumns+" FROM community_article_comment WHERE article_id=? AND root_id IN ("+placeholders(len(rootIDs))+") AND parent_id>0 AND status=? ORDER BY id ASC",
 		args...,
 	)
@@ -620,7 +658,7 @@ func (r *ArticleRepository) ListEmojisAdmin(ctx context.Context, page, pageSize 
 		return nil, 0, err
 	}
 	var list []model.CommunityCommentEmoji
-	err = r.conn.QueryRowsCtx(ctx, &list,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+communityCommentEmojiColumns+" FROM community_comment_emojis ORDER BY sort ASC, id DESC LIMIT ? OFFSET ?",
 		pageSize, (page-1)*pageSize,
 	)
@@ -629,7 +667,7 @@ func (r *ArticleRepository) ListEmojisAdmin(ctx context.Context, page, pageSize 
 
 func (r *ArticleRepository) ListEmojisPublic(ctx context.Context) ([]model.CommunityCommentEmoji, error) {
 	var list []model.CommunityCommentEmoji
-	err := r.conn.QueryRowsCtx(ctx, &list,
+	err := r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+communityCommentEmojiColumns+" FROM community_comment_emojis WHERE status=1 ORDER BY sort ASC, id ASC",
 	)
 	return list, err
@@ -637,7 +675,7 @@ func (r *ArticleRepository) ListEmojisPublic(ctx context.Context) ([]model.Commu
 
 func (r *ArticleRepository) GetEmoji(ctx context.Context, id uint64) (*model.CommunityCommentEmoji, error) {
 	var e model.CommunityCommentEmoji
-	err := r.conn.QueryRowCtx(ctx, &e, "SELECT "+communityCommentEmojiColumns+" FROM community_comment_emojis WHERE id=? LIMIT 1", id)
+	err := r.conn.QueryRowPartialCtx(ctx, &e, "SELECT "+communityCommentEmojiColumns+" FROM community_comment_emojis WHERE id=? LIMIT 1", id)
 	if err != nil {
 		return nil, err
 	}
@@ -670,14 +708,6 @@ func (r *ArticleRepository) DeleteEmoji(ctx context.Context, id uint64) error {
 	return err
 }
 
-func articleColumnsAliased(alias string) string {
-	cols := strings.Split(communityArticleColumns, ", ")
-	for i, c := range cols {
-		cols[i] = alias + "." + c
-	}
-	return strings.Join(cols, ", ")
-}
-
 func (r *ArticleRepository) ListPublic(ctx context.Context, page, pageSize, homeLimit int) ([]model.CommunityArticle, int64, error) {
 	if page < 1 {
 		page = 1
@@ -705,7 +735,7 @@ LEFT JOIN (
 WHERE a.status=? AND a.audit_status=? AND a.deleted_at IS NULL`
 
 	var total int64
-	if err := r.conn.QueryRowCtx(ctx, &total, "SELECT COUNT(*) "+base, now, now, model.ArticlePublished, model.ArticleAuditApproved); err != nil {
+	if err := r.conn.QueryRowPartialCtx(ctx, &total, "SELECT COUNT(*) "+base, now, now, model.ArticlePublished, model.ArticleAuditApproved); err != nil {
 		return nil, 0, err
 	}
 	limit, offset := pageSize, (page-1)*pageSize
@@ -718,7 +748,7 @@ WHERE a.status=? AND a.audit_status=? AND a.deleted_at IS NULL`
 	var rows []articleBoostRow
 	sql := fmt.Sprintf("SELECT %s, CASE WHEN o.target_id IS NULL THEN 0 ELSE 1 END AS boost ", articleColumnsAliased("a")) + base + `
 ORDER BY boost DESC, a.is_top DESC, a.id DESC LIMIT ? OFFSET ?`
-	if err := r.conn.QueryRowsCtx(ctx, &rows, sql, now, now, model.ArticlePublished, model.ArticleAuditApproved, limit, offset); err != nil {
+	if err := r.conn.QueryRowsPartialCtx(ctx, &rows, sql, now, now, model.ArticlePublished, model.ArticleAuditApproved, limit, offset); err != nil {
 		return nil, 0, err
 	}
 	out := make([]model.CommunityArticle, 0, len(rows))
@@ -730,8 +760,8 @@ ORDER BY boost DESC, a.is_top DESC, a.id DESC LIMIT ? OFFSET ?`
 
 func (r *ArticleRepository) GetPublished(ctx context.Context, id uint64) (*model.CommunityArticle, error) {
 	var a model.CommunityArticle
-	err := r.conn.QueryRowCtx(ctx, &a,
-		"SELECT "+communityArticleColumns+" FROM community_article WHERE id=? AND status=? AND audit_status=? LIMIT 1",
+	err := r.conn.QueryRowPartialCtx(ctx, &a,
+		"SELECT "+communityArticleColumns()+" FROM community_article WHERE id=? AND status=? AND audit_status=? LIMIT 1",
 		id, model.ArticlePublished, model.ArticleAuditApproved,
 	)
 	if err != nil {
@@ -897,7 +927,7 @@ func (r *ArticleRepository) listUserArticles(ctx context.Context, userID uint64,
 		AuditStatus  string `db:"audit_status"`
 	}
 	var rows []row
-	err = r.conn.QueryRowsCtx(ctx, &rows, `
+	err = r.conn.QueryRowsPartialCtx(ctx, &rows, `
 SELECT e.article_id, DATE_FORMAT(e.created_at, '%Y-%m-%d %H:%i:%s') AS engaged_at,
        a.id, a.shop_id, COALESCE(a.title,'') AS title, COALESCE(a.cover_url,'') AS cover_url,
        COALESCE(a.like_count,0) AS like_count, COALESCE(a.read_count,0) AS read_count,
@@ -948,7 +978,7 @@ func (r *ArticleRepository) IsArticleBoosted(ctx context.Context, articleID uint
 
 func (r *ArticleRepository) GetHomeArticleLimit(ctx context.Context) int {
 	var lim int
-	_ = r.conn.QueryRowCtx(ctx, &lim, "SELECT home_limit FROM homepage_slot_settings WHERE slot_type=? LIMIT 1", "article")
+	_ = r.conn.QueryRowPartialCtx(ctx, &lim, "SELECT home_limit FROM homepage_slot_settings WHERE slot_type=? LIMIT 1", "article")
 	if lim < 1 {
 		return 6
 	}

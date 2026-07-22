@@ -38,13 +38,13 @@ type (
 	}
 
 	Region struct {
-		ID         uint64    `db:"id"`
-		Code       string    `db:"code"`        // 行政区划代码
-		Name       string    `db:"name"`        // 名称
-		ParentCode string    `db:"parent_code"` // 父级代码，省级为空
-		Level      int     `db:"level"`       // 1省 2市 3区县
-		Sort       int     `db:"sort"`
-		CreatedAt  common.LocalTime `db:"created_at"`
+		ID         uint64    `db:"id" json:"id"`
+		Code       string    `db:"code" json:"code"`        // 行政区划代码
+		Name       string    `db:"name" json:"name"`        // 名称
+		ParentCode string    `db:"parent_code" json:"parent_code"` // 父级代码，省级为空
+		Level      int     `db:"level" json:"level"`       // 1省 2市 3区县
+		Sort       int     `db:"sort" json:"sort"`
+		CreatedAt  common.LocalTime `db:"created_at" json:"created_at"`
 	}
 )
 

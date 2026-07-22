@@ -37,10 +37,10 @@ type (
 	}
 
 	UserPoints struct {
-		UserID    uint64    `db:"user_id"` // 用户ID
-		Points    int     `db:"points"`  // 当前积分
-		CreatedAt common.LocalTime `db:"created_at"`
-		UpdatedAt common.LocalTime `db:"updated_at"`
+		UserID    uint64    `db:"user_id" json:"user_id"` // 用户ID
+		Points    int     `db:"points" json:"points"`  // 当前积分
+		CreatedAt common.LocalTime `db:"created_at" json:"created_at"`
+		UpdatedAt common.LocalTime `db:"updated_at" json:"updated_at"`
 	}
 )
 

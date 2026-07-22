@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	reviewColumns = "id, order_id, order_no, user_id, shop_id, product_id, order_item_id, sku_id, sku_snapshot, rating, content, is_anonymous, status, merchant_reply, replied_at, created_at, updated_at"
-	reviewImageColumns = "id, review_id, url, sort"
+	reviewColumns      = "id, order_id, IFNULL(order_no,'') AS order_no, user_id, shop_id, product_id, order_item_id, sku_id, IFNULL(sku_snapshot,'') AS sku_snapshot, rating, IFNULL(content,'') AS content, is_anonymous, status, IFNULL(merchant_reply,'') AS merchant_reply, replied_at, created_at, updated_at"
+	reviewImageColumns = "id, review_id, IFNULL(url,'') AS url, sort"
 )
 
 type ReviewRepository struct {
@@ -69,11 +69,11 @@ func (r *ReviewRepository) Create(ctx context.Context, rev *model.ProductReview,
 
 func (r *ReviewRepository) GetByOrderID(ctx context.Context, orderID uint64) (*model.ProductReview, error) {
 	var rev model.ProductReview
-	if err := r.conn.QueryRowCtx(ctx, &rev, "SELECT "+reviewColumns+" FROM product_reviews WHERE order_id=? LIMIT 1", orderID); err != nil {
+	if err := r.conn.QueryRowPartialCtx(ctx, &rev, "SELECT "+reviewColumns+" FROM product_reviews WHERE order_id=? LIMIT 1", orderID); err != nil {
 		return nil, err
 	}
 	var imgs []model.ProductReviewImage
-	_ = r.conn.QueryRowsCtx(ctx, &imgs,
+	_ = r.conn.QueryRowsPartialCtx(ctx, &imgs,
 		"SELECT "+reviewImageColumns+" FROM product_review_images WHERE review_id=? ORDER BY sort ASC, id ASC", rev.ID,
 	)
 	rev.Images = imgs
@@ -100,7 +100,7 @@ func (r *ReviewRepository) ListByProduct(ctx context.Context, productID uint64, 
 		return nil, 0, err
 	}
 	var list []model.ProductReview
-	err = r.conn.QueryRowsCtx(ctx, &list,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+reviewColumns+" FROM product_reviews WHERE product_id=? AND status=? ORDER BY created_at DESC, id DESC LIMIT ?, ?",
 		productID, model.ReviewStatusVisible, (page-1)*pageSize, pageSize,
 	)
@@ -151,7 +151,7 @@ func (r *ReviewRepository) listFiltered(ctx context.Context, shopID, productID u
 	}
 	listArgs := append(append([]any{}, args...), (page-1)*pageSize, pageSize)
 	var list []model.ProductReview
-	err = r.conn.QueryRowsCtx(ctx, &list,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+reviewColumns+" FROM product_reviews WHERE "+w+" ORDER BY created_at DESC, id DESC LIMIT ?, ?",
 		listArgs...,
 	)
@@ -171,7 +171,7 @@ func (r *ReviewRepository) attachImages(ctx context.Context, list []model.Produc
 		ids[i] = v.ID
 	}
 	var imgs []model.ProductReviewImage
-	_ = r.conn.QueryRowsCtx(ctx, &imgs,
+	_ = r.conn.QueryRowsPartialCtx(ctx, &imgs,
 		"SELECT "+reviewImageColumns+" FROM product_review_images WHERE review_id IN ("+placeholders(len(ids))+") ORDER BY sort ASC, id ASC",
 		inArgs(ids)...,
 	)
@@ -186,11 +186,11 @@ func (r *ReviewRepository) attachImages(ctx context.Context, list []model.Produc
 
 func (r *ReviewRepository) GetByID(ctx context.Context, id uint64) (*model.ProductReview, error) {
 	var rev model.ProductReview
-	if err := r.conn.QueryRowCtx(ctx, &rev, "SELECT "+reviewColumns+" FROM product_reviews WHERE id=? LIMIT 1", id); err != nil {
+	if err := r.conn.QueryRowPartialCtx(ctx, &rev, "SELECT "+reviewColumns+" FROM product_reviews WHERE id=? LIMIT 1", id); err != nil {
 		return nil, err
 	}
 	var imgs []model.ProductReviewImage
-	_ = r.conn.QueryRowsCtx(ctx, &imgs,
+	_ = r.conn.QueryRowsPartialCtx(ctx, &imgs,
 		"SELECT "+reviewImageColumns+" FROM product_review_images WHERE review_id=? ORDER BY sort ASC, id ASC", rev.ID,
 	)
 	rev.Images = imgs
@@ -236,7 +236,7 @@ func (r *ReviewRepository) ProductStats(ctx context.Context, productID uint64) (
 		Good int64   `db:"good"`
 	}
 	var s row
-	err = r.conn.QueryRowCtx(ctx, &s,
+	err = r.conn.QueryRowPartialCtx(ctx, &s,
 		`SELECT COUNT(*) AS cnt, COALESCE(AVG(rating),0) AS avg, SUM(CASE WHEN rating >= 4 THEN 1 ELSE 0 END) AS good
 		 FROM product_reviews WHERE product_id=? AND status=?`,
 		productID, model.ReviewStatusVisible,

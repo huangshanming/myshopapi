@@ -82,6 +82,7 @@ import {
   slotPaySourceLabel, slotStatusLabel, slotTargetLabel, slotTypeLabel,
 } from '../../api/homepage'
 import { listMyArticles } from '../../api/merchant-article'
+import { pickList } from '../../utils/list'
 
 function typeLabel(t) {
   return slotTypeLabel(t)
@@ -114,7 +115,7 @@ async function reload() {
       merchantListHomepagePackages({ slot_type: slotType.value }),
       merchantListHomepageOrders({ slot_type: slotType.value, page: 1, page_size: 50 }),
     ])
-    pkgs.value = p || []
+    pkgs.value = pickList(p)
     orders.value = o?.list || []
   } finally {
     loading.value = false

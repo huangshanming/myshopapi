@@ -30,5 +30,5 @@ func (l *AdminListBannersLogic) AdminListBanners(ctx context.Context, req *types
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.PageListResp{List: data}, nil
+	return types.FromPaged(data), nil
 }

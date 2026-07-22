@@ -13,15 +13,16 @@ import (
 )
 
 const (
-	shopWalletColumns = "shop_id, balance, frozen_balance, deposit, created_at, updated_at"
-	seckillRuleColumns = "id, duration_hours, apply_fee, max_entries_per_shop, status, created_at, updated_at"
+	shopWalletColumns     = "shop_id, balance, frozen_balance, deposit, created_at, updated_at"
+	shopWalletLogColumns  = "id, shop_id, change_type, amount, balance_after, frozen_after, deposit_after, IFNULL(remark,'') AS remark, IFNULL(operator_user_id,0) AS operator_user_id, IFNULL(ref_type,'') AS ref_type, IFNULL(ref_id,0) AS ref_id, created_at"
+	seckillRuleColumns    = "id, duration_hours, apply_fee, max_entries_per_shop, status, created_at, updated_at"
 	seckillSessionColumns = "id, rule_id, start_at, end_at, status, created_at, updated_at"
-	seckillEntryColumns = "id, session_id, shop_id, product_id, product_name, product_image, origin_price, seckill_price, seckill_stock, fee_amount, status, auto_renew, created_at, updated_at"
+	seckillEntryColumns   = "id, session_id, shop_id, product_id, IFNULL(product_name,'') AS product_name, IFNULL(product_image,'') AS product_image, origin_price, seckill_price, seckill_stock, fee_amount, status, auto_renew, created_at, updated_at"
 )
 
 func (r *MerchantRepository) lockShopWallet(ctx context.Context, session sqlx.Session, shopID uint64) (*model.ShopWallet, error) {
 	var w model.ShopWallet
-	err := session.QueryRowCtx(ctx, &w,
+	err := session.QueryRowPartialCtx(ctx, &w,
 		"SELECT "+shopWalletColumns+" FROM shop_wallets WHERE shop_id=? FOR UPDATE", shopID,
 	)
 	if errors.Is(err, sqlx.ErrNotFound) {
@@ -30,7 +31,7 @@ func (r *MerchantRepository) lockShopWallet(ctx context.Context, session sqlx.Se
 		); err != nil {
 			return nil, err
 		}
-		err = session.QueryRowCtx(ctx, &w,
+		err = session.QueryRowPartialCtx(ctx, &w,
 			"SELECT "+shopWalletColumns+" FROM shop_wallets WHERE shop_id=? FOR UPDATE", shopID,
 		)
 	}
@@ -51,7 +52,7 @@ func (r *MerchantRepository) writeShopWalletLog(ctx context.Context, session sql
 
 func (r *MerchantRepository) EnsureWallet(ctx context.Context, shopID uint64) (*model.ShopWallet, error) {
 	var w model.ShopWallet
-	err := r.conn.QueryRowCtx(ctx, &w,
+	err := r.conn.QueryRowPartialCtx(ctx, &w,
 		"SELECT "+shopWalletColumns+" FROM shop_wallets WHERE shop_id=? LIMIT 1", shopID,
 	)
 	if errors.Is(err, sqlx.ErrNotFound) {
@@ -61,7 +62,7 @@ func (r *MerchantRepository) EnsureWallet(ctx context.Context, shopID uint64) (*
 		if err != nil {
 			return nil, err
 		}
-		err = r.conn.QueryRowCtx(ctx, &w,
+		err = r.conn.QueryRowPartialCtx(ctx, &w,
 			"SELECT "+shopWalletColumns+" FROM shop_wallets WHERE shop_id=? LIMIT 1", shopID,
 		)
 	}
@@ -139,9 +140,8 @@ func (r *MerchantRepository) ListWalletLogs(ctx context.Context, shopID uint64, 
 		return nil, 0, err
 	}
 	var list []model.ShopWalletLog
-	err = r.conn.QueryRowsCtx(ctx, &list,
-		`SELECT id, shop_id, change_type, amount, balance_after, frozen_after, deposit_after, remark, operator_user_id, ref_type, ref_id, created_at
-		 FROM shop_wallet_logs WHERE shop_id=? ORDER BY id DESC LIMIT ? OFFSET ?`,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
+		"SELECT "+shopWalletLogColumns+" FROM shop_wallet_logs WHERE shop_id=? ORDER BY id DESC LIMIT ? OFFSET ?",
 		shopID, pageSize, (page-1)*pageSize,
 	)
 	return list, total, err
@@ -149,7 +149,7 @@ func (r *MerchantRepository) ListWalletLogs(ctx context.Context, shopID uint64, 
 
 func (r *MerchantRepository) GetActiveSeckillRule(ctx context.Context) (*model.SeckillRule, error) {
 	var rule model.SeckillRule
-	err := r.conn.QueryRowCtx(ctx, &rule,
+	err := r.conn.QueryRowPartialCtx(ctx, &rule,
 		"SELECT "+seckillRuleColumns+" FROM seckill_rules WHERE status=? ORDER BY id DESC LIMIT 1",
 		model.SeckillRuleOn,
 	)
@@ -205,7 +205,7 @@ func (r *MerchantRepository) SaveSeckillRule(ctx context.Context, rule *model.Se
 
 func (r *MerchantRepository) GetActiveSession(ctx context.Context) (*model.SeckillSession, error) {
 	var s model.SeckillSession
-	err := r.conn.QueryRowCtx(ctx, &s,
+	err := r.conn.QueryRowPartialCtx(ctx, &s,
 		"SELECT "+seckillSessionColumns+" FROM seckill_sessions WHERE status=? ORDER BY id DESC LIMIT 1",
 		model.SeckillSessionActive,
 	)
@@ -250,7 +250,7 @@ func (r *MerchantRepository) ListSessions(ctx context.Context, page, pageSize in
 		return nil, 0, err
 	}
 	var list []model.SeckillSession
-	err = r.conn.QueryRowsCtx(ctx, &list,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+seckillSessionColumns+" FROM seckill_sessions ORDER BY id DESC LIMIT ? OFFSET ?",
 		pageSize, (page-1)*pageSize,
 	)
@@ -259,7 +259,7 @@ func (r *MerchantRepository) ListSessions(ctx context.Context, page, pageSize in
 
 func (r *MerchantRepository) FindSession(ctx context.Context, id uint64) (*model.SeckillSession, error) {
 	var s model.SeckillSession
-	err := r.conn.QueryRowCtx(ctx, &s,
+	err := r.conn.QueryRowPartialCtx(ctx, &s,
 		"SELECT "+seckillSessionColumns+" FROM seckill_sessions WHERE id=? LIMIT 1", id,
 	)
 	if err != nil {
@@ -337,7 +337,7 @@ func (r *MerchantRepository) applySeckillEntryTx(ctx context.Context, entry *mod
 
 func (r *MerchantRepository) ListAutoRenewEntries(ctx context.Context, sessionID uint64) ([]model.SeckillEntry, error) {
 	var list []model.SeckillEntry
-	err := r.conn.QueryRowsCtx(ctx, &list,
+	err := r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+seckillEntryColumns+" FROM seckill_entries WHERE session_id=? AND status=? AND auto_renew=1 ORDER BY id ASC",
 		sessionID, model.SeckillEntryActive,
 	)
@@ -362,7 +362,7 @@ func (r *MerchantRepository) SetSeckillAutoRenew(ctx context.Context, shopID, en
 
 func (r *MerchantRepository) FindShopEntry(ctx context.Context, shopID, entryID uint64) (*model.SeckillEntry, error) {
 	var e model.SeckillEntry
-	err := r.conn.QueryRowCtx(ctx, &e,
+	err := r.conn.QueryRowPartialCtx(ctx, &e,
 		"SELECT "+seckillEntryColumns+" FROM seckill_entries WHERE id=? AND shop_id=? LIMIT 1",
 		entryID, shopID,
 	)
@@ -415,7 +415,7 @@ func (r *MerchantRepository) ListAdminEntries(ctx context.Context, sessionID uin
 	}
 	listArgs := append(append([]any{}, args...), pageSize, (page-1)*pageSize)
 	var list []model.SeckillEntry
-	err = r.conn.QueryRowsCtx(ctx, &list,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+seckillEntryColumns+" FROM seckill_entries WHERE "+where+" ORDER BY id DESC LIMIT ? OFFSET ?",
 		listArgs...,
 	)
@@ -430,7 +430,7 @@ func (r *MerchantRepository) ListShopEntries(ctx context.Context, shopID uint64,
 		return nil, 0, err
 	}
 	var list []model.SeckillEntry
-	err = r.conn.QueryRowsCtx(ctx, &list,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+seckillEntryColumns+" FROM seckill_entries WHERE shop_id=? ORDER BY id DESC LIMIT ? OFFSET ?",
 		shopID, pageSize, (page-1)*pageSize,
 	)
@@ -439,7 +439,7 @@ func (r *MerchantRepository) ListShopEntries(ctx context.Context, shopID uint64,
 
 func (r *MerchantRepository) ListActiveEntries(ctx context.Context, sessionID uint64, limit int) ([]model.SeckillEntry, error) {
 	var list []model.SeckillEntry
-	err := r.conn.QueryRowsCtx(ctx, &list,
+	err := r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+seckillEntryColumns+" FROM seckill_entries WHERE session_id=? AND status=? ORDER BY id ASC LIMIT ?",
 		sessionID, model.SeckillEntryActive, limit,
 	)
@@ -455,7 +455,7 @@ func (r *MerchantRepository) ListActiveEntriesPage(ctx context.Context, sessionI
 		return nil, 0, err
 	}
 	var list []model.SeckillEntry
-	err = r.conn.QueryRowsCtx(ctx, &list,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+seckillEntryColumns+" FROM seckill_entries WHERE session_id=? AND status=? ORDER BY id ASC LIMIT ? OFFSET ?",
 		sessionID, model.SeckillEntryActive, pageSize, (page-1)*pageSize,
 	)
@@ -464,7 +464,7 @@ func (r *MerchantRepository) ListActiveEntriesPage(ctx context.Context, sessionI
 
 func (r *MerchantRepository) FindSeckillEntry(ctx context.Context, id uint64) (*model.SeckillEntry, error) {
 	var e model.SeckillEntry
-	err := r.conn.QueryRowCtx(ctx, &e,
+	err := r.conn.QueryRowPartialCtx(ctx, &e,
 		"SELECT "+seckillEntryColumns+" FROM seckill_entries WHERE id=? LIMIT 1", id,
 	)
 	if err != nil {

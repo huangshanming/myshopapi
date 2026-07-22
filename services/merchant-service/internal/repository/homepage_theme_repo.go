@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	themeSlotColumns = "id, slot_key, position, name, `desc`, cover_url, default_link_type, default_link_id, status, sort, created_at, updated_at"
-	themePackageColumns = "id, theme_slot_id, name, price, duration_days, status, sort, remark, created_at, updated_at"
-	themeOrderColumns = "id, shop_id, theme_slot_id, package_id, title, subtitle, cover_url, link_type, link_id, amount, duration_days, start_at, end_at, status, pay_source, wallet_log_id, operator_id, created_at, updated_at"
+	themeSlotColumns    = "id, slot_key, position, IFNULL(name,'') AS name, IFNULL(`desc`,'') AS `desc`, IFNULL(cover_url,'') AS cover_url, IFNULL(default_link_type,'') AS default_link_type, default_link_id, status, sort, created_at, updated_at"
+	themePackageColumns = "id, theme_slot_id, IFNULL(name,'') AS name, price, duration_days, status, sort, IFNULL(remark,'') AS remark, created_at, updated_at"
+	themeOrderColumns   = "id, shop_id, theme_slot_id, package_id, IFNULL(title,'') AS title, IFNULL(subtitle,'') AS subtitle, IFNULL(cover_url,'') AS cover_url, IFNULL(link_type,'') AS link_type, link_id, amount, duration_days, start_at, end_at, status, IFNULL(pay_source,'') AS pay_source, wallet_log_id, operator_id, created_at, updated_at"
 )
 
 func (r *MerchantRepository) ExpireDueThemeOrders(ctx context.Context) {
@@ -34,7 +34,7 @@ func (r *MerchantRepository) ListThemeSlots(ctx context.Context, onlyOn bool) ([
 		args = append(args, model.ThemeSlotOn)
 	}
 	var list []model.HomepageThemeSlot
-	if err := r.conn.QueryRowsCtx(ctx, &list,
+	if err := r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+themeSlotColumns+" FROM homepage_theme_slots WHERE "+where+" ORDER BY position ASC, sort ASC, id ASC",
 		args...,
 	); err != nil {
@@ -43,7 +43,7 @@ func (r *MerchantRepository) ListThemeSlots(ctx context.Context, onlyOn bool) ([
 	now := time.Now()
 	for i := range list {
 		var o model.HomepageThemeOrder
-		e := r.conn.QueryRowCtx(ctx, &o,
+		e := r.conn.QueryRowPartialCtx(ctx, &o,
 			"SELECT "+themeOrderColumns+" FROM homepage_theme_orders WHERE theme_slot_id=? AND status=? AND end_at>? ORDER BY end_at DESC LIMIT 1",
 			list[i].ID, model.ThemeOrderActive, now,
 		)
@@ -57,7 +57,7 @@ func (r *MerchantRepository) ListThemeSlots(ctx context.Context, onlyOn bool) ([
 
 func (r *MerchantRepository) GetThemeSlot(ctx context.Context, id uint64) (*model.HomepageThemeSlot, error) {
 	var s model.HomepageThemeSlot
-	err := r.conn.QueryRowCtx(ctx, &s,
+	err := r.conn.QueryRowPartialCtx(ctx, &s,
 		"SELECT "+themeSlotColumns+" FROM homepage_theme_slots WHERE id=? LIMIT 1", id,
 	)
 	if err != nil {
@@ -93,7 +93,7 @@ func (r *MerchantRepository) ListThemePackages(ctx context.Context, themeSlotID 
 		args = append(args, themeSlotID)
 	}
 	var list []model.HomepageThemePackage
-	err := r.conn.QueryRowsCtx(ctx, &list,
+	err := r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+themePackageColumns+" FROM homepage_theme_packages WHERE "+where+" ORDER BY sort ASC, id ASC",
 		args...,
 	)
@@ -102,7 +102,7 @@ func (r *MerchantRepository) ListThemePackages(ctx context.Context, themeSlotID 
 
 func (r *MerchantRepository) GetThemePackage(ctx context.Context, id uint64) (*model.HomepageThemePackage, error) {
 	var p model.HomepageThemePackage
-	err := r.conn.QueryRowCtx(ctx, &p,
+	err := r.conn.QueryRowPartialCtx(ctx, &p,
 		"SELECT "+themePackageColumns+" FROM homepage_theme_packages WHERE id=? LIMIT 1", id,
 	)
 	if err != nil {
@@ -167,7 +167,7 @@ func (r *MerchantRepository) ListThemeOrders(ctx context.Context, shopID, themeS
 	}
 	listArgs := append(append([]any{}, args...), pageSize, (page-1)*pageSize)
 	var list []model.HomepageThemeOrder
-	err = r.conn.QueryRowsCtx(ctx, &list,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+themeOrderColumns+" FROM homepage_theme_orders WHERE "+where+" ORDER BY id DESC LIMIT ? OFFSET ?",
 		listArgs...,
 	)
@@ -178,7 +178,7 @@ func (r *MerchantRepository) ActiveThemeOrderForSlot(ctx context.Context, themeS
 	r.ExpireDueThemeOrders(ctx)
 	now := time.Now()
 	var o model.HomepageThemeOrder
-	err := r.conn.QueryRowCtx(ctx, &o,
+	err := r.conn.QueryRowPartialCtx(ctx, &o,
 		"SELECT "+themeOrderColumns+" FROM homepage_theme_orders WHERE theme_slot_id=? AND status=? AND start_at<=? AND end_at>? ORDER BY end_at DESC LIMIT 1",
 		themeSlotID, model.ThemeOrderActive, now, now,
 	)
@@ -195,7 +195,7 @@ func (r *MerchantRepository) LatestThemeOrderQueueEnd(ctx context.Context, theme
 	r.ExpireDueThemeOrders(ctx)
 	now := time.Now()
 	var o model.HomepageThemeOrder
-	err := r.conn.QueryRowCtx(ctx, &o,
+	err := r.conn.QueryRowPartialCtx(ctx, &o,
 		"SELECT "+themeOrderColumns+" FROM homepage_theme_orders WHERE theme_slot_id=? AND status=? ORDER BY end_at DESC LIMIT 1",
 		themeSlotID, model.ThemeOrderActive,
 	)
@@ -219,7 +219,7 @@ func (r *MerchantRepository) PurchaseThemeOrder(ctx context.Context, order *mode
 
 		start := now
 		var prev model.HomepageThemeOrder
-		if err := session.QueryRowCtx(ctx, &prev,
+		if err := session.QueryRowPartialCtx(ctx, &prev,
 			"SELECT "+themeOrderColumns+" FROM homepage_theme_orders WHERE theme_slot_id=? AND status=? ORDER BY end_at DESC LIMIT 1",
 			order.ThemeSlotID, model.ThemeOrderActive,
 		); err == nil {
@@ -337,7 +337,7 @@ func (r *MerchantRepository) BuildThemeTiles(ctx context.Context) ([]model.Theme
 			Paid:     false,
 		}
 		var o model.HomepageThemeOrder
-		e := r.conn.QueryRowCtx(ctx, &o,
+		e := r.conn.QueryRowPartialCtx(ctx, &o,
 			"SELECT "+themeOrderColumns+" FROM homepage_theme_orders WHERE theme_slot_id=? AND status=? AND start_at<=? AND end_at>? ORDER BY end_at DESC LIMIT 1",
 			s.ID, model.ThemeOrderActive, now, now,
 		)

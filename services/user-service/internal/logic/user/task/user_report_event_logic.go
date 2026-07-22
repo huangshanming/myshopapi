@@ -3,7 +3,7 @@ package task
 import (
 	"context"
 	"net/http"
-	"strconv"
+	"strings"
 
 	"github.com/zeromicro/go-zero/core/logx"
 
@@ -31,15 +31,24 @@ func (l *UserReportEventLogic) UserReportEvent(ctx context.Context, req *types.T
 	if !ok || userID == 0 {
 		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	refID, _ := strconv.ParseUint(req.RefId, 10, 64)
-	bizReq := biz.TaskEventReq{
-		UserID:   userID,
-		TaskCode: req.Event,
-		Delta:    1,
-		RefID:    refID,
-	}
+	bizReq := toBizTaskEvent(req, userID)
 	if err := biz.NewTaskLogic(l.svcCtx).HandleEvent(ctx, bizReq); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
 	return &types.EmptyResp{}, nil
+}
+
+func toBizTaskEvent(req *types.TaskEventReq, userID uint64) biz.TaskEventReq {
+	code := strings.TrimSpace(req.Event)
+	if code == "" {
+		code = strings.TrimSpace(req.TaskCode)
+	}
+	refID := req.RefId.Uint64()
+	return biz.TaskEventReq{
+		UserID:   userID,
+		TaskCode: code,
+		Delta:    1,
+		RefType:  strings.TrimSpace(req.RefType),
+		RefID:    refID,
+	}
 }

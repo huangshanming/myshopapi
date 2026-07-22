@@ -55,7 +55,7 @@ func (r *PointsOrderRepository) List(ctx context.Context, page, pageSize int, f 
 	}
 	listArgs := append(append([]any{}, args...), pageSize, (page-1)*pageSize)
 	var list []model.PointsExchangeOrder
-	err = r.conn.QueryRowsCtx(ctx, &list,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+pointsOrderColumns+" FROM points_exchange_orders WHERE "+where+" ORDER BY id DESC LIMIT ? OFFSET ?",
 		listArgs...,
 	)
@@ -64,7 +64,7 @@ func (r *PointsOrderRepository) List(ctx context.Context, page, pageSize int, f 
 
 func (r *PointsOrderRepository) GetByID(ctx context.Context, id uint64) (*model.PointsExchangeOrder, error) {
 	var o model.PointsExchangeOrder
-	err := r.conn.QueryRowCtx(ctx, &o,
+	err := r.conn.QueryRowPartialCtx(ctx, &o,
 		"SELECT "+pointsOrderColumns+" FROM points_exchange_orders WHERE id=? LIMIT 1", id,
 	)
 	if err != nil {
@@ -84,7 +84,7 @@ func (r *PointsOrderRepository) CreateExchangeLocal(ctx context.Context, userID,
 	var out *model.PointsExchangeOrder
 	err := r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		var p model.PointsProduct
-		if err := session.QueryRowCtx(ctx, &p,
+		if err := session.QueryRowPartialCtx(ctx, &p,
 			"SELECT "+pointsProductColumns+" FROM points_products WHERE id=? FOR UPDATE", productID,
 		); err != nil {
 			if errors.Is(err, sqlx.ErrNotFound) {
@@ -133,7 +133,7 @@ func (r *PointsOrderRepository) CreateExchangeLocal(ctx context.Context, userID,
 			return err
 		}
 		o := &model.PointsExchangeOrder{}
-		if err := session.QueryRowCtx(ctx, o,
+		if err := session.QueryRowPartialCtx(ctx, o,
 			"SELECT "+pointsOrderColumns+" FROM points_exchange_orders WHERE id=? LIMIT 1", id,
 		); err != nil {
 			return err
@@ -147,7 +147,7 @@ func (r *PointsOrderRepository) CreateExchangeLocal(ctx context.Context, userID,
 func (r *PointsOrderRepository) AbortExchange(ctx context.Context, id uint64) error {
 	return r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		var o model.PointsExchangeOrder
-		if err := session.QueryRowCtx(ctx, &o,
+		if err := session.QueryRowPartialCtx(ctx, &o,
 			"SELECT "+pointsOrderColumns+" FROM points_exchange_orders WHERE id=? FOR UPDATE", id,
 		); err != nil {
 			return err
@@ -205,7 +205,7 @@ func (r *PointsOrderRepository) CancelLocal(ctx context.Context, id uint64, rema
 	var out *model.PointsExchangeOrder
 	err := r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		var o model.PointsExchangeOrder
-		if err := session.QueryRowCtx(ctx, &o,
+		if err := session.QueryRowPartialCtx(ctx, &o,
 			"SELECT "+pointsOrderColumns+" FROM points_exchange_orders WHERE id=? FOR UPDATE", id,
 		); err != nil {
 			return errors.New("订单不存在")
@@ -273,7 +273,7 @@ func (r *PointsOrderRepository) MapUserBriefs(ctx context.Context, ids []uint64)
 		strings.Join(placeholders, ","),
 	)
 	var rows []row
-	if err := r.conn.QueryRowsCtx(ctx, &rows, query, args...); err != nil {
+	if err := r.conn.QueryRowsPartialCtx(ctx, &rows, query, args...); err != nil {
 		return out
 	}
 	for _, u := range rows {

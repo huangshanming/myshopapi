@@ -10,7 +10,7 @@ import (
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
-const userColumns = "id, created_at, updated_at, mobile, password, nickname, avatar, gender, status, role, last_login_time, deleted_at"
+const userColumns = "id, created_at, updated_at, mobile, IFNULL(password,'') AS password, IFNULL(nickname,'') AS nickname, IFNULL(avatar,'') AS avatar, gender, status, IFNULL(role,'') AS role, last_login_time, deleted_at"
 
 type UserRepository struct {
 	conn sqlx.SqlConn
@@ -34,7 +34,7 @@ func (r *UserRepository) UpdatePassword(ctx context.Context, id uint64, plain st
 
 func (r *UserRepository) CreateAdmin(ctx context.Context, mobile, plain, nickname string) (*model.User, error) {
 	var existing model.User
-	err := r.conn.QueryRowCtx(ctx, &existing,
+	err := r.conn.QueryRowPartialCtx(ctx, &existing,
 		"SELECT "+userColumns+" FROM users WHERE mobile=? AND deleted_at IS NULL LIMIT 1", mobile,
 	)
 	if err == nil {
@@ -62,7 +62,7 @@ func (r *UserRepository) CreateAdmin(ctx context.Context, mobile, plain, nicknam
 
 func (r *UserRepository) FindByMobile(ctx context.Context, mobile string) (*model.User, error) {
 	var user model.User
-	err := r.conn.QueryRowCtx(ctx, &user,
+	err := r.conn.QueryRowPartialCtx(ctx, &user,
 		"SELECT "+userColumns+" FROM users WHERE mobile=? AND deleted_at IS NULL LIMIT 1", mobile,
 	)
 	if err != nil {
@@ -87,7 +87,7 @@ func (r *UserRepository) VerifyLogin(ctx context.Context, mobile, plain string) 
 
 func (r *UserRepository) Create(ctx context.Context, mobile, plain string) (*model.User, error) {
 	var existing model.User
-	err := r.conn.QueryRowCtx(ctx, &existing,
+	err := r.conn.QueryRowPartialCtx(ctx, &existing,
 		"SELECT "+userColumns+" FROM users WHERE mobile=? AND deleted_at IS NULL LIMIT 1", mobile,
 	)
 	if err == nil {
@@ -129,7 +129,7 @@ func (r *UserRepository) MobileTakenByOther(ctx context.Context, mobile string, 
 
 func (r *UserRepository) FindByID(ctx context.Context, id uint64) (*model.User, error) {
 	var user model.User
-	err := r.conn.QueryRowCtx(ctx, &user,
+	err := r.conn.QueryRowPartialCtx(ctx, &user,
 		"SELECT "+userColumns+" FROM users WHERE id=? AND deleted_at IS NULL LIMIT 1", id,
 	)
 	if err != nil {
@@ -141,13 +141,13 @@ func (r *UserRepository) FindByID(ctx context.Context, id uint64) (*model.User, 
 // FirstShopID 取用户所属第一家店铺（优先 shop_members，兼容 shop_user_roles）
 func (r *UserRepository) FirstShopID(ctx context.Context, userID uint64) uint64 {
 	var shopID uint64
-	_ = r.conn.QueryRowCtx(ctx, &shopID,
+	_ = r.conn.QueryRowPartialCtx(ctx, &shopID,
 		"SELECT shop_id FROM shop_members WHERE user_id=? ORDER BY id ASC LIMIT 1", userID,
 	)
 	if shopID > 0 {
 		return shopID
 	}
-	_ = r.conn.QueryRowCtx(ctx, &shopID,
+	_ = r.conn.QueryRowPartialCtx(ctx, &shopID,
 		"SELECT shop_id FROM shop_user_roles WHERE user_id=? ORDER BY shop_id ASC LIMIT 1", userID,
 	)
 	return shopID

@@ -56,6 +56,7 @@ import {
   assignRoleMenus, createRole, deleteRole, fetchMenus, fetchRoleMenus,
   fetchRoles, updateRole,
 } from '../../../api/system'
+import { pickList } from '../../../utils/list'
 
 const loading = ref(false)
 const list = ref([])
@@ -70,7 +71,7 @@ async function load() {
   loading.value = true
   try {
     const res = await fetchRoles()
-    list.value = res || []
+    list.value = pickList(res)
   } catch (e) {
     ElMessage.error(e.message)
   } finally {
@@ -115,10 +116,10 @@ async function onDelete(row) {
 async function openMenus(row) {
   currentRoleId.value = row.id
   const [menusRes, idsRes] = await Promise.all([fetchMenus(), fetchRoleMenus(row.id)])
-  menuTree.value = menusRes || []
+  menuTree.value = pickList(menusRes)
   menuVisible.value = true
   await nextTick()
-  treeRef.value?.setCheckedKeys(idsRes || [], false)
+  treeRef.value?.setCheckedKeys(pickList(idsRes), false)
 }
 
 async function saveMenus() {

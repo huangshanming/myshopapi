@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	orderColumns = "id, order_no, user_id, shop_id, total_amount, goods_amount, discount_amount, pay_amount, user_coupon_id, receiver_name, receiver_phone, receiver_address, ship_company, ship_no, shipped_at, completed_at, reviewed_at, remark, status, created_at, updated_at"
-	orderItemColumns = "id, order_id, product_id, sku_id, product_name, sku_snapshot, price, quantity, seckill_entry_id, created_at"
-	afterSaleColumns = "id, order_id, order_no, user_id, shop_id, type, reason, amount, status, admin_remark, handled_by, created_at, updated_at"
+	orderColumns     = "id, order_no, user_id, shop_id, total_amount, goods_amount, discount_amount, pay_amount, user_coupon_id, IFNULL(receiver_name,'') AS receiver_name, IFNULL(receiver_phone,'') AS receiver_phone, IFNULL(receiver_address,'') AS receiver_address, IFNULL(ship_company,'') AS ship_company, IFNULL(ship_no,'') AS ship_no, shipped_at, completed_at, reviewed_at, IFNULL(remark,'') AS remark, status, created_at, updated_at"
+	orderItemColumns = "id, order_id, product_id, sku_id, IFNULL(product_name,'') AS product_name, IFNULL(sku_snapshot,'') AS sku_snapshot, price, quantity, seckill_entry_id, created_at"
+	afterSaleColumns = "id, order_id, IFNULL(order_no,'') AS order_no, user_id, shop_id, IFNULL(type,'') AS type, IFNULL(reason,'') AS reason, amount, status, IFNULL(admin_remark,'') AS admin_remark, handled_by, created_at, updated_at"
 )
 
 type OrderRepository struct {
@@ -72,7 +72,7 @@ func (r *OrderRepository) loadItems(ctx context.Context, orders []model.Order) e
 		ids[i] = o.ID
 	}
 	var items []model.OrderItem
-	err := r.conn.QueryRowsCtx(ctx, &items,
+	err := r.conn.QueryRowsPartialCtx(ctx, &items,
 		"SELECT "+orderItemColumns+" FROM order_items WHERE order_id IN ("+placeholders(len(ids))+") ORDER BY id ASC",
 		inArgs(ids)...,
 	)
@@ -91,7 +91,7 @@ func (r *OrderRepository) loadItems(ctx context.Context, orders []model.Order) e
 
 func (r *OrderRepository) findOne(ctx context.Context, where string, args ...any) (*model.Order, error) {
 	var order model.Order
-	err := r.conn.QueryRowCtx(ctx, &order, "SELECT "+orderColumns+" FROM orders WHERE "+where+" LIMIT 1", args...)
+	err := r.conn.QueryRowPartialCtx(ctx, &order, "SELECT "+orderColumns+" FROM orders WHERE "+where+" LIMIT 1", args...)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +167,7 @@ func (r *OrderRepository) List(ctx context.Context, f OrderListFilter) ([]model.
 	}
 	listArgs := append(append([]any{}, args...), (f.Page-1)*f.PageSize, f.PageSize)
 	var orders []model.Order
-	err = r.conn.QueryRowsCtx(ctx, &orders,
+	err = r.conn.QueryRowsPartialCtx(ctx, &orders,
 		"SELECT "+orderColumns+" FROM orders WHERE "+w+" ORDER BY id DESC LIMIT ?, ?",
 		listArgs...,
 	)
@@ -187,7 +187,7 @@ type StatusCountRow struct {
 
 func (r *OrderRepository) CountByUserStatus(ctx context.Context, userID uint64) ([]StatusCountRow, error) {
 	var rows []StatusCountRow
-	err := r.conn.QueryRowsCtx(ctx, &rows,
+	err := r.conn.QueryRowsPartialCtx(ctx, &rows,
 		"SELECT status, COUNT(*) AS count FROM orders WHERE user_id=? GROUP BY status", userID,
 	)
 	return rows, err
@@ -337,7 +337,7 @@ func (r *OrderRepository) loadUserNames(ctx context.Context, ids []uint64) map[u
 		Mobile   string `db:"mobile"`
 	}
 	var rows []row
-	if err := r.conn.QueryRowsCtx(ctx, &rows,
+	if err := r.conn.QueryRowsPartialCtx(ctx, &rows,
 		"SELECT id, nickname, mobile FROM users WHERE id IN ("+placeholders(len(ids))+")",
 		inArgs(ids)...,
 	); err != nil {
@@ -363,7 +363,7 @@ func (r *OrderRepository) loadShopNames(ctx context.Context, ids []uint64) map[u
 		Name string `db:"name"`
 	}
 	var rows []row
-	if err := r.conn.QueryRowsCtx(ctx, &rows,
+	if err := r.conn.QueryRowsPartialCtx(ctx, &rows,
 		"SELECT id, name FROM shops WHERE id IN ("+placeholders(len(ids))+")",
 		inArgs(ids)...,
 	); err != nil {
@@ -399,7 +399,7 @@ func (r *OrderRepository) CreateAfterSale(ctx context.Context, as *model.OrderAf
 
 func (r *OrderRepository) FindAfterSale(ctx context.Context, id uint64) (*model.OrderAfterSale, error) {
 	var as model.OrderAfterSale
-	err := r.conn.QueryRowCtx(ctx, &as, "SELECT "+afterSaleColumns+" FROM order_after_sales WHERE id=? LIMIT 1", id)
+	err := r.conn.QueryRowPartialCtx(ctx, &as, "SELECT "+afterSaleColumns+" FROM order_after_sales WHERE id=? LIMIT 1", id)
 	if err != nil {
 		return nil, err
 	}
@@ -438,7 +438,7 @@ func (r *OrderRepository) ListAfterSales(ctx context.Context, f AfterSaleListFil
 	}
 	listArgs := append(append([]any{}, args...), (f.Page-1)*f.PageSize, f.PageSize)
 	var list []model.OrderAfterSale
-	err = r.conn.QueryRowsCtx(ctx, &list,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+afterSaleColumns+" FROM order_after_sales WHERE "+w+" ORDER BY id DESC LIMIT ?, ?",
 		listArgs...,
 	)
@@ -451,7 +451,7 @@ func (r *OrderRepository) ListAfterSales(ctx context.Context, f AfterSaleListFil
 
 func (r *OrderRepository) ListAfterSalesByOrder(ctx context.Context, orderID uint64) ([]model.OrderAfterSale, error) {
 	var list []model.OrderAfterSale
-	err := r.conn.QueryRowsCtx(ctx, &list,
+	err := r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+afterSaleColumns+" FROM order_after_sales WHERE order_id=? ORDER BY id DESC", orderID,
 	)
 	if err != nil {

@@ -10,7 +10,7 @@ import (
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
-const shopNotificationColumns = "id, shop_id, type, title, content, link, ref_type, ref_id, is_read, created_at"
+const shopNotificationColumns = "id, shop_id, IFNULL(type,'') AS type, IFNULL(title,'') AS title, IFNULL(content,'') AS content, IFNULL(link,'') AS link, IFNULL(ref_type,'') AS ref_type, IFNULL(ref_id,0) AS ref_id, is_read, created_at"
 
 type NotificationRepository struct {
 	conn sqlx.SqlConn
@@ -61,7 +61,7 @@ func (r *NotificationRepository) List(ctx context.Context, f NotificationListFil
 	}
 	var list []model.ShopNotification
 	qArgs := append(args, f.PageSize, (f.Page-1)*f.PageSize)
-	err = r.conn.QueryRowsCtx(ctx, &list,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+shopNotificationColumns+" FROM shop_notifications WHERE "+whereSQL+" ORDER BY id DESC LIMIT ? OFFSET ?",
 		qArgs...,
 	)

@@ -58,6 +58,7 @@ for f in dir.rglob('*.go'):
         if 'mymall/common' not in text and 'common.LocalTime' in text:
             text = text.replace('import (\n', 'import (\n\t"mymall/common"\n', 1)
     text = re.sub(r'(\s+)sql\.NullString(\s+`db:)', r'\1string\2', text)
+    text = re.sub(r'(\s+)sql\.NullInt64(\s+`db:)', r'\1uint64\2', text)
     text = text.replace('sql.NullTime', 'common.LocalTime')
     text = re.sub(r'(\s+)int64(\s+`db:)', r'\1int\2', text)
     for old, new in sorted(RENAMES.items(), key=lambda kv: -len(kv[0])):
@@ -70,6 +71,20 @@ for f in dir.rglob('*.go'):
     text = re.sub(r'\.([A-Z][A-Za-z0-9]*)', lambda m: '.' + fix_initialisms(m.group(1)), text)
     text = re.sub(r'\bdata([A-Z][A-Za-z0-9]*)\b', r'data.\1', text)
     text = re.sub(r'\bnewData([A-Z][A-Za-z0-9]*)\b', r'newData.\1', text)
+    # Add snake_case json tags from db column names (password omitted from JSON).
+    def add_json(m):
+        tag = m.group(1)
+        if 'json:' in tag:
+            return '`' + tag + '`'
+        dm = re.search(r'db:"([^"]+)"', tag)
+        if not dm or dm.group(1) == '-':
+            return '`' + tag + '`'
+        col = dm.group(1)
+        jn = '-' if col == 'password' else col
+        return '`' + tag + f' json:"{jn}"`'
+    text = re.sub(r'`([^`]*db:"[^"]+"[^`]*)`', add_json, text)
+    if 'sql.' not in text and '"database/sql"' in text:
+        text = re.sub(r'\n\t"database/sql"\n', '\n', text)
     if text != orig:
         f.write_text(text)
 PY

@@ -40,7 +40,7 @@ RabbitMQ:
   Vhost: /
   Exchange: mymall.events
 
-Telemetry:
+AppTelemetry:
   Enabled: false
   Endpoint: jaeger-collector.mymall:4318
   Service: catalog-service

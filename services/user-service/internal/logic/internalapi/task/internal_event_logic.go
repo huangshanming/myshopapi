@@ -3,7 +3,7 @@ package task
 import (
 	"context"
 	"net/http"
-	"strconv"
+	"strings"
 
 	"github.com/zeromicro/go-zero/core/logx"
 
@@ -26,11 +26,22 @@ func NewInternalEventLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Int
 }
 
 func (l *InternalEventLogic) InternalEvent(ctx context.Context, req *types.TaskEventReq) (*types.EmptyResp, error) {
-	refID, _ := strconv.ParseUint(req.RefId, 10, 64)
+	if req.UserId == 0 {
+		return nil, xerr.New(http.StatusBadRequest, "缺少 user_id")
+	}
+	code := strings.TrimSpace(req.Event)
+	if code == "" {
+		code = strings.TrimSpace(req.TaskCode)
+	}
+	if code == "" {
+		return nil, xerr.New(http.StatusBadRequest, "缺少 task_code/event")
+	}
 	bizReq := biz.TaskEventReq{
-		TaskCode: req.Event,
+		UserID:   req.UserId,
+		TaskCode: code,
 		Delta:    1,
-		RefID:    refID,
+		RefType:  strings.TrimSpace(req.RefType),
+		RefID:    req.RefId.Uint64(),
 	}
 	if err := biz.NewTaskLogic(l.svcCtx).HandleEvent(ctx, bizReq); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())

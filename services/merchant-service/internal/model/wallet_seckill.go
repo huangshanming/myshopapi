@@ -38,7 +38,8 @@ type ShopWalletLog struct {
 	FrozenAfter    float64          `gorm:"column:frozen_after;type:decimal(12,2)" db:"frozen_after" json:"frozen_after"`
 	DepositAfter   float64          `gorm:"column:deposit_after;type:decimal(12,2)" db:"deposit_after" json:"deposit_after"`
 	Remark         string           `gorm:"column:remark;type:varchar(255)" db:"remark" json:"remark"`
-	OperatorUserID *uint64          `gorm:"column:operator_user_id" db:"operator_user_id" json:"operator_user_id,omitempty"`
+	// Non-pointer: go-zero sqlx pre-allocates *uint64 so NULL cannot scan; use IFNULL in SELECT.
+	OperatorUserID uint64           `gorm:"column:operator_user_id" db:"operator_user_id" json:"operator_user_id,omitempty"`
 	RefType        string           `gorm:"column:ref_type;type:varchar(32)" db:"ref_type" json:"ref_type"`
 	RefID          uint64           `gorm:"column:ref_id" db:"ref_id" json:"ref_id"`
 	CreatedAt      common.LocalTime `gorm:"column:created_at" db:"created_at" json:"created_at"`

@@ -14,6 +14,7 @@
 <script setup>
 import { onMounted, ref, watch } from 'vue'
 import http from '../../api/http'
+import { pickList } from '../../utils/list'
 
 const props = defineProps({
   province: { type: String, default: '' },
@@ -86,7 +87,7 @@ function onChange(codes) {
 onMounted(async () => {
   try {
     const res = await http.get('/api/v1/regions/tree')
-    options.value = res || []
+    options.value = pickList(res)
     flat.value = new Map()
     walk(options.value)
     syncFromProps()

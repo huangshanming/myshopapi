@@ -38,18 +38,18 @@ type (
 	}
 
 	User struct {
-		ID            uint64       `db:"id"`
-		Mobile        string       `db:"mobile"`          // 登录手机号
-		Password      string       `db:"password"`        // 登录密码
-		Nickname      string       `db:"nickname"`        // 用户昵称
-		Avatar        string       `db:"avatar"`          // 用户头像URL
-		Gender        int        `db:"gender"`          // 性别：0-未知 1-男 2-女
-		Status        int        `db:"status"`          // 账号状态：1-正常 0-禁用
-		Role          string       `db:"role"`            // 角色
-		LastLoginTime common.LocalTime `db:"last_login_time"` // 最后登录时间
-		CreatedAt     common.LocalTime    `db:"created_at"`
-		UpdatedAt     common.LocalTime    `db:"updated_at"`
-		DeletedAt     common.LocalTime `db:"deleted_at"`
+		ID            uint64       `db:"id" json:"id"`
+		Mobile        string       `db:"mobile" json:"mobile"`          // 登录手机号
+		Password      string       `db:"password" json:"-"`        // 登录密码
+		Nickname      string       `db:"nickname" json:"nickname"`        // 用户昵称
+		Avatar        string       `db:"avatar" json:"avatar"`          // 用户头像URL
+		Gender        int        `db:"gender" json:"gender"`          // 性别：0-未知 1-男 2-女
+		Status        int        `db:"status" json:"status"`          // 账号状态：1-正常 0-禁用
+		Role          string       `db:"role" json:"role"`            // 角色
+		LastLoginTime common.LocalTime `db:"last_login_time" json:"last_login_time"` // 最后登录时间
+		CreatedAt     common.LocalTime    `db:"created_at" json:"created_at"`
+		UpdatedAt     common.LocalTime    `db:"updated_at" json:"updated_at"`
+		DeletedAt     common.LocalTime `db:"deleted_at" json:"deleted_at"`
 	}
 )
 

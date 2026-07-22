@@ -37,19 +37,19 @@ type (
 	}
 
 	UserNotification struct {
-		ID         uint64         `db:"id"`
-		UserID     uint64         `db:"user_id"`
-		Title      string         `db:"title"`
-		Content    string         `db:"content"`
-		MsgType    string         `db:"msg_type"`
-		LinkType   string         `db:"link_type"`
-		LinkID     uint64         `db:"link_id"`
-		Extra      string `db:"extra"`
-		IsRead     int          `db:"is_read"`
-		SenderType string         `db:"sender_type"`
-		SenderID   uint64         `db:"sender_id"`
-		BatchID    uint64         `db:"batch_id"`
-		CreatedAt  common.LocalTime      `db:"created_at"`
+		ID         uint64         `db:"id" json:"id"`
+		UserID     uint64         `db:"user_id" json:"user_id"`
+		Title      string         `db:"title" json:"title"`
+		Content    string         `db:"content" json:"content"`
+		MsgType    string         `db:"msg_type" json:"msg_type"`
+		LinkType   string         `db:"link_type" json:"link_type"`
+		LinkID     uint64         `db:"link_id" json:"link_id"`
+		Extra      string `db:"extra" json:"extra"`
+		IsRead     int          `db:"is_read" json:"is_read"`
+		SenderType string         `db:"sender_type" json:"sender_type"`
+		SenderID   uint64         `db:"sender_id" json:"sender_id"`
+		BatchID    uint64         `db:"batch_id" json:"batch_id"`
+		CreatedAt  common.LocalTime      `db:"created_at" json:"created_at"`
 	}
 )
 

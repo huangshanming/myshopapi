@@ -13,7 +13,7 @@ const walletColumns = "user_id, balance, frozen_balance, created_at, updated_at"
 
 func (r *UserRepository) EnsureWallet(ctx context.Context, userID uint64) (*model.UserWallet, error) {
 	var w model.UserWallet
-	err := r.conn.QueryRowCtx(ctx, &w,
+	err := r.conn.QueryRowPartialCtx(ctx, &w,
 		"SELECT "+walletColumns+" FROM user_wallets WHERE user_id=? LIMIT 1", userID,
 	)
 	if errors.Is(err, sqlx.ErrNotFound) {
@@ -23,7 +23,7 @@ func (r *UserRepository) EnsureWallet(ctx context.Context, userID uint64) (*mode
 		if err != nil {
 			return nil, err
 		}
-		err = r.conn.QueryRowCtx(ctx, &w,
+		err = r.conn.QueryRowPartialCtx(ctx, &w,
 			"SELECT "+walletColumns+" FROM user_wallets WHERE user_id=? LIMIT 1", userID,
 		)
 	}
@@ -39,7 +39,7 @@ func (r *UserRepository) GetWallet(ctx context.Context, userID uint64) (*model.U
 
 func (r *UserRepository) lockWallet(ctx context.Context, session sqlx.Session, userID uint64) (*model.UserWallet, error) {
 	var w model.UserWallet
-	err := session.QueryRowCtx(ctx, &w,
+	err := session.QueryRowPartialCtx(ctx, &w,
 		"SELECT "+walletColumns+" FROM user_wallets WHERE user_id=? FOR UPDATE", userID,
 	)
 	if errors.Is(err, sqlx.ErrNotFound) {
@@ -49,7 +49,7 @@ func (r *UserRepository) lockWallet(ctx context.Context, session sqlx.Session, u
 		if err != nil {
 			return nil, err
 		}
-		err = session.QueryRowCtx(ctx, &w,
+		err = session.QueryRowPartialCtx(ctx, &w,
 			"SELECT "+walletColumns+" FROM user_wallets WHERE user_id=? FOR UPDATE", userID,
 		)
 	}
@@ -131,8 +131,8 @@ func (r *UserRepository) ListWalletLogs(ctx context.Context, userID uint64, page
 		return nil, 0, err
 	}
 	var list []model.UserWalletLog
-	err = r.conn.QueryRowsCtx(ctx, &list,
-		"SELECT id, user_id, change_type, amount, balance_after, frozen_after, remark, operator_user_id, ref_type, ref_id, created_at "+
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
+		"SELECT id, user_id, change_type, amount, balance_after, frozen_after, IFNULL(remark,'') AS remark, IFNULL(operator_user_id,0) AS operator_user_id, IFNULL(ref_type,'') AS ref_type, ref_id, created_at "+
 			"FROM user_wallet_logs WHERE user_id=? ORDER BY id DESC LIMIT ? OFFSET ?",
 		userID, pageSize, (page-1)*pageSize,
 	)

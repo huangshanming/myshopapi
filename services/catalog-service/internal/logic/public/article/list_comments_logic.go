@@ -26,5 +26,5 @@ func (l *ListCommentsLogic) ListComments(ctx context.Context, req *types.IdPageR
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.PageListResp{List: data}, nil
+	return types.FromPaged(data), nil
 }

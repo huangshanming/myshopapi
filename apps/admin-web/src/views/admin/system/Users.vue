@@ -170,6 +170,7 @@ import {
   adjustUserWallet, fetchUserAddresses, fetchUserFavorites, fetchUserWalletLogs, fetchUsers, generateUserToken, getUserWallet,
   resetUserPassword, setUserStatus, updateUser,
 } from '../../../api/system'
+import { pickList } from '../../../utils/list'
 
 const list = ref([])
 const loading = ref(false)
@@ -363,7 +364,7 @@ async function loadAddresses() {
   addrLoading.value = true
   try {
     const res = await fetchUserAddresses(addrUserId.value)
-    addrList.value = res || []
+    addrList.value = pickList(res)
   } catch (e) {
     ElMessage.error(e.message)
     addrList.value = []

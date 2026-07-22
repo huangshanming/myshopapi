@@ -38,15 +38,14 @@ type TokenResp {
 }
 
 type UserTokenResp {
-	Token string `json:"token"`
-	UserId uint64 `json:"user_id"`
-	Mobile string `json:"mobile"`
-	Nickname string `json:"nickname"`
-	Role string `json:"role,optional"`
-	ShopId uint64 `json:"shop_id,optional"`
-	ExpireHours int `json:"expire_hours,optional"`
+	Token       string `json:"token"`
+	UserId      uint64 `json:"user_id"`
+	Mobile      string `json:"mobile"`
+	Nickname    string `json:"nickname"`
+	Role        string `json:"role,optional"`
+	ShopId      uint64 `json:"shop_id,optional"`
+	ExpireHours int    `json:"expire_hours,optional"`
 }
-
 
 type IdListResp {
 	Ids []uint64 `json:"ids"`
@@ -59,9 +58,8 @@ type TreeResp {
 type NotificationRecipientsResp {
 	Batch interface{} `json:"batch"`
 	List  interface{} `json:"list"`
-	Total int64 `json:"total"`
+	Total int64       `json:"total"`
 }
-
 
 type PointsResp {
 	Points int64 `json:"points"`
@@ -251,8 +249,11 @@ type AdminSendReq {
 }
 
 type TaskEventReq {
-	Event string `json:"event"`
-	RefId string `json:"ref_id,optional"`
+	Event    string `json:"event,optional"`
+	TaskCode string `json:"task_code,optional"`
+	RefType  string `json:"ref_type,optional"`
+	RefId    string `json:"ref_id,optional"` // 实际以 types.FlexUint64 解析；api 声明放宽
+	UserId   uint64 `json:"user_id,optional"` // internal 调用时必填
 }
 
 type PointsLedgerReq {
@@ -414,6 +415,23 @@ type AuthMeResp {
 	Roles    []string        `json:"roles"`
 	Perms    []string        `json:"perms"`
 	MenuTree []*MenuTreeNode `json:"menu_tree"`
+}
+
+type ProductListReq {
+	Page       int    `form:"page,default=1"`
+	PageSize   int    `form:"page_size,default=10"`
+	Keyword    string `form:"keyword,optional"`
+	Status     string `form:"status,optional"`
+	CategoryID uint64 `form:"category_id,optional"`
+}
+
+type ProductListResp {
+	Total int64       `json:"total"`
+	List  interface{} `json:"list"`
+}
+
+type ProductDetailResp {
+	Product interface{} `json:"product"`
 }
 
 @server (
@@ -768,6 +786,12 @@ service userapi {
 
 	@handler DetailUserPointsOrder
 	get /api/v1/user/points-mall/orders/:id (IdPathReq) returns (PointsOrderResp)
+
+	@handler ListPointsProducts
+	get /api/v1/user/points-mall/product (ProductListReq) returns (ProductListResp)
+
+	@handler DetailProduct
+	get /api/v1/user/points-mall/product/:id (IdPathReq) returns (ProductDetailResp)
 }
 
 @server (

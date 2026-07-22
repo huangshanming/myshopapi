@@ -25,6 +25,7 @@ MySQL:
   ConnMaxLifetime: 3600
   ConnMaxIdleTime: 3600
 
-Telemetry:
+AppTelemetry:
   Enabled: false
+  Endpoint: jaeger-collector.mymall:4318
   Service: merchant-service

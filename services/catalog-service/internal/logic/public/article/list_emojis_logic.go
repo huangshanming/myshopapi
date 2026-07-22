@@ -30,6 +30,6 @@ func (l *ListEmojisLogic) ListEmojis(ctx context.Context, req *types.PageReq) (r
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.PageListResp{List: map[string]interface{}{"list": list}}, nil
+	return &types.PageListResp{List: list, Total: int64(len(list))}, nil
 
 }

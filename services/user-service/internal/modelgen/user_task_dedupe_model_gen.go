@@ -38,12 +38,12 @@ type (
 	}
 
 	UserTaskDedupe struct {
-		ID        uint64    `db:"id"`
-		UserID    uint64    `db:"user_id"`
-		TaskCode  string    `db:"task_code"`
-		BizDate   common.LocalTime `db:"biz_date"`
-		RefKey    string    `db:"ref_key"`
-		CreatedAt common.LocalTime `db:"created_at"`
+		ID        uint64    `db:"id" json:"id"`
+		UserID    uint64    `db:"user_id" json:"user_id"`
+		TaskCode  string    `db:"task_code" json:"task_code"`
+		BizDate   common.LocalTime `db:"biz_date" json:"biz_date"`
+		RefKey    string    `db:"ref_key" json:"ref_key"`
+		CreatedAt common.LocalTime `db:"created_at" json:"created_at"`
 	}
 )
 

@@ -194,6 +194,7 @@ import {
 } from '../../api/theme'
 import { fetchShops, uploadShopImage } from '../../api/merchant'
 import ImageUploader from '../../components/merchant/ImageUploader.vue'
+import { pickList } from '../../utils/list'
 
 const tab = ref('slots')
 const loading = ref(false)
@@ -228,13 +229,13 @@ const shopLoading = ref(false)
 
 async function loadSlots() {
   loading.value = true
-  try { slots.value = await listThemeSlots() || [] }
+  try { slots.value = pickList(await listThemeSlots()) }
   catch (e) { ElMessage.error(e.message) }
   finally { loading.value = false }
 }
 
 async function loadPkgs() {
-  try { pkgs.value = await listThemePackages() || [] }
+  try { pkgs.value = pickList(await listThemePackages()) }
   catch (e) { ElMessage.error(e.message) }
 }
 
@@ -283,7 +284,7 @@ async function savePkg() {
 }
 
 async function onGrantSlot() {
-  grantPkgs.value = await listThemePackages({ theme_slot_id: grantForm.theme_slot_id }) || []
+  grantPkgs.value = pickList(await listThemePackages({ theme_slot_id: grantForm.theme_slot_id }))
 }
 
 async function searchShops(kw) {

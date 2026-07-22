@@ -95,6 +95,7 @@ import {
 } from '../../api/theme'
 import { listProductCategories, listProducts } from '../../api/merchant-product'
 import ImageUploader from '../../components/merchant/ImageUploader.vue'
+import { pickList } from '../../utils/list'
 
 const slots = ref([])
 const orders = ref([])
@@ -119,7 +120,7 @@ async function reload() {
     merchantListThemeSlots(),
     merchantListThemeOrders({ page: 1, page_size: 50 }),
   ])
-  slots.value = s || []
+  slots.value = pickList(s)
   orders.value = o?.list || []
 }
 
@@ -129,11 +130,11 @@ async function openBuy(row) {
     package_id: undefined, title: row.name || '', subtitle: row.desc || '',
     cover_url: row.cover_url || '', link_type: 'shop', link_id: undefined,
   })
-  pkgs.value = await merchantListThemePackages({ theme_slot_id: row.id }) || []
+  pkgs.value = pickList(await merchantListThemePackages({ theme_slot_id: row.id }))
   if (!categories.value.length) {
     try {
       const res = await listProductCategories({ page: 1, page_size: 100 })
-      categories.value = res?.list || res || []
+      categories.value = pickList(res)
     } catch { categories.value = [] }
   }
   buyVisible.value = true

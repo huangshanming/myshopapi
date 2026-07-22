@@ -46,5 +46,5 @@ func (l *MerchantListArticleCommentsLogic) MerchantListArticleComments(ctx conte
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.PageListResp{List: data}, nil
+	return types.FromPaged(data), nil
 }

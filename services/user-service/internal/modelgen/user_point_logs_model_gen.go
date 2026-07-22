@@ -37,15 +37,15 @@ type (
 	}
 
 	UserPointLog struct {
-		ID          uint64    `db:"id"`
-		UserID      uint64    `db:"user_id"`
-		ChangeType  string    `db:"change_type"` // task_claim/admin_adjust
-		Delta       int     `db:"delta"`       // 变动积分(可负)
-		PointsAfter int     `db:"points_after"`
-		Remark      string    `db:"remark"`
-		RefType     string    `db:"ref_type"`
-		RefID       uint64    `db:"ref_id"`
-		CreatedAt   common.LocalTime `db:"created_at"`
+		ID          uint64    `db:"id" json:"id"`
+		UserID      uint64    `db:"user_id" json:"user_id"`
+		ChangeType  string    `db:"change_type" json:"change_type"` // task_claim/admin_adjust
+		Delta       int     `db:"delta" json:"delta"`       // 变动积分(可负)
+		PointsAfter int     `db:"points_after" json:"points_after"`
+		Remark      string    `db:"remark" json:"remark"`
+		RefType     string    `db:"ref_type" json:"ref_type"`
+		RefID       uint64    `db:"ref_id" json:"ref_id"`
+		CreatedAt   common.LocalTime `db:"created_at" json:"created_at"`
 	}
 )
 

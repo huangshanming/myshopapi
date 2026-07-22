@@ -29,5 +29,5 @@ func (l *AdminListUserAddressesLogic) AdminListUserAddresses(ctx context.Context
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.PageListResp{List: list}, nil
+	return &types.PageListResp{List: list, Total: int64(len(list))}, nil
 }

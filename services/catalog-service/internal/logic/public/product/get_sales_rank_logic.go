@@ -29,5 +29,5 @@ func (l *GetSalesRankLogic) GetSalesRank(ctx context.Context, req *types.PageReq
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, "查询失败")
 	}
-	return &types.SalesRankResp{Data: data}, nil
+	return types.FromPaged(data), nil
 }

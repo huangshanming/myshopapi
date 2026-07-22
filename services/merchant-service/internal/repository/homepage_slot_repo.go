@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	slotPackageColumns = "id, slot_type, name, price, duration_days, status, sort, remark, created_at, updated_at"
+	slotPackageColumns = "id, slot_type, IFNULL(name,'') AS name, price, duration_days, status, sort, IFNULL(remark,'') AS remark, created_at, updated_at"
 	slotSettingColumns = "slot_type, home_limit, updated_at"
-	slotOrderColumns = "id, shop_id, slot_type, package_id, target_id, amount, duration_days, start_at, end_at, status, pay_source, wallet_log_id, operator_id, created_at, updated_at"
+	slotOrderColumns   = "id, shop_id, slot_type, package_id, target_id, amount, duration_days, start_at, end_at, status, IFNULL(pay_source,'') AS pay_source, wallet_log_id, operator_id, created_at, updated_at"
 )
 
 func (r *MerchantRepository) ExpireDueSlotOrders(ctx context.Context) {
@@ -37,7 +37,7 @@ func (r *MerchantRepository) ListSlotPackages(ctx context.Context, slotType stri
 		args = append(args, model.SlotPkgOn)
 	}
 	var list []model.HomepageSlotPackage
-	err := r.conn.QueryRowsCtx(ctx, &list,
+	err := r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+slotPackageColumns+" FROM homepage_slot_packages WHERE "+where+" ORDER BY sort ASC, id ASC",
 		args...,
 	)
@@ -46,7 +46,7 @@ func (r *MerchantRepository) ListSlotPackages(ctx context.Context, slotType stri
 
 func (r *MerchantRepository) GetSlotPackage(ctx context.Context, id uint64) (*model.HomepageSlotPackage, error) {
 	var p model.HomepageSlotPackage
-	err := r.conn.QueryRowCtx(ctx, &p,
+	err := r.conn.QueryRowPartialCtx(ctx, &p,
 		"SELECT "+slotPackageColumns+" FROM homepage_slot_packages WHERE id=? LIMIT 1", id,
 	)
 	if err != nil {
@@ -82,13 +82,13 @@ func (r *MerchantRepository) UpdateSlotPackage(ctx context.Context, p *model.Hom
 
 func (r *MerchantRepository) ListSlotSettings(ctx context.Context) ([]model.HomepageSlotSetting, error) {
 	var list []model.HomepageSlotSetting
-	err := r.conn.QueryRowsCtx(ctx, &list, "SELECT "+slotSettingColumns+" FROM homepage_slot_settings")
+	err := r.conn.QueryRowsPartialCtx(ctx, &list, "SELECT "+slotSettingColumns+" FROM homepage_slot_settings")
 	return list, err
 }
 
 func (r *MerchantRepository) GetSlotSetting(ctx context.Context, slotType string) (*model.HomepageSlotSetting, error) {
 	var s model.HomepageSlotSetting
-	err := r.conn.QueryRowCtx(ctx, &s,
+	err := r.conn.QueryRowPartialCtx(ctx, &s,
 		"SELECT "+slotSettingColumns+" FROM homepage_slot_settings WHERE slot_type=? LIMIT 1", slotType,
 	)
 	if errors.Is(err, sqlx.ErrNotFound) {
@@ -106,7 +106,7 @@ func (r *MerchantRepository) GetSlotSetting(ctx context.Context, slotType string
 
 func (r *MerchantRepository) UpsertSlotSetting(ctx context.Context, slotType string, homeLimit int) error {
 	var s model.HomepageSlotSetting
-	err := r.conn.QueryRowCtx(ctx, &s,
+	err := r.conn.QueryRowPartialCtx(ctx, &s,
 		"SELECT "+slotSettingColumns+" FROM homepage_slot_settings WHERE slot_type=? LIMIT 1", slotType,
 	)
 	if errors.Is(err, sqlx.ErrNotFound) {
@@ -151,7 +151,7 @@ func (r *MerchantRepository) ListSlotOrders(ctx context.Context, shopID uint64, 
 	}
 	listArgs := append(append([]any{}, args...), pageSize, (page-1)*pageSize)
 	var list []model.HomepageSlotOrder
-	err = r.conn.QueryRowsCtx(ctx, &list,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+slotOrderColumns+" FROM homepage_slot_orders WHERE "+where+" ORDER BY id DESC LIMIT ? OFFSET ?",
 		listArgs...,
 	)
@@ -171,7 +171,7 @@ func (r *MerchantRepository) LatestActiveSlotOrder(ctx context.Context, shopID u
 	}
 	query += " ORDER BY end_at DESC LIMIT 1"
 	var o model.HomepageSlotOrder
-	err := r.conn.QueryRowCtx(ctx, &o, query, args...)
+	err := r.conn.QueryRowPartialCtx(ctx, &o, query, args...)
 	if errors.Is(err, sqlx.ErrNotFound) {
 		return nil, nil
 	}
@@ -203,7 +203,7 @@ func (r *MerchantRepository) PurchaseSlotOrder(ctx context.Context, order *model
 
 		start := now
 		var prev model.HomepageSlotOrder
-		if err := session.QueryRowCtx(ctx, &prev, query, args...); err == nil {
+		if err := session.QueryRowPartialCtx(ctx, &prev, query, args...); err == nil {
 			if time.Time(prev.EndAt).After(now) {
 				start = time.Time(prev.EndAt)
 			}
@@ -305,7 +305,7 @@ WHERE s.status = ?`
 
 	countSQL := "SELECT COUNT(*) " + baseFrom
 	var total int64
-	if err := r.conn.QueryRowCtx(ctx, &total, countSQL,
+	if err := r.conn.QueryRowPartialCtx(ctx, &total, countSQL,
 		slotType, model.SlotOrderActive, now, now, model.ShopApproved,
 	); err != nil {
 		return nil, 0, err
@@ -322,13 +322,13 @@ WHERE s.status = ?`
 	}
 
 	listSQL := `
-SELECT s.id, s.name, s.logo, s.contact_name, s.contact_phone, s.description, s.category, s.province, s.city, s.district, s.address, s.business_license_no, s.legal_person, s.license_image, s.storefront_image, s.owner_user_id, s.status, s.reject_reason, s.created_at, s.updated_at
+SELECT ` + shopColumnsS + `
 ` + baseFrom + `
 ORDER BY CASE WHEN o.target_id IS NULL THEN 0 ELSE 1 END DESC, s.id DESC
 LIMIT ? OFFSET ?`
 
 	var list []model.Shop
-	if err := r.conn.QueryRowsCtx(ctx, &list, listSQL,
+	if err := r.conn.QueryRowsPartialCtx(ctx, &list, listSQL,
 		slotType, model.SlotOrderActive, now, now, model.ShopApproved, limit, offset,
 	); err != nil {
 		return nil, 0, err
@@ -338,7 +338,7 @@ LIMIT ? OFFSET ?`
 
 func (r *MerchantRepository) GetArticleTitle(ctx context.Context, id uint64) (string, error) {
 	var title string
-	err := r.conn.QueryRowCtx(ctx, &title,
+	err := r.conn.QueryRowPartialCtx(ctx, &title,
 		"SELECT title FROM community_article WHERE id=? LIMIT 1", id,
 	)
 	if err != nil {
@@ -362,7 +362,7 @@ func (r *MerchantRepository) ActivePaidTargetIDs(ctx context.Context, slotType s
 	r.ExpireDueSlotOrders(ctx)
 	now := time.Now()
 	var ids []uint64
-	err := r.conn.QueryRowsCtx(ctx, &ids,
+	err := r.conn.QueryRowsPartialCtx(ctx, &ids,
 		"SELECT DISTINCT target_id FROM homepage_slot_orders WHERE slot_type=? AND status=? AND start_at<=? AND end_at>?",
 		slotType, model.SlotOrderActive, now, now,
 	)

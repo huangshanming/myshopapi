@@ -38,12 +38,12 @@ type (
 	}
 
 	SysConfig struct {
-		ID          uint64    `db:"id"`
-		ConfigKey   string    `db:"config_key"`
-		ConfigValue string    `db:"config_value"`
-		Remark      string    `db:"remark"`
-		CreatedAt   common.LocalTime `db:"created_at"`
-		UpdatedAt   common.LocalTime `db:"updated_at"`
+		ID          uint64    `db:"id" json:"id"`
+		ConfigKey   string    `db:"config_key" json:"config_key"`
+		ConfigValue string    `db:"config_value" json:"config_value"`
+		Remark      string    `db:"remark" json:"remark"`
+		CreatedAt   common.LocalTime `db:"created_at" json:"created_at"`
+		UpdatedAt   common.LocalTime `db:"updated_at" json:"updated_at"`
 	}
 )
 

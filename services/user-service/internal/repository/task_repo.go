@@ -13,11 +13,11 @@ import (
 )
 
 const (
-	taskDefinitionColumns = "id, code, title, description, icon, period, enabled, reward_points, target_count, daily_limit, sort, rules_json, created_at, updated_at"
+	taskDefinitionColumns = "id, code, title, IFNULL(description,'') AS description, IFNULL(icon,'') AS icon, period, enabled, reward_points, target_count, daily_limit, sort, IFNULL(rules_json,'') AS rules_json, created_at, updated_at"
 	taskProgressColumns   = "id, user_id, task_code, biz_date, progress, claim_count, status, claimed_at, created_at, updated_at"
 	userPointsColumns     = "user_id, points, created_at, updated_at"
-	userPointLogColumns   = "id, user_id, change_type, delta, points_after, remark, ref_type, ref_id, created_at"
-	pointsOrderColumns    = "id, order_no, user_id, product_id, product_name, product_cover, quantity, points_cost, status, receiver_name, receiver_phone, receiver_address, ship_company, ship_no, admin_remark, shipped_at, completed_at, cancelled_at, created_at, updated_at"
+	userPointLogColumns   = "id, user_id, change_type, delta, points_after, IFNULL(remark,'') AS remark, IFNULL(ref_type,'') AS ref_type, IFNULL(ref_id,0) AS ref_id, created_at"
+	pointsOrderColumns    = "id, order_no, user_id, product_id, IFNULL(product_name,'') AS product_name, IFNULL(product_cover,'') AS product_cover, quantity, points_cost, status, IFNULL(receiver_name,'') AS receiver_name, IFNULL(receiver_phone,'') AS receiver_phone, IFNULL(receiver_address,'') AS receiver_address, IFNULL(ship_company,'') AS ship_company, IFNULL(ship_no,'') AS ship_no, IFNULL(admin_remark,'') AS admin_remark, shipped_at, completed_at, cancelled_at, created_at, updated_at"
 )
 
 type TaskRepository struct {
@@ -64,12 +64,12 @@ func (r *TaskRepository) SeedIfEmpty(ctx context.Context) error {
 func (r *TaskRepository) ListDefinitions(ctx context.Context, all bool) ([]model.TaskDefinition, error) {
 	var list []model.TaskDefinition
 	if all {
-		err := r.conn.QueryRowsCtx(ctx, &list,
+		err := r.conn.QueryRowsPartialCtx(ctx, &list,
 			"SELECT "+taskDefinitionColumns+" FROM task_definitions ORDER BY sort ASC, id ASC",
 		)
 		return list, err
 	}
-	err := r.conn.QueryRowsCtx(ctx, &list,
+	err := r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+taskDefinitionColumns+" FROM task_definitions WHERE enabled=1 ORDER BY sort ASC, id ASC",
 	)
 	return list, err
@@ -77,7 +77,7 @@ func (r *TaskRepository) ListDefinitions(ctx context.Context, all bool) ([]model
 
 func (r *TaskRepository) GetDefinition(ctx context.Context, code string) (*model.TaskDefinition, error) {
 	var t model.TaskDefinition
-	err := r.conn.QueryRowCtx(ctx, &t,
+	err := r.conn.QueryRowPartialCtx(ctx, &t,
 		"SELECT "+taskDefinitionColumns+" FROM task_definitions WHERE code=? LIMIT 1", code,
 	)
 	if err != nil {
@@ -88,7 +88,7 @@ func (r *TaskRepository) GetDefinition(ctx context.Context, code string) (*model
 
 func (r *TaskRepository) GetDefinitionByID(ctx context.Context, id uint64) (*model.TaskDefinition, error) {
 	var t model.TaskDefinition
-	err := r.conn.QueryRowCtx(ctx, &t,
+	err := r.conn.QueryRowPartialCtx(ctx, &t,
 		"SELECT "+taskDefinitionColumns+" FROM task_definitions WHERE id=? LIMIT 1", id,
 	)
 	if err != nil {
@@ -120,7 +120,7 @@ func BizDateFor(def *model.TaskDefinition) string {
 func (r *TaskRepository) GetOrCreateProgress(ctx context.Context, userID uint64, def *model.TaskDefinition) (*model.UserTaskProgress, error) {
 	biz := BizDateFor(def)
 	var p model.UserTaskProgress
-	err := r.conn.QueryRowCtx(ctx, &p,
+	err := r.conn.QueryRowPartialCtx(ctx, &p,
 		"SELECT "+taskProgressColumns+" FROM user_task_progress WHERE user_id=? AND task_code=? AND biz_date=? LIMIT 1",
 		userID, def.Code, biz,
 	)
@@ -138,7 +138,7 @@ func (r *TaskRepository) GetOrCreateProgress(ctx context.Context, userID uint64,
 	if err != nil {
 		return nil, err
 	}
-	err = r.conn.QueryRowCtx(ctx, &p,
+	err = r.conn.QueryRowPartialCtx(ctx, &p,
 		"SELECT "+taskProgressColumns+" FROM user_task_progress WHERE user_id=? AND task_code=? AND biz_date=? LIMIT 1",
 		userID, def.Code, biz,
 	)
@@ -179,7 +179,7 @@ func (r *TaskRepository) ApplyEvent(ctx context.Context, userID uint64, def *mod
 	var out *model.UserTaskProgress
 	err = r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		var p model.UserTaskProgress
-		e := session.QueryRowCtx(ctx, &p,
+		e := session.QueryRowPartialCtx(ctx, &p,
 			"SELECT "+taskProgressColumns+" FROM user_task_progress WHERE user_id=? AND task_code=? AND biz_date=? FOR UPDATE",
 			userID, def.Code, biz,
 		)
@@ -196,7 +196,7 @@ func (r *TaskRepository) ApplyEvent(ctx context.Context, userID uint64, def *mod
 			if err != nil {
 				return err
 			}
-			e = session.QueryRowCtx(ctx, &p,
+			e = session.QueryRowPartialCtx(ctx, &p,
 				"SELECT "+taskProgressColumns+" FROM user_task_progress WHERE id=? FOR UPDATE", id,
 			)
 		}
@@ -250,7 +250,7 @@ func (r *TaskRepository) Claim(ctx context.Context, userID uint64, def *model.Ta
 	var points *model.UserPoints
 	err := r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		var p model.UserTaskProgress
-		if err := session.QueryRowCtx(ctx, &p,
+		if err := session.QueryRowPartialCtx(ctx, &p,
 			"SELECT "+taskProgressColumns+" FROM user_task_progress WHERE user_id=? AND task_code=? AND biz_date=? FOR UPDATE",
 			userID, def.Code, biz,
 		); err != nil {
@@ -305,7 +305,7 @@ func (r *TaskRepository) Claim(ctx context.Context, userID uint64, def *model.Ta
 
 func (r *TaskRepository) ensurePointsTx(ctx context.Context, session sqlx.Session, userID uint64) (*model.UserPoints, error) {
 	var up model.UserPoints
-	err := session.QueryRowCtx(ctx, &up,
+	err := session.QueryRowPartialCtx(ctx, &up,
 		"SELECT "+userPointsColumns+" FROM user_points WHERE user_id=? FOR UPDATE", userID,
 	)
 	if errors.Is(err, sqlx.ErrNotFound) {
@@ -315,7 +315,7 @@ func (r *TaskRepository) ensurePointsTx(ctx context.Context, session sqlx.Sessio
 		if err != nil {
 			return nil, err
 		}
-		err = session.QueryRowCtx(ctx, &up,
+		err = session.QueryRowPartialCtx(ctx, &up,
 			"SELECT "+userPointsColumns+" FROM user_points WHERE user_id=? FOR UPDATE", userID,
 		)
 	}
@@ -419,7 +419,7 @@ func (r *TaskRepository) RefundPoints(ctx context.Context, userID uint64, points
 
 func (r *TaskRepository) GetPoints(ctx context.Context, userID uint64) (*model.UserPoints, error) {
 	var up model.UserPoints
-	err := r.conn.QueryRowCtx(ctx, &up,
+	err := r.conn.QueryRowPartialCtx(ctx, &up,
 		"SELECT "+userPointsColumns+" FROM user_points WHERE user_id=? LIMIT 1", userID,
 	)
 	if errors.Is(err, sqlx.ErrNotFound) {
@@ -443,7 +443,7 @@ func (r *TaskRepository) ListPointLogs(ctx context.Context, userID uint64, page,
 		return nil, 0, err
 	}
 	var list []model.UserPointLog
-	err = r.conn.QueryRowsCtx(ctx, &list,
+	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+userPointLogColumns+" FROM user_point_logs WHERE user_id=? ORDER BY id DESC LIMIT ? OFFSET ?",
 		userID, pageSize, (page-1)*pageSize,
 	)
@@ -455,7 +455,7 @@ func (r *TaskRepository) GetUserBrief(ctx context.Context, userID uint64) (nickn
 		Nickname string `db:"nickname"`
 		Avatar   string `db:"avatar"`
 	}
-	err = r.conn.QueryRowCtx(ctx, &brief,
+	err = r.conn.QueryRowPartialCtx(ctx, &brief,
 		"SELECT nickname, avatar FROM users WHERE id=? AND deleted_at IS NULL LIMIT 1", userID,
 	)
 	if err != nil {
