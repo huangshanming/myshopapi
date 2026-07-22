@@ -24,10 +24,10 @@ func NewCreateAdminLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Creat
 	}
 }
 
-func (l *CreateAdminLogic) CreateAdmin(ctx context.Context, req *types.AdminCreateReq) (resp *types.AnyResp, err error) {
+func (l *CreateAdminLogic) CreateAdmin(ctx context.Context, req *types.AdminCreateReq) (resp *types.UserResp, err error) {
 	user, err := biz.NewRBACLogic(l.svcCtx).CreateAdmin(ctx, *req)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: user}, nil
+	return &types.UserResp{Data: user}, nil
 }

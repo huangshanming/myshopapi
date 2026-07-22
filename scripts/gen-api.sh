@@ -55,9 +55,13 @@ echo "==> goctl api go ($SERVICE)"
   goctl api go -api "$API" -dir . -style go_zero --home "$HOME_TPL"
 )
 
-# Drop goctl default main/config/etc — project uses cmd/main.go + pkg/config
+# Drop goctl default main; keep hand-maintained internal/config when present.
 rm -f "$DIR"/*api.go 2>/dev/null || true
-rm -rf "$DIR/internal/config" 2>/dev/null || true
+if [[ -f "$DIR/internal/config/config.go" ]]; then
+  echo "==> keeping internal/config/config.go"
+else
+  rm -rf "$DIR/internal/config" 2>/dev/null || true
+fi
 # keep etc/*.yaml service configs; remove only goctl-named etc if present
 find "$DIR/etc" -name '*api.yaml' -delete 2>/dev/null || true
 

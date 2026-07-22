@@ -24,10 +24,10 @@ func NewAdminSoftDeleteArticleLogic(ctx context.Context, svcCtx *svc.ServiceCont
 	}
 }
 
-func (l *AdminSoftDeleteArticleLogic) AdminSoftDeleteArticle(ctx context.Context, req *types.ArticleRemarkBodyReq) (resp *types.AnyResp, err error) {
+func (l *AdminSoftDeleteArticleLogic) AdminSoftDeleteArticle(ctx context.Context, req *types.ArticleRemarkBodyReq) (resp *types.EmptyResp, err error) {
 	id := req.Id
 	if err := clogic.NewArticleLogic(l.svcCtx).SoftDelete(ctx, id, req.Remark); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: &types.AnyResp{}}, nil
+	return &types.EmptyResp{}, nil
 }

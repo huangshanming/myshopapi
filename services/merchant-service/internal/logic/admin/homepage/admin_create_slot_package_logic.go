@@ -25,7 +25,7 @@ func NewAdminCreateSlotPackageLogic(ctx context.Context, svcCtx *svc.ServiceCont
 	}
 }
 
-func (l *AdminCreateSlotPackageLogic) AdminCreateSlotPackage(ctx context.Context, req *types.SlotPackageSaveReq) (resp *types.AnyResp, err error) {
+func (l *AdminCreateSlotPackageLogic) AdminCreateSlotPackage(ctx context.Context, req *types.SlotPackageSaveReq) (resp *types.SlotPackageResp, err error) {
 p := model.HomepageSlotPackage{
 		SlotType: req.SlotType, Name: req.Name, Price: req.Price, DurationDays: req.DurationDays,
 		Status: req.Status, Sort: req.Sort, Remark: req.Remark,
@@ -33,5 +33,5 @@ p := model.HomepageSlotPackage{
 	if err := biz.NewMerchantLogic(l.svcCtx).CreateSlotPackage(&p); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: p}, nil
+	return &types.SlotPackageResp{Data: p}, nil
 }

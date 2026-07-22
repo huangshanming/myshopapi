@@ -19,10 +19,10 @@ func NewRegionTreeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Region
 	return &RegionTreeLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *RegionTreeLogic) RegionTree(ctx context.Context) (*types.AnyResp, error) {
+func (l *RegionTreeLogic) RegionTree(ctx context.Context) (*types.TreeResp, error) {
 	tree, err := biz.NewRegionLogic(l.svcCtx).Tree(ctx)
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.AnyResp{Data: tree}, nil
+	return &types.TreeResp{Tree: tree}, nil
 }

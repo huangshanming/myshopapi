@@ -24,11 +24,11 @@ func NewMerchantSeckillSessionsLogic(ctx context.Context, svcCtx *svc.ServiceCon
 	}
 }
 
-func (l *MerchantSeckillSessionsLogic) MerchantSeckillSessions(ctx context.Context) (resp *types.AnyResp, err error) {
+func (l *MerchantSeckillSessionsLogic) MerchantSeckillSessions(ctx context.Context) (resp *types.SeckillSessionsResp, err error) {
 
 	data, err := biz.NewMerchantLogic(l.svcCtx).MerchantSeckillSessions()
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.SeckillSessionsResp{Data: data}, nil
 }

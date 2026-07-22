@@ -9,7 +9,6 @@ require (
 	github.com/zeromicro/go-zero v1.8.5
 	go.uber.org/zap v1.28.0
 	google.golang.org/grpc v1.71.0
-	gorm.io/gorm v1.31.1
 	mymall v0.0.0
 )
 
@@ -101,7 +100,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	gorm.io/driver/mysql v1.6.0 // indirect
+	gorm.io/gorm v1.31.1 // indirect
 	k8s.io/api v0.29.3 // indirect
 	k8s.io/apimachinery v0.29.4 // indirect
 	k8s.io/client-go v0.29.3 // indirect

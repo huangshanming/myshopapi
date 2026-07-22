@@ -9,16 +9,18 @@ import (
 	"syscall"
 	"time"
 
-	"mymall/pkg/config"
-	"mymall/pkg/database"
 	"mymall/pkg/health"
-	"mymall/pkg/httpserver"
 	applog "mymall/pkg/log"
 	"mymall/pkg/xerr"
 	biz "mymall/services/merchant-service/internal/biz"
+	"mymall/services/merchant-service/internal/config"
 	"mymall/services/merchant-service/internal/handler"
-	"mymall/services/merchant-service/internal/model"
+	"mymall/services/merchant-service/internal/server"
 	"mymall/services/merchant-service/internal/svc"
+
+	"github.com/zeromicro/go-zero/core/conf"
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
+	"github.com/zeromicro/go-zero/rest"
 )
 
 func main() {
@@ -28,10 +30,10 @@ func main() {
 	if configPath == "" {
 		configPath = "./etc/merchant-service.yaml"
 	}
-	cfg, err := config.Load(configPath)
-	if err != nil {
-		log.Fatalf("加载配置失败：%v", err)
-	}
+
+	var c config.Config
+	conf.MustLoad(configPath, &c)
+	c.OverlayFromEnv()
 
 	logger, err := applog.New("merchant-service")
 	if err != nil {
@@ -39,43 +41,16 @@ func main() {
 	}
 	defer logger.Sync()
 
-	db, err := database.NewMySQL(cfg.MySQL)
-	if err != nil {
-		log.Fatalf("连接数据库失败：%v", err)
-	}
-	if err := database.AutoMigrateIfDebug(cfg.Server.Mode, db,
-		&model.Shop{},
-		&model.ShopApplication{},
-		&model.ShopMember{},
-		&model.ShopWallet{},
-		&model.ShopWalletLog{},
-		&model.SeckillRule{},
-		&model.SeckillSession{},
-		&model.SeckillEntry{},
-		&model.HomepageSlotPackage{},
-		&model.HomepageSlotSetting{},
-		&model.HomepageSlotOrder{},
-		&model.HomepageThemeSlot{},
-		&model.HomepageThemePackage{},
-		&model.HomepageThemeOrder{},
-		&model.Coupon{},
-		&model.CouponScope{},
-		&model.UserCoupon{},
-		&model.CouponGrant{},
-		&model.CouponRedeemLog{},
-	); err != nil {
-		log.Fatalf("AutoMigrate 失败：%v", err)
-	}
-
+	sqlConn := sqlx.NewMysql(c.MySQL.DSN())
 	healthReg := health.NewRegistry()
 	healthReg.Register("mysql", func(ctx context.Context) error {
-		sqlDB, err := db.DB()
+		rawDB, err := sqlConn.RawDB()
 		if err != nil {
 			return err
 		}
-		return sqlDB.PingContext(ctx)
+		return rawDB.PingContext(ctx)
 	})
-	svcCtx := svc.NewServiceContext(cfg, db, healthReg)
+	svcCtx := svc.NewServiceContext(&c, sqlConn, healthReg)
 	seckillLogic := biz.NewMerchantLogic(svcCtx)
 	_, _, _ = seckillLogic.EnsureActiveSession()
 
@@ -87,18 +62,26 @@ func main() {
 		}
 	}()
 
-	server := httpserver.NewRest(cfg.Server.HTTPPort, cfg.Server.Mode)
-	defer server.Stop()
+	grpcPort := c.GRPCPort()
+	rpcServer := server.StartZRPC(grpcPort, svcCtx, logger)
+	go func() {
+		logger.Info(fmt.Sprintf("merchant-service zRPC 启动 :%d", grpcPort))
+		rpcServer.Start()
+	}()
+	defer rpcServer.Stop()
 
-	handler.RegisterHandlers(server, svcCtx)
+	serverHTTP := rest.MustNewServer(c.RestConf, rest.WithCors())
+	defer serverHTTP.Stop()
+
+	handler.RegisterHandlers(serverHTTP, svcCtx)
 
 	go func() {
-		logger.Info(fmt.Sprintf("merchant-service HTTP(go-zero) 启动 :%d", cfg.Server.HTTPPort))
-		server.Start()
+		logger.Info(fmt.Sprintf("merchant-service HTTP(go-zero) 启动 :%d", c.Port))
+		serverHTTP.Start()
 	}()
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	server.Stop()
+	serverHTTP.Stop()
 }

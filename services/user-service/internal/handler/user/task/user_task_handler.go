@@ -61,11 +61,11 @@ func UserReportEventHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := task.NewUserReportEventLogic(r.Context(), svcCtx)
-		err := l.UserReportEvent(r.Context(), &req)
+		resp, err := l.UserReportEvent(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {
-			httpx.Ok(w)
+			httpx.OkJsonCtx(r.Context(), w, resp)
 		}
 	}
 }

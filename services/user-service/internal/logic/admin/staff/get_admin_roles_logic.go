@@ -24,10 +24,10 @@ func NewGetAdminRolesLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Get
 	}
 }
 
-func (l *GetAdminRolesLogic) GetAdminRoles(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *GetAdminRolesLogic) GetAdminRoles(ctx context.Context, req *types.IdPathReq) (resp *types.IdListResp, err error) {
 	ids, err := biz.NewRBACLogic(l.svcCtx).AdminRoleIDs(ctx, req.Id)
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.AnyResp{Data: ids}, nil
+	return &types.IdListResp{Ids: ids}, nil
 }

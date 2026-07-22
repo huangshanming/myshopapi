@@ -3,10 +3,10 @@ package model
 import "mymall/common"
 
 type ProductFavorite struct {
-	ID        uint64           `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
-	UserID    uint64           `gorm:"column:user_id;not null;uniqueIndex:uk_user_product" json:"user_id"`
-	ProductID uint64           `gorm:"column:product_id;not null;uniqueIndex:uk_user_product;index" json:"product_id"`
-	CreatedAt common.LocalTime `gorm:"column:created_at" json:"created_at"`
+	ID        uint64           `db:"id" json:"id"`
+	UserID    uint64           `db:"user_id" json:"user_id"`
+	ProductID uint64           `db:"product_id" json:"product_id"`
+	CreatedAt common.LocalTime `db:"created_at" json:"created_at"`
 }
 
 func (ProductFavorite) TableName() string { return "product_favorites" }

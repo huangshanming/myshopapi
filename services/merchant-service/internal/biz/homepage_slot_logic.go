@@ -112,11 +112,7 @@ func (l *MerchantLogic) BuySlot(shopID, userID uint64, req types.BuySlotReq) (*m
 		if targetID == 0 {
 			return nil, errors.New("请选择文章")
 		}
-		var cnt int64
-		l.svcCtx.DB.Table("community_article").
-			Where("id = ? AND shop_id = ? AND status = ? AND audit_status = ?", targetID, shopID, "published", "approved").
-			Count(&cnt)
-		if cnt == 0 {
+		if !l.svcCtx.Repo.ArticlePublishedForShop(context.Background(), targetID, shopID) {
 			return nil, errors.New("文章不存在或不属于本店/未发布")
 		}
 	} else {

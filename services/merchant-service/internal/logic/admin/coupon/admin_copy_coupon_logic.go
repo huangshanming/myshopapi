@@ -25,12 +25,12 @@ func NewAdminCopyCouponLogic(ctx context.Context, svcCtx *svc.ServiceContext) *A
 	}
 }
 
-func (l *AdminCopyCouponLogic) AdminCopyCoupon(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *AdminCopyCouponLogic) AdminCopyCoupon(ctx context.Context, req *types.IdPathReq) (resp *types.CouponResp, err error) {
 	id := req.Id
 	adminID, _ := middleware.GetUserID(ctx)
 	c, err := biz.NewMerchantLogic(l.svcCtx).CopyCoupon(id, 0, adminID, true)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: c}, nil
+	return &types.CouponResp{Data: c}, nil
 }

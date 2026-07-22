@@ -24,10 +24,10 @@ func NewSeckillConsumeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Se
 	}
 }
 
-func (l *SeckillConsumeLogic) SeckillConsume(ctx context.Context, req *types.SeckillConsumeReq) (resp *types.AnyResp, err error) {
+func (l *SeckillConsumeLogic) SeckillConsume(ctx context.Context, req *types.SeckillConsumeReq) (resp *types.SeckillConsumeResp, err error) {
 	data, err := biz.NewMerchantLogic(l.svcCtx).ConsumeSeckill(req.EntryID, req.ProductID, req.Quantity)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.SeckillConsumeResp{Data: data}, nil
 }

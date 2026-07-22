@@ -24,9 +24,9 @@ func NewInternalRedeemCouponLogic(ctx context.Context, svcCtx *svc.ServiceContex
 	}
 }
 
-func (l *InternalRedeemCouponLogic) InternalRedeemCoupon(ctx context.Context, req *types.RedeemCouponReq) (resp *types.AnyResp, err error) {
+func (l *InternalRedeemCouponLogic) InternalRedeemCoupon(ctx context.Context, req *types.RedeemCouponReq) (resp *types.EmptyResp, err error) {
 	if err := biz.NewMerchantLogic(l.svcCtx).RedeemCoupon(req.UserCouponID, req.OrderID, req.DiscountAmount); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{}, nil
+	return &types.EmptyResp{}, nil
 }

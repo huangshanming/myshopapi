@@ -24,10 +24,10 @@ func NewAdminTopArticleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *A
 	}
 }
 
-func (l *AdminTopArticleLogic) AdminTopArticle(ctx context.Context, req *types.ArticleTopBodyReq) (resp *types.AnyResp, err error) {
+func (l *AdminTopArticleLogic) AdminTopArticle(ctx context.Context, req *types.ArticleTopBodyReq) (resp *types.EmptyResp, err error) {
 	id := req.Id
 	if err := clogic.NewArticleLogic(l.svcCtx).SetTop(ctx, id, req.IsTop); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: &types.AnyResp{}}, nil
+	return &types.EmptyResp{}, nil
 }

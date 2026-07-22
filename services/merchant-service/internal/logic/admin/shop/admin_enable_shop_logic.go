@@ -24,10 +24,10 @@ func NewAdminEnableShopLogic(ctx context.Context, svcCtx *svc.ServiceContext) *A
 	}
 }
 
-func (l *AdminEnableShopLogic) AdminEnableShop(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *AdminEnableShopLogic) AdminEnableShop(ctx context.Context, req *types.IdPathReq) (resp *types.EmptyResp, err error) {
 	id := req.Id
 	if err := biz.NewMerchantLogic(l.svcCtx).EnableShop(ctx, id); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{}, nil
+	return &types.EmptyResp{}, nil
 }

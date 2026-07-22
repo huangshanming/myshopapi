@@ -7,11 +7,31 @@ type AnyResp struct {
 	Data interface{} `json:"data,optional"`
 }
 
+// DataResp is the preferred name for opaque entity JSON bodies.
+type DataResp = AnyResp
+
 type CodePathReq struct {
 	Code string `path:"code"`
 }
 
 type EmptyResp struct {
+}
+
+type URLResp struct {
+	Url string `json:"url"`
+}
+
+type CountResp struct {
+	Count int64 `json:"count"`
+}
+
+type FavoriteStatusResp struct {
+	Favorited bool `json:"favorited"`
+}
+
+type EngagementResp struct {
+	Liked bool `json:"liked"`
+	Favorited bool `json:"favorited"`
 }
 
 type FilePathReq struct {
@@ -22,8 +42,6 @@ type IdPathReq struct {
 	Id uint64 `path:"id"`
 }
 
-type JSONBody struct {
-}
 
 type PageListResp struct {
 	Total int64       `json:"total"`

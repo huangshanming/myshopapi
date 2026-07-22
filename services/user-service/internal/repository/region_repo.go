@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"mymall/services/user-service/internal/model"
 
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
+
+const regionColumns = "id, code, name, parent_code, level, sort, created_at"
 
 type pcaNode struct {
 	Code     string    `json:"code"`
@@ -18,9 +20,7 @@ type pcaNode struct {
 }
 
 func (r *UserRepository) CountRegions(ctx context.Context) (int64, error) {
-	var n int64
-	err := r.db.WithContext(ctx).Model(&model.Region{}).Count(&n).Error
-	return n, err
+	return countQuery(ctx, r.conn, "SELECT COUNT(*) FROM regions")
 }
 
 func (r *UserRepository) SeedRegionsFromPCA(ctx context.Context, raw []byte) error {
@@ -51,17 +51,26 @@ func (r *UserRepository) SeedRegionsFromPCA(ctx context.Context, raw []byte) err
 	if len(rows) == 0 {
 		return fmt.Errorf("pca data empty")
 	}
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	return r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		const batch = 500
 		for i := 0; i < len(rows); i += batch {
 			end := i + batch
 			if end > len(rows) {
 				end = len(rows)
 			}
-			if err := tx.Clauses(clause.OnConflict{
-				Columns:   []clause.Column{{Name: "code"}},
-				DoUpdates: clause.AssignmentColumns([]string{"name", "parent_code", "level", "sort"}),
-			}).Create(rows[i:end]).Error; err != nil {
+			chunk := rows[i:end]
+			placeholders := make([]string, 0, len(chunk))
+			args := make([]any, 0, len(chunk)*5)
+			for _, reg := range chunk {
+				placeholders = append(placeholders, "(?,?,?,?,?)")
+				args = append(args, reg.Code, reg.Name, reg.ParentCode, reg.Level, reg.Sort)
+			}
+			query := fmt.Sprintf(
+				"INSERT INTO regions (code, name, parent_code, level, sort) VALUES %s "+
+					"ON DUPLICATE KEY UPDATE name=VALUES(name), parent_code=VALUES(parent_code), level=VALUES(level), sort=VALUES(sort)",
+				strings.Join(placeholders, ","),
+			)
+			if _, err := session.ExecCtx(ctx, query, args...); err != nil {
 				return err
 			}
 		}
@@ -71,19 +80,27 @@ func (r *UserRepository) SeedRegionsFromPCA(ctx context.Context, raw []byte) err
 
 func (r *UserRepository) ListRegionsByParent(ctx context.Context, parentCode string) ([]model.Region, error) {
 	var list []model.Region
-	err := r.db.WithContext(ctx).Where("parent_code = ?", parentCode).Order("sort ASC, code ASC").Find(&list).Error
+	err := r.conn.QueryRowsCtx(ctx, &list,
+		"SELECT "+regionColumns+" FROM regions WHERE parent_code=? ORDER BY sort ASC, code ASC",
+		parentCode,
+	)
 	return list, err
 }
 
 func (r *UserRepository) ListRegionsByLevel(ctx context.Context, level int) ([]model.Region, error) {
 	var list []model.Region
-	err := r.db.WithContext(ctx).Where("level = ?", level).Order("sort ASC, code ASC").Find(&list).Error
+	err := r.conn.QueryRowsCtx(ctx, &list,
+		"SELECT "+regionColumns+" FROM regions WHERE level=? ORDER BY sort ASC, code ASC",
+		level,
+	)
 	return list, err
 }
 
 func (r *UserRepository) GetRegionByCode(ctx context.Context, code string) (*model.Region, error) {
 	var reg model.Region
-	err := r.db.WithContext(ctx).Where("code = ?", code).First(&reg).Error
+	err := r.conn.QueryRowCtx(ctx, &reg,
+		"SELECT "+regionColumns+" FROM regions WHERE code=? LIMIT 1", code,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +109,9 @@ func (r *UserRepository) GetRegionByCode(ctx context.Context, code string) (*mod
 
 func (r *UserRepository) BuildRegionTree(ctx context.Context) ([]model.RegionTreeNode, error) {
 	var all []model.Region
-	if err := r.db.WithContext(ctx).Order("level ASC, sort ASC, code ASC").Find(&all).Error; err != nil {
+	if err := r.conn.QueryRowsCtx(ctx, &all,
+		"SELECT "+regionColumns+" FROM regions ORDER BY level ASC, sort ASC, code ASC",
+	); err != nil {
 		return nil, err
 	}
 	byParent := map[string][]model.Region{}

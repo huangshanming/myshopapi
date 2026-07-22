@@ -19,10 +19,10 @@ func NewRegisterLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Register
 	return &RegisterLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *RegisterLogic) Register(ctx context.Context, req *types.RegisterReq) (*types.AnyResp, error) {
+func (l *RegisterLogic) Register(ctx context.Context, req *types.RegisterReq) (*types.UserResp, error) {
 	user, err := biz.NewUserLogic(l.svcCtx).Register(ctx, req.Mobile, req.Password)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: user}, nil
+	return &types.UserResp{Data: user}, nil
 }

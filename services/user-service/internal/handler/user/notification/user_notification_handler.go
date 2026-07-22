@@ -31,11 +31,11 @@ func ListNotificationsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 func MarkAllNotificationsReadHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		l := notification.NewMarkAllNotificationsReadLogic(r.Context(), svcCtx)
-		err := l.MarkAllNotificationsRead(r.Context())
+		resp, err := l.MarkAllNotificationsRead(r.Context())
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {
-			httpx.Ok(w)
+			httpx.OkJsonCtx(r.Context(), w, resp)
 		}
 	}
 }
@@ -49,11 +49,11 @@ func MarkNotificationReadHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := notification.NewMarkNotificationReadLogic(r.Context(), svcCtx)
-		err := l.MarkNotificationRead(r.Context(), &req)
+		resp, err := l.MarkNotificationRead(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {
-			httpx.Ok(w)
+			httpx.OkJsonCtx(r.Context(), w, resp)
 		}
 	}
 }

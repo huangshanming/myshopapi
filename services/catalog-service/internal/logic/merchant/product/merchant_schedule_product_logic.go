@@ -25,7 +25,7 @@ func NewMerchantScheduleProductLogic(ctx context.Context, svcCtx *svc.ServiceCon
 	}
 }
 
-func (l *MerchantScheduleProductLogic) MerchantScheduleProduct(ctx context.Context, req *types.ScheduleBodyReq) (resp *types.AnyResp, err error) {
+func (l *MerchantScheduleProductLogic) MerchantScheduleProduct(ctx context.Context, req *types.ScheduleBodyReq) (resp *types.EmptyResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -40,5 +40,5 @@ func (l *MerchantScheduleProductLogic) MerchantScheduleProduct(ctx context.Conte
 	if err := plogic.NewProductAdminLogic(l.svcCtx).CreateSchedule(ctx, shopID, uid, id, req.ToProduct()); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: &types.AnyResp{}}, nil
+	return &types.EmptyResp{}, nil
 }

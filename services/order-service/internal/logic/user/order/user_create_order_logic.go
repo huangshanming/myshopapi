@@ -22,7 +22,7 @@ func NewUserCreateOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *U
 	return &UserCreateOrderLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *UserCreateOrderLogic) UserCreateOrder(ctx context.Context, req *types.CreateOrderReq) (*types.AnyResp, error) {
+func (l *UserCreateOrderLogic) UserCreateOrder(ctx context.Context, req *types.CreateOrderReq) (*types.OrderResp, error) {
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
 		return nil, xerr.New(http.StatusUnauthorized, "未授权")
@@ -31,5 +31,5 @@ func (l *UserCreateOrderLogic) UserCreateOrder(ctx context.Context, req *types.C
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: order}, nil
+	return &types.OrderResp{Data: order}, nil
 }

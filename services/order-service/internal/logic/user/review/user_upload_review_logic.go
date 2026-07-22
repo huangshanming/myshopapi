@@ -23,7 +23,7 @@ func NewUserUploadReviewLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 	return &UserUploadReviewLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *UserUploadReviewLogic) UserUploadReview(ctx context.Context, r *http.Request) (*types.AnyResp, error) {
+func (l *UserUploadReviewLogic) UserUploadReview(ctx context.Context, r *http.Request) (*types.URLResp, error) {
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
 		return nil, xerr.New(http.StatusUnauthorized, "未授权")
@@ -41,5 +41,5 @@ func (l *UserUploadReviewLogic) UserUploadReview(ctx context.Context, r *http.Re
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: map[string]string{"url": url}}, nil
+	return &types.URLResp{Url: url}, nil
 }

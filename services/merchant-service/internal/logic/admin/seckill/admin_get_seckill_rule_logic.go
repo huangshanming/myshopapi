@@ -24,11 +24,11 @@ func NewAdminGetSeckillRuleLogic(ctx context.Context, svcCtx *svc.ServiceContext
 	}
 }
 
-func (l *AdminGetSeckillRuleLogic) AdminGetSeckillRule(ctx context.Context) (resp *types.AnyResp, err error) {
+func (l *AdminGetSeckillRuleLogic) AdminGetSeckillRule(ctx context.Context) (resp *types.SeckillRuleResp, err error) {
 
 	rule, err := biz.NewMerchantLogic(l.svcCtx).GetSeckillRule()
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.AnyResp{Data: rule}, nil
+	return &types.SeckillRuleResp{Data: rule}, nil
 }

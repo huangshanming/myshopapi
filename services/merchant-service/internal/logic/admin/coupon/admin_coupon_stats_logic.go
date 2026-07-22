@@ -24,11 +24,11 @@ func NewAdminCouponStatsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 	}
 }
 
-func (l *AdminCouponStatsLogic) AdminCouponStats(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *AdminCouponStatsLogic) AdminCouponStats(ctx context.Context, req *types.IdPathReq) (resp *types.CouponStatsResp, err error) {
 	id := req.Id
 	st, err := biz.NewMerchantLogic(l.svcCtx).CouponStats(id)
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.AnyResp{Data: st}, nil
+	return &types.CouponStatsResp{Data: st}, nil
 }

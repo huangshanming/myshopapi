@@ -22,12 +22,8 @@ func (l *NotificationLogic) List(ctx context.Context, f repository.NotificationL
 	return map[string]interface{}{"list": list, "total": total}, nil
 }
 
-func (l *NotificationLogic) UnreadCount(ctx context.Context, shopID uint64) (map[string]interface{}, error) {
-	cnt, err := l.svcCtx.Notifications.UnreadCount(ctx, shopID)
-	if err != nil {
-		return nil, err
-	}
-	return map[string]interface{}{"count": cnt}, nil
+func (l *NotificationLogic) UnreadCount(ctx context.Context, shopID uint64) (int64, error) {
+	return l.svcCtx.Notifications.UnreadCount(ctx, shopID)
 }
 
 func (l *NotificationLogic) MarkRead(ctx context.Context, id, shopID uint64) error {

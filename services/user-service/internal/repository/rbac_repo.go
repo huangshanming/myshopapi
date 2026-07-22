@@ -2,161 +2,266 @@ package repository
 
 import (
 	"context"
+	"errors"
+
 	"mymall/services/user-service/internal/model"
 
-	"gorm.io/gorm"
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
+const menuColumns = "id, created_at, updated_at, parent_id, name, type, path, component, icon, perms, sort, visible, status"
+const roleColumns = "id, created_at, updated_at, code, name, status, remark"
+const configColumns = "id, created_at, updated_at, config_key, config_value, remark"
+
 type RBACRepository struct {
-	db *gorm.DB
+	conn sqlx.SqlConn
 }
 
-func NewRBACRepository(db *gorm.DB) *RBACRepository {
-	return &RBACRepository{db: db}
+func NewRBACRepository(conn sqlx.SqlConn) *RBACRepository {
+	return &RBACRepository{conn: conn}
 }
-
-func (r *RBACRepository) DB(ctx context.Context) *gorm.DB { return r.db.WithContext(ctx) }
 
 func (r *RBACRepository) HasPlatformRole(ctx context.Context, userID uint64) bool {
-	var n int64
-	_ = r.db.WithContext(ctx).Model(&model.SysUserRole{}).Where("user_id = ?", userID).Count(&n).Error
-	return n > 0
+	n, err := countQuery(ctx, r.conn,
+		"SELECT COUNT(*) FROM sys_user_role WHERE user_id=?", userID,
+	)
+	return err == nil && n > 0
 }
 
 func (r *RBACRepository) IsSuperAdmin(ctx context.Context, userID uint64) bool {
-	var n int64
-	err := r.db.WithContext(ctx).Table("sys_user_role ur").
-		Joins("JOIN sys_role r ON r.id = ur.role_id").
-		Where("ur.user_id = ? AND r.code = ? AND r.status = 1", userID, model.RoleCodeSuperAdmin).
-		Count(&n).Error
+	n, err := countQuery(ctx, r.conn,
+		`SELECT COUNT(*) FROM sys_user_role ur
+		 JOIN sys_role r ON r.id = ur.role_id
+		 WHERE ur.user_id=? AND r.code=? AND r.status=1`,
+		userID, model.RoleCodeSuperAdmin,
+	)
 	return err == nil && n > 0
 }
 
 func (r *RBACRepository) ListRoleCodes(ctx context.Context, userID uint64) ([]string, error) {
-	var codes []string
-	err := r.db.WithContext(ctx).Table("sys_user_role ur").
-		Select("r.code").
-		Joins("JOIN sys_role r ON r.id = ur.role_id").
-		Where("ur.user_id = ? AND r.status = 1", userID).
-		Pluck("r.code", &codes).Error
-	return codes, err
+	type row struct {
+		Code string `db:"code"`
+	}
+	var rows []row
+	err := r.conn.QueryRowsCtx(ctx, &rows,
+		`SELECT r.code FROM sys_user_role ur
+		 JOIN sys_role r ON r.id = ur.role_id
+		 WHERE ur.user_id=? AND r.status=1`,
+		userID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	codes := make([]string, 0, len(rows))
+	for _, item := range rows {
+		codes = append(codes, item.Code)
+	}
+	return codes, nil
 }
 
 func (r *RBACRepository) ListUserPerms(ctx context.Context, userID uint64) ([]string, error) {
 	if r.IsSuperAdmin(ctx, userID) {
-		var all []string
-		err := r.db.WithContext(ctx).Model(&model.SysMenu{}).
-			Where("status = 1 AND perms <> ''").
-			Pluck("perms", &all).Error
-		return all, err
+		type row struct {
+			Perms string `db:"perms"`
+		}
+		var rows []row
+		err := r.conn.QueryRowsCtx(ctx, &rows,
+			"SELECT perms FROM sys_menu WHERE status=1 AND perms<>''",
+		)
+		if err != nil {
+			return nil, err
+		}
+		all := make([]string, 0, len(rows))
+		for _, item := range rows {
+			all = append(all, item.Perms)
+		}
+		return all, nil
 	}
-	var perms []string
-	err := r.db.WithContext(ctx).Table("sys_user_role ur").
-		Select("DISTINCT m.perms").
-		Joins("JOIN sys_role_menu rm ON rm.role_id = ur.role_id").
-		Joins("JOIN sys_menu m ON m.id = rm.menu_id").
-		Where("ur.user_id = ? AND m.status = 1 AND m.perms <> ''", userID).
-		Pluck("m.perms", &perms).Error
-	return perms, err
+	type row struct {
+		Perms string `db:"perms"`
+	}
+	var rows []row
+	err := r.conn.QueryRowsCtx(ctx, &rows,
+		`SELECT DISTINCT m.perms FROM sys_user_role ur
+		 JOIN sys_role_menu rm ON rm.role_id = ur.role_id
+		 JOIN sys_menu m ON m.id = rm.menu_id
+		 WHERE ur.user_id=? AND m.status=1 AND m.perms<>''`,
+		userID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	perms := make([]string, 0, len(rows))
+	for _, item := range rows {
+		perms = append(perms, item.Perms)
+	}
+	return perms, nil
 }
 
 func (r *RBACRepository) ListUserMenus(ctx context.Context, userID uint64) ([]model.SysMenu, error) {
 	var menus []model.SysMenu
-	q := r.db.WithContext(ctx).Model(&model.SysMenu{}).Where("status = 1 AND type IN ?", []string{model.MenuTypeDir, model.MenuTypeMenu})
 	if !r.IsSuperAdmin(ctx, userID) {
-		q = r.db.WithContext(ctx).Table("sys_menu m").
-			Select("DISTINCT m.*").
-			Joins("JOIN sys_role_menu rm ON rm.menu_id = m.id").
-			Joins("JOIN sys_user_role ur ON ur.role_id = rm.role_id").
-			Where("ur.user_id = ? AND m.status = 1 AND m.type IN ?", userID, []string{model.MenuTypeDir, model.MenuTypeMenu})
+		err := r.conn.QueryRowsCtx(ctx, &menus,
+			`SELECT DISTINCT `+menuColumns+` FROM sys_menu m
+			 JOIN sys_role_menu rm ON rm.menu_id = m.id
+			 JOIN sys_user_role ur ON ur.role_id = rm.role_id
+			 WHERE ur.user_id=? AND m.status=1 AND m.type IN (?, ?)
+			 ORDER BY m.sort ASC, m.id ASC`,
+			userID, model.MenuTypeDir, model.MenuTypeMenu,
+		)
+		return menus, err
 	}
-	err := q.Order("sort ASC, id ASC").Find(&menus).Error
+	err := r.conn.QueryRowsCtx(ctx, &menus,
+		"SELECT "+menuColumns+" FROM sys_menu WHERE status=1 AND type IN (?, ?) ORDER BY sort ASC, id ASC",
+		model.MenuTypeDir, model.MenuTypeMenu,
+	)
 	return menus, err
 }
 
 func (r *RBACRepository) ListAllMenus(ctx context.Context) ([]model.SysMenu, error) {
 	var menus []model.SysMenu
-	err := r.db.WithContext(ctx).Order("sort ASC, id ASC").Find(&menus).Error
+	err := r.conn.QueryRowsCtx(ctx, &menus,
+		"SELECT "+menuColumns+" FROM sys_menu ORDER BY sort ASC, id ASC",
+	)
 	return menus, err
 }
 
 func (r *RBACRepository) GetMenu(ctx context.Context, id uint64) (*model.SysMenu, error) {
 	var m model.SysMenu
-	if err := r.db.WithContext(ctx).First(&m, id).Error; err != nil {
+	err := r.conn.QueryRowCtx(ctx, &m,
+		"SELECT "+menuColumns+" FROM sys_menu WHERE id=? LIMIT 1", id,
+	)
+	if err != nil {
 		return nil, err
 	}
 	return &m, nil
 }
 
 func (r *RBACRepository) CreateMenu(ctx context.Context, m *model.SysMenu) error {
-	return r.db.WithContext(ctx).Create(m).Error
+	res, err := r.conn.ExecCtx(ctx,
+		`INSERT INTO sys_menu (parent_id, name, type, path, component, icon, perms, sort, visible, status)
+		 VALUES (?,?,?,?,?,?,?,?,?,?)`,
+		m.ParentID, m.Name, m.Type, m.Path, m.Component, m.Icon, m.Perms, m.Sort, m.Visible, m.Status,
+	)
+	if err != nil {
+		return err
+	}
+	id, err := lastInsertID(res)
+	if err != nil {
+		return err
+	}
+	m.ID = id
+	return nil
 }
 
 func (r *RBACRepository) UpdateMenu(ctx context.Context, m *model.SysMenu) error {
-	return r.db.WithContext(ctx).Save(m).Error
+	_, err := r.conn.ExecCtx(ctx,
+		`UPDATE sys_menu SET parent_id=?, name=?, type=?, path=?, component=?, icon=?, perms=?, sort=?, visible=?, status=?
+		 WHERE id=?`,
+		m.ParentID, m.Name, m.Type, m.Path, m.Component, m.Icon, m.Perms, m.Sort, m.Visible, m.Status, m.ID,
+	)
+	return err
 }
 
 func (r *RBACRepository) DeleteMenu(ctx context.Context, id uint64) error {
-	var child int64
-	_ = r.db.WithContext(ctx).Model(&model.SysMenu{}).Where("parent_id = ?", id).Count(&child).Error
+	child, _ := countQuery(ctx, r.conn,
+		"SELECT COUNT(*) FROM sys_menu WHERE parent_id=?", id,
+	)
 	if child > 0 {
-		return gorm.ErrForeignKeyViolated
+		return ErrMenuHasChildren
 	}
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("menu_id = ?", id).Delete(&model.SysRoleMenu{}).Error; err != nil {
+	return r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
+		if _, err := session.ExecCtx(ctx, "DELETE FROM sys_role_menu WHERE menu_id=?", id); err != nil {
 			return err
 		}
-		return tx.Delete(&model.SysMenu{}, id).Error
+		_, err := session.ExecCtx(ctx, "DELETE FROM sys_menu WHERE id=?", id)
+		return err
 	})
 }
 
 func (r *RBACRepository) ListRoles(ctx context.Context) ([]model.SysRole, error) {
 	var roles []model.SysRole
-	err := r.db.WithContext(ctx).Order("id ASC").Find(&roles).Error
+	err := r.conn.QueryRowsCtx(ctx, &roles,
+		"SELECT "+roleColumns+" FROM sys_role ORDER BY id ASC",
+	)
 	return roles, err
 }
 
 func (r *RBACRepository) GetRole(ctx context.Context, id uint64) (*model.SysRole, error) {
 	var role model.SysRole
-	if err := r.db.WithContext(ctx).First(&role, id).Error; err != nil {
+	err := r.conn.QueryRowCtx(ctx, &role,
+		"SELECT "+roleColumns+" FROM sys_role WHERE id=? LIMIT 1", id,
+	)
+	if err != nil {
 		return nil, err
 	}
 	return &role, nil
 }
 
 func (r *RBACRepository) CreateRole(ctx context.Context, role *model.SysRole) error {
-	return r.db.WithContext(ctx).Create(role).Error
+	res, err := r.conn.ExecCtx(ctx,
+		"INSERT INTO sys_role (code, name, status, remark) VALUES (?,?,?,?)",
+		role.Code, role.Name, role.Status, role.Remark,
+	)
+	if err != nil {
+		return err
+	}
+	id, err := lastInsertID(res)
+	if err != nil {
+		return err
+	}
+	role.ID = id
+	return nil
 }
 
 func (r *RBACRepository) UpdateRole(ctx context.Context, role *model.SysRole) error {
-	return r.db.WithContext(ctx).Save(role).Error
+	_, err := r.conn.ExecCtx(ctx,
+		"UPDATE sys_role SET code=?, name=?, status=?, remark=? WHERE id=?",
+		role.Code, role.Name, role.Status, role.Remark, role.ID,
+	)
+	return err
 }
 
 func (r *RBACRepository) DeleteRole(ctx context.Context, id uint64) error {
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("role_id = ?", id).Delete(&model.SysRoleMenu{}).Error; err != nil {
+	return r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
+		if _, err := session.ExecCtx(ctx, "DELETE FROM sys_role_menu WHERE role_id=?", id); err != nil {
 			return err
 		}
-		if err := tx.Where("role_id = ?", id).Delete(&model.SysUserRole{}).Error; err != nil {
+		if _, err := session.ExecCtx(ctx, "DELETE FROM sys_user_role WHERE role_id=?", id); err != nil {
 			return err
 		}
-		return tx.Delete(&model.SysRole{}, id).Error
+		_, err := session.ExecCtx(ctx, "DELETE FROM sys_role WHERE id=?", id)
+		return err
 	})
 }
 
 func (r *RBACRepository) ListRoleMenuIDs(ctx context.Context, roleID uint64) ([]uint64, error) {
-	var ids []uint64
-	err := r.db.WithContext(ctx).Model(&model.SysRoleMenu{}).Where("role_id = ?", roleID).Pluck("menu_id", &ids).Error
-	return ids, err
+	type row struct {
+		MenuID uint64 `db:"menu_id"`
+	}
+	var rows []row
+	err := r.conn.QueryRowsCtx(ctx, &rows,
+		"SELECT menu_id FROM sys_role_menu WHERE role_id=?", roleID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]uint64, 0, len(rows))
+	for _, item := range rows {
+		ids = append(ids, item.MenuID)
+	}
+	return ids, nil
 }
 
 func (r *RBACRepository) ReplaceRoleMenus(ctx context.Context, roleID uint64, menuIDs []uint64) error {
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("role_id = ?", roleID).Delete(&model.SysRoleMenu{}).Error; err != nil {
+	return r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
+		if _, err := session.ExecCtx(ctx, "DELETE FROM sys_role_menu WHERE role_id=?", roleID); err != nil {
 			return err
 		}
 		for _, mid := range menuIDs {
-			if err := tx.Create(&model.SysRoleMenu{RoleID: roleID, MenuID: mid}).Error; err != nil {
+			if _, err := session.ExecCtx(ctx,
+				"INSERT INTO sys_role_menu (role_id, menu_id) VALUES (?,?)", roleID, mid,
+			); err != nil {
 				return err
 			}
 		}
@@ -165,48 +270,75 @@ func (r *RBACRepository) ReplaceRoleMenus(ctx context.Context, roleID uint64, me
 }
 
 func (r *RBACRepository) ListUsers(ctx context.Context, page, pageSize int, mobile string) ([]model.User, int64, error) {
-	q := r.db.WithContext(ctx).Model(&model.User{})
+	where := "deleted_at IS NULL"
+	args := make([]any, 0, 4)
 	if mobile != "" {
-		q = q.Where("mobile LIKE ?", "%"+mobile+"%")
+		where += " AND mobile LIKE ?"
+		args = append(args, "%"+mobile+"%")
 	}
-	var total int64
-	if err := q.Count(&total).Error; err != nil {
+	total, err := countQuery(ctx, r.conn, "SELECT COUNT(*) FROM users WHERE "+where, args...)
+	if err != nil {
 		return nil, 0, err
 	}
+	listArgs := append(append([]any{}, args...), pageSize, (page-1)*pageSize)
 	var list []model.User
-	err := q.Order("id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
+	err = r.conn.QueryRowsCtx(ctx, &list,
+		"SELECT "+userColumns+" FROM users WHERE "+where+" ORDER BY id DESC LIMIT ? OFFSET ?",
+		listArgs...,
+	)
 	return list, total, err
 }
 
 func (r *RBACRepository) UpdateUserStatus(ctx context.Context, id uint64, status int) error {
-	return r.db.WithContext(ctx).Model(&model.User{}).Where("id = ?", id).Update("status", status).Error
+	_, err := r.conn.ExecCtx(ctx,
+		"UPDATE users SET status=? WHERE id=? AND deleted_at IS NULL", status, id,
+	)
+	return err
 }
 
 func (r *RBACRepository) ListAdmins(ctx context.Context, page, pageSize int) ([]model.User, int64, error) {
-	sub := r.db.WithContext(ctx).Model(&model.SysUserRole{}).Select("DISTINCT user_id")
-	q := r.db.WithContext(ctx).Model(&model.User{}).Where("id IN (?) OR role = ?", sub, "platform_admin")
-	var total int64
-	if err := q.Count(&total).Error; err != nil {
+	where := "deleted_at IS NULL AND (id IN (SELECT DISTINCT user_id FROM sys_user_role) OR role=?)"
+	total, err := countQuery(ctx, r.conn,
+		"SELECT COUNT(*) FROM users WHERE "+where, "platform_admin",
+	)
+	if err != nil {
 		return nil, 0, err
 	}
 	var list []model.User
-	err := q.Order("id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
+	err = r.conn.QueryRowsCtx(ctx, &list,
+		"SELECT "+userColumns+" FROM users WHERE "+where+" ORDER BY id DESC LIMIT ? OFFSET ?",
+		"platform_admin", pageSize, (page-1)*pageSize,
+	)
 	return list, total, err
 }
 
 func (r *RBACRepository) ListUserRoleIDs(ctx context.Context, userID uint64) ([]uint64, error) {
-	var ids []uint64
-	err := r.db.WithContext(ctx).Model(&model.SysUserRole{}).Where("user_id = ?", userID).Pluck("role_id", &ids).Error
-	return ids, err
+	type row struct {
+		RoleID uint64 `db:"role_id"`
+	}
+	var rows []row
+	err := r.conn.QueryRowsCtx(ctx, &rows,
+		"SELECT role_id FROM sys_user_role WHERE user_id=?", userID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]uint64, 0, len(rows))
+	for _, item := range rows {
+		ids = append(ids, item.RoleID)
+	}
+	return ids, nil
 }
 
 func (r *RBACRepository) ReplaceUserRoles(ctx context.Context, userID uint64, roleIDs []uint64) error {
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("user_id = ?", userID).Delete(&model.SysUserRole{}).Error; err != nil {
+	return r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
+		if _, err := session.ExecCtx(ctx, "DELETE FROM sys_user_role WHERE user_id=?", userID); err != nil {
 			return err
 		}
 		for _, rid := range roleIDs {
-			if err := tx.Create(&model.SysUserRole{UserID: userID, RoleID: rid}).Error; err != nil {
+			if _, err := session.ExecCtx(ctx,
+				"INSERT INTO sys_user_role (user_id, role_id) VALUES (?,?)", userID, rid,
+			); err != nil {
 				return err
 			}
 		}
@@ -214,28 +346,42 @@ func (r *RBACRepository) ReplaceUserRoles(ctx context.Context, userID uint64, ro
 		if len(roleIDs) > 0 {
 			role = "platform_admin"
 		}
-		return tx.Model(&model.User{}).Where("id = ?", userID).Update("role", role).Error
+		_, err := session.ExecCtx(ctx,
+			"UPDATE users SET role=? WHERE id=? AND deleted_at IS NULL", role, userID,
+		)
+		return err
 	})
 }
 
 func (r *RBACRepository) ListConfigs(ctx context.Context) ([]model.SysConfig, error) {
 	var list []model.SysConfig
-	err := r.db.WithContext(ctx).Order("id ASC").Find(&list).Error
+	err := r.conn.QueryRowsCtx(ctx, &list,
+		"SELECT "+configColumns+" FROM sys_config ORDER BY id ASC",
+	)
 	return list, err
 }
 
 func (r *RBACRepository) UpsertConfig(ctx context.Context, key, value, remark string) error {
 	var c model.SysConfig
-	err := r.db.WithContext(ctx).Where("config_key = ?", key).First(&c).Error
-	if err == gorm.ErrRecordNotFound {
-		return r.db.WithContext(ctx).Create(&model.SysConfig{ConfigKey: key, ConfigValue: value, Remark: remark}).Error
+	err := r.conn.QueryRowCtx(ctx, &c,
+		"SELECT "+configColumns+" FROM sys_config WHERE config_key=? LIMIT 1", key,
+	)
+	if errors.Is(err, sqlx.ErrNotFound) {
+		_, err = r.conn.ExecCtx(ctx,
+			"INSERT INTO sys_config (config_key, config_value, remark) VALUES (?,?,?)",
+			key, value, remark,
+		)
+		return err
 	}
 	if err != nil {
 		return err
 	}
-	c.ConfigValue = value
 	if remark != "" {
 		c.Remark = remark
 	}
-	return r.db.WithContext(ctx).Save(&c).Error
+	_, err = r.conn.ExecCtx(ctx,
+		"UPDATE sys_config SET config_value=?, remark=? WHERE id=?",
+		value, c.Remark, c.ID,
+	)
+	return err
 }

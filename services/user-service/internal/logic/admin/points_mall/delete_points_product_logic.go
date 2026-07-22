@@ -24,12 +24,12 @@ func NewDeletePointsProductLogic(ctx context.Context, svcCtx *svc.ServiceContext
 	}
 }
 
-func (l *DeletePointsProductLogic) DeletePointsProduct(ctx context.Context, req *types.IdPathReq) error {
+func (l *DeletePointsProductLogic) DeletePointsProduct(ctx context.Context, req *types.IdPathReq) (*types.EmptyResp, error) {
 	if req.Id == 0 {
-		return xerr.New(http.StatusBadRequest, "商品ID无效")
+		return nil, xerr.New(http.StatusBadRequest, "商品ID无效")
 	}
 	if err := biz.NewPointsProductLogic(l.svcCtx).Delete(ctx, req.Id); err != nil {
-		return xerr.New(http.StatusBadRequest, err.Error())
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return nil
+	return &types.EmptyResp{}, nil
 }

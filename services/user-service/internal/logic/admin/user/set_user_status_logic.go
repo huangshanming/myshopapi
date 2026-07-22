@@ -24,9 +24,9 @@ func NewSetUserStatusLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Set
 	}
 }
 
-func (l *SetUserStatusLogic) SetUserStatus(ctx context.Context, req *types.UserStatusReq) error {
+func (l *SetUserStatusLogic) SetUserStatus(ctx context.Context, req *types.UserStatusReq) (*types.EmptyResp, error) {
 	if err := biz.NewRBACLogic(l.svcCtx).SetUserStatus(ctx, req.Id, req.Status); err != nil {
-		return xerr.New(http.StatusBadRequest, err.Error())
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return nil
+	return &types.EmptyResp{}, nil
 }

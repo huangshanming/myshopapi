@@ -24,10 +24,10 @@ func NewAdminUpdateSeckillRuleLogic(ctx context.Context, svcCtx *svc.ServiceCont
 	}
 }
 
-func (l *AdminUpdateSeckillRuleLogic) AdminUpdateSeckillRule(ctx context.Context, req *types.SeckillRuleReq) (resp *types.AnyResp, err error) {
+func (l *AdminUpdateSeckillRuleLogic) AdminUpdateSeckillRule(ctx context.Context, req *types.SeckillRuleReq) (resp *types.SeckillRuleResp, err error) {
 	rule, err := biz.NewMerchantLogic(l.svcCtx).UpdateSeckillRule(*req)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: rule}, nil
+	return &types.SeckillRuleResp{Data: rule}, nil
 }

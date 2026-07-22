@@ -25,7 +25,7 @@ func NewMerchantPurgeProductsLogic(ctx context.Context, svcCtx *svc.ServiceConte
 	}
 }
 
-func (l *MerchantPurgeProductsLogic) MerchantPurgeProducts(ctx context.Context, req *types.RecycleReq) (resp *types.AnyResp, err error) {
+func (l *MerchantPurgeProductsLogic) MerchantPurgeProducts(ctx context.Context, req *types.RecycleReq) (resp *types.EmptyResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -39,5 +39,5 @@ func (l *MerchantPurgeProductsLogic) MerchantPurgeProducts(ctx context.Context, 
 	if err := plogic.NewProductAdminLogic(l.svcCtx).PermanentDelete(ctx, shopID, uid, req.ProductIDs); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: &types.AnyResp{}}, nil
+	return &types.EmptyResp{}, nil
 }

@@ -25,7 +25,7 @@ func NewAdjustStockLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Adjus
 	}
 }
 
-func (l *AdjustStockLogic) AdjustStock(ctx context.Context, req *types.StockAdjustBodyReq) (resp *types.AnyResp, err error) {
+func (l *AdjustStockLogic) AdjustStock(ctx context.Context, req *types.StockAdjustBodyReq) (resp *types.EmptyResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -41,5 +41,5 @@ func (l *AdjustStockLogic) AdjustStock(ctx context.Context, req *types.StockAdju
 	if err := plogic.NewProductAdminLogic(l.svcCtx).AdjustStock(ctx, shopID, req.ToProduct()); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: &types.AnyResp{}}, nil
+	return &types.EmptyResp{}, nil
 }

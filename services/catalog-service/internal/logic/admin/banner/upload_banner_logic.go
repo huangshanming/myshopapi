@@ -25,7 +25,7 @@ func NewUploadBannerLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Uplo
 	}
 }
 
-func (l *UploadBannerLogic) UploadBanner(ctx context.Context, r *http.Request) (resp *types.AnyResp, err error) {
+func (l *UploadBannerLogic) UploadBanner(ctx context.Context, r *http.Request) (resp *types.URLResp, err error) {
 	if r == nil {
 		return nil, xerr.New(http.StatusBadRequest, "缺少上传请求")
 	}
@@ -43,5 +43,5 @@ func (l *UploadBannerLogic) UploadBanner(ctx context.Context, r *http.Request) (
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: map[string]string{"url": url}}, nil
+	return &types.URLResp{Url: url}, nil
 }

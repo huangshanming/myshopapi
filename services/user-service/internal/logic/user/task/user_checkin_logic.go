@@ -21,7 +21,7 @@ func NewUserCheckinLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserC
 	return &UserCheckinLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *UserCheckinLogic) UserCheckin(ctx context.Context) (*types.AnyResp, error) {
+func (l *UserCheckinLogic) UserCheckin(ctx context.Context) (*types.CheckinResp, error) {
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
 		return nil, xerr.New(http.StatusUnauthorized, "未登录")
@@ -30,5 +30,5 @@ func (l *UserCheckinLogic) UserCheckin(ctx context.Context) (*types.AnyResp, err
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: p}, nil
+	return &types.CheckinResp{Data: p}, nil
 }

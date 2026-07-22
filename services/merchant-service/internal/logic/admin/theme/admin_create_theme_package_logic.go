@@ -25,7 +25,7 @@ func NewAdminCreateThemePackageLogic(ctx context.Context, svcCtx *svc.ServiceCon
 	}
 }
 
-func (l *AdminCreateThemePackageLogic) AdminCreateThemePackage(ctx context.Context, req *types.ThemePackageSaveReq) (resp *types.AnyResp, err error) {
+func (l *AdminCreateThemePackageLogic) AdminCreateThemePackage(ctx context.Context, req *types.ThemePackageSaveReq) (resp *types.ThemePackageResp, err error) {
 p := model.HomepageThemePackage{
 		ThemeSlotID: req.ThemeSlotID, Name: req.Name, Price: req.Price, DurationDays: req.DurationDays,
 		Status: req.Status, Sort: req.Sort, Remark: req.Remark,
@@ -33,5 +33,5 @@ p := model.HomepageThemePackage{
 	if err := biz.NewMerchantLogic(l.svcCtx).AdminCreateThemePackage(&p); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: p}, nil
+	return &types.ThemePackageResp{Data: p}, nil
 }

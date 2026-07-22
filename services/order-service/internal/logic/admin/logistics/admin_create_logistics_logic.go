@@ -21,7 +21,7 @@ func NewAdminCreateLogisticsLogic(ctx context.Context, svcCtx *svc.ServiceContex
 	return &AdminCreateLogisticsLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *AdminCreateLogisticsLogic) AdminCreateLogistics(ctx context.Context, req *types.LogisticsSaveBodyReq) (*types.AnyResp, error) {
+func (l *AdminCreateLogisticsLogic) AdminCreateLogistics(ctx context.Context, req *types.LogisticsSaveBodyReq) (*types.LogisticsCompanyResp, error) {
 	status := int8(req.Status)
 	c, err := biz.NewLogisticsLogic(l.svcCtx).Create(ctx, types.LogisticsSaveReq{
 		Name: req.Name, Code: req.Code, Sort: req.Sort, Status: &status,
@@ -29,5 +29,5 @@ func (l *AdminCreateLogisticsLogic) AdminCreateLogistics(ctx context.Context, re
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: c}, nil
+	return &types.LogisticsCompanyResp{Data: c}, nil
 }

@@ -21,10 +21,10 @@ func NewLogisticsOptionsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 	return &LogisticsOptionsLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *LogisticsOptionsLogic) LogisticsOptions(ctx context.Context) (*types.AnyResp, error) {
+func (l *LogisticsOptionsLogic) LogisticsOptions(ctx context.Context) (*types.ListResp, error) {
 	list, err := biz.NewLogisticsLogic(l.svcCtx).Options(ctx, "")
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.AnyResp{Data: list}, nil
+	return &types.ListResp{List: list}, nil
 }

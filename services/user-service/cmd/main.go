@@ -8,20 +8,20 @@ import (
 	"os/signal"
 	"syscall"
 
-	"mymall/pkg/config"
-	"mymall/pkg/database"
 	"mymall/pkg/health"
-	"mymall/pkg/httpserver"
 	applog "mymall/pkg/log"
 	"mymall/pkg/telemetry"
 	"mymall/pkg/xerr"
-	"mymall/services/user-service/internal/biz"
+	"mymall/services/user-service/internal/config"
 	"mymall/services/user-service/internal/data"
 	"mymall/services/user-service/internal/handler"
-	"mymall/services/user-service/internal/model"
 	"mymall/services/user-service/internal/server"
 	"mymall/services/user-service/internal/svc"
 	"mymall/services/user-service/internal/uploadpath"
+
+	"github.com/zeromicro/go-zero/core/conf"
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
+	"github.com/zeromicro/go-zero/rest"
 )
 
 func main() {
@@ -32,10 +32,9 @@ func main() {
 		configPath = "./etc/user-service.yaml"
 	}
 
-	cfg, err := config.Load(configPath)
-	if err != nil {
-		log.Fatalf("加载配置失败：%v", err)
-	}
+	var c config.Config
+	conf.MustLoad(configPath, &c)
+	c.OverlayFromEnv()
 
 	logger, err := applog.New("user-service")
 	if err != nil {
@@ -44,41 +43,14 @@ func main() {
 	defer logger.Sync()
 
 	ctx := context.Background()
-	shutdownTrace, err := telemetry.Init(ctx, cfg.Telemetry)
+	shutdownTrace, err := telemetry.Init(ctx, c.Telemetry.ToPkg())
 	if err != nil {
 		logger.Warn("telemetry init skipped")
 	}
 	defer shutdownTrace(context.Background())
 
-	db, err := database.NewMySQL(cfg.MySQL)
-	if err != nil {
-		log.Fatalf("连接数据库失败：%v", err)
-	}
-	if err := database.AutoMigrateIfDebug(cfg.Server.Mode, db,
-		&model.User{},
-		&model.SysMenu{},
-		&model.SysRole{},
-		&model.SysRoleMenu{},
-		&model.SysUserRole{},
-		&model.SysConfig{},
-		&model.UserWallet{},
-		&model.UserWalletLog{},
-		&model.UserAddress{},
-		&model.Region{},
-		&model.UserNotification{},
-		&model.UserNotificationBatch{},
-		&model.UserPoints{},
-		&model.UserPointLog{},
-		&model.TaskDefinition{},
-		&model.UserTaskProgress{},
-		&model.UserTaskDedupe{},
-		&model.PointsProduct{},
-		&model.PointsExchangeOrder{},
-	); err != nil {
-		log.Fatalf("AutoMigrate 失败：%v", err)
-	}
-
-	svcCtx := svc.NewServiceContext(cfg, db)
+	sqlConn := sqlx.NewMysql(c.MySQL.DSN())
+	svcCtx := svc.NewServiceContext(&c, sqlConn)
 	if err := svcCtx.Tasks.SeedIfEmpty(context.Background()); err != nil {
 		logger.Warn(fmt.Sprintf("seed tasks failed: %v", err))
 	}
@@ -89,24 +61,24 @@ func main() {
 			logger.Info("regions seeded from pca-code.json")
 		}
 	}
-	userLogic := biz.NewUserLogic(svcCtx)
 	healthReg := health.NewRegistry()
 	healthReg.Register("mysql", func(ctx context.Context) error {
-		sqlDB, err := db.DB()
+		rawDB, err := sqlConn.RawDB()
 		if err != nil {
 			return err
 		}
-		return sqlDB.PingContext(ctx)
+		return rawDB.PingContext(ctx)
 	})
 
-	rpcServer := server.StartZRPC(cfg.Server.GRPCPort, userLogic, logger)
+	grpcPort := c.GRPCPort()
+	rpcServer := server.StartZRPC(grpcPort, svcCtx, logger)
 	go func() {
-		logger.Info(fmt.Sprintf("user-service zRPC 启动 :%d", cfg.Server.GRPCPort))
+		logger.Info(fmt.Sprintf("user-service zRPC 启动 :%d", grpcPort))
 		rpcServer.Start()
 	}()
 	defer rpcServer.Stop()
 
-	serverHTTP := httpserver.NewRest(cfg.Server.HTTPPort, cfg.Server.Mode)
+	serverHTTP := rest.MustNewServer(c.RestConf, rest.WithCors())
 	defer serverHTTP.Stop()
 
 	svcCtx.Health = healthReg
@@ -115,7 +87,7 @@ func main() {
 	_ = os.MkdirAll(uploadpath.Root(), 0o755)
 
 	go func() {
-		logger.Info(fmt.Sprintf("user-service HTTP(go-zero) 启动 :%d", cfg.Server.HTTPPort))
+		logger.Info(fmt.Sprintf("user-service HTTP(go-zero) 启动 :%d", c.Port))
 		serverHTTP.Start()
 	}()
 

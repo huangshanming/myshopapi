@@ -24,7 +24,7 @@ func NewAdminCreateCategoryLogic(ctx context.Context, svcCtx *svc.ServiceContext
 	}
 }
 
-func (l *AdminCreateCategoryLogic) AdminCreateCategory(ctx context.Context, req *types.CategoryReq) (resp *types.AnyResp, err error) {
+func (l *AdminCreateCategoryLogic) AdminCreateCategory(ctx context.Context, req *types.CategoryReq) (resp *types.CategoryResp, err error) {
 	if req.Name == "" {
 		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
@@ -32,5 +32,5 @@ func (l *AdminCreateCategoryLogic) AdminCreateCategory(ctx context.Context, req 
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: cat}, nil
+	return &types.CategoryResp{Data: cat}, nil
 }

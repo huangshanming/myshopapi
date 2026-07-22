@@ -25,15 +25,15 @@ func NewMerchantUnreadNotificationCountLogic(ctx context.Context, svcCtx *svc.Se
 	}
 }
 
-func (l *MerchantUnreadNotificationCountLogic) MerchantUnreadNotificationCount(ctx context.Context) (resp *types.AnyResp, err error) {
+func (l *MerchantUnreadNotificationCountLogic) MerchantUnreadNotificationCount(ctx context.Context) (resp *types.CountResp, err error) {
 
 	shopID := middleware.GetShopID(ctx)
 	if shopID == 0 {
 		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
 	}
-	data, err := nlogic.NewNotificationLogic(l.svcCtx).UnreadCount(ctx, shopID)
+	count, err := nlogic.NewNotificationLogic(l.svcCtx).UnreadCount(ctx, shopID)
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.CountResp{Count: count}, nil
 }

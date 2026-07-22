@@ -11,16 +11,16 @@ const (
 )
 
 type ShopNotification struct {
-	ID        uint64           `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
-	ShopID    uint64           `gorm:"column:shop_id;not null;index" json:"shop_id"`
-	Type      string           `gorm:"column:type;type:varchar(32);not null" json:"type"`
-	Title     string           `gorm:"column:title;type:varchar(200);not null" json:"title"`
-	Content   string           `gorm:"column:content;type:varchar(1000)" json:"content"`
-	Link      string           `gorm:"column:link;type:varchar(255)" json:"link"`
-	RefType   string           `gorm:"column:ref_type;type:varchar(32)" json:"ref_type"`
-	RefID     uint64           `gorm:"column:ref_id;default:0" json:"ref_id"`
-	IsRead    int8             `gorm:"column:is_read;default:0" json:"is_read"`
-	CreatedAt common.LocalTime `gorm:"column:created_at" json:"created_at"`
+	ID        uint64           `db:"id" json:"id"`
+	ShopID    uint64           `db:"shop_id" json:"shop_id"`
+	Type      string           `db:"type" json:"type"`
+	Title     string           `db:"title" json:"title"`
+	Content   string           `db:"content" json:"content"`
+	Link      string           `db:"link" json:"link"`
+	RefType   string           `db:"ref_type" json:"ref_type"`
+	RefID     uint64           `db:"ref_id" json:"ref_id"`
+	IsRead    int8             `db:"is_read" json:"is_read"`
+	CreatedAt common.LocalTime `db:"created_at" json:"created_at"`
 }
 
 func (ShopNotification) TableName() string { return "shop_notifications" }

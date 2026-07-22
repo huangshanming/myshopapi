@@ -24,9 +24,9 @@ func NewAssignRoleMenusLogic(ctx context.Context, svcCtx *svc.ServiceContext) *A
 	}
 }
 
-func (l *AssignRoleMenusLogic) AssignRoleMenus(ctx context.Context, req *types.RoleMenusReq) error {
+func (l *AssignRoleMenusLogic) AssignRoleMenus(ctx context.Context, req *types.RoleMenusReq) (*types.EmptyResp, error) {
 	if err := biz.NewRBACLogic(l.svcCtx).AssignRoleMenus(ctx, req.Id, req.MenuIDs); err != nil {
-		return xerr.New(http.StatusBadRequest, err.Error())
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return nil
+	return &types.EmptyResp{}, nil
 }

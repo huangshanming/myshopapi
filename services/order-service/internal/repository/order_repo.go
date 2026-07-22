@@ -2,20 +2,27 @@ package repository
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"mymall/common"
 	"mymall/services/order-service/internal/model"
 
-	"gorm.io/gorm"
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
+)
+
+const (
+	orderColumns = "id, order_no, user_id, shop_id, total_amount, goods_amount, discount_amount, pay_amount, user_coupon_id, receiver_name, receiver_phone, receiver_address, ship_company, ship_no, shipped_at, completed_at, reviewed_at, remark, status, created_at, updated_at"
+	orderItemColumns = "id, order_id, product_id, sku_id, product_name, sku_snapshot, price, quantity, seckill_entry_id, created_at"
+	afterSaleColumns = "id, order_id, order_no, user_id, shop_id, type, reason, amount, status, admin_remark, handled_by, created_at, updated_at"
 )
 
 type OrderRepository struct {
-	db *gorm.DB
+	conn sqlx.SqlConn
 }
 
-func NewOrderRepository(db *gorm.DB) *OrderRepository {
-	return &OrderRepository{db: db}
+func NewOrderRepository(conn sqlx.SqlConn) *OrderRepository {
+	return &OrderRepository{conn: conn}
 }
 
 type OrderListFilter struct {
@@ -28,24 +35,75 @@ type OrderListFilter struct {
 }
 
 func (r *OrderRepository) Create(ctx context.Context, order *model.Order, items []model.OrderItem) error {
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(order).Error; err != nil {
+	return r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
+		id, err := lastInsertID(ctx, session,
+			`INSERT INTO orders (order_no, user_id, shop_id, total_amount, goods_amount, discount_amount, pay_amount, user_coupon_id, receiver_name, receiver_phone, receiver_address, ship_company, ship_no, remark, status)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			order.OrderNo, order.UserID, order.ShopID, order.TotalAmount, order.GoodsAmount, order.DiscountAmount, order.PayAmount,
+			order.UserCouponID, order.ReceiverName, order.ReceiverPhone, order.ReceiverAddress, order.ShipCompany, order.ShipNo, order.Remark, order.Status,
+		)
+		if err != nil {
 			return err
 		}
+		order.ID = id
 		for i := range items {
-			items[i].OrderID = order.ID
+			items[i].OrderID = id
+			itemID, err := lastInsertID(ctx, session,
+				`INSERT INTO order_items (order_id, product_id, sku_id, product_name, sku_snapshot, price, quantity, seckill_entry_id)
+				 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+				items[i].OrderID, items[i].ProductID, items[i].SkuID, items[i].ProductName, items[i].SkuSnapshot,
+				items[i].Price, items[i].Quantity, items[i].SeckillEntryID,
+			)
+			if err != nil {
+				return err
+			}
+			items[i].ID = itemID
 		}
-		return tx.Create(&items).Error
+		return nil
 	})
 }
 
-func (r *OrderRepository) FindByID(ctx context.Context, id, userID uint64) (*model.Order, error) {
+func (r *OrderRepository) loadItems(ctx context.Context, orders []model.Order) error {
+	if len(orders) == 0 {
+		return nil
+	}
+	ids := make([]uint64, len(orders))
+	for i, o := range orders {
+		ids[i] = o.ID
+	}
+	var items []model.OrderItem
+	err := r.conn.QueryRowsCtx(ctx, &items,
+		"SELECT "+orderItemColumns+" FROM order_items WHERE order_id IN ("+placeholders(len(ids))+") ORDER BY id ASC",
+		inArgs(ids)...,
+	)
+	if err != nil {
+		return err
+	}
+	m := map[uint64][]model.OrderItem{}
+	for _, it := range items {
+		m[it.OrderID] = append(m[it.OrderID], it)
+	}
+	for i := range orders {
+		orders[i].Items = m[orders[i].ID]
+	}
+	return nil
+}
+
+func (r *OrderRepository) findOne(ctx context.Context, where string, args ...any) (*model.Order, error) {
 	var order model.Order
-	err := r.db.WithContext(ctx).Preload("Items").Where("id = ? AND user_id = ?", id, userID).First(&order).Error
+	err := r.conn.QueryRowCtx(ctx, &order, "SELECT "+orderColumns+" FROM orders WHERE "+where+" LIMIT 1", args...)
 	if err != nil {
 		return nil, err
 	}
-	return &order, nil
+	list := []model.Order{order}
+	if err := r.loadItems(ctx, list); err != nil {
+		return nil, err
+	}
+	return &list[0], nil
+}
+
+func (r *OrderRepository) FindByID(ctx context.Context, id, userID uint64) (*model.Order, error) {
+	return r.findOne(ctx, "id = ? AND user_id = ?", id, userID)
 }
 
 func (r *OrderRepository) ListByUser(ctx context.Context, userID uint64, page, pageSize int) ([]model.Order, int64, error) {
@@ -53,22 +111,20 @@ func (r *OrderRepository) ListByUser(ctx context.Context, userID uint64, page, p
 }
 
 func (r *OrderRepository) UpdateStatus(ctx context.Context, orderNo, status string) error {
-	return r.db.WithContext(ctx).Model(&model.Order{}).Where("order_no = ?", orderNo).Update("status", status).Error
+	_, err := r.conn.ExecCtx(ctx, "UPDATE orders SET status=? WHERE order_no=?", status, orderNo)
+	return err
 }
 
 func (r *OrderRepository) FindByOrderNo(ctx context.Context, orderNo string) (*model.Order, error) {
-	var order model.Order
-	err := r.db.WithContext(ctx).Preload("Items").Where("order_no = ?", orderNo).First(&order).Error
-	if err != nil {
-		return nil, err
-	}
-	return &order, nil
+	return r.findOne(ctx, "order_no = ?", orderNo)
 }
 
 func (r *OrderRepository) Cancel(ctx context.Context, orderID, userID uint64) error {
-	return r.db.WithContext(ctx).Model(&model.Order{}).
-		Where("id = ? AND user_id = ? AND status IN ?", orderID, userID, []string{model.OrderStatusPending, model.OrderStatusConfirmed}).
-		Update("status", model.OrderStatusCancelled).Error
+	_, err := r.conn.ExecCtx(ctx,
+		"UPDATE orders SET status=? WHERE id=? AND user_id=? AND status IN (?, ?)",
+		model.OrderStatusCancelled, orderID, userID, model.OrderStatusPending, model.OrderStatusConfirmed,
+	)
+	return err
 }
 
 func (r *OrderRepository) ListByShop(ctx context.Context, shopID uint64, page, pageSize int) ([]model.Order, int64, error) {
@@ -86,155 +142,151 @@ func (r *OrderRepository) List(ctx context.Context, f OrderListFilter) ([]model.
 	if f.PageSize < 1 {
 		f.PageSize = 20
 	}
-	q := r.db.WithContext(ctx).Model(&model.Order{})
+	where := []string{"1=1"}
+	args := make([]any, 0, 8)
 	if f.ShopID > 0 {
-		q = q.Where("shop_id = ?", f.ShopID)
+		where = append(where, "shop_id=?")
+		args = append(args, f.ShopID)
 	}
 	if f.UserID > 0 {
-		q = q.Where("user_id = ?", f.UserID)
+		where = append(where, "user_id=?")
+		args = append(args, f.UserID)
 	}
 	if f.Status != "" {
-		q = q.Where("status = ?", f.Status)
+		where = append(where, "status=?")
+		args = append(args, f.Status)
 	}
 	if f.OrderNo != "" {
-		q = q.Where("order_no LIKE ?", "%"+f.OrderNo+"%")
+		where = append(where, "order_no LIKE ?")
+		args = append(args, "%"+f.OrderNo+"%")
 	}
-	var total int64
-	if err := q.Count(&total).Error; err != nil {
+	w := strings.Join(where, " AND ")
+	total, err := countCtx(ctx, r.conn, "SELECT COUNT(*) FROM orders WHERE "+w, args...)
+	if err != nil {
 		return nil, 0, err
 	}
+	listArgs := append(append([]any{}, args...), (f.Page-1)*f.PageSize, f.PageSize)
 	var orders []model.Order
-	err := q.Preload("Items").Order("id DESC").
-		Offset((f.Page - 1) * f.PageSize).Limit(f.PageSize).Find(&orders).Error
-	return orders, total, err
+	err = r.conn.QueryRowsCtx(ctx, &orders,
+		"SELECT "+orderColumns+" FROM orders WHERE "+w+" ORDER BY id DESC LIMIT ?, ?",
+		listArgs...,
+	)
+	if err != nil {
+		return nil, 0, err
+	}
+	if err := r.loadItems(ctx, orders); err != nil {
+		return nil, 0, err
+	}
+	return orders, total, nil
 }
 
 type StatusCountRow struct {
-	Status string `json:"status"`
-	Count  int64  `json:"count"`
+	Status string `db:"status" json:"status"`
+	Count  int64  `db:"count" json:"count"`
 }
 
 func (r *OrderRepository) CountByUserStatus(ctx context.Context, userID uint64) ([]StatusCountRow, error) {
 	var rows []StatusCountRow
-	err := r.db.WithContext(ctx).Model(&model.Order{}).
-		Select("status, COUNT(*) AS count").
-		Where("user_id = ?", userID).
-		Group("status").
-		Scan(&rows).Error
+	err := r.conn.QueryRowsCtx(ctx, &rows,
+		"SELECT status, COUNT(*) AS count FROM orders WHERE user_id=? GROUP BY status", userID,
+	)
 	return rows, err
 }
 
 func (r *OrderRepository) CountOpenAfterSalesByUser(ctx context.Context, userID uint64) (int64, error) {
-	var n int64
-	err := r.db.WithContext(ctx).Model(&model.OrderAfterSale{}).
-		Where("user_id = ? AND status IN ?", userID, []string{model.AfterSalePending, model.AfterSaleApproved}).
-		Count(&n).Error
-	return n, err
+	return countCtx(ctx, r.conn,
+		"SELECT COUNT(*) FROM order_after_sales WHERE user_id=? AND status IN (?, ?)",
+		userID, model.AfterSalePending, model.AfterSaleApproved,
+	)
 }
 
 func (r *OrderRepository) FindByIDAndShop(ctx context.Context, id, shopID uint64) (*model.Order, error) {
-	var order model.Order
-	err := r.db.WithContext(ctx).Preload("Items").Where("id = ? AND shop_id = ?", id, shopID).First(&order).Error
-	if err != nil {
-		return nil, err
-	}
-	return &order, nil
+	return r.findOne(ctx, "id = ? AND shop_id = ?", id, shopID)
 }
 
 func (r *OrderRepository) FindByIDAdmin(ctx context.Context, id uint64) (*model.Order, error) {
-	var order model.Order
-	err := r.db.WithContext(ctx).Preload("Items").Where("id = ?", id).First(&order).Error
-	if err != nil {
-		return nil, err
-	}
-	return &order, nil
+	return r.findOne(ctx, "id = ?", id)
 }
 
 func (r *OrderRepository) Ship(ctx context.Context, id uint64, shopID uint64, company, shipNo string) error {
 	now := common.LocalTime(time.Now())
-	q := r.db.WithContext(ctx).Model(&model.Order{}).Where("id = ? AND status = ?", id, model.OrderStatusConfirmed)
+	q := "UPDATE orders SET status=?, ship_company=?, ship_no=?, shipped_at=? WHERE id=? AND status=?"
+	args := []any{model.OrderStatusShipped, company, shipNo, &now, id, model.OrderStatusConfirmed}
 	if shopID > 0 {
-		q = q.Where("shop_id = ?", shopID)
+		q += " AND shop_id=?"
+		args = append(args, shopID)
 	}
-	res := q.Updates(map[string]interface{}{
-		"status":       model.OrderStatusShipped,
-		"ship_company": company,
-		"ship_no":      shipNo,
-		"shipped_at":   &now,
-	})
-	if res.Error != nil {
-		return res.Error
+	n, err := execAffected(ctx, r.conn, q, args...)
+	if err != nil {
+		return err
 	}
-	if res.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
+	if n == 0 {
+		return sqlx.ErrNotFound
 	}
 	return nil
 }
 
 func (r *OrderRepository) Complete(ctx context.Context, id uint64, shopID uint64) error {
 	now := common.LocalTime(time.Now())
-	q := r.db.WithContext(ctx).Model(&model.Order{}).Where("id = ? AND status = ?", id, model.OrderStatusShipped)
+	q := "UPDATE orders SET status=?, completed_at=? WHERE id=? AND status=?"
+	args := []any{model.OrderStatusCompleted, &now, id, model.OrderStatusShipped}
 	if shopID > 0 {
-		q = q.Where("shop_id = ?", shopID)
+		q += " AND shop_id=?"
+		args = append(args, shopID)
 	}
-	res := q.Updates(map[string]interface{}{
-		"status":       model.OrderStatusCompleted,
-		"completed_at": &now,
-	})
-	if res.Error != nil {
-		return res.Error
+	n, err := execAffected(ctx, r.conn, q, args...)
+	if err != nil {
+		return err
 	}
-	if res.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
+	if n == 0 {
+		return sqlx.ErrNotFound
 	}
 	return nil
 }
 
 func (r *OrderRepository) ConfirmReceive(ctx context.Context, id, userID uint64) error {
 	now := common.LocalTime(time.Now())
-	res := r.db.WithContext(ctx).Model(&model.Order{}).
-		Where("id = ? AND user_id = ? AND status = ?", id, userID, model.OrderStatusShipped).
-		Updates(map[string]interface{}{
-			"status":       model.OrderStatusCompleted,
-			"completed_at": &now,
-		})
-	if res.Error != nil {
-		return res.Error
+	n, err := execAffected(ctx, r.conn,
+		"UPDATE orders SET status=?, completed_at=? WHERE id=? AND user_id=? AND status=?",
+		model.OrderStatusCompleted, &now, id, userID, model.OrderStatusShipped,
+	)
+	if err != nil {
+		return err
 	}
-	if res.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
+	if n == 0 {
+		return sqlx.ErrNotFound
 	}
 	return nil
 }
 
 func (r *OrderRepository) MarkReviewed(ctx context.Context, id, userID uint64) error {
 	now := common.LocalTime(time.Now())
-	res := r.db.WithContext(ctx).Model(&model.Order{}).
-		Where("id = ? AND user_id = ? AND status = ?", id, userID, model.OrderStatusCompleted).
-		Updates(map[string]interface{}{
-			"status":      model.OrderStatusReviewed,
-			"reviewed_at": &now,
-		})
-	if res.Error != nil {
-		return res.Error
+	n, err := execAffected(ctx, r.conn,
+		"UPDATE orders SET status=?, reviewed_at=? WHERE id=? AND user_id=? AND status=?",
+		model.OrderStatusReviewed, &now, id, userID, model.OrderStatusCompleted,
+	)
+	if err != nil {
+		return err
 	}
-	if res.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
+	if n == 0 {
+		return sqlx.ErrNotFound
 	}
 	return nil
 }
 
 func (r *OrderRepository) UpdateRemark(ctx context.Context, id uint64, shopID uint64, remark string) error {
-	q := r.db.WithContext(ctx).Model(&model.Order{}).Where("id = ?", id)
+	q := "UPDATE orders SET remark=? WHERE id=?"
+	args := []any{remark, id}
 	if shopID > 0 {
-		q = q.Where("shop_id = ?", shopID)
+		q += " AND shop_id=?"
+		args = append(args, shopID)
 	}
-	res := q.Update("remark", remark)
-	if res.Error != nil {
-		return res.Error
+	n, err := execAffected(ctx, r.conn, q, args...)
+	if err != nil {
+		return err
 	}
-	if res.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
+	if n == 0 {
+		return sqlx.ErrNotFound
 	}
 	return nil
 }
@@ -268,8 +320,6 @@ func (r *OrderRepository) EnrichOrder(ctx context.Context, order *model.Order) {
 	if order == nil {
 		return
 	}
-	r.EnrichOrders(ctx, []model.Order{*order})
-	// EnrichOrders works on copy — fix by direct load
 	names := r.loadUserNames(ctx, []uint64{order.UserID})
 	shops := r.loadShopNames(ctx, []uint64{order.ShopID})
 	order.UserName = names[order.UserID]
@@ -282,12 +332,15 @@ func (r *OrderRepository) loadUserNames(ctx context.Context, ids []uint64) map[u
 		return out
 	}
 	type row struct {
-		ID       uint64 `gorm:"column:id"`
-		Nickname string `gorm:"column:nickname"`
-		Mobile   string `gorm:"column:mobile"`
+		ID       uint64 `db:"id"`
+		Nickname string `db:"nickname"`
+		Mobile   string `db:"mobile"`
 	}
 	var rows []row
-	if err := r.db.WithContext(ctx).Table("users").Select("id, nickname, mobile").Where("id IN ?", ids).Find(&rows).Error; err != nil {
+	if err := r.conn.QueryRowsCtx(ctx, &rows,
+		"SELECT id, nickname, mobile FROM users WHERE id IN ("+placeholders(len(ids))+")",
+		inArgs(ids)...,
+	); err != nil {
 		return out
 	}
 	for _, u := range rows {
@@ -305,13 +358,15 @@ func (r *OrderRepository) loadShopNames(ctx context.Context, ids []uint64) map[u
 	if len(ids) == 0 {
 		return out
 	}
-	// shops 表字段为 name（非 shop_name）
 	type row struct {
-		ID   uint64 `gorm:"column:id"`
-		Name string `gorm:"column:name"`
+		ID   uint64 `db:"id"`
+		Name string `db:"name"`
 	}
 	var rows []row
-	if err := r.db.WithContext(ctx).Table("shops").Select("id, name").Where("id IN ?", ids).Find(&rows).Error; err != nil {
+	if err := r.conn.QueryRowsCtx(ctx, &rows,
+		"SELECT id, name FROM shops WHERE id IN ("+placeholders(len(ids))+")",
+		inArgs(ids)...,
+	); err != nil {
 		return out
 	}
 	for _, s := range rows {
@@ -319,8 +374,6 @@ func (r *OrderRepository) loadShopNames(ctx context.Context, ids []uint64) map[u
 	}
 	return out
 }
-
-// After-sales
 
 type AfterSaleListFilter struct {
 	ShopID   uint64
@@ -332,12 +385,22 @@ type AfterSaleListFilter struct {
 }
 
 func (r *OrderRepository) CreateAfterSale(ctx context.Context, as *model.OrderAfterSale) error {
-	return r.db.WithContext(ctx).Create(as).Error
+	id, err := lastInsertID(ctx, r.conn,
+		`INSERT INTO order_after_sales (order_id, order_no, user_id, shop_id, type, reason, amount, status, admin_remark, handled_by)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		as.OrderID, as.OrderNo, as.UserID, as.ShopID, as.Type, as.Reason, as.Amount, as.Status, as.AdminRemark, as.HandledBy,
+	)
+	if err != nil {
+		return err
+	}
+	as.ID = id
+	return nil
 }
 
 func (r *OrderRepository) FindAfterSale(ctx context.Context, id uint64) (*model.OrderAfterSale, error) {
 	var as model.OrderAfterSale
-	if err := r.db.WithContext(ctx).Where("id = ?", id).First(&as).Error; err != nil {
+	err := r.conn.QueryRowCtx(ctx, &as, "SELECT "+afterSaleColumns+" FROM order_after_sales WHERE id=? LIMIT 1", id)
+	if err != nil {
 		return nil, err
 	}
 	return &as, nil
@@ -350,25 +413,35 @@ func (r *OrderRepository) ListAfterSales(ctx context.Context, f AfterSaleListFil
 	if f.PageSize < 1 {
 		f.PageSize = 20
 	}
-	q := r.db.WithContext(ctx).Model(&model.OrderAfterSale{})
+	where := []string{"1=1"}
+	args := make([]any, 0, 8)
 	if f.ShopID > 0 {
-		q = q.Where("shop_id = ?", f.ShopID)
+		where = append(where, "shop_id=?")
+		args = append(args, f.ShopID)
 	}
 	if f.UserID > 0 {
-		q = q.Where("user_id = ?", f.UserID)
+		where = append(where, "user_id=?")
+		args = append(args, f.UserID)
 	}
 	if f.Status != "" {
-		q = q.Where("status = ?", f.Status)
+		where = append(where, "status=?")
+		args = append(args, f.Status)
 	}
 	if f.OrderNo != "" {
-		q = q.Where("order_no LIKE ?", "%"+f.OrderNo+"%")
+		where = append(where, "order_no LIKE ?")
+		args = append(args, "%"+f.OrderNo+"%")
 	}
-	var total int64
-	if err := q.Count(&total).Error; err != nil {
+	w := strings.Join(where, " AND ")
+	total, err := countCtx(ctx, r.conn, "SELECT COUNT(*) FROM order_after_sales WHERE "+w, args...)
+	if err != nil {
 		return nil, 0, err
 	}
+	listArgs := append(append([]any{}, args...), (f.Page-1)*f.PageSize, f.PageSize)
 	var list []model.OrderAfterSale
-	err := q.Order("id DESC").Offset((f.Page - 1) * f.PageSize).Limit(f.PageSize).Find(&list).Error
+	err = r.conn.QueryRowsCtx(ctx, &list,
+		"SELECT "+afterSaleColumns+" FROM order_after_sales WHERE "+w+" ORDER BY id DESC LIMIT ?, ?",
+		listArgs...,
+	)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -378,7 +451,9 @@ func (r *OrderRepository) ListAfterSales(ctx context.Context, f AfterSaleListFil
 
 func (r *OrderRepository) ListAfterSalesByOrder(ctx context.Context, orderID uint64) ([]model.OrderAfterSale, error) {
 	var list []model.OrderAfterSale
-	err := r.db.WithContext(ctx).Where("order_id = ?", orderID).Order("id DESC").Find(&list).Error
+	err := r.conn.QueryRowsCtx(ctx, &list,
+		"SELECT "+afterSaleColumns+" FROM order_after_sales WHERE order_id=? ORDER BY id DESC", orderID,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -387,30 +462,27 @@ func (r *OrderRepository) ListAfterSalesByOrder(ctx context.Context, orderID uin
 }
 
 func (r *OrderRepository) HandleAfterSale(ctx context.Context, id, shopID, handledBy uint64, status, adminRemark string) error {
-	q := r.db.WithContext(ctx).Model(&model.OrderAfterSale{}).Where("id = ?", id)
+	q := "UPDATE order_after_sales SET status=?, admin_remark=?, handled_by=? WHERE id=?"
+	args := []any{status, adminRemark, handledBy, id}
 	if shopID > 0 {
-		q = q.Where("shop_id = ?", shopID)
+		q += " AND shop_id=?"
+		args = append(args, shopID)
 	}
-	res := q.Updates(map[string]interface{}{
-		"status":       status,
-		"admin_remark": adminRemark,
-		"handled_by":   handledBy,
-	})
-	if res.Error != nil {
-		return res.Error
+	n, err := execAffected(ctx, r.conn, q, args...)
+	if err != nil {
+		return err
 	}
-	if res.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
+	if n == 0 {
+		return sqlx.ErrNotFound
 	}
 	return nil
 }
 
 func (r *OrderRepository) CountOpenAfterSales(ctx context.Context, orderID uint64) (int64, error) {
-	var n int64
-	err := r.db.WithContext(ctx).Model(&model.OrderAfterSale{}).
-		Where("order_id = ? AND status IN ?", orderID, []string{model.AfterSalePending, model.AfterSaleApproved}).
-		Count(&n).Error
-	return n, err
+	return countCtx(ctx, r.conn,
+		"SELECT COUNT(*) FROM order_after_sales WHERE order_id=? AND status IN (?, ?)",
+		orderID, model.AfterSalePending, model.AfterSaleApproved,
+	)
 }
 
 func (r *OrderRepository) enrichAfterSales(ctx context.Context, list []model.OrderAfterSale) {

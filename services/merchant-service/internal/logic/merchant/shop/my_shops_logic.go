@@ -25,7 +25,7 @@ func NewMyShopsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MyShopsLo
 	}
 }
 
-func (l *MyShopsLogic) MyShops(ctx context.Context) (resp *types.AnyResp, err error) {
+func (l *MyShopsLogic) MyShops(ctx context.Context) (resp *types.ShopListResp, err error) {
 
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
@@ -35,5 +35,5 @@ func (l *MyShopsLogic) MyShops(ctx context.Context) (resp *types.AnyResp, err er
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.AnyResp{Data: shops}, nil
+	return &types.ShopListResp{Data: shops}, nil
 }

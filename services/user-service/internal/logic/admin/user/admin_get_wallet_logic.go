@@ -24,10 +24,10 @@ func NewAdminGetWalletLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Ad
 	}
 }
 
-func (l *AdminGetWalletLogic) AdminGetWallet(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *AdminGetWalletLogic) AdminGetWallet(ctx context.Context, req *types.IdPathReq) (resp *types.WalletResp, err error) {
 	wallet, err := biz.NewWalletLogic(l.svcCtx).GetWallet(ctx, req.Id)
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.AnyResp{Data: wallet}, nil
+	return &types.WalletResp{Data: wallet}, nil
 }

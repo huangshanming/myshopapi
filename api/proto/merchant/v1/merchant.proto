@@ -1,0 +1,104 @@
+syntax = "proto3";
+
+package merchant.v1;
+
+option go_package = "mymall/api/gen/merchant/v1;merchantv1";
+
+service MerchantService {
+  rpc ConsumeSeckill(ConsumeSeckillRequest) returns (ConsumeSeckillResponse);
+  rpc RestoreSeckill(RestoreSeckillRequest) returns (EmptyResponse);
+  rpc MatchCoupons(MatchCouponsRequest) returns (MatchCouponsResponse);
+  rpc LockCoupon(LockCouponRequest) returns (EmptyResponse);
+  rpc UnlockCoupon(UnlockCouponRequest) returns (EmptyResponse);
+  rpc RedeemCoupon(RedeemCouponRequest) returns (EmptyResponse);
+  rpc ReturnCoupon(ReturnCouponRequest) returns (EmptyResponse);
+  rpc OrderGiftCoupons(OrderGiftCouponsRequest) returns (OrderGiftCouponsResponse);
+}
+
+message EmptyResponse {}
+
+message ConsumeSeckillRequest {
+  uint64 entry_id = 1;
+  uint64 product_id = 2;
+  int32 quantity = 3;
+}
+
+message ConsumeSeckillResponse {
+  uint64 entry_id = 1;
+  uint64 product_id = 2;
+  double seckill_price = 3;
+  int32 quantity = 4;
+}
+
+message RestoreSeckillRequest {
+  uint64 entry_id = 1;
+  int32 quantity = 2;
+}
+
+message MatchItem {
+  uint64 product_id = 1;
+  uint64 category_id = 2;
+  double amount = 3;
+  uint64 seckill_entry_id = 4;
+}
+
+message MatchCouponsRequest {
+  uint64 user_id = 1;
+  uint64 shop_id = 2;
+  uint64 user_coupon_id = 3;
+  repeated MatchItem items = 4;
+}
+
+message MatchCouponView {
+  uint64 user_coupon_id = 1;
+  uint64 coupon_id = 2;
+  string name = 3;
+  string coupon_type = 4;
+  double discount_amount = 5;
+  double threshold_amount = 6;
+  string valid_end = 7;
+  bool usable = 8;
+  string reason = 9;
+  bool best = 10;
+}
+
+message MatchCouponsResponse {
+  double goods_amount = 1;
+  double discount_amount = 2;
+  double pay_amount = 3;
+  uint64 best_user_coupon_id = 4;
+  repeated MatchCouponView available = 5;
+  repeated MatchCouponView unavailable = 6;
+}
+
+message LockCouponRequest {
+  uint64 user_coupon_id = 1;
+  uint64 user_id = 2;
+  uint64 order_id = 3;
+  double discount_amount = 4;
+}
+
+message UnlockCouponRequest {
+  uint64 user_coupon_id = 1;
+  uint64 order_id = 2;
+}
+
+message RedeemCouponRequest {
+  uint64 user_coupon_id = 1;
+  uint64 order_id = 2;
+  double discount_amount = 3;
+}
+
+message ReturnCouponRequest {
+  uint64 user_coupon_id = 1;
+  uint64 order_id = 2;
+}
+
+message OrderGiftCouponsRequest {
+  uint64 user_id = 1;
+  uint64 shop_id = 2;
+}
+
+message OrderGiftCouponsResponse {
+  int32 granted = 1;
+}

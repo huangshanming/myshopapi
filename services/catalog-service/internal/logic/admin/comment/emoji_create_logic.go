@@ -24,7 +24,7 @@ func NewEmojiCreateLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Emoji
 	}
 }
 
-func (l *EmojiCreateLogic) EmojiCreate(ctx context.Context, req *types.EmojiSaveReq) (resp *types.AnyResp, err error) {
+func (l *EmojiCreateLogic) EmojiCreate(ctx context.Context, req *types.EmojiSaveReq) (resp *types.EmojiResp, err error) {
 	status := int8(1)
 	if req.Status != nil {
 		status = *req.Status
@@ -33,5 +33,5 @@ func (l *EmojiCreateLogic) EmojiCreate(ctx context.Context, req *types.EmojiSave
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: e}, nil
+	return &types.EmojiResp{Data: e}, nil
 }

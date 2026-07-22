@@ -25,7 +25,7 @@ func NewStockWarningsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Sto
 	}
 }
 
-func (l *StockWarningsLogic) StockWarnings(ctx context.Context, req *types.PageReq) (resp *types.AnyResp, err error) {
+func (l *StockWarningsLogic) StockWarnings(ctx context.Context, req *types.PageReq) (resp *types.StockWarningsResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -40,5 +40,5 @@ func (l *StockWarningsLogic) StockWarnings(ctx context.Context, req *types.PageR
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.StockWarningsResp{Data: data}, nil
 }

@@ -14,19 +14,19 @@ const (
 )
 
 type HomepageBanner struct {
-	ID        uint64            `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
-	Title     string            `gorm:"column:title;type:varchar(100);not null;default:''" json:"title"`
-	ImageURL  string            `gorm:"column:image_url;type:varchar(500);not null" json:"image_url"`
-	LinkType  string            `gorm:"column:link_type;type:enum('none','product','article');default:none" json:"link_type"`
-	LinkID    uint64            `gorm:"column:link_id;not null;default:0" json:"link_id"`
-	Sort      int               `gorm:"column:sort;default:0" json:"sort"`
-	Status    string            `gorm:"column:status;type:enum('on','off');default:on" json:"status"`
-	StartAt   *common.LocalTime `gorm:"column:start_at" json:"start_at,omitempty"`
-	EndAt     *common.LocalTime `gorm:"column:end_at" json:"end_at,omitempty"`
-	CreatedAt common.LocalTime  `gorm:"column:created_at" json:"created_at"`
-	UpdatedAt common.LocalTime  `gorm:"column:updated_at" json:"updated_at"`
+	ID        uint64            `db:"id" json:"id"`
+	Title     string            `db:"title" json:"title"`
+	ImageURL  string            `db:"image_url" json:"image_url"`
+	LinkType  string            `db:"link_type" json:"link_type"`
+	LinkID    uint64            `db:"link_id" json:"link_id"`
+	Sort      int               `db:"sort" json:"sort"`
+	Status    string            `db:"status" json:"status"`
+	StartAt   *common.LocalTime `db:"start_at" json:"start_at,omitempty"`
+	EndAt     *common.LocalTime `db:"end_at" json:"end_at,omitempty"`
+	CreatedAt common.LocalTime  `db:"created_at" json:"created_at"`
+	UpdatedAt common.LocalTime  `db:"updated_at" json:"updated_at"`
 	// 展示字段
-	LinkName string `gorm:"-" json:"link_name,omitempty"`
+	LinkName string `db:"-" json:"link_name,omitempty"`
 }
 
 func (HomepageBanner) TableName() string { return "homepage_banners" }

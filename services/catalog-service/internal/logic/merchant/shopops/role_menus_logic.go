@@ -24,7 +24,7 @@ func NewRoleMenusLogic(ctx context.Context, svcCtx *svc.ServiceContext) *RoleMen
 	}
 }
 
-func (l *RoleMenusLogic) RoleMenus(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *RoleMenusLogic) RoleMenus(ctx context.Context, req *types.IdPathReq) (resp *types.RoleMenuIdsResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -40,5 +40,5 @@ func (l *RoleMenusLogic) RoleMenus(ctx context.Context, req *types.IdPathReq) (r
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.AnyResp{Data: ids}, nil
+	return &types.RoleMenuIdsResp{Data: ids}, nil
 }

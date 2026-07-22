@@ -24,10 +24,10 @@ func NewCreateRoleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Create
 	}
 }
 
-func (l *CreateRoleLogic) CreateRole(ctx context.Context, req *types.RoleReq) (resp *types.AnyResp, err error) {
+func (l *CreateRoleLogic) CreateRole(ctx context.Context, req *types.RoleReq) (resp *types.RoleResp, err error) {
 	role, err := biz.NewRBACLogic(l.svcCtx).CreateRole(ctx, *req)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: role}, nil
+	return &types.RoleResp{Data: role}, nil
 }

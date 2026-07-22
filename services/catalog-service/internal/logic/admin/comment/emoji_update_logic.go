@@ -24,10 +24,10 @@ func NewEmojiUpdateLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Emoji
 	}
 }
 
-func (l *EmojiUpdateLogic) EmojiUpdate(ctx context.Context, req *types.EmojiUpdateBodyReq) (resp *types.AnyResp, err error) {
+func (l *EmojiUpdateLogic) EmojiUpdate(ctx context.Context, req *types.EmojiUpdateBodyReq) (resp *types.EmptyResp, err error) {
 	sort := req.Sort
 	if err := clogic.NewArticleLogic(l.svcCtx).UpdateEmoji(ctx, req.Id, req.Name, req.ImageURL, &sort, req.Status); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: &types.AnyResp{}}, nil
+	return &types.EmptyResp{}, nil
 }

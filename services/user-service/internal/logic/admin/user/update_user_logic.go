@@ -24,9 +24,9 @@ func NewUpdateUserLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Update
 	}
 }
 
-func (l *UpdateUserLogic) UpdateUser(ctx context.Context, req *types.UserUpdateReq) error {
+func (l *UpdateUserLogic) UpdateUser(ctx context.Context, req *types.UserUpdateReq) (*types.EmptyResp, error) {
 	if err := biz.NewRBACLogic(l.svcCtx).UpdateUser(ctx, req.Id, *req); err != nil {
-		return xerr.New(http.StatusBadRequest, err.Error())
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return nil
+	return &types.EmptyResp{}, nil
 }

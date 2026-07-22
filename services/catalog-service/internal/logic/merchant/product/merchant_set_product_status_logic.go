@@ -26,7 +26,7 @@ func NewMerchantSetProductStatusLogic(ctx context.Context, svcCtx *svc.ServiceCo
 	}
 }
 
-func (l *MerchantSetProductStatusLogic) MerchantSetProductStatus(ctx context.Context, req *types.SetStatusBodyReq) (resp *types.AnyResp, err error) {
+func (l *MerchantSetProductStatusLogic) MerchantSetProductStatus(ctx context.Context, req *types.SetStatusBodyReq) (resp *types.EmptyResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -58,5 +58,5 @@ func (l *MerchantSetProductStatusLogic) MerchantSetProductStatus(ctx context.Con
 	if err := plogic.NewProductAdminLogic(l.svcCtx).SetStatus(ctx, shopID, uid, id, req.Status); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: &types.AnyResp{}}, nil
+	return &types.EmptyResp{}, nil
 }

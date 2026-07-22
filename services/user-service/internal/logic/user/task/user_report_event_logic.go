@@ -26,10 +26,10 @@ func NewUserReportEventLogic(ctx context.Context, svcCtx *svc.ServiceContext) *U
 	}
 }
 
-func (l *UserReportEventLogic) UserReportEvent(ctx context.Context, req *types.TaskEventReq) error {
+func (l *UserReportEventLogic) UserReportEvent(ctx context.Context, req *types.TaskEventReq) (*types.EmptyResp, error) {
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
-		return xerr.New(http.StatusUnauthorized, "未登录")
+		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
 	refID, _ := strconv.ParseUint(req.RefId, 10, 64)
 	bizReq := biz.TaskEventReq{
@@ -39,7 +39,7 @@ func (l *UserReportEventLogic) UserReportEvent(ctx context.Context, req *types.T
 		RefID:    refID,
 	}
 	if err := biz.NewTaskLogic(l.svcCtx).HandleEvent(ctx, bizReq); err != nil {
-		return xerr.New(http.StatusBadRequest, err.Error())
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return nil
+	return &types.EmptyResp{}, nil
 }

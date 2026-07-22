@@ -25,7 +25,7 @@ func NewMerchantCopyProductLogic(ctx context.Context, svcCtx *svc.ServiceContext
 	}
 }
 
-func (l *MerchantCopyProductLogic) MerchantCopyProduct(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *MerchantCopyProductLogic) MerchantCopyProduct(ctx context.Context, req *types.IdPathReq) (resp *types.ProductResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -41,5 +41,5 @@ func (l *MerchantCopyProductLogic) MerchantCopyProduct(ctx context.Context, req 
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: p}, nil
+	return &types.ProductResp{Data: p}, nil
 }

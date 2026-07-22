@@ -24,9 +24,9 @@ func NewAdminBatchAuditArticlesLogic(ctx context.Context, svcCtx *svc.ServiceCon
 	}
 }
 
-func (l *AdminBatchAuditArticlesLogic) AdminBatchAuditArticles(ctx context.Context, req *types.ArticleBatchAuditReq) (resp *types.AnyResp, err error) {
+func (l *AdminBatchAuditArticlesLogic) AdminBatchAuditArticles(ctx context.Context, req *types.ArticleBatchAuditReq) (resp *types.EmptyResp, err error) {
 	if err := clogic.NewArticleLogic(l.svcCtx).BatchAudit(ctx, req.ToContent()); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: &types.AnyResp{}}, nil
+	return &types.EmptyResp{}, nil
 }

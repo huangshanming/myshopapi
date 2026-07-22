@@ -19,11 +19,11 @@ func SetDefaultHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := address.NewSetDefaultLogic(r.Context(), svcCtx)
-		err := l.SetDefault(r.Context(), &req)
+		resp, err := l.SetDefault(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {
-			httpx.Ok(w)
+			httpx.OkJsonCtx(r.Context(), w, resp)
 		}
 	}
 }
@@ -55,11 +55,11 @@ func UserDeleteAddressHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := address.NewUserDeleteAddressLogic(r.Context(), svcCtx)
-		err := l.UserDeleteAddress(r.Context(), &req)
+		resp, err := l.UserDeleteAddress(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {
-			httpx.Ok(w)
+			httpx.OkJsonCtx(r.Context(), w, resp)
 		}
 	}
 }
@@ -85,11 +85,11 @@ func UserUpdateAddressHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := address.NewUserUpdateAddressLogic(r.Context(), svcCtx)
-		err := l.UserUpdateAddress(r.Context(), &req)
+		resp, err := l.UserUpdateAddress(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {
-			httpx.Ok(w)
+			httpx.OkJsonCtx(r.Context(), w, resp)
 		}
 	}
 }

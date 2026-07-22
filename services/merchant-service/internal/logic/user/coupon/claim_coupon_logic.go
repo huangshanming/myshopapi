@@ -25,7 +25,7 @@ func NewClaimCouponLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Claim
 	}
 }
 
-func (l *ClaimCouponLogic) ClaimCoupon(ctx context.Context, req *types.ClaimCouponBodyReq) (resp *types.AnyResp, err error) {
+func (l *ClaimCouponLogic) ClaimCoupon(ctx context.Context, req *types.ClaimCouponBodyReq) (resp *types.UserCouponResp, err error) {
 	userID, _ := middleware.GetUserID(ctx)
 	if userID == 0 {
 		return nil, xerr.New(http.StatusUnauthorized, "请先登录")
@@ -35,5 +35,5 @@ func (l *ClaimCouponLogic) ClaimCoupon(ctx context.Context, req *types.ClaimCoup
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: uc}, nil
+	return &types.UserCouponResp{Data: uc}, nil
 }

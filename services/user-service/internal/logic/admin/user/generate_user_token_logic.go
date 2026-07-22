@@ -24,10 +24,35 @@ func NewGenerateUserTokenLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 	}
 }
 
-func (l *GenerateUserTokenLogic) GenerateUserToken(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *GenerateUserTokenLogic) GenerateUserToken(ctx context.Context, req *types.IdPathReq) (resp *types.UserTokenResp, err error) {
 	data, err := biz.NewRBACLogic(l.svcCtx).GenerateUserToken(ctx, req.Id)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	out := &types.UserTokenResp{}
+	if v, ok := data["token"].(string); ok {
+		out.Token = v
+	}
+	if v, ok := data["user_id"].(uint64); ok {
+		out.UserId = v
+	}
+	if v, ok := data["mobile"].(string); ok {
+		out.Mobile = v
+	}
+	if v, ok := data["nickname"].(string); ok {
+		out.Nickname = v
+	}
+	if v, ok := data["role"].(string); ok {
+		out.Role = v
+	}
+	if v, ok := data["shop_id"].(uint64); ok {
+		out.ShopId = v
+	}
+	switch v := data["expire_hours"].(type) {
+	case int:
+		out.ExpireHours = v
+	case int64:
+		out.ExpireHours = int(v)
+	}
+	return out, nil
 }

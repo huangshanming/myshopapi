@@ -24,10 +24,10 @@ func NewAdminPatchArticleCommentLogic(ctx context.Context, svcCtx *svc.ServiceCo
 	}
 }
 
-func (l *AdminPatchArticleCommentLogic) AdminPatchArticleComment(ctx context.Context, req *types.ArticleCommentPatchBodyReq) (resp *types.AnyResp, err error) {
+func (l *AdminPatchArticleCommentLogic) AdminPatchArticleComment(ctx context.Context, req *types.ArticleCommentPatchBodyReq) (resp *types.EmptyResp, err error) {
 	id := req.Id
 	if err := clogic.NewArticleLogic(l.svcCtx).PatchComment(ctx, id, 0, req.Status); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: &types.AnyResp{}}, nil
+	return &types.EmptyResp{}, nil
 }

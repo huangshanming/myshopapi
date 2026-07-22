@@ -24,9 +24,9 @@ func NewInternalLockCouponLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 	}
 }
 
-func (l *InternalLockCouponLogic) InternalLockCoupon(ctx context.Context, req *types.LockCouponReq) (resp *types.AnyResp, err error) {
+func (l *InternalLockCouponLogic) InternalLockCoupon(ctx context.Context, req *types.LockCouponReq) (resp *types.EmptyResp, err error) {
 	if err := biz.NewMerchantLogic(l.svcCtx).LockCoupon(req.UserCouponID, req.UserID, req.OrderID, req.DiscountAmount); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{}, nil
+	return &types.EmptyResp{}, nil
 }

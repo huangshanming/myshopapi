@@ -64,6 +64,9 @@ type AnyResp struct {
 	Data interface{} `json:"data,optional"`
 }
 
+// DataResp is the preferred name for opaque entity JSON bodies.
+type DataResp = AnyResp
+
 type AuthMeResp struct {
 	Roles    []string        `json:"roles"`
 	Perms    []string        `json:"perms"`
@@ -300,6 +303,31 @@ type TaskEventReq struct {
 type TokenResp struct {
 	Token string `json:"token"`
 }
+
+type IdListResp struct {
+	Ids []uint64 `json:"ids"`
+}
+
+type TreeResp struct {
+	Tree interface{} `json:"tree"`
+}
+
+type NotificationRecipientsResp struct {
+	Batch interface{} `json:"batch"`
+	List  interface{} `json:"list"`
+	Total int64       `json:"total"`
+}
+
+type UserTokenResp struct {
+	Token       string `json:"token"`
+	UserId      uint64 `json:"user_id"`
+	Mobile      string `json:"mobile"`
+	Nickname    string `json:"nickname"`
+	Role        string `json:"role,optional"`
+	ShopId      uint64 `json:"shop_id,optional"`
+	ExpireHours int    `json:"expire_hours,optional"`
+}
+
 
 type URLResp struct {
 	Url string `json:"url"`

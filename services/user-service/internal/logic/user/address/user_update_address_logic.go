@@ -21,10 +21,10 @@ func NewUserUpdateAddressLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 	return &UserUpdateAddressLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *UserUpdateAddressLogic) UserUpdateAddress(ctx context.Context, req *types.AddressUpdateReq) error {
+func (l *UserUpdateAddressLogic) UserUpdateAddress(ctx context.Context, req *types.AddressUpdateReq) (*types.EmptyResp, error) {
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
-		return xerr.New(http.StatusUnauthorized, "未授权")
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
 	if err := biz.NewAddressLogic(l.svcCtx).Update(ctx, userID, req.Id, types.AddressReq{
 		ReceiverName: req.ReceiverName, ReceiverPhone: req.ReceiverPhone,
@@ -32,7 +32,7 @@ func (l *UserUpdateAddressLogic) UserUpdateAddress(ctx context.Context, req *typ
 		ProvinceCode: req.ProvinceCode, CityCode: req.CityCode, DistrictCode: req.DistrictCode,
 		IsDefault: req.IsDefault,
 	}); err != nil {
-		return xerr.New(http.StatusBadRequest, err.Error())
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return nil
+	return &types.EmptyResp{}, nil
 }

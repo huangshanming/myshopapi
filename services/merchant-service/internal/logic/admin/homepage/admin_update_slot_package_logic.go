@@ -25,7 +25,7 @@ func NewAdminUpdateSlotPackageLogic(ctx context.Context, svcCtx *svc.ServiceCont
 	}
 }
 
-func (l *AdminUpdateSlotPackageLogic) AdminUpdateSlotPackage(ctx context.Context, req *types.SlotPackageUpdateBodyReq) (resp *types.AnyResp, err error) {
+func (l *AdminUpdateSlotPackageLogic) AdminUpdateSlotPackage(ctx context.Context, req *types.SlotPackageUpdateBodyReq) (resp *types.EmptyResp, err error) {
 	if req.Id == 0 {
 		return nil, xerr.New(http.StatusBadRequest, "ID无效")
 	}
@@ -36,5 +36,5 @@ func (l *AdminUpdateSlotPackageLogic) AdminUpdateSlotPackage(ctx context.Context
 	if err := biz.NewMerchantLogic(l.svcCtx).UpdateSlotPackage(req.Id, &p); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{}, nil
+	return &types.EmptyResp{}, nil
 }

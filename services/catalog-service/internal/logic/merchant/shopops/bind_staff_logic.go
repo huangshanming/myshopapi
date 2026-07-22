@@ -24,7 +24,7 @@ func NewBindStaffLogic(ctx context.Context, svcCtx *svc.ServiceContext) *BindSta
 	}
 }
 
-func (l *BindStaffLogic) BindStaff(ctx context.Context, req *types.ShopStaffReq) (resp *types.AnyResp, err error) {
+func (l *BindStaffLogic) BindStaff(ctx context.Context, req *types.ShopStaffReq) (resp *types.BindStaffResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -65,6 +65,6 @@ func (l *BindStaffLogic) BindStaff(ctx context.Context, req *types.ShopStaffReq)
 	if mode == "create" {
 		msg = "已创建账号并绑定店铺"
 	}
-	return &types.AnyResp{Data: map[string]interface{}{"user_id": userID, "msg": msg}}, nil
+	return &types.BindStaffResp{UserId: userID, Msg: msg}, nil
 
 }

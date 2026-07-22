@@ -25,11 +25,11 @@ func NewAdminGrantCouponLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 	}
 }
 
-func (l *AdminGrantCouponLogic) AdminGrantCoupon(ctx context.Context, req *types.GrantCouponReq) (resp *types.AnyResp, err error) {
+func (l *AdminGrantCouponLogic) AdminGrantCoupon(ctx context.Context, req *types.GrantCouponReq) (resp *types.CouponGrantResp, err error) {
 	adminID, _ := middleware.GetUserID(ctx)
 	g, err := biz.NewMerchantLogic(l.svcCtx).GrantCoupon(adminID, req.CouponID, req.UserIDs, 0, true)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: g}, nil
+	return &types.CouponGrantResp{Data: g}, nil
 }

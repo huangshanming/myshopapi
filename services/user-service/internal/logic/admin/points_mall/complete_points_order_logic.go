@@ -24,7 +24,7 @@ func NewCompletePointsOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext
 	}
 }
 
-func (l *CompletePointsOrderLogic) CompletePointsOrder(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *CompletePointsOrderLogic) CompletePointsOrder(ctx context.Context, req *types.IdPathReq) (resp *types.PointsOrderResp, err error) {
 	if req.Id == 0 {
 		return nil, xerr.New(http.StatusBadRequest, "订单ID无效")
 	}
@@ -32,5 +32,5 @@ func (l *CompletePointsOrderLogic) CompletePointsOrder(ctx context.Context, req 
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: o}, nil
+	return &types.PointsOrderResp{Data: o}, nil
 }

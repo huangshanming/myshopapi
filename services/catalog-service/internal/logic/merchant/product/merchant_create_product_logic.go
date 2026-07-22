@@ -26,7 +26,7 @@ func NewMerchantCreateProductLogic(ctx context.Context, svcCtx *svc.ServiceConte
 	}
 }
 
-func (l *MerchantCreateProductLogic) MerchantCreateProduct(ctx context.Context, req *types.MerchantProductSaveReq) (resp *types.AnyResp, err error) {
+func (l *MerchantCreateProductLogic) MerchantCreateProduct(ctx context.Context, req *types.MerchantProductSaveReq) (resp *types.ProductResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -47,5 +47,5 @@ func (l *MerchantCreateProductLogic) MerchantCreateProduct(ctx context.Context, 
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: p}, nil
+	return &types.ProductResp{Data: p}, nil
 }

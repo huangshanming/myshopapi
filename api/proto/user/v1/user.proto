@@ -6,7 +6,15 @@ option go_package = "mymall/api/gen/user/v1;userv1";
 
 service UserService {
   rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  rpc GetAddress(GetAddressRequest) returns (GetAddressResponse);
+  rpc FreezeWallet(WalletOpRequest) returns (EmptyResponse);
+  rpc UnfreezeWallet(WalletOpRequest) returns (EmptyResponse);
+  rpc SettleWallet(WalletOpRequest) returns (EmptyResponse);
+  rpc Notify(NotifyRequest) returns (EmptyResponse);
+  rpc TaskEvent(TaskEventRequest) returns (EmptyResponse);
 }
+
+message EmptyResponse {}
 
 message GetUserRequest {
   uint64 user_id = 1;
@@ -17,4 +25,46 @@ message GetUserResponse {
   string mobile = 2;
   string nickname = 3;
   int32 status = 4;
+}
+
+message GetAddressRequest {
+  uint64 user_id = 1;
+  uint64 address_id = 2;
+}
+
+message GetAddressResponse {
+  uint64 id = 1;
+  uint64 user_id = 2;
+  string receiver_name = 3;
+  string receiver_phone = 4;
+  string province = 5;
+  string city = 6;
+  string district = 7;
+  string detail = 8;
+  int32 is_default = 9;
+}
+
+message WalletOpRequest {
+  uint64 user_id = 1;
+  double amount = 2;
+  uint64 order_id = 3;
+  string order_no = 4;
+}
+
+message NotifyRequest {
+  uint64 user_id = 1;
+  string title = 2;
+  string content = 3;
+  string msg_type = 4;
+  string link_type = 5;
+  uint64 link_id = 6;
+  string extra = 7;
+}
+
+message TaskEventRequest {
+  uint64 user_id = 1;
+  string task_code = 2;
+  int32 delta = 3;
+  string ref_type = 4;
+  uint64 ref_id = 5;
 }

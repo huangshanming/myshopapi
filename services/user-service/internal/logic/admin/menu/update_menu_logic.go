@@ -24,7 +24,7 @@ func NewUpdateMenuLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Update
 	}
 }
 
-func (l *UpdateMenuLogic) UpdateMenu(ctx context.Context, req *types.MenuUpdateReq) error {
+func (l *UpdateMenuLogic) UpdateMenu(ctx context.Context, req *types.MenuUpdateReq) (*types.EmptyResp, error) {
 	if err := biz.NewRBACLogic(l.svcCtx).UpdateMenu(ctx, req.Id, types.MenuReq{
 		ParentID:  req.ParentID,
 		Name:      req.Name,
@@ -37,7 +37,7 @@ func (l *UpdateMenuLogic) UpdateMenu(ctx context.Context, req *types.MenuUpdateR
 		Visible:   req.Visible,
 		Status:    req.Status,
 	}); err != nil {
-		return xerr.New(http.StatusBadRequest, err.Error())
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return nil
+	return &types.EmptyResp{}, nil
 }

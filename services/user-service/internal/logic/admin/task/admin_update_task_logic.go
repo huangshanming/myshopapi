@@ -24,7 +24,7 @@ func NewAdminUpdateTaskLogic(ctx context.Context, svcCtx *svc.ServiceContext) *A
 	}
 }
 
-func (l *AdminUpdateTaskLogic) AdminUpdateTask(ctx context.Context, req *types.UpdateTaskReq) (resp *types.AnyResp, err error) {
+func (l *AdminUpdateTaskLogic) AdminUpdateTask(ctx context.Context, req *types.UpdateTaskReq) (resp *types.TaskResp, err error) {
 	if req.Id == 0 {
 		return nil, xerr.New(http.StatusBadRequest, "任务ID无效")
 	}
@@ -53,5 +53,5 @@ func (l *AdminUpdateTaskLogic) AdminUpdateTask(ctx context.Context, req *types.U
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: t}, nil
+	return &types.TaskResp{Data: t}, nil
 }

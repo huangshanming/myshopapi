@@ -24,10 +24,10 @@ func NewAdminDeleteCategoryLogic(ctx context.Context, svcCtx *svc.ServiceContext
 	}
 }
 
-func (l *AdminDeleteCategoryLogic) AdminDeleteCategory(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *AdminDeleteCategoryLogic) AdminDeleteCategory(ctx context.Context, req *types.IdPathReq) (resp *types.EmptyResp, err error) {
 	id := req.Id
 	if err := plogic.NewCatalogLogic(l.svcCtx).DeleteCategory(ctx, id); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: &types.AnyResp{}}, nil
+	return &types.EmptyResp{}, nil
 }

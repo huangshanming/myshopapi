@@ -25,7 +25,7 @@ func NewApplyLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ApplyLogic 
 	}
 }
 
-func (l *ApplyLogic) Apply(ctx context.Context, req *types.ApplyReq) (resp *types.AnyResp, err error) {
+func (l *ApplyLogic) Apply(ctx context.Context, req *types.ApplyReq) (resp *types.ShopApplicationResp, err error) {
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
 		return nil, xerr.New(http.StatusUnauthorized, "未授权")
@@ -34,5 +34,5 @@ func (l *ApplyLogic) Apply(ctx context.Context, req *types.ApplyReq) (resp *type
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: app}, nil
+	return &types.ShopApplicationResp{Data: app}, nil
 }

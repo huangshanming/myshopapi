@@ -22,7 +22,7 @@ func NewUserGetOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *User
 	return &UserGetOrderLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *UserGetOrderLogic) UserGetOrder(ctx context.Context, req *types.IdPathReq) (*types.AnyResp, error) {
+func (l *UserGetOrderLogic) UserGetOrder(ctx context.Context, req *types.IdPathReq) (*types.OrderResp, error) {
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
 		return nil, xerr.New(http.StatusUnauthorized, "未授权")
@@ -31,5 +31,5 @@ func (l *UserGetOrderLogic) UserGetOrder(ctx context.Context, req *types.IdPathR
 	if err != nil {
 		return nil, xerr.New(http.StatusNotFound, "订单不存在")
 	}
-	return &types.AnyResp{Data: order}, nil
+	return &types.OrderResp{Data: order}, nil
 }

@@ -24,11 +24,11 @@ func NewPublicHomeSlotsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *P
 	}
 }
 
-func (l *PublicHomeSlotsLogic) PublicHomeSlots(ctx context.Context, req *types.SlotTypeQueryReq) (resp *types.AnyResp, err error) {
+func (l *PublicHomeSlotsLogic) PublicHomeSlots(ctx context.Context, req *types.SlotTypeQueryReq) (resp *types.HomeSlotsResp, err error) {
 	slotType := req.SlotType
 	list, err := biz.NewMerchantLogic(l.svcCtx).HomeSlots(slotType)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: list}, nil
+	return &types.HomeSlotsResp{Data: list}, nil
 }

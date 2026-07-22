@@ -25,7 +25,7 @@ func NewUserAddFavoriteLogic(ctx context.Context, svcCtx *svc.ServiceContext) *U
 	}
 }
 
-func (l *UserAddFavoriteLogic) UserAddFavorite(ctx context.Context, req *types.FavoriteAddReq) (resp *types.AnyResp, err error) {
+func (l *UserAddFavoriteLogic) UserAddFavorite(ctx context.Context, req *types.FavoriteAddReq) (resp *types.EmptyResp, err error) {
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
 		return nil, xerr.New(http.StatusUnauthorized, "未登录")
@@ -33,5 +33,5 @@ func (l *UserAddFavoriteLogic) UserAddFavorite(ctx context.Context, req *types.F
 	if err := plogic.NewFavoriteLogic(l.svcCtx).Add(ctx, userID, req.ProductID); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: &types.AnyResp{}}, nil
+	return &types.EmptyResp{}, nil
 }

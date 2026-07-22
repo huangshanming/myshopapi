@@ -22,10 +22,10 @@ func NewMerchantDeleteLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Me
 	return &MerchantDeleteLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *MerchantDeleteLogic) MerchantDelete(ctx context.Context, req *types.IdPathReq) (*types.AnyResp, error) {
+func (l *MerchantDeleteLogic) MerchantDelete(ctx context.Context, req *types.IdPathReq) (*types.EmptyResp, error) {
 	shopID := middleware.GetShopID(ctx)
 	if err := biz.NewReviewLogic(l.svcCtx).SoftDelete(ctx, req.Id, shopID); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{}, nil
+	return &types.EmptyResp{}, nil
 }

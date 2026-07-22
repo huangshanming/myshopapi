@@ -24,10 +24,10 @@ func NewInternalMatchCouponsLogic(ctx context.Context, svcCtx *svc.ServiceContex
 	}
 }
 
-func (l *InternalMatchCouponsLogic) InternalMatchCoupons(ctx context.Context, req *types.MatchCouponsReq) (resp *types.AnyResp, err error) {
+func (l *InternalMatchCouponsLogic) InternalMatchCoupons(ctx context.Context, req *types.MatchCouponsReq) (resp *types.MatchCouponsResp, err error) {
 	data, err := biz.NewMerchantLogic(l.svcCtx).MatchCoupons(*req)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.MatchCouponsResp{Data: data}, nil
 }

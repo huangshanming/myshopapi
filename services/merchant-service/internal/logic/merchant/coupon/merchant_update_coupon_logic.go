@@ -25,11 +25,11 @@ func NewMerchantUpdateCouponLogic(ctx context.Context, svcCtx *svc.ServiceContex
 	}
 }
 
-func (l *MerchantUpdateCouponLogic) MerchantUpdateCoupon(ctx context.Context, req *types.CouponUpdateBodyReq) (resp *types.AnyResp, err error) {
+func (l *MerchantUpdateCouponLogic) MerchantUpdateCoupon(ctx context.Context, req *types.CouponUpdateBodyReq) (resp *types.EmptyResp, err error) {
 	id := req.Id
 	shopID := middleware.GetShopID(ctx)
 	if err := biz.NewMerchantLogic(l.svcCtx).UpdateCoupon(id, shopID, false, req.ToCouponSaveReq()); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{}, nil
+	return &types.EmptyResp{}, nil
 }

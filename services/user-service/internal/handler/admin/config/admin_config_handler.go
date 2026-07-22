@@ -31,11 +31,11 @@ func SaveConfigsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := config.NewSaveConfigsLogic(r.Context(), svcCtx)
-		err := l.SaveConfigs(r.Context(), &req)
+		resp, err := l.SaveConfigs(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {
-			httpx.Ok(w)
+			httpx.OkJsonCtx(r.Context(), w, resp)
 		}
 	}
 }

@@ -26,7 +26,7 @@ func NewUploadMineLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Upload
 	}
 }
 
-func (l *UploadMineLogic) UploadMine(ctx context.Context, r *http.Request) (resp *types.AnyResp, err error) {
+func (l *UploadMineLogic) UploadMine(ctx context.Context, r *http.Request) (resp *types.URLResp, err error) {
 	if r == nil {
 		return nil, xerr.New(http.StatusBadRequest, "缺少上传请求")
 	}
@@ -52,5 +52,5 @@ func (l *UploadMineLogic) UploadMine(ctx context.Context, r *http.Request) (resp
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: map[string]string{"url": url}}, nil
+	return &types.URLResp{Url: url}, nil
 }

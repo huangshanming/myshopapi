@@ -73,11 +73,11 @@ func DeletePointsProductHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := points_mall.NewDeletePointsProductLogic(r.Context(), svcCtx)
-		err := l.DeletePointsProduct(r.Context(), &req)
+		resp, err := l.DeletePointsProduct(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {
-			httpx.Ok(w)
+			httpx.OkJsonCtx(r.Context(), w, resp)
 		}
 	}
 }

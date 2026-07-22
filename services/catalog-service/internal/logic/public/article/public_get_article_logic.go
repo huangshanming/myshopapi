@@ -25,11 +25,11 @@ func NewPublicGetArticleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 	}
 }
 
-func (l *PublicGetArticleLogic) PublicGetArticle(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *PublicGetArticleLogic) PublicGetArticle(ctx context.Context, req *types.IdPathReq) (resp *types.ArticleResp, err error) {
 	userID, _ := middleware.GetUserID(ctx)
 	data, err := clogic.NewArticleLogic(l.svcCtx).PublicDetail(ctx, req.Id, userID)
 	if err != nil {
 		return nil, xerr.New(http.StatusNotFound, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.ArticleResp{Data: data}, nil
 }

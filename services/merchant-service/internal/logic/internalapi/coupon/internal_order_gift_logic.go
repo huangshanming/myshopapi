@@ -24,10 +24,10 @@ func NewInternalOrderGiftLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 	}
 }
 
-func (l *InternalOrderGiftLogic) InternalOrderGift(ctx context.Context, req *types.OrderGiftCouponReq) (resp *types.AnyResp, err error) {
+func (l *InternalOrderGiftLogic) InternalOrderGift(ctx context.Context, req *types.OrderGiftCouponReq) (resp *types.GrantedCountResp, err error) {
 	n, err := biz.NewMerchantLogic(l.svcCtx).OrderGiftCoupons(req.UserID, req.ShopID)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: map[string]interface{}{"granted": n}}, nil
+	return &types.GrantedCountResp{Granted: int64(n)}, nil
 }

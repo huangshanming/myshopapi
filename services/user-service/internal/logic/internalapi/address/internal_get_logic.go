@@ -24,7 +24,7 @@ func NewInternalGetLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Inter
 	}
 }
 
-func (l *InternalGetLogic) InternalGet(ctx context.Context, req *types.InternalAddressReq) (resp *types.AnyResp, err error) {
+func (l *InternalGetLogic) InternalGet(ctx context.Context, req *types.InternalAddressReq) (resp *types.AddressResp, err error) {
 	if req.UserID == 0 || req.Id == 0 {
 		return nil, xerr.New(http.StatusBadRequest, "参数无效")
 	}
@@ -32,5 +32,5 @@ func (l *InternalGetLogic) InternalGet(ctx context.Context, req *types.InternalA
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: a}, nil
+	return &types.AddressResp{Data: a}, nil
 }

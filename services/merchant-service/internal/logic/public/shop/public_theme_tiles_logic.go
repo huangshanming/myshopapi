@@ -24,11 +24,11 @@ func NewPublicThemeTilesLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 	}
 }
 
-func (l *PublicThemeTilesLogic) PublicThemeTiles(ctx context.Context) (resp *types.AnyResp, err error) {
+func (l *PublicThemeTilesLogic) PublicThemeTiles(ctx context.Context) (resp *types.ListResp, err error) {
 
 	list, err := biz.NewMerchantLogic(l.svcCtx).ListThemeTiles()
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.AnyResp{Data: map[string]interface{}{"list": list}}, nil
+	return &types.ListResp{List: list}, nil
 }

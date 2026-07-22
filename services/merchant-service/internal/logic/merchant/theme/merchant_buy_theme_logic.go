@@ -25,7 +25,7 @@ func NewMerchantBuyThemeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 	}
 }
 
-func (l *MerchantBuyThemeLogic) MerchantBuyTheme(ctx context.Context, req *types.ThemeBuyReq) (resp *types.AnyResp, err error) {
+func (l *MerchantBuyThemeLogic) MerchantBuyTheme(ctx context.Context, req *types.ThemeBuyReq) (resp *types.ThemeOrderResp, err error) {
 	shopID := middleware.GetShopID(ctx)
 	userID, _ := middleware.GetUserID(ctx)
 	if shopID == 0 {
@@ -35,5 +35,5 @@ func (l *MerchantBuyThemeLogic) MerchantBuyTheme(ctx context.Context, req *types
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: o}, nil
+	return &types.ThemeOrderResp{Data: o}, nil
 }

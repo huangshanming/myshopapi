@@ -24,7 +24,7 @@ func NewSetPointsProductStatusLogic(ctx context.Context, svcCtx *svc.ServiceCont
 	}
 }
 
-func (l *SetPointsProductStatusLogic) SetPointsProductStatus(ctx context.Context, req *types.PointsProductStatusReq) (resp *types.AnyResp, err error) {
+func (l *SetPointsProductStatusLogic) SetPointsProductStatus(ctx context.Context, req *types.PointsProductStatusReq) (resp *types.PointsProductResp, err error) {
 	if req.Id == 0 {
 		return nil, xerr.New(http.StatusBadRequest, "商品ID无效")
 	}
@@ -32,5 +32,5 @@ func (l *SetPointsProductStatusLogic) SetPointsProductStatus(ctx context.Context
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: p}, nil
+	return &types.PointsProductResp{Data: p}, nil
 }

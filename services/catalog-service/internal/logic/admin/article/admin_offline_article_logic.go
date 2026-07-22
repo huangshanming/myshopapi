@@ -24,10 +24,10 @@ func NewAdminOfflineArticleLogic(ctx context.Context, svcCtx *svc.ServiceContext
 	}
 }
 
-func (l *AdminOfflineArticleLogic) AdminOfflineArticle(ctx context.Context, req *types.ArticleRemarkBodyReq) (resp *types.AnyResp, err error) {
+func (l *AdminOfflineArticleLogic) AdminOfflineArticle(ctx context.Context, req *types.ArticleRemarkBodyReq) (resp *types.EmptyResp, err error) {
 	id := req.Id
 	if err := clogic.NewArticleLogic(l.svcCtx).Offline(ctx, id, req.Remark); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: &types.AnyResp{}}, nil
+	return &types.EmptyResp{}, nil
 }

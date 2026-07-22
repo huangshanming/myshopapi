@@ -25,7 +25,7 @@ func NewCreateMineLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Create
 	}
 }
 
-func (l *CreateMineLogic) CreateMine(ctx context.Context, req *types.UserArticleCreateReq) (resp *types.AnyResp, err error) {
+func (l *CreateMineLogic) CreateMine(ctx context.Context, req *types.UserArticleCreateReq) (resp *types.ArticleResp, err error) {
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
 		return nil, xerr.New(http.StatusUnauthorized, "未登录")
@@ -34,5 +34,5 @@ func (l *CreateMineLogic) CreateMine(ctx context.Context, req *types.UserArticle
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: a}, nil
+	return &types.ArticleResp{Data: a}, nil
 }

@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"mymall/common"
-	"mymall/services/catalog-service/internal/client/userhttp"
+	"mymall/services/catalog-service/internal/client/userrpc"
 	"mymall/services/catalog-service/internal/content/model"
 	"mymall/services/catalog-service/internal/content/repository"
 	"mymall/services/catalog-service/internal/content/types"
@@ -202,8 +202,8 @@ func (l *ArticleLogic) Audit(ctx context.Context, id uint64, req types.ArticleAu
 		return err
 	}
 	// C 端用户发文审核通过 → 发文任务进度
-	if a.AuthorUserID > 0 && a.ShopID == 0 && l.svcCtx.UserHTTP != nil {
-		_ = l.svcCtx.UserHTTP.TaskEvent(ctx, userhttp.TaskEventReq{
+	if a.AuthorUserID > 0 && a.ShopID == 0 && l.svcCtx.UserRPC != nil {
+		_ = l.svcCtx.UserRPC.TaskEvent(ctx, userrpc.TaskEventReq{
 			UserID: a.AuthorUserID, TaskCode: "publish_article", Delta: 1,
 			RefType: "article", RefID: a.ID,
 		})
@@ -675,8 +675,8 @@ func (l *ArticleLogic) LikeArticle(ctx context.Context, userID, articleID uint64
 	if err != nil {
 		return err
 	}
-	if like && changed && l.svcCtx.UserHTTP != nil {
-		_ = l.svcCtx.UserHTTP.TaskEvent(ctx, userhttp.TaskEventReq{
+	if like && changed && l.svcCtx.UserRPC != nil {
+		_ = l.svcCtx.UserRPC.TaskEvent(ctx, userrpc.TaskEventReq{
 			UserID: userID, TaskCode: "like_article", Delta: 1,
 			RefType: "article_like", RefID: articleID,
 		})
@@ -694,8 +694,8 @@ func (l *ArticleLogic) FavoriteArticle(ctx context.Context, userID, articleID ui
 	if err != nil {
 		return err
 	}
-	if fav && changed && l.svcCtx.UserHTTP != nil {
-		_ = l.svcCtx.UserHTTP.TaskEvent(ctx, userhttp.TaskEventReq{
+	if fav && changed && l.svcCtx.UserRPC != nil {
+		_ = l.svcCtx.UserRPC.TaskEvent(ctx, userrpc.TaskEventReq{
 			UserID: userID, TaskCode: "favorite_article", Delta: 1,
 			RefType: "article_fav", RefID: articleID,
 		})
@@ -842,8 +842,8 @@ func (l *ArticleLogic) CreatePublicComment(ctx context.Context, userID, articleI
 	if err := l.svcCtx.Articles.CreateComment(ctx, c); err != nil {
 		return nil, err
 	}
-	if l.svcCtx.UserHTTP != nil {
-		_ = l.svcCtx.UserHTTP.TaskEvent(ctx, userhttp.TaskEventReq{
+	if l.svcCtx.UserRPC != nil {
+		_ = l.svcCtx.UserRPC.TaskEvent(ctx, userrpc.TaskEventReq{
 			UserID: userID, TaskCode: "comment_article", Delta: 1,
 			RefType: "comment", RefID: c.ID,
 		})
@@ -851,13 +851,13 @@ func (l *ArticleLogic) CreatePublicComment(ctx context.Context, userID, articleI
 	tmp := []model.CommunityArticleComment{*c}
 	l.fillCommentUsers(ctx, tmp)
 	*c = tmp[0]
-	if notifyUID > 0 && notifyUID != userID && l.svcCtx.UserHTTP != nil {
+	if notifyUID > 0 && notifyUID != userID && l.svcCtx.UserRPC != nil {
 		extra, _ := json.Marshal(map[string]interface{}{"comment_id": c.ID})
 		preview := content
 		if rs := []rune(preview); len(rs) > 40 {
 			preview = string(rs[:40]) + "…"
 		}
-		_ = l.svcCtx.UserHTTP.Notify(ctx, userhttp.NotifyReq{
+		_ = l.svcCtx.UserRPC.Notify(ctx, userrpc.NotifyReq{
 			UserID: notifyUID, Title: "收到新回复",
 			Content:  fmt.Sprintf("%s 回复了你：%s", c.UserNickname, preview),
 			MsgType:  "system",

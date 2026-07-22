@@ -25,7 +25,7 @@ func NewMerchantSetSeckillAutoRenewLogic(ctx context.Context, svcCtx *svc.Servic
 	}
 }
 
-func (l *MerchantSetSeckillAutoRenewLogic) MerchantSetSeckillAutoRenew(ctx context.Context, req *types.SeckillAutoRenewBodyReq) (resp *types.AnyResp, err error) {
+func (l *MerchantSetSeckillAutoRenewLogic) MerchantSetSeckillAutoRenew(ctx context.Context, req *types.SeckillAutoRenewBodyReq) (resp *types.SeckillEntryResp, err error) {
 	shopID := middleware.GetShopID(ctx)
 	if req.Id == 0 {
 		return nil, xerr.New(http.StatusBadRequest, "报名ID无效")
@@ -34,5 +34,5 @@ func (l *MerchantSetSeckillAutoRenewLogic) MerchantSetSeckillAutoRenew(ctx conte
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: entry}, nil
+	return &types.SeckillEntryResp{Data: entry}, nil
 }

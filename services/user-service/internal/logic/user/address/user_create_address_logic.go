@@ -21,7 +21,7 @@ func NewUserCreateAddressLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 	return &UserCreateAddressLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *UserCreateAddressLogic) UserCreateAddress(ctx context.Context, req *types.AddressReq) (*types.AnyResp, error) {
+func (l *UserCreateAddressLogic) UserCreateAddress(ctx context.Context, req *types.AddressReq) (*types.AddressResp, error) {
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
 		return nil, xerr.New(http.StatusUnauthorized, "未授权")
@@ -30,5 +30,5 @@ func (l *UserCreateAddressLogic) UserCreateAddress(ctx context.Context, req *typ
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: a}, nil
+	return &types.AddressResp{Data: a}, nil
 }

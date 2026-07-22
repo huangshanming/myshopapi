@@ -2,6 +2,7 @@ package product
 
 import (
 	"context"
+	"errors"
 	"mymall/pkg/xerr"
 	plogic "mymall/services/catalog-service/internal/product/logic"
 	"net/http"
@@ -10,7 +11,7 @@ import (
 	"mymall/services/catalog-service/internal/types"
 
 	"github.com/zeromicro/go-zero/core/logx"
-	"gorm.io/gorm"
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
 type GetProductDetailLogic struct {
@@ -25,16 +26,16 @@ func NewGetProductDetailLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 	}
 }
 
-func (l *GetProductDetailLogic) GetProductDetail(ctx context.Context, req *types.IdQueryReq) (resp *types.AnyResp, err error) {
+func (l *GetProductDetailLogic) GetProductDetail(ctx context.Context, req *types.IdQueryReq) (resp *types.ProductResp, err error) {
 	if req.Id == 0 {
 		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
 	data, err := plogic.NewCatalogLogic(l.svcCtx).GetProductDetail(ctx, req.Id)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, sqlx.ErrNotFound) {
 			return nil, xerr.New(http.StatusNotFound, "商品不存在")
 		}
 		return nil, xerr.New(http.StatusInternalServerError, "查询失败")
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.ProductResp{Data: data}, nil
 }

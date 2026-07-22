@@ -24,7 +24,7 @@ func NewCreateBannerLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Crea
 	}
 }
 
-func (l *CreateBannerLogic) CreateBanner(ctx context.Context, req *types.BannerSaveReq) (resp *types.AnyResp, err error) {
+func (l *CreateBannerLogic) CreateBanner(ctx context.Context, req *types.BannerSaveReq) (resp *types.BannerResp, err error) {
 	b, err := clogic.NewArticleLogic(l.svcCtx).AdminCreateBanner(clogic.BannerSaveReq{
 		Title: req.Title, ImageURL: req.ImageURL, LinkType: req.LinkType, LinkID: req.LinkID,
 		Sort: req.Sort, Status: req.Status, StartAt: req.StartAt, EndAt: req.EndAt,
@@ -32,5 +32,5 @@ func (l *CreateBannerLogic) CreateBanner(ctx context.Context, req *types.BannerS
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: b}, nil
+	return &types.BannerResp{Data: b}, nil
 }

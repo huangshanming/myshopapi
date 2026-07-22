@@ -24,9 +24,9 @@ func NewAssignAdminRolesLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 	}
 }
 
-func (l *AssignAdminRolesLogic) AssignAdminRoles(ctx context.Context, req *types.AdminRolesReq) error {
+func (l *AssignAdminRolesLogic) AssignAdminRoles(ctx context.Context, req *types.AdminRolesReq) (*types.EmptyResp, error) {
 	if err := biz.NewRBACLogic(l.svcCtx).AssignAdminRoles(ctx, req.Id, req.RoleIDs); err != nil {
-		return xerr.New(http.StatusBadRequest, err.Error())
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return nil
+	return &types.EmptyResp{}, nil
 }

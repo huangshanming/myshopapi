@@ -25,7 +25,7 @@ func NewUserFavoriteStatusLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 	}
 }
 
-func (l *UserFavoriteStatusLogic) UserFavoriteStatus(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *UserFavoriteStatusLogic) UserFavoriteStatus(ctx context.Context, req *types.IdPathReq) (resp *types.FavoriteStatusResp, err error) {
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
 		return nil, xerr.New(http.StatusUnauthorized, "未登录")
@@ -37,5 +37,5 @@ func (l *UserFavoriteStatusLogic) UserFavoriteStatus(ctx context.Context, req *t
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.AnyResp{Data: map[string]bool{"favorited": okFav}}, nil
+	return &types.FavoriteStatusResp{Favorited: okFav}, nil
 }

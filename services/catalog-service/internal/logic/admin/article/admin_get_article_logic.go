@@ -24,11 +24,11 @@ func NewAdminGetArticleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *A
 	}
 }
 
-func (l *AdminGetArticleLogic) AdminGetArticle(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *AdminGetArticleLogic) AdminGetArticle(ctx context.Context, req *types.IdPathReq) (resp *types.ArticleResp, err error) {
 	id := req.Id
 	data, err := clogic.NewArticleLogic(l.svcCtx).Detail(ctx, id, 0)
 	if err != nil {
 		return nil, xerr.New(http.StatusNotFound, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.ArticleResp{Data: data}, nil
 }

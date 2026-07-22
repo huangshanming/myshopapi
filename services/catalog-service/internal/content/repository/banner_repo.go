@@ -8,6 +8,8 @@ import (
 	"mymall/services/catalog-service/internal/content/model"
 )
 
+const homepageBannerColumns = "id, title, image_url, link_type, link_id, sort, status, start_at, end_at, created_at, updated_at"
+
 func (r *ArticleRepository) ListBannersAdmin(ctx context.Context, page, pageSize int) ([]model.HomepageBanner, int64, error) {
 	if page < 1 {
 		page = 1
@@ -15,57 +17,73 @@ func (r *ArticleRepository) ListBannersAdmin(ctx context.Context, page, pageSize
 	if pageSize < 1 {
 		pageSize = 20
 	}
-	q := r.db.WithContext(ctx).Model(&model.HomepageBanner{})
-	var total int64
-	if err := q.Count(&total).Error; err != nil {
+	total, err := countCtx(ctx, r.conn, "SELECT COUNT(*) FROM homepage_banners")
+	if err != nil {
 		return nil, 0, err
 	}
 	var list []model.HomepageBanner
-	err := q.Order("sort ASC, id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
+	err = r.conn.QueryRowsCtx(ctx, &list,
+		"SELECT "+homepageBannerColumns+" FROM homepage_banners ORDER BY sort ASC, id DESC LIMIT ? OFFSET ?",
+		pageSize, (page-1)*pageSize,
+	)
 	return list, total, err
 }
 
 func (r *ArticleRepository) ListBannersPublic(ctx context.Context) ([]model.HomepageBanner, error) {
 	now := time.Now()
 	var list []model.HomepageBanner
-	err := r.db.WithContext(ctx).Model(&model.HomepageBanner{}).
-		Where("status = ?", model.BannerOn).
-		Where("(start_at IS NULL OR start_at <= ?)", now).
-		Where("(end_at IS NULL OR end_at > ?)", now).
-		Order("sort ASC, id DESC").
-		Find(&list).Error
+	err := r.conn.QueryRowsCtx(ctx, &list,
+		"SELECT "+homepageBannerColumns+` FROM homepage_banners
+WHERE status=? AND (start_at IS NULL OR start_at<=?) AND (end_at IS NULL OR end_at>?)
+ORDER BY sort ASC, id DESC`,
+		model.BannerOn, now, now,
+	)
 	return list, err
 }
 
 func (r *ArticleRepository) GetBanner(ctx context.Context, id uint64) (*model.HomepageBanner, error) {
 	var b model.HomepageBanner
-	if err := r.db.WithContext(ctx).First(&b, id).Error; err != nil {
+	err := r.conn.QueryRowCtx(ctx, &b, "SELECT "+homepageBannerColumns+" FROM homepage_banners WHERE id=? LIMIT 1", id)
+	if err != nil {
 		return nil, err
 	}
 	return &b, nil
 }
 
 func (r *ArticleRepository) CreateBanner(ctx context.Context, b *model.HomepageBanner) error {
-	return r.db.WithContext(ctx).Create(b).Error
+	id, err := lastInsertID(ctx, r.conn, `
+INSERT INTO homepage_banners (title, image_url, link_type, link_id, sort, status, start_at, end_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		b.Title, b.ImageURL, b.LinkType, b.LinkID, b.Sort, b.Status, b.StartAt, b.EndAt,
+	)
+	if err != nil {
+		return err
+	}
+	b.ID = id
+	return nil
 }
 
 func (r *ArticleRepository) UpdateBanner(ctx context.Context, id uint64, updates map[string]interface{}) error {
-	res := r.db.WithContext(ctx).Model(&model.HomepageBanner{}).Where("id = ?", id).Updates(updates)
-	if res.Error != nil {
-		return res.Error
+	query, args, err := buildUpdate("homepage_banners", updates, "id=?", id)
+	if err != nil {
+		return err
 	}
-	if res.RowsAffected == 0 {
+	n, err := execAffected(ctx, r.conn, query, args...)
+	if err != nil {
+		return err
+	}
+	if n == 0 {
 		return errors.New("Banner 不存在")
 	}
 	return nil
 }
 
 func (r *ArticleRepository) DeleteBanner(ctx context.Context, id uint64) error {
-	res := r.db.WithContext(ctx).Delete(&model.HomepageBanner{}, id)
-	if res.Error != nil {
-		return res.Error
+	n, err := execAffected(ctx, r.conn, "DELETE FROM homepage_banners WHERE id=?", id)
+	if err != nil {
+		return err
 	}
-	if res.RowsAffected == 0 {
+	if n == 0 {
 		return errors.New("Banner 不存在")
 	}
 	return nil
@@ -79,29 +97,28 @@ func (r *ArticleRepository) FillBannerLinkNames(ctx context.Context, list []mode
 				continue
 			}
 			var name string
-			_ = r.db.WithContext(ctx).Table("products").Select("name").Where("id = ?", list[i].LinkID).Scan(&name).Error
+			_ = r.conn.QueryRowCtx(ctx, &name, "SELECT name FROM products WHERE id=? LIMIT 1", list[i].LinkID)
 			list[i].LinkName = name
 		case model.BannerLinkArticle:
 			if list[i].LinkID == 0 {
 				continue
 			}
 			var title string
-			_ = r.db.WithContext(ctx).Table("community_article").Select("title").Where("id = ?", list[i].LinkID).Scan(&title).Error
+			_ = r.conn.QueryRowCtx(ctx, &title, "SELECT title FROM community_article WHERE id=? LIMIT 1", list[i].LinkID)
 			list[i].LinkName = title
 		}
 	}
 }
 
 func (r *ArticleRepository) ProductExistsOnSale(ctx context.Context, id uint64) bool {
-	var n int64
-	r.db.WithContext(ctx).Table("products").Where("id = ? AND status = ?", id, "on_sale").Count(&n)
+	n, _ := countCtx(ctx, r.conn, "SELECT COUNT(*) FROM products WHERE id=? AND status=?", id, "on_sale")
 	return n > 0
 }
 
 func (r *ArticleRepository) ArticleExistsPublished(ctx context.Context, id uint64) bool {
-	var n int64
-	r.db.WithContext(ctx).Model(&model.CommunityArticle{}).
-		Where("id = ? AND status = ? AND audit_status = ?", id, model.ArticlePublished, model.ArticleAuditApproved).
-		Count(&n)
+	n, _ := countCtx(ctx, r.conn,
+		"SELECT COUNT(*) FROM community_article WHERE id=? AND status=? AND audit_status=?",
+		id, model.ArticlePublished, model.ArticleAuditApproved,
+	)
 	return n > 0
 }

@@ -19,17 +19,18 @@ import (
 	"syscall"
 
 	"mymall/pkg/cache"
-	"mymall/pkg/config"
-	"mymall/pkg/database"
 	"mymall/pkg/health"
-	"mymall/pkg/httpserver"
 	applog "mymall/pkg/log"
 	"mymall/pkg/telemetry"
 	"mymall/pkg/xerr"
+	"mymall/services/order-service/internal/config"
 	"mymall/services/order-service/internal/handler"
-	"mymall/services/order-service/internal/model"
 	ordermq "mymall/services/order-service/internal/mq"
 	"mymall/services/order-service/internal/svc"
+
+	"github.com/zeromicro/go-zero/core/conf"
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
+	"github.com/zeromicro/go-zero/rest"
 )
 
 func main() {
@@ -40,10 +41,9 @@ func main() {
 		configPath = "./etc/order-service.yaml"
 	}
 
-	cfg, err := config.Load(configPath)
-	if err != nil {
-		log.Fatalf("加载配置失败：%v", err)
-	}
+	var c config.Config
+	conf.MustLoad(configPath, &c)
+	c.OverlayFromEnv()
 
 	logger, err := applog.New("order-service")
 	if err != nil {
@@ -52,28 +52,14 @@ func main() {
 	defer logger.Sync()
 
 	ctx := context.Background()
-	shutdownTrace, err := telemetry.Init(ctx, cfg.Telemetry)
+	shutdownTrace, err := telemetry.Init(ctx, c.Telemetry.ToPkg())
 	if err != nil {
 		logger.Warn("telemetry init skipped")
 	}
 	defer shutdownTrace(context.Background())
 
-	db, err := database.NewMySQL(cfg.MySQL)
-	if err != nil {
-		log.Fatalf("连接数据库失败：%v", err)
-	}
-	if err := database.AutoMigrateIfDebug(cfg.Server.Mode, db,
-		&model.Order{},
-		&model.OrderItem{},
-		&model.OrderAfterSale{},
-		&model.LogisticsCompany{},
-		&model.ProductReview{},
-		&model.ProductReviewImage{},
-	); err != nil {
-		log.Fatalf("AutoMigrate 失败：%v", err)
-	}
-
-	svcCtx, err := svc.NewServiceContext(cfg, db)
+	sqlConn := sqlx.NewMysql(c.MySQL.DSN())
+	svcCtx, err := svc.NewServiceContext(&c, sqlConn)
 	if err != nil {
 		log.Fatalf("初始化服务依赖失败：%v", err)
 	}
@@ -88,7 +74,7 @@ func main() {
 	if svcCtx.MQClient == nil {
 		logger.Warn("rabbitmq unavailable")
 	} else {
-		consumer := ordermq.NewConsumer(svcCtx.MQClient, svcCtx.Repo, svcCtx.Redis, svcCtx.UserHTTP, svcCtx.MerchantHTTP, logger)
+		consumer := ordermq.NewConsumer(svcCtx.MQClient, svcCtx.Repo, svcCtx.Redis, svcCtx.UserRPC, svcCtx.MerchantRPC, logger)
 		if err := consumer.Start(); err != nil {
 			logger.Warn("mq consumer start failed")
 		}
@@ -96,11 +82,11 @@ func main() {
 
 	healthReg := health.NewRegistry()
 	healthReg.Register("mysql", func(ctx context.Context) error {
-		sqlDB, err := db.DB()
+		rawDB, err := sqlConn.RawDB()
 		if err != nil {
 			return err
 		}
-		return sqlDB.PingContext(ctx)
+		return rawDB.PingContext(ctx)
 	})
 	if svcCtx.MQClient != nil {
 		healthReg.Register("rabbitmq", svcCtx.MQClient.Ping)
@@ -111,19 +97,19 @@ func main() {
 		})
 	}
 
-	server := httpserver.NewRest(cfg.Server.HTTPPort, cfg.Server.Mode)
-	defer server.Stop()
+	serverHTTP := rest.MustNewServer(c.RestConf, rest.WithCors())
+	defer serverHTTP.Stop()
 
 	svcCtx.Health = healthReg
-	handler.RegisterHandlers(server, svcCtx)
+	handler.RegisterHandlers(serverHTTP, svcCtx)
 
 	go func() {
-		logger.Info(fmt.Sprintf("order-service HTTP(go-zero) 启动 :%d", cfg.Server.HTTPPort))
-		server.Start()
+		logger.Info(fmt.Sprintf("order-service HTTP(go-zero) 启动 :%d", c.Port))
+		serverHTTP.Start()
 	}()
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	server.Stop()
+	serverHTTP.Stop()
 }

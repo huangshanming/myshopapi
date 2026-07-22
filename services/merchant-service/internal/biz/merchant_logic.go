@@ -5,10 +5,11 @@ import (
 	"errors"
 
 	"mymall/services/merchant-service/internal/model"
+	"mymall/services/merchant-service/internal/repository"
 	"mymall/services/merchant-service/internal/svc"
 	"mymall/services/merchant-service/internal/types"
 
-	"gorm.io/gorm"
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
 type MerchantLogic struct {
@@ -22,7 +23,7 @@ func NewMerchantLogic(svcCtx *svc.ServiceContext) *MerchantLogic {
 func (l *MerchantLogic) Apply(ctx context.Context, userID uint64, in types.ApplyReq) (*model.ShopApplication, error) {
 	if _, err := l.svcCtx.Repo.FindPendingAppByUser(ctx, userID); err == nil {
 		return nil, errors.New("已有待审核的入驻申请")
-	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+	} else if !errors.Is(err, sqlx.ErrNotFound) {
 		return nil, err
 	}
 	app := &model.ShopApplication{
@@ -61,7 +62,7 @@ func (l *MerchantLogic) ListApplications(ctx context.Context, status string, pag
 func (l *MerchantLogic) Approve(ctx context.Context, appID, adminID uint64) (*model.Shop, error) {
 	shop, err := l.svcCtx.Repo.ApproveApplication(ctx, appID, adminID)
 	if err != nil {
-		if errors.Is(err, gorm.ErrInvalidData) {
+		if errors.Is(err, repository.ErrInvalidData) {
 			return nil, errors.New("申请状态不可审核")
 		}
 		return nil, err

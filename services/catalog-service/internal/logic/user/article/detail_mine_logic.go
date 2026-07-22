@@ -25,7 +25,7 @@ func NewDetailMineLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Detail
 	}
 }
 
-func (l *DetailMineLogic) DetailMine(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *DetailMineLogic) DetailMine(ctx context.Context, req *types.IdPathReq) (resp *types.ArticleResp, err error) {
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
 		return nil, xerr.New(http.StatusUnauthorized, "未登录")
@@ -35,5 +35,5 @@ func (l *DetailMineLogic) DetailMine(ctx context.Context, req *types.IdPathReq) 
 	if err != nil {
 		return nil, xerr.New(http.StatusNotFound, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.ArticleResp{Data: data}, nil
 }

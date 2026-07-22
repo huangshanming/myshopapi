@@ -22,7 +22,7 @@ func NewCouponPreviewLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Cou
 	return &CouponPreviewLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *CouponPreviewLogic) CouponPreview(ctx context.Context, req *types.CouponPreviewReq) (*types.AnyResp, error) {
+func (l *CouponPreviewLogic) CouponPreview(ctx context.Context, req *types.CouponPreviewReq) (*types.CouponPreviewResp, error) {
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
 		return nil, xerr.New(http.StatusUnauthorized, "未授权")
@@ -31,5 +31,12 @@ func (l *CouponPreviewLogic) CouponPreview(ctx context.Context, req *types.Coupo
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.CouponPreviewResp{
+		GoodsAmount:      data.GoodsAmount,
+		DiscountAmount:   data.DiscountAmount,
+		PayAmount:        data.PayAmount,
+		BestUserCouponID: data.BestUserCouponID,
+		Available:        data.Available,
+		Unavailable:      data.Unavailable,
+	}, nil
 }

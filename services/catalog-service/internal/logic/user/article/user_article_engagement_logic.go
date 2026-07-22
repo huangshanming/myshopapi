@@ -25,13 +25,13 @@ func NewUserArticleEngagementLogic(ctx context.Context, svcCtx *svc.ServiceConte
 	}
 }
 
-func (l *UserArticleEngagementLogic) UserArticleEngagement(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *UserArticleEngagementLogic) UserArticleEngagement(ctx context.Context, req *types.IdPathReq) (resp *types.EngagementResp, err error) {
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
 		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
 	id := req.Id
 	liked, favorited := clogic.NewArticleLogic(l.svcCtx).EngagementStatus(ctx, userID, id)
-	return &types.AnyResp{Data: map[string]bool{"liked": liked, "favorited": favorited}}, nil
+	return &types.EngagementResp{Liked: liked, Favorited: favorited}, nil
 
 }

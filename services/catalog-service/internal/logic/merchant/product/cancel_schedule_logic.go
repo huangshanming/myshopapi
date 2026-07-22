@@ -24,7 +24,7 @@ func NewCancelScheduleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Ca
 	}
 }
 
-func (l *CancelScheduleLogic) CancelSchedule(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *CancelScheduleLogic) CancelSchedule(ctx context.Context, req *types.IdPathReq) (resp *types.EmptyResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -37,5 +37,5 @@ func (l *CancelScheduleLogic) CancelSchedule(ctx context.Context, req *types.IdP
 	}
 	id := req.Id
 	_ = l.svcCtx.ProductAdmin.CancelSchedule(ctx, id, shopID)
-	return &types.AnyResp{Data: &types.AnyResp{}}, nil
+	return &types.EmptyResp{}, nil
 }

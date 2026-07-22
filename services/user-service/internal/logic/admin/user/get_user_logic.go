@@ -24,10 +24,10 @@ func NewGetUserLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetUserLo
 	}
 }
 
-func (l *GetUserLogic) GetUser(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *GetUserLogic) GetUser(ctx context.Context, req *types.IdPathReq) (resp *types.UserResp, err error) {
 	user, err := biz.NewRBACLogic(l.svcCtx).GetUser(ctx, req.Id)
 	if err != nil {
 		return nil, xerr.New(http.StatusNotFound, err.Error())
 	}
-	return &types.AnyResp{Data: user}, nil
+	return &types.UserResp{Data: user}, nil
 }

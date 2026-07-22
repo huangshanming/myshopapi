@@ -1,19 +1,19 @@
 package svc
 
 import (
-	"mymall/pkg/config"
 	"mymall/pkg/health"
+	"mymall/services/merchant-service/internal/config"
 	"mymall/services/merchant-service/internal/middleware"
 	"mymall/services/merchant-service/internal/repository"
 
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"github.com/zeromicro/go-zero/rest"
-	"gorm.io/gorm"
 )
 
 // ServiceContext 全局依赖（go-zero 惯例）
 type ServiceContext struct {
 	Config *config.Config
-	DB     *gorm.DB
+	Conn   sqlx.SqlConn
 	Repo   *repository.MerchantRepository
 	Health *health.Registry
 
@@ -23,11 +23,11 @@ type ServiceContext struct {
 	RequirePlatformAdmin rest.Middleware
 }
 
-func NewServiceContext(cfg *config.Config, db *gorm.DB, healthReg *health.Registry) *ServiceContext {
+func NewServiceContext(cfg *config.Config, conn sqlx.SqlConn, healthReg *health.Registry) *ServiceContext {
 	return &ServiceContext{
 		Config:               cfg,
-		DB:                   db,
-		Repo:                 repository.NewMerchantRepository(db),
+		Conn:                 conn,
+		Repo:                 repository.NewMerchantRepository(conn),
 		Health:               healthReg,
 		RequestID:            middleware.NewRequestIDMiddleware().Handle,
 		GatewayIdentity:      middleware.NewGatewayIdentityMiddleware().Handle,

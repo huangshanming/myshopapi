@@ -3,7 +3,7 @@ package logic
 import (
 	"context"
 
-	"mymall/services/catalog-service/internal/client/userhttp"
+	"mymall/services/catalog-service/internal/client/userrpc"
 	"mymall/services/catalog-service/internal/product/model"
 	"mymall/services/catalog-service/internal/svc"
 )
@@ -21,8 +21,8 @@ func (l *FavoriteLogic) Add(ctx context.Context, userID, productID uint64) error
 	if err != nil {
 		return err
 	}
-	if created && l.svcCtx.UserHTTP != nil {
-		_ = l.svcCtx.UserHTTP.TaskEvent(ctx, userhttp.TaskEventReq{
+	if created && l.svcCtx.UserRPC != nil {
+		_ = l.svcCtx.UserRPC.TaskEvent(ctx, userrpc.TaskEventReq{
 			UserID: userID, TaskCode: "first_favorite_product", Delta: 1,
 			RefType: "product", RefID: productID,
 		})
@@ -47,9 +47,5 @@ func (l *FavoriteLogic) IsFavorited(ctx context.Context, userID, productID uint6
 }
 
 func (l *FavoriteLogic) FavoriteCount(productID uint64) (int64, error) {
-	var p model.Product
-	if err := l.svcCtx.DB.Select("collect_count").Where("id = ?", productID).First(&p).Error; err != nil {
-		return 0, err
-	}
-	return int64(p.CollectCount), nil
+	return l.svcCtx.Products.GetCollectCount(context.Background(), productID)
 }

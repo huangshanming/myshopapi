@@ -26,7 +26,7 @@ func NewMerchantUploadImageLogic(ctx context.Context, svcCtx *svc.ServiceContext
 	}
 }
 
-func (l *MerchantUploadImageLogic) MerchantUploadImage(ctx context.Context, r *http.Request) (resp *types.AnyResp, err error) {
+func (l *MerchantUploadImageLogic) MerchantUploadImage(ctx context.Context, r *http.Request) (resp *types.URLResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -57,5 +57,5 @@ func (l *MerchantUploadImageLogic) MerchantUploadImage(ctx context.Context, r *h
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: map[string]string{"url": url}}, nil
+	return &types.URLResp{Url: url}, nil
 }

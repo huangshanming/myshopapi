@@ -24,9 +24,9 @@ func NewUpdateBannerLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Upda
 	}
 }
 
-func (l *UpdateBannerLogic) UpdateBanner(ctx context.Context, req *types.BannerUpdateBodyReq) (resp *types.AnyResp, err error) {
+func (l *UpdateBannerLogic) UpdateBanner(ctx context.Context, req *types.BannerUpdateBodyReq) (resp *types.EmptyResp, err error) {
 	if err := clogic.NewArticleLogic(l.svcCtx).AdminUpdateBanner(req.Id, clogic.BannerSaveReq{Title: req.Title, ImageURL: req.ImageURL, LinkType: req.LinkType, LinkID: req.LinkID, Sort: req.Sort, Status: req.Status, StartAt: req.StartAt, EndAt: req.EndAt}); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: &types.AnyResp{}}, nil
+	return &types.EmptyResp{}, nil
 }

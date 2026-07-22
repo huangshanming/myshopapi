@@ -24,10 +24,10 @@ func NewAdminDisableShopLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 	}
 }
 
-func (l *AdminDisableShopLogic) AdminDisableShop(ctx context.Context, req *types.RejectBodyReq) (resp *types.AnyResp, err error) {
+func (l *AdminDisableShopLogic) AdminDisableShop(ctx context.Context, req *types.RejectBodyReq) (resp *types.EmptyResp, err error) {
 	id := req.Id
 	if err := biz.NewMerchantLogic(l.svcCtx).DisableShop(ctx, id, req.Reason); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{}, nil
+	return &types.EmptyResp{}, nil
 }

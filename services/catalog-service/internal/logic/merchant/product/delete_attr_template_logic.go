@@ -24,7 +24,7 @@ func NewDeleteAttrTemplateLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 	}
 }
 
-func (l *DeleteAttrTemplateLogic) DeleteAttrTemplate(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *DeleteAttrTemplateLogic) DeleteAttrTemplate(ctx context.Context, req *types.IdPathReq) (resp *types.EmptyResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -37,5 +37,5 @@ func (l *DeleteAttrTemplateLogic) DeleteAttrTemplate(ctx context.Context, req *t
 	}
 	id := req.Id
 	_ = l.svcCtx.ProductAdmin.DeleteAttrTemplate(ctx, id, shopID)
-	return &types.AnyResp{Data: &types.AnyResp{}}, nil
+	return &types.EmptyResp{}, nil
 }

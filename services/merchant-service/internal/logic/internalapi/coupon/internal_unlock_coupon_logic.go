@@ -24,9 +24,9 @@ func NewInternalUnlockCouponLogic(ctx context.Context, svcCtx *svc.ServiceContex
 	}
 }
 
-func (l *InternalUnlockCouponLogic) InternalUnlockCoupon(ctx context.Context, req *types.UnlockCouponReq) (resp *types.AnyResp, err error) {
+func (l *InternalUnlockCouponLogic) InternalUnlockCoupon(ctx context.Context, req *types.UnlockCouponReq) (resp *types.EmptyResp, err error) {
 	if err := biz.NewMerchantLogic(l.svcCtx).UnlockCoupon(req.UserCouponID, req.OrderID); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{}, nil
+	return &types.EmptyResp{}, nil
 }

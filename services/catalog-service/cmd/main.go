@@ -17,27 +17,24 @@ import (
 	"time"
 
 	"mymall/pkg/cache"
-	"mymall/pkg/config"
-	"mymall/pkg/database"
 	"mymall/pkg/health"
-	"mymall/pkg/httpserver"
 	applog "mymall/pkg/log"
 	"mymall/pkg/mq"
 	"mymall/pkg/telemetry"
 	"mymall/pkg/xerr"
+	"mymall/services/catalog-service/internal/config"
 	contentlogic "mymall/services/catalog-service/internal/content/logic"
-	contentmodel "mymall/services/catalog-service/internal/content/model"
 	"mymall/services/catalog-service/internal/handler"
 	catalogmq "mymall/services/catalog-service/internal/mq"
-	notifymodel "mymall/services/catalog-service/internal/notify/model"
 	productlogic "mymall/services/catalog-service/internal/product/logic"
-	productmodel "mymall/services/catalog-service/internal/product/model"
 	"mymall/services/catalog-service/internal/server"
-	shopopsmodel "mymall/services/catalog-service/internal/shopops/model"
 	"mymall/services/catalog-service/internal/svc"
 	"mymall/services/catalog-service/internal/uploadpath"
 
 	"github.com/redis/go-redis/v9"
+	"github.com/zeromicro/go-zero/core/conf"
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
+	"github.com/zeromicro/go-zero/rest"
 )
 
 func main() {
@@ -48,10 +45,9 @@ func main() {
 		configPath = "./etc/catalog-service.yaml"
 	}
 
-	cfg, err := config.Load(configPath)
-	if err != nil {
-		log.Fatalf("加载配置失败：%v", err)
-	}
+	var c config.Config
+	conf.MustLoad(configPath, &c)
+	c.OverlayFromEnv()
 
 	logger, err := applog.New("catalog-service")
 	if err != nil {
@@ -60,49 +56,16 @@ func main() {
 	defer logger.Sync()
 
 	ctx := context.Background()
-	shutdownTrace, err := telemetry.Init(ctx, cfg.Telemetry)
+	shutdownTrace, err := telemetry.Init(ctx, c.Telemetry.ToPkg())
 	if err != nil {
 		logger.Warn("telemetry init skipped")
 	}
 	defer shutdownTrace(context.Background())
 
-	db, err := database.NewMySQL(cfg.MySQL)
-	if err != nil {
-		log.Fatalf("连接数据库失败：%v", err)
-	}
-	if err := database.AutoMigrateIfDebug(cfg.Server.Mode, db,
-		&productmodel.Product{},
-		&productmodel.ProductCategory{},
-		&productmodel.ProductSku{},
-		&productmodel.ProductImage{},
-		&productmodel.ProductTag{},
-		&productmodel.ProductTagRel{},
-		&productmodel.ProductAttrTemplate{},
-		&productmodel.ProductAttr{},
-		&productmodel.ProductSchedule{},
-		&productmodel.ProductBatchJob{},
-		&productmodel.ProductOpLog{},
-		&productmodel.ProductFavorite{},
-		&shopopsmodel.ShopRole{},
-		&shopopsmodel.ShopMenu{},
-		&shopopsmodel.ShopRoleMenu{},
-		&shopopsmodel.ShopUserRole{},
-		&contentmodel.CommunityArticle{},
-		&contentmodel.CommunityArticleCategory{},
-		&contentmodel.CommunityArticleComment{},
-		&contentmodel.CommunityCommentEmoji{},
-		&contentmodel.CommunityArticleImg{},
-		&contentmodel.ArticleLike{},
-		&contentmodel.ArticleFavorite{},
-		&contentmodel.ArticleAudience{},
-		&contentmodel.HomepageBanner{},
-		&notifymodel.ShopNotification{},
-	); err != nil {
-		log.Fatalf("AutoMigrate 失败：%v", err)
-	}
+	sqlConn := sqlx.NewMysql(c.MySQL.DSN())
 
 	var redisClient *redis.Client
-	rc, err := cache.NewRedis(cfg.Redis)
+	rc, err := cache.NewRedis(c.Redis.ToPkg())
 	if err != nil {
 		logger.Warn("redis unavailable, cache disabled")
 	} else {
@@ -110,7 +73,7 @@ func main() {
 	}
 
 	var mqClient *mq.Client
-	mqc, err := mq.New(cfg.RabbitMQ)
+	mqc, err := mq.New(c.RabbitMQ.ToPkg())
 	if err != nil {
 		logger.Warn("rabbitmq unavailable")
 	} else {
@@ -118,7 +81,7 @@ func main() {
 		defer mqc.Close()
 	}
 
-	svcCtx := svc.NewServiceContext(cfg, db, redisClient, mqClient)
+	svcCtx := svc.NewServiceContext(&c, sqlConn, redisClient, mqClient)
 	if err := svcCtx.ShopRBAC.EnsureShopMenus(context.Background()); err != nil {
 		logger.Warn(fmt.Sprintf("seed shop menus: %v", err))
 	} else {
@@ -128,7 +91,6 @@ func main() {
 	productAdminLogic := productlogic.NewProductAdminLogic(svcCtx)
 	articleLogic := contentlogic.NewArticleLogic(svcCtx)
 
-	// 商品定时上下架 + 文章定时发布（同进程 Mutex 防叠跑）
 	go func() {
 		var scheduleMu sync.Mutex
 		t := time.NewTicker(30 * time.Second)
@@ -150,11 +112,11 @@ func main() {
 
 	healthReg := health.NewRegistry()
 	healthReg.Register("mysql", func(ctx context.Context) error {
-		sqlDB, err := db.DB()
+		rawDB, err := sqlConn.RawDB()
 		if err != nil {
 			return err
 		}
-		return sqlDB.PingContext(ctx)
+		return rawDB.PingContext(ctx)
 	})
 	if redisClient != nil {
 		healthReg.Register("redis", func(ctx context.Context) error {
@@ -165,14 +127,15 @@ func main() {
 		healthReg.Register("rabbitmq", mqClient.Ping)
 	}
 
-	rpcServer := server.StartZRPC(cfg.Server.GRPCPort, catalogLogic, logger)
+	grpcPort := c.GRPCPort()
+	rpcServer := server.StartZRPC(grpcPort, catalogLogic, logger)
 	go func() {
-		logger.Info(fmt.Sprintf("catalog-service zRPC 启动 :%d", cfg.Server.GRPCPort))
+		logger.Info(fmt.Sprintf("catalog-service zRPC 启动 :%d", grpcPort))
 		rpcServer.Start()
 	}()
 	defer rpcServer.Stop()
 
-	serverHTTP := httpserver.NewRest(cfg.Server.HTTPPort, cfg.Server.Mode)
+	serverHTTP := rest.MustNewServer(c.RestConf, rest.WithCors())
 	defer serverHTTP.Stop()
 
 	svcCtx.Health = healthReg
@@ -181,7 +144,7 @@ func main() {
 	_ = os.MkdirAll(uploadpath.Root(), 0o755)
 
 	go func() {
-		logger.Info(fmt.Sprintf("catalog-service HTTP(go-zero) 启动 :%d", cfg.Server.HTTPPort))
+		logger.Info(fmt.Sprintf("catalog-service HTTP(go-zero) 启动 :%d", c.Port))
 		serverHTTP.Start()
 	}()
 

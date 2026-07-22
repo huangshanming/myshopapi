@@ -9,13 +9,13 @@ const (
 )
 
 type Region struct {
-	ID         uint64           `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
-	Code       string           `gorm:"column:code;type:varchar(12);uniqueIndex" json:"code"`
-	Name       string           `gorm:"column:name;type:varchar(64)" json:"name"`
-	ParentCode string           `gorm:"column:parent_code;type:varchar(12);index" json:"parent_code"`
-	Level      int              `gorm:"column:level" json:"level"`
-	Sort       int              `gorm:"column:sort" json:"sort"`
-	CreatedAt  common.LocalTime `gorm:"column:created_at" json:"created_at"`
+	ID         uint64           `gorm:"column:id;primaryKey;autoIncrement" db:"id" json:"id"`
+	Code       string           `gorm:"column:code;type:varchar(12);uniqueIndex" db:"code" json:"code"`
+	Name       string           `gorm:"column:name;type:varchar(64)" db:"name" json:"name"`
+	ParentCode string           `gorm:"column:parent_code;type:varchar(12);index" db:"parent_code" json:"parent_code"`
+	Level      int              `gorm:"column:level" db:"level" json:"level"`
+	Sort       int              `gorm:"column:sort" db:"sort" json:"sort"`
+	CreatedAt  common.LocalTime `gorm:"column:created_at" db:"created_at" json:"created_at"`
 }
 
 func (Region) TableName() string { return "regions" }

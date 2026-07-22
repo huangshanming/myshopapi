@@ -24,11 +24,11 @@ func NewPublicGetShopLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Pub
 	}
 }
 
-func (l *PublicGetShopLogic) PublicGetShop(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *PublicGetShopLogic) PublicGetShop(ctx context.Context, req *types.IdPathReq) (resp *types.ShopResp, err error) {
 	id := req.Id
 	shop, err := biz.NewMerchantLogic(l.svcCtx).GetPublicShop(ctx, id)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: shop}, nil
+	return &types.ShopResp{Data: shop}, nil
 }

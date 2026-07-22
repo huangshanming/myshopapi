@@ -19,11 +19,11 @@ func AssignRoleMenusHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := role.NewAssignRoleMenusLogic(r.Context(), svcCtx)
-		err := l.AssignRoleMenus(r.Context(), &req)
+		resp, err := l.AssignRoleMenus(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {
-			httpx.Ok(w)
+			httpx.OkJsonCtx(r.Context(), w, resp)
 		}
 	}
 }
@@ -55,11 +55,11 @@ func DeleteRoleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := role.NewDeleteRoleLogic(r.Context(), svcCtx)
-		err := l.DeleteRole(r.Context(), &req)
+		resp, err := l.DeleteRole(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {
-			httpx.Ok(w)
+			httpx.OkJsonCtx(r.Context(), w, resp)
 		}
 	}
 }
@@ -103,11 +103,11 @@ func UpdateRoleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := role.NewUpdateRoleLogic(r.Context(), svcCtx)
-		err := l.UpdateRole(r.Context(), &req)
+		resp, err := l.UpdateRole(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {
-			httpx.Ok(w)
+			httpx.OkJsonCtx(r.Context(), w, resp)
 		}
 	}
 }

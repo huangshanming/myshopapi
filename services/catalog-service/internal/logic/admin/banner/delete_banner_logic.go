@@ -24,10 +24,10 @@ func NewDeleteBannerLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Dele
 	}
 }
 
-func (l *DeleteBannerLogic) DeleteBanner(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *DeleteBannerLogic) DeleteBanner(ctx context.Context, req *types.IdPathReq) (resp *types.EmptyResp, err error) {
 	id := req.Id
 	if err := clogic.NewArticleLogic(l.svcCtx).AdminDeleteBanner(id); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: &types.AnyResp{}}, nil
+	return &types.EmptyResp{}, nil
 }

@@ -25,11 +25,11 @@ func NewPublicCouponCenterLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 	}
 }
 
-func (l *PublicCouponCenterLogic) PublicCouponCenter(ctx context.Context, req *types.ShopIdQueryReq) (resp *types.AnyResp, err error) {
+func (l *PublicCouponCenterLogic) PublicCouponCenter(ctx context.Context, req *types.ShopIdQueryReq) (resp *types.ListResp, err error) {
 	userID, _ := middleware.GetUserID(ctx)
 	list, err := biz.NewMerchantLogic(l.svcCtx).ListCenter(userID, req.ShopId)
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.AnyResp{Data: map[string]interface{}{"list": list}}, nil
+	return &types.ListResp{List: list}, nil
 }

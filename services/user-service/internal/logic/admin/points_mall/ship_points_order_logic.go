@@ -24,7 +24,7 @@ func NewShipPointsOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *S
 	}
 }
 
-func (l *ShipPointsOrderLogic) ShipPointsOrder(ctx context.Context, req *types.ShipReq) (resp *types.AnyResp, err error) {
+func (l *ShipPointsOrderLogic) ShipPointsOrder(ctx context.Context, req *types.ShipReq) (resp *types.PointsOrderResp, err error) {
 	if req.Id == 0 {
 		return nil, xerr.New(http.StatusBadRequest, "订单ID无效")
 	}
@@ -35,5 +35,5 @@ func (l *ShipPointsOrderLogic) ShipPointsOrder(ctx context.Context, req *types.S
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: o}, nil
+	return &types.PointsOrderResp{Data: o}, nil
 }

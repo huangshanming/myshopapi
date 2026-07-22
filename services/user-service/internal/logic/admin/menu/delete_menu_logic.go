@@ -24,9 +24,9 @@ func NewDeleteMenuLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Delete
 	}
 }
 
-func (l *DeleteMenuLogic) DeleteMenu(ctx context.Context, req *types.IdPathReq) error {
+func (l *DeleteMenuLogic) DeleteMenu(ctx context.Context, req *types.IdPathReq) (*types.EmptyResp, error) {
 	if err := biz.NewRBACLogic(l.svcCtx).DeleteMenu(ctx, req.Id); err != nil {
-		return xerr.New(http.StatusBadRequest, err.Error())
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return nil
+	return &types.EmptyResp{}, nil
 }

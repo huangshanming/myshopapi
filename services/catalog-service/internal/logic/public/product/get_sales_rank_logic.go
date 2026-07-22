@@ -24,10 +24,10 @@ func NewGetSalesRankLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetS
 	}
 }
 
-func (l *GetSalesRankLogic) GetSalesRank(ctx context.Context, req *types.PageReq) (resp *types.AnyResp, err error) {
+func (l *GetSalesRankLogic) GetSalesRank(ctx context.Context, req *types.PageReq) (resp *types.SalesRankResp, err error) {
 	data, err := plogic.NewCatalogLogic(l.svcCtx).GetSalesRank(ctx, req.Page, req.PageSize)
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, "查询失败")
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.SalesRankResp{Data: data}, nil
 }

@@ -3,34 +3,32 @@ package svc
 import (
 	"context"
 	"mymall/pkg/cache"
-	"mymall/pkg/config"
 	"mymall/pkg/health"
 	"mymall/pkg/mq"
 	"mymall/services/order-service/internal/client/catalogrpc"
-	"mymall/services/order-service/internal/client/merchanthttp"
-	"mymall/services/order-service/internal/client/userhttp"
+	"mymall/services/order-service/internal/client/merchantrpc"
 	"mymall/services/order-service/internal/client/userrpc"
+	"mymall/services/order-service/internal/config"
 	"mymall/services/order-service/internal/middleware"
 	ordermq "mymall/services/order-service/internal/mq"
 	"mymall/services/order-service/internal/repository"
 
 	"github.com/redis/go-redis/v9"
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"github.com/zeromicro/go-zero/rest"
-	"gorm.io/gorm"
 )
 
 // ServiceContext 全局依赖（go-zero 惯例）
 type ServiceContext struct {
 	Config        *config.Config
-	DB            *gorm.DB
+	Conn          sqlx.SqlConn
 	Redis         *redis.Client
 	Repo          *repository.OrderRepository
 	Reviews       *repository.ReviewRepository
 	LogisticsRepo *repository.LogisticsRepository
 	UserRPC       *userrpc.Client
 	CatalogRPC    *catalogrpc.Client
-	MerchantHTTP  *merchanthttp.Client
-	UserHTTP      *userhttp.Client
+	MerchantRPC   *merchantrpc.Client
 	MQ            *ordermq.Publisher
 	MQClient      *mq.Client
 	Health        *health.Registry
@@ -43,7 +41,7 @@ type ServiceContext struct {
 	RequirePlatformOrMerchant rest.Middleware
 }
 
-func NewServiceContext(cfg *config.Config, db *gorm.DB) (*ServiceContext, error) {
+func NewServiceContext(cfg *config.Config, conn sqlx.SqlConn) (*ServiceContext, error) {
 	catalogRPC, err := catalogrpc.New(cfg.GRPC.CatalogService)
 	if err != nil {
 		return nil, err
@@ -54,32 +52,36 @@ func NewServiceContext(cfg *config.Config, db *gorm.DB) (*ServiceContext, error)
 		userRPC = u
 	}
 
+	var merchantRPC *merchantrpc.Client
+	if m, err := merchantrpc.New(cfg.GRPC.MerchantService); err == nil {
+		merchantRPC = m
+	}
+
 	var mqClient *mq.Client
 	var publisher *ordermq.Publisher
-	if mqc, err := mq.New(cfg.RabbitMQ); err == nil {
+	if mqc, err := mq.New(cfg.RabbitMQ.ToPkg()); err == nil {
 		mqClient = mqc
 		publisher = ordermq.NewPublisher(mqc)
 	}
 
 	var rdb *redis.Client
-	if c, err := cache.NewRedis(cfg.Redis); err == nil {
+	if c, err := cache.NewRedis(cfg.Redis.ToPkg()); err == nil {
 		rdb = c
 	}
 
-	logisticsRepo := repository.NewLogisticsRepository(db)
+	logisticsRepo := repository.NewLogisticsRepository(conn)
 	_ = logisticsRepo.SeedDefaults(context.Background())
 
 	return &ServiceContext{
 		Config:                    cfg,
-		DB:                        db,
+		Conn:                      conn,
 		Redis:                     rdb,
-		Repo:                      repository.NewOrderRepository(db),
-		Reviews:                   repository.NewReviewRepository(db),
+		Repo:                      repository.NewOrderRepository(conn),
+		Reviews:                   repository.NewReviewRepository(conn),
 		LogisticsRepo:             logisticsRepo,
 		UserRPC:                   userRPC,
 		CatalogRPC:                catalogRPC,
-		MerchantHTTP:              merchanthttp.New(cfg.MerchantHTTP),
-		UserHTTP:                  userhttp.New(cfg.UserHTTP),
+		MerchantRPC:               merchantRPC,
 		MQ:                        publisher,
 		MQClient:                  mqClient,
 		RequestID:                 middleware.NewRequestIDMiddleware().Handle,
@@ -97,6 +99,9 @@ func (s *ServiceContext) Close() {
 	}
 	if s.UserRPC != nil {
 		_ = s.UserRPC.Close()
+	}
+	if s.MerchantRPC != nil {
+		_ = s.MerchantRPC.Close()
 	}
 	if s.MQClient != nil {
 		_ = s.MQClient.Close()

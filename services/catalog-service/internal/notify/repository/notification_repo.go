@@ -3,22 +3,34 @@ package repository
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"mymall/services/catalog-service/internal/notify/model"
 
-	"gorm.io/gorm"
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
+const shopNotificationColumns = "id, shop_id, type, title, content, link, ref_type, ref_id, is_read, created_at"
+
 type NotificationRepository struct {
-	db *gorm.DB
+	conn sqlx.SqlConn
 }
 
-func NewNotificationRepository(db *gorm.DB) *NotificationRepository {
-	return &NotificationRepository{db: db}
+func NewNotificationRepository(conn sqlx.SqlConn) *NotificationRepository {
+	return &NotificationRepository{conn: conn}
 }
 
 func (r *NotificationRepository) Create(ctx context.Context, n *model.ShopNotification) error {
-	return r.db.WithContext(ctx).Create(n).Error
+	id, err := lastInsertID(ctx, r.conn,
+		`INSERT INTO shop_notifications (shop_id, type, title, content, link, ref_type, ref_id, is_read)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		n.ShopID, n.Type, n.Title, n.Content, n.Link, n.RefType, n.RefID, n.IsRead,
+	)
+	if err != nil {
+		return err
+	}
+	n.ID = id
+	return nil
 }
 
 type NotificationListFilter struct {
@@ -29,12 +41,16 @@ type NotificationListFilter struct {
 }
 
 func (r *NotificationRepository) List(ctx context.Context, f NotificationListFilter) ([]model.ShopNotification, int64, error) {
-	q := r.db.WithContext(ctx).Model(&model.ShopNotification{}).Where("shop_id = ?", f.ShopID)
+	where := []string{"shop_id=?"}
+	args := []any{f.ShopID}
 	if f.IsRead != nil {
-		q = q.Where("is_read = ?", *f.IsRead)
+		where = append(where, "is_read=?")
+		args = append(args, *f.IsRead)
 	}
-	var total int64
-	if err := q.Count(&total).Error; err != nil {
+	whereSQL := strings.Join(where, " AND ")
+
+	total, err := countCtx(ctx, r.conn, "SELECT COUNT(*) FROM shop_notifications WHERE "+whereSQL, args...)
+	if err != nil {
 		return nil, 0, err
 	}
 	if f.Page < 1 {
@@ -44,29 +60,33 @@ func (r *NotificationRepository) List(ctx context.Context, f NotificationListFil
 		f.PageSize = 20
 	}
 	var list []model.ShopNotification
-	err := q.Order("id DESC").Offset((f.Page - 1) * f.PageSize).Limit(f.PageSize).Find(&list).Error
+	qArgs := append(args, f.PageSize, (f.Page-1)*f.PageSize)
+	err = r.conn.QueryRowsCtx(ctx, &list,
+		"SELECT "+shopNotificationColumns+" FROM shop_notifications WHERE "+whereSQL+" ORDER BY id DESC LIMIT ? OFFSET ?",
+		qArgs...,
+	)
 	return list, total, err
 }
 
 func (r *NotificationRepository) UnreadCount(ctx context.Context, shopID uint64) (int64, error) {
-	var cnt int64
-	err := r.db.WithContext(ctx).Model(&model.ShopNotification{}).
-		Where("shop_id = ? AND is_read = 0", shopID).Count(&cnt).Error
-	return cnt, err
+	return countCtx(ctx, r.conn,
+		"SELECT COUNT(*) FROM shop_notifications WHERE shop_id=? AND is_read=0", shopID)
 }
 
 func (r *NotificationRepository) MarkRead(ctx context.Context, id, shopID uint64) error {
-	res := r.db.WithContext(ctx).Model(&model.ShopNotification{}).
-		Where("id = ? AND shop_id = ?", id, shopID).
-		Update("is_read", 1)
-	if res.RowsAffected == 0 {
+	n, err := execAffected(ctx, r.conn,
+		"UPDATE shop_notifications SET is_read=1 WHERE id=? AND shop_id=?", id, shopID)
+	if err != nil {
+		return err
+	}
+	if n == 0 {
 		return errors.New("通知不存在")
 	}
-	return res.Error
+	return nil
 }
 
 func (r *NotificationRepository) MarkAllRead(ctx context.Context, shopID uint64) error {
-	return r.db.WithContext(ctx).Model(&model.ShopNotification{}).
-		Where("shop_id = ? AND is_read = 0", shopID).
-		Update("is_read", 1).Error
+	_, err := r.conn.ExecCtx(ctx,
+		"UPDATE shop_notifications SET is_read=1 WHERE shop_id=? AND is_read=0", shopID)
+	return err
 }

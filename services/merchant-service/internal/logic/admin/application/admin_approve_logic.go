@@ -25,7 +25,7 @@ func NewAdminApproveLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Admi
 	}
 }
 
-func (l *AdminApproveLogic) AdminApprove(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *AdminApproveLogic) AdminApprove(ctx context.Context, req *types.IdPathReq) (resp *types.ShopResp, err error) {
 	adminID, ok := middleware.GetUserID(ctx)
 	if !ok {
 		return nil, xerr.New(http.StatusUnauthorized, "未授权")
@@ -35,5 +35,5 @@ func (l *AdminApproveLogic) AdminApprove(ctx context.Context, req *types.IdPathR
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: shop}, nil
+	return &types.ShopResp{Data: shop}, nil
 }

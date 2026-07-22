@@ -145,11 +145,11 @@ func ResetUserPasswordHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := user.NewResetUserPasswordLogic(r.Context(), svcCtx)
-		err := l.ResetUserPassword(r.Context(), &req)
+		resp, err := l.ResetUserPassword(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {
-			httpx.Ok(w)
+			httpx.OkJsonCtx(r.Context(), w, resp)
 		}
 	}
 }
@@ -163,11 +163,11 @@ func SetUserStatusHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := user.NewSetUserStatusLogic(r.Context(), svcCtx)
-		err := l.SetUserStatus(r.Context(), &req)
+		resp, err := l.SetUserStatus(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {
-			httpx.Ok(w)
+			httpx.OkJsonCtx(r.Context(), w, resp)
 		}
 	}
 }
@@ -181,11 +181,11 @@ func UpdateUserHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := user.NewUpdateUserLogic(r.Context(), svcCtx)
-		err := l.UpdateUser(r.Context(), &req)
+		resp, err := l.UpdateUser(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {
-			httpx.Ok(w)
+			httpx.OkJsonCtx(r.Context(), w, resp)
 		}
 	}
 }

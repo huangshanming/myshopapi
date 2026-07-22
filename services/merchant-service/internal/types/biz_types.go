@@ -508,3 +508,5 @@ type SeckillEntryListReq struct {
 	PageSize  int    `form:"page_size,default=10"`
 	SessionId uint64 `form:"session_id,optional"`
 }
+
+type ListData = ListResp

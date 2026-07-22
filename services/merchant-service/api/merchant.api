@@ -28,7 +28,94 @@ type AnyResp {
 	Data interface{} `json:"data,optional"`
 }
 
-type JSONBody {}
+type DataResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type ThemePackageResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type SlotPackageResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type SeckillRuleResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type CouponStatsResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type CouponGrantResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type CouponResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type ThemeOrderResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type HomepageOrderResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type WalletResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type ShopApplicationResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type UserCouponResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type SeckillConsumeResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type MatchCouponsResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type SeckillSessionsResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type SeckillEntryResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type SeckillCurrentResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type HomeSlotsResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type ShopListResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type ShopResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type GrantedCountResp {
+	Granted int64 `json:"granted"`
+}
+
+type ListResp {
+	List interface{} `json:"list"`
+}
+
 
 type IdPageReq {
 	Id       uint64 `path:"id"`
@@ -425,13 +512,13 @@ service merchantapi {
 	get /api/v1/shops/list (PageReq) returns (PageListResp)
 
 	@handler PublicHomeSlots
-	get /api/v1/shops/home-slots (SlotTypeQueryReq) returns (AnyResp)
+	get /api/v1/shops/home-slots (SlotTypeQueryReq) returns (HomeSlotsResp)
 
 	@handler PublicThemeTiles
-	get /api/v1/home/theme-tiles returns (AnyResp)
+	get /api/v1/home/theme-tiles returns (ListResp)
 
 	@handler PublicGetShop
-	get /api/v1/shops/:id (IdPathReq) returns (AnyResp)
+	get /api/v1/shops/:id (IdPathReq) returns (ShopResp)
 }
 
 @server (
@@ -440,13 +527,13 @@ service merchantapi {
 )
 service merchantapi {
 	@handler PublicSeckillCurrent
-	get /api/v1/seckill/current returns (AnyResp)
+	get /api/v1/seckill/current returns (SeckillCurrentResp)
 
 	@handler PublicSeckillList
 	get /api/v1/seckill/list (PageReq) returns (PageListResp)
 
 	@handler PublicSeckillEntry
-	get /api/v1/seckill/entries/:id (IdPathReq) returns (AnyResp)
+	get /api/v1/seckill/entries/:id (IdPathReq) returns (SeckillEntryResp)
 }
 
 @server (
@@ -455,10 +542,10 @@ service merchantapi {
 )
 service merchantapi {
 	@handler PublicCouponCenter
-	get /api/v1/coupons/center (ShopIdQueryReq) returns (AnyResp)
+	get /api/v1/coupons/center (ShopIdQueryReq) returns (ListResp)
 
 	@handler PublicCouponPopup
-	get /api/v1/coupons/popup returns (AnyResp)
+	get /api/v1/coupons/popup returns (ListResp)
 }
 
 @server (
@@ -467,10 +554,10 @@ service merchantapi {
 )
 service merchantapi {
 	@handler SeckillConsume
-	post /api/v1/seckill/consume (SeckillConsumeReq) returns (AnyResp)
+	post /api/v1/seckill/consume (SeckillConsumeReq) returns (SeckillConsumeResp)
 
 	@handler SeckillRestore
-	post /api/v1/seckill/restore (SeckillRestoreReq) returns (AnyResp)
+	post /api/v1/seckill/restore (SeckillRestoreReq) returns (EmptyResp)
 }
 
 @server (
@@ -479,22 +566,22 @@ service merchantapi {
 )
 service merchantapi {
 	@handler InternalMatchCoupons
-	post /api/v1/internal/coupons/match (MatchCouponsReq) returns (AnyResp)
+	post /api/v1/internal/coupons/match (MatchCouponsReq) returns (MatchCouponsResp)
 
 	@handler InternalLockCoupon
-	post /api/v1/internal/coupons/lock (LockCouponReq) returns (AnyResp)
+	post /api/v1/internal/coupons/lock (LockCouponReq) returns (EmptyResp)
 
 	@handler InternalUnlockCoupon
-	post /api/v1/internal/coupons/unlock (UnlockCouponReq) returns (AnyResp)
+	post /api/v1/internal/coupons/unlock (UnlockCouponReq) returns (EmptyResp)
 
 	@handler InternalRedeemCoupon
-	post /api/v1/internal/coupons/redeem (RedeemCouponReq) returns (AnyResp)
+	post /api/v1/internal/coupons/redeem (RedeemCouponReq) returns (EmptyResp)
 
 	@handler InternalReturnCoupon
-	post /api/v1/internal/coupons/return (ReturnCouponReq) returns (AnyResp)
+	post /api/v1/internal/coupons/return (ReturnCouponReq) returns (EmptyResp)
 
 	@handler InternalOrderGift
-	post /api/v1/internal/coupons/order-gift (OrderGiftCouponReq) returns (AnyResp)
+	post /api/v1/internal/coupons/order-gift (OrderGiftCouponReq) returns (GrantedCountResp)
 }
 
 @server (
@@ -503,7 +590,7 @@ service merchantapi {
 )
 service merchantapi {
 	@handler ClaimCoupon
-	post /api/v1/coupons/:id/claim (ClaimCouponBodyReq) returns (AnyResp)
+	post /api/v1/coupons/:id/claim (ClaimCouponBodyReq) returns (UserCouponResp)
 
 	@handler ListMyCoupons
 	get /api/v1/user/coupons (StatusPageReq) returns (PageListResp)
@@ -515,10 +602,10 @@ service merchantapi {
 )
 service merchantapi {
 	@handler Apply
-	post /api/v1/merchant/apply (ApplyReq) returns (AnyResp)
+	post /api/v1/merchant/apply (ApplyReq) returns (ShopApplicationResp)
 
 	@handler MyShops
-	get /api/v1/merchant/shops returns (AnyResp)
+	get /api/v1/merchant/shops returns (ShopListResp)
 }
 
 @server (
@@ -527,7 +614,7 @@ service merchantapi {
 )
 service merchantapi {
 	@handler UpdateMyShop
-	put /api/v1/merchant/shops/:id (UpdateShopBodyReq) returns (AnyResp)
+	put /api/v1/merchant/shops/:id (UpdateShopBodyReq) returns (EmptyResp)
 }
 
 @server (
@@ -536,7 +623,7 @@ service merchantapi {
 )
 service merchantapi {
 	@handler MerchantGetWallet
-	get /api/v1/merchant/wallet returns (AnyResp)
+	get /api/v1/merchant/wallet returns (WalletResp)
 
 	@handler MerchantWalletLogs
 	get /api/v1/merchant/wallet/logs (PageReq) returns (PageListResp)
@@ -548,16 +635,16 @@ service merchantapi {
 )
 service merchantapi {
 	@handler MerchantSeckillSessions
-	get /api/v1/merchant/seckill/sessions returns (AnyResp)
+	get /api/v1/merchant/seckill/sessions returns (SeckillSessionsResp)
 
 	@handler MerchantApplySeckill
-	post /api/v1/merchant/seckill/entries (SeckillApplyReq) returns (AnyResp)
+	post /api/v1/merchant/seckill/entries (SeckillApplyReq) returns (SeckillEntryResp)
 
 	@handler MerchantListSeckillEntries
 	get /api/v1/merchant/seckill/entries (PageReq) returns (PageListResp)
 
 	@handler MerchantSetSeckillAutoRenew
-	put /api/v1/merchant/seckill/entries/:id/auto-renew (SeckillAutoRenewBodyReq) returns (AnyResp)
+	put /api/v1/merchant/seckill/entries/:id/auto-renew (SeckillAutoRenewBodyReq) returns (SeckillEntryResp)
 }
 
 @server (
@@ -569,7 +656,7 @@ service merchantapi {
 	get /api/v1/merchant/homepage-packages (SlotTypePageReq) returns (PageListResp)
 
 	@handler MerchantBuySlot
-	post /api/v1/merchant/homepage-orders (BuySlotReq) returns (AnyResp)
+	post /api/v1/merchant/homepage-orders (BuySlotReq) returns (HomepageOrderResp)
 
 	@handler MerchantListSlotOrders
 	get /api/v1/merchant/homepage-orders (SlotOrderListReq) returns (PageListResp)
@@ -587,7 +674,7 @@ service merchantapi {
 	get /api/v1/merchant/theme-packages (ThemePackageListReq) returns (PageListResp)
 
 	@handler MerchantBuyTheme
-	post /api/v1/merchant/theme-orders (ThemeBuyReq) returns (AnyResp)
+	post /api/v1/merchant/theme-orders (ThemeBuyReq) returns (ThemeOrderResp)
 
 	@handler MerchantListThemeOrders
 	get /api/v1/merchant/theme-orders (PageReq) returns (PageListResp)
@@ -602,28 +689,28 @@ service merchantapi {
 	get /api/v1/merchant/coupons (CouponListReq) returns (PageListResp)
 
 	@handler MerchantCreateCoupon
-	post /api/v1/merchant/coupons (CouponSaveReq) returns (AnyResp)
+	post /api/v1/merchant/coupons (CouponSaveReq) returns (CouponResp)
 
 	@handler MerchantUpdateCoupon
-	put /api/v1/merchant/coupons/:id (CouponUpdateBodyReq) returns (AnyResp)
+	put /api/v1/merchant/coupons/:id (CouponUpdateBodyReq) returns (EmptyResp)
 
 	@handler MerchantOffCoupon
-	put /api/v1/merchant/coupons/:id/off (IdPathReq) returns (AnyResp)
+	put /api/v1/merchant/coupons/:id/off (IdPathReq) returns (EmptyResp)
 
 	@handler MerchantCopyCoupon
-	post /api/v1/merchant/coupons/:id/copy (IdPathReq) returns (AnyResp)
+	post /api/v1/merchant/coupons/:id/copy (IdPathReq) returns (CouponResp)
 
 	@handler MerchantGrantCoupon
-	post /api/v1/merchant/coupons/grant (GrantCouponReq) returns (AnyResp)
+	post /api/v1/merchant/coupons/grant (GrantCouponReq) returns (CouponGrantResp)
 
 	@handler MerchantCouponClaims
-	get /api/v1/merchant/coupons/:id/claims (IdPageReq) returns (AnyResp)
+	get /api/v1/merchant/coupons/:id/claims (IdPageReq) returns (PageListResp)
 
 	@handler MerchantCouponRedeems
-	get /api/v1/merchant/coupons/:id/redeems (IdPageReq) returns (AnyResp)
+	get /api/v1/merchant/coupons/:id/redeems (IdPageReq) returns (PageListResp)
 
 	@handler MerchantCouponStats
-	get /api/v1/merchant/coupons/:id/stats (IdPathReq) returns (AnyResp)
+	get /api/v1/merchant/coupons/:id/stats (IdPathReq) returns (CouponStatsResp)
 }
 
 @server (
@@ -635,10 +722,10 @@ service merchantapi {
 	get /api/v1/admin/applications (StatusPageReq) returns (PageListResp)
 
 	@handler AdminApprove
-	post /api/v1/admin/applications/:id/approve (IdPathReq) returns (AnyResp)
+	post /api/v1/admin/applications/:id/approve (IdPathReq) returns (ShopResp)
 
 	@handler AdminReject
-	post /api/v1/admin/applications/:id/reject (RejectBodyReq) returns (AnyResp)
+	post /api/v1/admin/applications/:id/reject (RejectBodyReq) returns (EmptyResp)
 }
 
 @server (
@@ -650,22 +737,22 @@ service merchantapi {
 	get /api/v1/admin/shops (ShopListReq) returns (PageListResp)
 
 	@handler AdminCreateShop
-	post /api/v1/admin/shops (AdminCreateShopReq) returns (AnyResp)
+	post /api/v1/admin/shops (AdminCreateShopReq) returns (ShopResp)
 
 	@handler AdminGetShop
-	get /api/v1/admin/shops/:id (IdPathReq) returns (AnyResp)
+	get /api/v1/admin/shops/:id (IdPathReq) returns (ShopResp)
 
 	@handler AdminUpdateShop
-	put /api/v1/admin/shops/:id (AdminUpdateShopBodyReq) returns (AnyResp)
+	put /api/v1/admin/shops/:id (AdminUpdateShopBodyReq) returns (EmptyResp)
 
 	@handler AdminResetOwnerPassword
-	put /api/v1/admin/shops/:id/owner-password (OwnerPasswordBodyReq) returns (AnyResp)
+	put /api/v1/admin/shops/:id/owner-password (OwnerPasswordBodyReq) returns (EmptyResp)
 
 	@handler AdminDisableShop
-	put /api/v1/admin/shops/:id/disable (RejectBodyReq) returns (AnyResp)
+	put /api/v1/admin/shops/:id/disable (RejectBodyReq) returns (EmptyResp)
 
 	@handler AdminEnableShop
-	put /api/v1/admin/shops/:id/enable (IdPathReq) returns (AnyResp)
+	put /api/v1/admin/shops/:id/enable (IdPathReq) returns (EmptyResp)
 }
 
 @server (
@@ -674,10 +761,10 @@ service merchantapi {
 )
 service merchantapi {
 	@handler AdminGetWallet
-	get /api/v1/admin/shops/:id/wallet (IdPathReq) returns (AnyResp)
+	get /api/v1/admin/shops/:id/wallet (IdPathReq) returns (WalletResp)
 
 	@handler AdminAdjustWallet
-	post /api/v1/admin/shops/:id/wallet/adjust (WalletAdjustBodyReq) returns (AnyResp)
+	post /api/v1/admin/shops/:id/wallet/adjust (WalletAdjustBodyReq) returns (WalletResp)
 
 	@handler AdminWalletLogs
 	get /api/v1/admin/shops/:id/wallet/logs (IdPageReq) returns (PageListResp)
@@ -689,10 +776,10 @@ service merchantapi {
 )
 service merchantapi {
 	@handler AdminGetSeckillRule
-	get /api/v1/admin/seckill/rule returns (AnyResp)
+	get /api/v1/admin/seckill/rule returns (SeckillRuleResp)
 
 	@handler AdminUpdateSeckillRule
-	put /api/v1/admin/seckill/rule (SeckillRuleReq) returns (AnyResp)
+	put /api/v1/admin/seckill/rule (SeckillRuleReq) returns (SeckillRuleResp)
 
 	@handler AdminListSeckillSessions
 	get /api/v1/admin/seckill/sessions (PageReq) returns (PageListResp)
@@ -710,22 +797,22 @@ service merchantapi {
 	get /api/v1/admin/homepage-packages (SlotTypePageReq) returns (PageListResp)
 
 	@handler AdminCreateSlotPackage
-	post /api/v1/admin/homepage-packages (SlotPackageSaveReq) returns (AnyResp)
+	post /api/v1/admin/homepage-packages (SlotPackageSaveReq) returns (SlotPackageResp)
 
 	@handler AdminUpdateSlotPackage
-	put /api/v1/admin/homepage-packages/:id (SlotPackageUpdateBodyReq) returns (AnyResp)
+	put /api/v1/admin/homepage-packages/:id (SlotPackageUpdateBodyReq) returns (EmptyResp)
 
 	@handler AdminListSlotSettings
 	get /api/v1/admin/homepage-settings (PageReq) returns (PageListResp)
 
 	@handler AdminUpdateSlotSettings
-	put /api/v1/admin/homepage-settings (UpdateSlotSettingsReq) returns (AnyResp)
+	put /api/v1/admin/homepage-settings (UpdateSlotSettingsReq) returns (EmptyResp)
 
 	@handler AdminListSlotOrders
 	get /api/v1/admin/homepage-orders (SlotOrderListReq) returns (PageListResp)
 
 	@handler AdminGrantSlot
-	post /api/v1/admin/homepage-orders/grant (GrantSlotReq) returns (AnyResp)
+	post /api/v1/admin/homepage-orders/grant (GrantSlotReq) returns (HomepageOrderResp)
 }
 
 @server (
@@ -737,22 +824,22 @@ service merchantapi {
 	get /api/v1/admin/theme-slots (PageReq) returns (PageListResp)
 
 	@handler AdminUpdateThemeSlot
-	put /api/v1/admin/theme-slots/:id (ThemeSlotUpdateBodyReq) returns (AnyResp)
+	put /api/v1/admin/theme-slots/:id (ThemeSlotUpdateBodyReq) returns (EmptyResp)
 
 	@handler AdminListThemePackages
 	get /api/v1/admin/theme-packages (ThemePackageListReq) returns (PageListResp)
 
 	@handler AdminCreateThemePackage
-	post /api/v1/admin/theme-packages (ThemePackageSaveReq) returns (AnyResp)
+	post /api/v1/admin/theme-packages (ThemePackageSaveReq) returns (ThemePackageResp)
 
 	@handler AdminUpdateThemePackage
-	put /api/v1/admin/theme-packages/:id (ThemePackageUpdateBodyReq) returns (AnyResp)
+	put /api/v1/admin/theme-packages/:id (ThemePackageUpdateBodyReq) returns (EmptyResp)
 
 	@handler AdminListThemeOrders
 	get /api/v1/admin/theme-orders (ThemeOrderListReq) returns (PageListResp)
 
 	@handler AdminGrantTheme
-	post /api/v1/admin/theme-orders/grant (ThemeGrantReq) returns (AnyResp)
+	post /api/v1/admin/theme-orders/grant (ThemeGrantReq) returns (ThemeOrderResp)
 }
 
 @server (
@@ -764,27 +851,27 @@ service merchantapi {
 	get /api/v1/admin/coupons (CouponListReq) returns (PageListResp)
 
 	@handler AdminCreateCoupon
-	post /api/v1/admin/coupons (CouponSaveReq) returns (AnyResp)
+	post /api/v1/admin/coupons (CouponSaveReq) returns (CouponResp)
 
 	@handler AdminUpdateCoupon
-	put /api/v1/admin/coupons/:id (CouponUpdateBodyReq) returns (AnyResp)
+	put /api/v1/admin/coupons/:id (CouponUpdateBodyReq) returns (EmptyResp)
 
 	@handler AdminOffCoupon
-	put /api/v1/admin/coupons/:id/off (IdPathReq) returns (AnyResp)
+	put /api/v1/admin/coupons/:id/off (IdPathReq) returns (EmptyResp)
 
 	@handler AdminCopyCoupon
-	post /api/v1/admin/coupons/:id/copy (IdPathReq) returns (AnyResp)
+	post /api/v1/admin/coupons/:id/copy (IdPathReq) returns (CouponResp)
 
 	@handler AdminGrantCoupon
-	post /api/v1/admin/coupons/grant (GrantCouponReq) returns (AnyResp)
+	post /api/v1/admin/coupons/grant (GrantCouponReq) returns (CouponGrantResp)
 
 	@handler AdminCouponClaims
-	get /api/v1/admin/coupons/:id/claims (IdPageReq) returns (AnyResp)
+	get /api/v1/admin/coupons/:id/claims (IdPageReq) returns (PageListResp)
 
 	@handler AdminCouponRedeems
-	get /api/v1/admin/coupons/:id/redeems (IdPageReq) returns (AnyResp)
+	get /api/v1/admin/coupons/:id/redeems (IdPageReq) returns (PageListResp)
 
 	@handler AdminCouponStats
-	get /api/v1/admin/coupons/:id/stats (IdPathReq) returns (AnyResp)
+	get /api/v1/admin/coupons/:id/stats (IdPathReq) returns (CouponStatsResp)
 }
 

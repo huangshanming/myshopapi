@@ -25,7 +25,7 @@ func NewRemoveBatchLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Remov
 	}
 }
 
-func (l *RemoveBatchLogic) RemoveBatch(ctx context.Context, req *types.FavoriteBatchRemoveReq) (resp *types.AnyResp, err error) {
+func (l *RemoveBatchLogic) RemoveBatch(ctx context.Context, req *types.FavoriteBatchRemoveReq) (resp *types.EmptyResp, err error) {
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
 		return nil, xerr.New(http.StatusUnauthorized, "未登录")
@@ -33,5 +33,5 @@ func (l *RemoveBatchLogic) RemoveBatch(ctx context.Context, req *types.FavoriteB
 	if err := plogic.NewFavoriteLogic(l.svcCtx).RemoveBatch(ctx, userID, req.ProductIDs); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: &types.AnyResp{}}, nil
+	return &types.EmptyResp{}, nil
 }

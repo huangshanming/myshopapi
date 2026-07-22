@@ -22,7 +22,7 @@ func NewCreateAfterSaleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *C
 	return &CreateAfterSaleLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *CreateAfterSaleLogic) CreateAfterSale(ctx context.Context, req *types.CreateAfterSaleBodyReq) (*types.AnyResp, error) {
+func (l *CreateAfterSaleLogic) CreateAfterSale(ctx context.Context, req *types.CreateAfterSaleBodyReq) (*types.AfterSaleResp, error) {
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
 		return nil, xerr.New(http.StatusUnauthorized, "未授权")
@@ -33,5 +33,5 @@ func (l *CreateAfterSaleLogic) CreateAfterSale(ctx context.Context, req *types.C
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: as}, nil
+	return &types.AfterSaleResp{Data: as}, nil
 }

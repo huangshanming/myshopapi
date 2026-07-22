@@ -24,11 +24,11 @@ func NewPublicSeckillEntryLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 	}
 }
 
-func (l *PublicSeckillEntryLogic) PublicSeckillEntry(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *PublicSeckillEntryLogic) PublicSeckillEntry(ctx context.Context, req *types.IdPathReq) (resp *types.SeckillEntryResp, err error) {
 	id := req.Id
 	data, err := biz.NewMerchantLogic(l.svcCtx).PublicSeckillEntry(id)
 	if err != nil {
 		return nil, xerr.New(http.StatusNotFound, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.SeckillEntryResp{Data: data}, nil
 }

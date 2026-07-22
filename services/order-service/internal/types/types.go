@@ -7,6 +7,9 @@ type AnyResp struct {
 	Data interface{} `json:"data,optional"`
 }
 
+// DataResp is the preferred name for opaque entity JSON bodies.
+type DataResp = AnyResp
+
 type CodePathReq struct {
 	Code string `path:"code"`
 }
@@ -14,15 +17,46 @@ type CodePathReq struct {
 type EmptyResp struct {
 }
 
+type CouponPreviewResp struct {
+	GoodsAmount float64 `json:"goods_amount"`
+	DiscountAmount float64 `json:"discount_amount"`
+	PayAmount float64 `json:"pay_amount"`
+	BestUserCouponID uint64 `json:"best_user_coupon_id"`
+	Available interface{} `json:"available"`
+	Unavailable interface{} `json:"unavailable"`
+}
+
+
+type ReviewEligibleResp struct {
+	Eligible bool   `json:"eligible"`
+	Reviewed bool   `json:"reviewed"`
+	Status   string `json:"status"`
+	OrderId  uint64 `json:"order_id"`
+}
+
+
+type ListResp struct {
+	List interface{} `json:"list"`
+}
+
+
+type OrderDetailResp struct {
+	Order      interface{} `json:"order"`
+	AfterSales interface{} `json:"after_sales"`
+}
+
+
+type URLResp struct {
+	Url string `json:"url"`
+}
+
+
 type FilePathReq struct {
 	File string `path:"file"`
 }
 
 type IdPathReq struct {
 	Id uint64 `path:"id"`
-}
-
-type JSONBody struct {
 }
 
 type PageListResp struct {

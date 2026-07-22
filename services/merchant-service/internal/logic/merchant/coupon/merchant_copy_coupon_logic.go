@@ -25,7 +25,7 @@ func NewMerchantCopyCouponLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 	}
 }
 
-func (l *MerchantCopyCouponLogic) MerchantCopyCoupon(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *MerchantCopyCouponLogic) MerchantCopyCoupon(ctx context.Context, req *types.IdPathReq) (resp *types.CouponResp, err error) {
 	id := req.Id
 	shopID := middleware.GetShopID(ctx)
 	userID, _ := middleware.GetUserID(ctx)
@@ -33,5 +33,5 @@ func (l *MerchantCopyCouponLogic) MerchantCopyCoupon(ctx context.Context, req *t
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: c}, nil
+	return &types.CouponResp{Data: c}, nil
 }

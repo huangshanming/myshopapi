@@ -25,7 +25,7 @@ func NewAdminUpdateSlotSettingsLogic(ctx context.Context, svcCtx *svc.ServiceCon
 	}
 }
 
-func (l *AdminUpdateSlotSettingsLogic) AdminUpdateSlotSettings(ctx context.Context, req *types.UpdateSlotSettingsReq) (resp *types.AnyResp, err error) {
+func (l *AdminUpdateSlotSettingsLogic) AdminUpdateSlotSettings(ctx context.Context, req *types.UpdateSlotSettingsReq) (resp *types.EmptyResp, err error) {
 items := make([]model.HomepageSlotSetting, 0, len(req.Items))
 	for _, it := range req.Items {
 		items = append(items, model.HomepageSlotSetting{SlotType: it.SlotType, HomeLimit: it.HomeLimit})
@@ -33,5 +33,5 @@ items := make([]model.HomepageSlotSetting, 0, len(req.Items))
 	if err := biz.NewMerchantLogic(l.svcCtx).UpdateSlotSettings(items); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{}, nil
+	return &types.EmptyResp{}, nil
 }

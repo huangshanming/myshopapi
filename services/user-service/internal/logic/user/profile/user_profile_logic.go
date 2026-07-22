@@ -21,7 +21,7 @@ func NewUserProfileLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserP
 	return &UserProfileLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *UserProfileLogic) UserProfile(ctx context.Context) (*types.AnyResp, error) {
+func (l *UserProfileLogic) UserProfile(ctx context.Context) (*types.UserResp, error) {
 	var userID uint64
 	if id, ok := middleware.GetUserID(ctx); ok {
 		userID = id
@@ -34,5 +34,5 @@ func (l *UserProfileLogic) UserProfile(ctx context.Context) (*types.AnyResp, err
 	if err != nil {
 		return nil, xerr.New(http.StatusNotFound, "用户不存在")
 	}
-	return &types.AnyResp{Data: user}, nil
+	return &types.UserResp{Data: user}, nil
 }

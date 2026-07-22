@@ -25,7 +25,7 @@ func NewLikeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *LikeLogic {
 	}
 }
 
-func (l *LikeLogic) Like(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *LikeLogic) Like(ctx context.Context, req *types.IdPathReq) (resp *types.EmptyResp, err error) {
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
 		return nil, xerr.New(http.StatusUnauthorized, "未登录")
@@ -34,5 +34,5 @@ func (l *LikeLogic) Like(ctx context.Context, req *types.IdPathReq) (resp *types
 	if err := clogic.NewArticleLogic(l.svcCtx).LikeArticle(ctx, userID, id, true); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: &types.AnyResp{}}, nil
+	return &types.EmptyResp{}, nil
 }

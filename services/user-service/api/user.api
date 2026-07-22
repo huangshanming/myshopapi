@@ -37,6 +37,32 @@ type TokenResp {
 	Token string `json:"token"`
 }
 
+type UserTokenResp {
+	Token string `json:"token"`
+	UserId uint64 `json:"user_id"`
+	Mobile string `json:"mobile"`
+	Nickname string `json:"nickname"`
+	Role string `json:"role,optional"`
+	ShopId uint64 `json:"shop_id,optional"`
+	ExpireHours int `json:"expire_hours,optional"`
+}
+
+
+type IdListResp {
+	Ids []uint64 `json:"ids"`
+}
+
+type TreeResp {
+	Tree interface{} `json:"tree"`
+}
+
+type NotificationRecipientsResp {
+	Batch interface{} `json:"batch"`
+	List  interface{} `json:"list"`
+	Total int64 `json:"total"`
+}
+
+
 type PointsResp {
 	Points int64 `json:"points"`
 }
@@ -321,6 +347,54 @@ type AnyResp {
 	Data interface{} `json:"data,optional"`
 }
 
+type DataResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type CheckinResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type NotificationResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type NotificationBatchResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type PointsOrderResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type PointsProductResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type TaskResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type RoleResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type MenuResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type AddressResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type WalletResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type UserResp {
+	Data interface{} `json:"data,optional"`
+}
+
 type MenuTreeNode {
 	ID        uint64          `json:"id"`
 	ParentID  uint64          `json:"parent_id"`
@@ -366,7 +440,7 @@ service userapi {
 	post /api/v1/user/login (LoginReq) returns (LoginResp)
 
 	@handler Register
-	post /api/v1/user/register (RegisterReq) returns (AnyResp)
+	post /api/v1/user/register (RegisterReq) returns (UserResp)
 }
 
 @server (
@@ -378,7 +452,7 @@ service userapi {
 	get /api/v1/regions (RegionListReq) returns (PageListResp)
 
 	@handler RegionTree
-	get /api/v1/regions/tree returns (AnyResp)
+	get /api/v1/regions/tree returns (TreeResp)
 }
 
 @server (
@@ -387,13 +461,13 @@ service userapi {
 )
 service userapi {
 	@handler InternalFreezeWallet
-	post /api/v1/user/wallet/freeze (WalletOrderOpReq)
+	post /api/v1/user/wallet/freeze (WalletOrderOpReq) returns (EmptyResp)
 
 	@handler InternalUnfreezeWallet
-	post /api/v1/user/wallet/unfreeze (WalletOrderOpReq)
+	post /api/v1/user/wallet/unfreeze (WalletOrderOpReq) returns (EmptyResp)
 
 	@handler InternalSettleWallet
-	post /api/v1/user/wallet/settle (WalletOrderOpReq)
+	post /api/v1/user/wallet/settle (WalletOrderOpReq) returns (EmptyResp)
 }
 
 @server (
@@ -402,7 +476,7 @@ service userapi {
 )
 service userapi {
 	@handler InternalGet
-	get /api/v1/user/addresses/internal (InternalAddressReq) returns (AnyResp)
+	get /api/v1/user/addresses/internal (InternalAddressReq) returns (AddressResp)
 }
 
 @server (
@@ -411,7 +485,7 @@ service userapi {
 )
 service userapi {
 	@handler InternalCreateNotification
-	post /api/v1/internal/notifications (NotifyCreateReq) returns (AnyResp)
+	post /api/v1/internal/notifications (NotifyCreateReq) returns (NotificationResp)
 }
 
 @server (
@@ -420,7 +494,7 @@ service userapi {
 )
 service userapi {
 	@handler InternalEvent
-	post /api/v1/internal/tasks/events (TaskEventReq)
+	post /api/v1/internal/tasks/events (TaskEventReq) returns (EmptyResp)
 }
 
 @server (
@@ -441,7 +515,7 @@ service userapi {
 )
 service userapi {
 	@handler UserProfile
-	get /api/v1/user/profile returns (AnyResp)
+	get /api/v1/user/profile returns (UserResp)
 }
 
 @server (
@@ -450,7 +524,7 @@ service userapi {
 )
 service userapi {
 	@handler UserGetWallet
-	get /api/v1/user/wallet returns (AnyResp)
+	get /api/v1/user/wallet returns (WalletResp)
 
 	@handler UserWalletLogs
 	get /api/v1/user/wallet/logs (PageReq) returns (PageListResp)
@@ -465,16 +539,16 @@ service userapi {
 	get /api/v1/user/addresses returns (PageListResp)
 
 	@handler UserCreateAddress
-	post /api/v1/user/addresses (AddressReq) returns (AnyResp)
+	post /api/v1/user/addresses (AddressReq) returns (AddressResp)
 
 	@handler UserUpdateAddress
-	put /api/v1/user/addresses/:id (AddressUpdateReq)
+	put /api/v1/user/addresses/:id (AddressUpdateReq) returns (EmptyResp)
 
 	@handler UserDeleteAddress
-	delete /api/v1/user/addresses/:id (IdPathReq)
+	delete /api/v1/user/addresses/:id (IdPathReq) returns (EmptyResp)
 
 	@handler SetDefault
-	put /api/v1/user/addresses/:id/default (IdPathReq)
+	put /api/v1/user/addresses/:id/default (IdPathReq) returns (EmptyResp)
 }
 
 @server (
@@ -489,10 +563,10 @@ service userapi {
 	get /api/v1/user/notifications/unread-count returns (CountResp)
 
 	@handler MarkNotificationRead
-	post /api/v1/user/notifications/:id/read (IdPathReq)
+	post /api/v1/user/notifications/:id/read (IdPathReq) returns (EmptyResp)
 
 	@handler MarkAllNotificationsRead
-	post /api/v1/user/notifications/read-all
+	post /api/v1/user/notifications/read-all returns (EmptyResp)
 }
 
 @server (
@@ -516,13 +590,13 @@ service userapi {
 	get /api/v1/user/tasks returns (PageListResp)
 
 	@handler UserCheckin
-	post /api/v1/user/tasks/checkin returns (AnyResp)
+	post /api/v1/user/tasks/checkin returns (CheckinResp)
 
 	@handler UserClaim
 	post /api/v1/user/tasks/:code/claim (CodePathReq) returns (PointsResp)
 
 	@handler UserReportEvent
-	post /api/v1/user/tasks/events (TaskEventReq)
+	post /api/v1/user/tasks/events (TaskEventReq) returns (EmptyResp)
 }
 
 @server (
@@ -540,16 +614,16 @@ service userapi {
 )
 service userapi {
 	@handler MenuTree
-	get /api/v1/admin/menus returns (AnyResp)
+	get /api/v1/admin/menus returns (TreeResp)
 
 	@handler CreateMenu
-	post /api/v1/admin/menus (MenuReq) returns (AnyResp)
+	post /api/v1/admin/menus (MenuReq) returns (MenuResp)
 
 	@handler UpdateMenu
-	put /api/v1/admin/menus/:id (MenuUpdateReq)
+	put /api/v1/admin/menus/:id (MenuUpdateReq) returns (EmptyResp)
 
 	@handler DeleteMenu
-	delete /api/v1/admin/menus/:id (IdPathReq)
+	delete /api/v1/admin/menus/:id (IdPathReq) returns (EmptyResp)
 }
 
 @server (
@@ -561,19 +635,19 @@ service userapi {
 	get /api/v1/admin/roles returns (PageListResp)
 
 	@handler CreateRole
-	post /api/v1/admin/roles (RoleReq) returns (AnyResp)
+	post /api/v1/admin/roles (RoleReq) returns (RoleResp)
 
 	@handler UpdateRole
-	put /api/v1/admin/roles/:id (RoleUpdateReq)
+	put /api/v1/admin/roles/:id (RoleUpdateReq) returns (EmptyResp)
 
 	@handler DeleteRole
-	delete /api/v1/admin/roles/:id (IdPathReq)
+	delete /api/v1/admin/roles/:id (IdPathReq) returns (EmptyResp)
 
 	@handler GetRoleMenus
-	get /api/v1/admin/roles/:id/menus (IdPathReq) returns (AnyResp)
+	get /api/v1/admin/roles/:id/menus (IdPathReq) returns (IdListResp)
 
 	@handler AssignRoleMenus
-	put /api/v1/admin/roles/:id/menus (RoleMenusReq)
+	put /api/v1/admin/roles/:id/menus (RoleMenusReq) returns (EmptyResp)
 }
 
 @server (
@@ -585,25 +659,25 @@ service userapi {
 	get /api/v1/admin/users (ListUsersReq) returns (PageListResp)
 
 	@handler GetUser
-	get /api/v1/admin/users/:id (IdPathReq) returns (AnyResp)
+	get /api/v1/admin/users/:id (IdPathReq) returns (UserResp)
 
 	@handler UpdateUser
-	put /api/v1/admin/users/:id (UserUpdateReq)
+	put /api/v1/admin/users/:id (UserUpdateReq) returns (EmptyResp)
 
 	@handler SetUserStatus
-	put /api/v1/admin/users/:id/status (UserStatusReq)
+	put /api/v1/admin/users/:id/status (UserStatusReq) returns (EmptyResp)
 
 	@handler ResetUserPassword
-	put /api/v1/admin/users/:id/password (UserResetPwdReq)
+	put /api/v1/admin/users/:id/password (UserResetPwdReq) returns (EmptyResp)
 
 	@handler GenerateUserToken
-	post /api/v1/admin/users/:id/token (IdPathReq) returns (AnyResp)
+	post /api/v1/admin/users/:id/token (IdPathReq) returns (UserTokenResp)
 
 	@handler AdminGetWallet
-	get /api/v1/admin/users/:id/wallet (IdPathReq) returns (AnyResp)
+	get /api/v1/admin/users/:id/wallet (IdPathReq) returns (WalletResp)
 
 	@handler AdminAdjustWallet
-	post /api/v1/admin/users/:id/wallet/adjust (WalletAdjustReq) returns (AnyResp)
+	post /api/v1/admin/users/:id/wallet/adjust (WalletAdjustReq) returns (WalletResp)
 
 	@handler AdminWalletLogs
 	get /api/v1/admin/users/:id/wallet/logs (AdminWalletLogsReq) returns (PageListResp)
@@ -621,16 +695,16 @@ service userapi {
 	get /api/v1/admin/admins (ListAdminsReq) returns (PageListResp)
 
 	@handler CreateAdmin
-	post /api/v1/admin/admins (AdminCreateReq) returns (AnyResp)
+	post /api/v1/admin/admins (AdminCreateReq) returns (UserResp)
 
 	@handler GetAdminRoles
-	get /api/v1/admin/admins/:id/roles (IdPathReq) returns (AnyResp)
+	get /api/v1/admin/admins/:id/roles (IdPathReq) returns (IdListResp)
 
 	@handler AssignAdminRoles
-	put /api/v1/admin/admins/:id/roles (AdminRolesReq)
+	put /api/v1/admin/admins/:id/roles (AdminRolesReq) returns (EmptyResp)
 
 	@handler ResetAdminPassword
-	put /api/v1/admin/admins/:id/password (AdminResetPwdReq)
+	put /api/v1/admin/admins/:id/password (AdminResetPwdReq) returns (EmptyResp)
 }
 
 @server (
@@ -642,7 +716,7 @@ service userapi {
 	get /api/v1/admin/configs returns (PageListResp)
 
 	@handler SaveConfigs
-	put /api/v1/admin/configs (ConfigBatchReq)
+	put /api/v1/admin/configs (ConfigBatchReq) returns (EmptyResp)
 }
 
 @server (
@@ -651,13 +725,13 @@ service userapi {
 )
 service userapi {
 	@handler AdminSendNotification
-	post /api/v1/admin/notifications/send (AdminSendReq) returns (AnyResp)
+	post /api/v1/admin/notifications/send (AdminSendReq) returns (NotificationBatchResp)
 
 	@handler AdminListNotificationSends
 	get /api/v1/admin/notifications/sends (PageReq) returns (PageListResp)
 
 	@handler AdminListNotificationRecipients
-	get /api/v1/admin/notifications/sends/:id/recipients (NotificationRecipientsReq) returns (AnyResp)
+	get /api/v1/admin/notifications/sends/:id/recipients (NotificationRecipientsReq) returns (NotificationRecipientsResp)
 }
 
 @server (
@@ -669,7 +743,7 @@ service userapi {
 	get /api/v1/admin/tasks returns (PageListResp)
 
 	@handler AdminUpdateTask
-	put /api/v1/admin/tasks/:id (UpdateTaskReq) returns (AnyResp)
+	put /api/v1/admin/tasks/:id (UpdateTaskReq) returns (TaskResp)
 }
 
 @server (
@@ -687,13 +761,13 @@ service userapi {
 )
 service userapi {
 	@handler Exchange
-	post /api/v1/user/points-mall/exchange (ExchangeReq) returns (AnyResp)
+	post /api/v1/user/points-mall/exchange (ExchangeReq) returns (PointsOrderResp)
 
 	@handler ListUserPointsOrders
 	get /api/v1/user/points-mall/orders (PageReq) returns (PageListResp)
 
 	@handler DetailUserPointsOrder
-	get /api/v1/user/points-mall/orders/:id (IdPathReq) returns (AnyResp)
+	get /api/v1/user/points-mall/orders/:id (IdPathReq) returns (PointsOrderResp)
 }
 
 @server (
@@ -705,39 +779,39 @@ service userapi {
 	get /api/v1/admin/points-products (ListPointsProductsReq) returns (PageListResp)
 
 	@handler CreatePointsProduct
-	post /api/v1/admin/points-products (PointsProductSaveReq) returns (AnyResp)
+	post /api/v1/admin/points-products (PointsProductSaveReq) returns (PointsProductResp)
 
 	@handler UploadPointsProduct
 	post /api/v1/admin/points-products/upload returns (URLResp)
 
 	@handler DetailPointsProduct
-	get /api/v1/admin/points-products/:id (IdPathReq) returns (AnyResp)
+	get /api/v1/admin/points-products/:id (IdPathReq) returns (PointsProductResp)
 
 	@handler UpdatePointsProduct
-	put /api/v1/admin/points-products/:id (PointsProductUpdateReq) returns (AnyResp)
+	put /api/v1/admin/points-products/:id (PointsProductUpdateReq) returns (PointsProductResp)
 
 	@handler SetPointsProductStatus
-	put /api/v1/admin/points-products/:id/status (PointsProductStatusReq) returns (AnyResp)
+	put /api/v1/admin/points-products/:id/status (PointsProductStatusReq) returns (PointsProductResp)
 
 	@handler DeletePointsProduct
-	delete /api/v1/admin/points-products/:id (IdPathReq)
+	delete /api/v1/admin/points-products/:id (IdPathReq) returns (EmptyResp)
 
 	@handler ListPointsOrders
 	get /api/v1/admin/points-orders (ListPointsOrdersReq) returns (PageListResp)
 
 	@handler DetailPointsOrder
-	get /api/v1/admin/points-orders/:id (IdPathReq) returns (AnyResp)
+	get /api/v1/admin/points-orders/:id (IdPathReq) returns (PointsOrderResp)
 
 	@handler ShipPointsOrder
-	post /api/v1/admin/points-orders/:id/ship (ShipReq) returns (AnyResp)
+	post /api/v1/admin/points-orders/:id/ship (ShipReq) returns (PointsOrderResp)
 
 	@handler CompletePointsOrder
-	post /api/v1/admin/points-orders/:id/complete (IdPathReq) returns (AnyResp)
+	post /api/v1/admin/points-orders/:id/complete (IdPathReq) returns (PointsOrderResp)
 
 	@handler CancelPointsOrder
-	post /api/v1/admin/points-orders/:id/cancel (RemarkReq) returns (AnyResp)
+	post /api/v1/admin/points-orders/:id/cancel (RemarkReq) returns (PointsOrderResp)
 
 	@handler RemarkPointsOrder
-	put /api/v1/admin/points-orders/:id/remark (RemarkReq) returns (AnyResp)
+	put /api/v1/admin/points-orders/:id/remark (RemarkReq) returns (PointsOrderResp)
 }
 

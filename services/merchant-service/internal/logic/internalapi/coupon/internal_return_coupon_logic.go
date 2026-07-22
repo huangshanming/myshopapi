@@ -24,9 +24,9 @@ func NewInternalReturnCouponLogic(ctx context.Context, svcCtx *svc.ServiceContex
 	}
 }
 
-func (l *InternalReturnCouponLogic) InternalReturnCoupon(ctx context.Context, req *types.ReturnCouponReq) (resp *types.AnyResp, err error) {
+func (l *InternalReturnCouponLogic) InternalReturnCoupon(ctx context.Context, req *types.ReturnCouponReq) (resp *types.EmptyResp, err error) {
 	if err := biz.NewMerchantLogic(l.svcCtx).ReturnCoupon(req.UserCouponID, req.OrderID); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{}, nil
+	return &types.EmptyResp{}, nil
 }

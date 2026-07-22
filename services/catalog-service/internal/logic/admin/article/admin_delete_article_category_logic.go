@@ -24,10 +24,10 @@ func NewAdminDeleteArticleCategoryLogic(ctx context.Context, svcCtx *svc.Service
 	}
 }
 
-func (l *AdminDeleteArticleCategoryLogic) AdminDeleteArticleCategory(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *AdminDeleteArticleCategoryLogic) AdminDeleteArticleCategory(ctx context.Context, req *types.IdPathReq) (resp *types.EmptyResp, err error) {
 	id := req.Id
 	if err := clogic.NewArticleLogic(l.svcCtx).DeleteCategory(ctx, id); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: &types.AnyResp{}}, nil
+	return &types.EmptyResp{}, nil
 }

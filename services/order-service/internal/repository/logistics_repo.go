@@ -2,10 +2,14 @@ package repository
 
 import (
 	"context"
+	"strings"
+
 	"mymall/services/order-service/internal/model"
 
-	"gorm.io/gorm"
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
+
+const logisticsColumns = "id, name, code, sort, status, created_at, updated_at"
 
 type LogisticsListFilter struct {
 	Name        string
@@ -18,11 +22,11 @@ type LogisticsListFilter struct {
 }
 
 type LogisticsRepository struct {
-	db *gorm.DB
+	conn sqlx.SqlConn
 }
 
-func NewLogisticsRepository(db *gorm.DB) *LogisticsRepository {
-	return &LogisticsRepository{db: db}
+func NewLogisticsRepository(conn sqlx.SqlConn) *LogisticsRepository {
+	return &LogisticsRepository{conn: conn}
 }
 
 func (r *LogisticsRepository) List(ctx context.Context, f LogisticsListFilter) ([]model.LogisticsCompany, int64, error) {
@@ -32,29 +36,38 @@ func (r *LogisticsRepository) List(ctx context.Context, f LogisticsListFilter) (
 	if f.PageSize < 1 {
 		f.PageSize = 20
 	}
-	q := r.db.WithContext(ctx).Model(&model.LogisticsCompany{})
+	where := []string{"1=1"}
+	args := make([]any, 0, 8)
 	if f.EnabledOnly {
-		q = q.Where("status = 1")
+		where = append(where, "status=1")
 	} else if f.Status != nil {
-		q = q.Where("status = ?", *f.Status)
+		where = append(where, "status=?")
+		args = append(args, *f.Status)
 	}
 	if f.Name != "" {
-		q = q.Where("name LIKE ?", "%"+f.Name+"%")
+		where = append(where, "name LIKE ?")
+		args = append(args, "%"+f.Name+"%")
 	}
 	if f.Code != "" {
-		q = q.Where("code LIKE ?", "%"+f.Code+"%")
+		where = append(where, "code LIKE ?")
+		args = append(args, "%"+f.Code+"%")
 	}
 	if f.Keyword != "" {
 		like := "%" + f.Keyword + "%"
-		q = q.Where("name LIKE ? OR code LIKE ?", like, like)
+		where = append(where, "(name LIKE ? OR code LIKE ?)")
+		args = append(args, like, like)
 	}
-	var total int64
-	if err := q.Count(&total).Error; err != nil {
+	w := strings.Join(where, " AND ")
+	total, err := countCtx(ctx, r.conn, "SELECT COUNT(*) FROM logistics_companies WHERE "+w, args...)
+	if err != nil {
 		return nil, 0, err
 	}
+	listArgs := append(append([]any{}, args...), (f.Page-1)*f.PageSize, f.PageSize)
 	var list []model.LogisticsCompany
-	err := q.Order("sort ASC, id ASC").
-		Offset((f.Page - 1) * f.PageSize).Limit(f.PageSize).Find(&list).Error
+	err = r.conn.QueryRowsCtx(ctx, &list,
+		"SELECT "+logisticsColumns+" FROM logistics_companies WHERE "+w+" ORDER BY sort ASC, id ASC LIMIT ?, ?",
+		listArgs...,
+	)
 	return list, total, err
 }
 
@@ -62,60 +75,73 @@ func (r *LogisticsRepository) Options(ctx context.Context, keyword string, limit
 	if limit < 1 {
 		limit = 50
 	}
-	q := r.db.WithContext(ctx).Model(&model.LogisticsCompany{}).Where("status = 1")
+	where := []string{"status=1"}
+	args := make([]any, 0, 3)
 	if keyword != "" {
 		like := "%" + keyword + "%"
-		q = q.Where("name LIKE ? OR code LIKE ?", like, like)
+		where = append(where, "(name LIKE ? OR code LIKE ?)")
+		args = append(args, like, like)
 	}
+	args = append(args, limit)
 	var list []model.LogisticsCompany
-	err := q.Order("sort ASC, id ASC").Limit(limit).Find(&list).Error
+	err := r.conn.QueryRowsCtx(ctx, &list,
+		"SELECT "+logisticsColumns+" FROM logistics_companies WHERE "+strings.Join(where, " AND ")+" ORDER BY sort ASC, id ASC LIMIT ?",
+		args...,
+	)
 	return list, err
 }
 
 func (r *LogisticsRepository) Create(ctx context.Context, c *model.LogisticsCompany) error {
-	return r.db.WithContext(ctx).Create(c).Error
+	id, err := lastInsertID(ctx, r.conn,
+		"INSERT INTO logistics_companies (name, code, sort, status) VALUES (?, ?, ?, ?)",
+		c.Name, c.Code, c.Sort, c.Status,
+	)
+	if err != nil {
+		return err
+	}
+	c.ID = id
+	return nil
 }
 
 func (r *LogisticsRepository) Update(ctx context.Context, id uint64, name, code string, sort int) error {
-	res := r.db.WithContext(ctx).Model(&model.LogisticsCompany{}).Where("id = ?", id).Updates(map[string]interface{}{
-		"name": name,
-		"code": code,
-		"sort": sort,
-	})
-	if res.Error != nil {
-		return res.Error
+	n, err := execAffected(ctx, r.conn,
+		"UPDATE logistics_companies SET name=?, code=?, sort=? WHERE id=?",
+		name, code, sort, id,
+	)
+	if err != nil {
+		return err
 	}
-	if res.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
+	if n == 0 {
+		return sqlx.ErrNotFound
 	}
 	return nil
 }
 
 func (r *LogisticsRepository) UpdateStatus(ctx context.Context, id uint64, status int8) error {
-	res := r.db.WithContext(ctx).Model(&model.LogisticsCompany{}).Where("id = ?", id).Update("status", status)
-	if res.Error != nil {
-		return res.Error
+	n, err := execAffected(ctx, r.conn, "UPDATE logistics_companies SET status=? WHERE id=?", status, id)
+	if err != nil {
+		return err
 	}
-	if res.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
+	if n == 0 {
+		return sqlx.ErrNotFound
 	}
 	return nil
 }
 
 func (r *LogisticsRepository) Delete(ctx context.Context, id uint64) error {
-	res := r.db.WithContext(ctx).Delete(&model.LogisticsCompany{}, id)
-	if res.Error != nil {
-		return res.Error
+	n, err := execAffected(ctx, r.conn, "DELETE FROM logistics_companies WHERE id=?", id)
+	if err != nil {
+		return err
 	}
-	if res.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
+	if n == 0 {
+		return sqlx.ErrNotFound
 	}
 	return nil
 }
 
 func (r *LogisticsRepository) FindByCode(ctx context.Context, code string) (*model.LogisticsCompany, error) {
 	var c model.LogisticsCompany
-	err := r.db.WithContext(ctx).Where("code = ?", code).First(&c).Error
+	err := r.conn.QueryRowCtx(ctx, &c, "SELECT "+logisticsColumns+" FROM logistics_companies WHERE code=? LIMIT 1", code)
 	if err != nil {
 		return nil, err
 	}
@@ -134,10 +160,12 @@ func (r *LogisticsRepository) SeedDefaults(ctx context.Context) error {
 		{Name: "德邦快递", Code: "DBL", Sort: 80, Status: 1},
 	}
 	for _, s := range seeds {
-		var n int64
-		r.db.WithContext(ctx).Model(&model.LogisticsCompany{}).Where("code = ?", s.Code).Count(&n)
+		n, err := countCtx(ctx, r.conn, "SELECT COUNT(*) FROM logistics_companies WHERE code=?", s.Code)
+		if err != nil {
+			return err
+		}
 		if n == 0 {
-			if err := r.db.WithContext(ctx).Create(&s).Error; err != nil {
+			if err := r.Create(ctx, &s); err != nil {
 				return err
 			}
 		}

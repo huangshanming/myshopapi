@@ -25,7 +25,7 @@ func NewInternalEventLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Int
 	}
 }
 
-func (l *InternalEventLogic) InternalEvent(ctx context.Context, req *types.TaskEventReq) error {
+func (l *InternalEventLogic) InternalEvent(ctx context.Context, req *types.TaskEventReq) (*types.EmptyResp, error) {
 	refID, _ := strconv.ParseUint(req.RefId, 10, 64)
 	bizReq := biz.TaskEventReq{
 		TaskCode: req.Event,
@@ -33,7 +33,7 @@ func (l *InternalEventLogic) InternalEvent(ctx context.Context, req *types.TaskE
 		RefID:    refID,
 	}
 	if err := biz.NewTaskLogic(l.svcCtx).HandleEvent(ctx, bizReq); err != nil {
-		return xerr.New(http.StatusBadRequest, err.Error())
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return nil
+	return &types.EmptyResp{}, nil
 }

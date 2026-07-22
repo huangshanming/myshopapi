@@ -25,7 +25,7 @@ func NewMerchantMarkAllNotificationsReadLogic(ctx context.Context, svcCtx *svc.S
 	}
 }
 
-func (l *MerchantMarkAllNotificationsReadLogic) MerchantMarkAllNotificationsRead(ctx context.Context) (resp *types.AnyResp, err error) {
+func (l *MerchantMarkAllNotificationsReadLogic) MerchantMarkAllNotificationsRead(ctx context.Context) (resp *types.EmptyResp, err error) {
 
 	shopID := middleware.GetShopID(ctx)
 	if shopID == 0 {
@@ -34,5 +34,5 @@ func (l *MerchantMarkAllNotificationsReadLogic) MerchantMarkAllNotificationsRead
 	if err := nlogic.NewNotificationLogic(l.svcCtx).MarkAllRead(ctx, shopID); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: &types.AnyResp{}}, nil
+	return &types.EmptyResp{}, nil
 }

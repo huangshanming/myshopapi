@@ -22,7 +22,7 @@ func NewEligibleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Eligible
 	return &EligibleLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *EligibleLogic) Eligible(ctx context.Context, req *types.IdPathReq) (*types.AnyResp, error) {
+func (l *EligibleLogic) Eligible(ctx context.Context, req *types.IdPathReq) (*types.ReviewEligibleResp, error) {
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
 		return nil, xerr.New(http.StatusUnauthorized, "未授权")
@@ -31,5 +31,5 @@ func (l *EligibleLogic) Eligible(ctx context.Context, req *types.IdPathReq) (*ty
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return data, nil
 }

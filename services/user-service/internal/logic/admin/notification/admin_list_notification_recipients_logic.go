@@ -25,7 +25,7 @@ func NewAdminListNotificationRecipientsLogic(ctx context.Context, svcCtx *svc.Se
 	}
 }
 
-func (l *AdminListNotificationRecipientsLogic) AdminListNotificationRecipients(ctx context.Context, req *types.NotificationRecipientsReq) (resp *types.AnyResp, err error) {
+func (l *AdminListNotificationRecipientsLogic) AdminListNotificationRecipients(ctx context.Context, req *types.NotificationRecipientsReq) (resp *types.NotificationRecipientsResp, err error) {
 	if req.Id == 0 {
 		return nil, xerr.New(http.StatusBadRequest, "参数错误")
 	}
@@ -39,9 +39,5 @@ func (l *AdminListNotificationRecipientsLogic) AdminListNotificationRecipients(c
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.AnyResp{Data: map[string]interface{}{
-		"batch": batch,
-		"list":  list,
-		"total": total,
-	}}, nil
+	return &types.NotificationRecipientsResp{Batch: batch, List: list, Total: total}, nil
 }

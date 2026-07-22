@@ -25,11 +25,11 @@ func NewAdminOffSaleProductLogic(ctx context.Context, svcCtx *svc.ServiceContext
 	}
 }
 
-func (l *AdminOffSaleProductLogic) AdminOffSaleProduct(ctx context.Context, req *types.PlatformProductRemarkBodyReq) (resp *types.AnyResp, err error) {
+func (l *AdminOffSaleProductLogic) AdminOffSaleProduct(ctx context.Context, req *types.PlatformProductRemarkBodyReq) (resp *types.EmptyResp, err error) {
 	uid, _ := middleware.GetUserID(ctx)
 	id := req.Id
 	if err := plogic.NewPlatformProductLogic(l.svcCtx).ForceOffSale(ctx, id, uid, req.Remark); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: &types.AnyResp{}}, nil
+	return &types.EmptyResp{}, nil
 }

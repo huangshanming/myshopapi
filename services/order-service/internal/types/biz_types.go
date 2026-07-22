@@ -114,3 +114,7 @@ type LogisticsStatusBodyReq struct {
 	Id     uint64 `path:"id"`
 	Status int8   `json:"status"`
 }
+
+// Aliases — canonical resp types live in types.go
+type OrderDetailData = OrderDetailResp
+type ListData = ListResp

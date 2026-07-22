@@ -12,9 +12,10 @@ import (
 
 	"mymall/services/order-service/internal/model"
 	"mymall/services/order-service/internal/svc"
+	"mymall/services/order-service/internal/types"
 	"mymall/services/order-service/internal/uploadpath"
 
-	"gorm.io/gorm"
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
 type ReviewLogic struct {
@@ -25,17 +26,17 @@ func NewReviewLogic(svcCtx *svc.ServiceContext) *ReviewLogic {
 	return &ReviewLogic{svcCtx: svcCtx}
 }
 
-func (l *ReviewLogic) ReviewEligible(ctx context.Context, userID, orderID uint64) (map[string]interface{}, error) {
+func (l *ReviewLogic) ReviewEligible(ctx context.Context, userID, orderID uint64) (*types.ReviewEligibleResp, error) {
 	order, err := l.svcCtx.Repo.FindByID(ctx, orderID, userID)
 	if err != nil {
 		return nil, errors.New("订单不存在")
 	}
 	exists, _ := l.svcCtx.Reviews.ExistsByOrderID(ctx, orderID)
-	return map[string]interface{}{
-		"eligible": order.Status == model.OrderStatusCompleted && !exists,
-		"reviewed": exists || order.Status == model.OrderStatusReviewed,
-		"status":   order.Status,
-		"order_id": order.ID,
+	return &types.ReviewEligibleResp{
+		Eligible: order.Status == model.OrderStatusCompleted && !exists,
+		Reviewed: exists || order.Status == model.OrderStatusReviewed,
+		Status:   order.Status,
+		OrderId:  order.ID,
 	}, nil
 }
 
@@ -96,7 +97,7 @@ func (l *ReviewLogic) Create(ctx context.Context, userID, orderID uint64, req mo
 		Status:      model.ReviewStatusVisible,
 	}
 	if err := l.svcCtx.Reviews.Create(ctx, rev, req.Images); err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, sqlx.ErrNotFound) {
 			return nil, errors.New("订单状态已变更，请刷新后重试")
 		}
 		if strings.Contains(err.Error(), "Duplicate") || strings.Contains(err.Error(), "uk_order") {
@@ -126,7 +127,7 @@ func (l *ReviewLogic) GetByOrder(ctx context.Context, userID, orderID uint64) (*
 	}
 	rev, err := l.svcCtx.Reviews.GetByOrderID(ctx, orderID)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, sqlx.ErrNotFound) {
 			return nil, errors.New("暂无评价")
 		}
 		return nil, err
@@ -165,7 +166,7 @@ func (l *ReviewLogic) Reply(ctx context.Context, shopID, reviewID uint64, reply 
 		return errors.New("回复过长")
 	}
 	if err := l.svcCtx.Reviews.Reply(ctx, reviewID, shopID, reply); err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, sqlx.ErrNotFound) {
 			return errors.New("评价不存在")
 		}
 		return err
@@ -179,7 +180,7 @@ func (l *ReviewLogic) SoftDelete(ctx context.Context, reviewID uint64, shopID ui
 		return errors.New("评价不存在")
 	}
 	if err := l.svcCtx.Reviews.SoftDelete(ctx, reviewID, shopID); err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, sqlx.ErrNotFound) {
 			return errors.New("评价不存在")
 		}
 		return err

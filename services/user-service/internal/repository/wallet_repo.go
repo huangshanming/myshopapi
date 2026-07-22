@@ -6,19 +6,26 @@ import (
 
 	"mymall/services/user-service/internal/model"
 
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
+
+const walletColumns = "user_id, balance, frozen_balance, created_at, updated_at"
 
 func (r *UserRepository) EnsureWallet(ctx context.Context, userID uint64) (*model.UserWallet, error) {
 	var w model.UserWallet
-	err := r.db.WithContext(ctx).Where("user_id = ?", userID).First(&w).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		w = model.UserWallet{UserID: userID}
-		if err := r.db.WithContext(ctx).Create(&w).Error; err != nil {
+	err := r.conn.QueryRowCtx(ctx, &w,
+		"SELECT "+walletColumns+" FROM user_wallets WHERE user_id=? LIMIT 1", userID,
+	)
+	if errors.Is(err, sqlx.ErrNotFound) {
+		_, err = r.conn.ExecCtx(ctx,
+			"INSERT INTO user_wallets (user_id, balance, frozen_balance) VALUES (?, 0, 0)", userID,
+		)
+		if err != nil {
 			return nil, err
 		}
-		return &w, nil
+		err = r.conn.QueryRowCtx(ctx, &w,
+			"SELECT "+walletColumns+" FROM user_wallets WHERE user_id=? LIMIT 1", userID,
+		)
 	}
 	if err != nil {
 		return nil, err
@@ -30,15 +37,21 @@ func (r *UserRepository) GetWallet(ctx context.Context, userID uint64) (*model.U
 	return r.EnsureWallet(ctx, userID)
 }
 
-func (r *UserRepository) lockWallet(tx *gorm.DB, userID uint64) (*model.UserWallet, error) {
+func (r *UserRepository) lockWallet(ctx context.Context, session sqlx.Session, userID uint64) (*model.UserWallet, error) {
 	var w model.UserWallet
-	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("user_id = ?", userID).First(&w).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		w = model.UserWallet{UserID: userID}
-		if err := tx.Create(&w).Error; err != nil {
+	err := session.QueryRowCtx(ctx, &w,
+		"SELECT "+walletColumns+" FROM user_wallets WHERE user_id=? FOR UPDATE", userID,
+	)
+	if errors.Is(err, sqlx.ErrNotFound) {
+		_, err = session.ExecCtx(ctx,
+			"INSERT INTO user_wallets (user_id, balance, frozen_balance) VALUES (?, 0, 0)", userID,
+		)
+		if err != nil {
 			return nil, err
 		}
-		err = tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("user_id = ?", userID).First(&w).Error
+		err = session.QueryRowCtx(ctx, &w,
+			"SELECT "+walletColumns+" FROM user_wallets WHERE user_id=? FOR UPDATE", userID,
+		)
 	}
 	if err != nil {
 		return nil, err
@@ -46,25 +59,20 @@ func (r *UserRepository) lockWallet(tx *gorm.DB, userID uint64) (*model.UserWall
 	return &w, nil
 }
 
-func (r *UserRepository) writeLog(tx *gorm.DB, w *model.UserWallet, changeType string, amount float64, remark string, op *uint64, refType string, refID uint64) error {
-	return tx.Create(&model.UserWalletLog{
-		UserID:         w.UserID,
-		ChangeType:     changeType,
-		Amount:         amount,
-		BalanceAfter:   w.Balance,
-		FrozenAfter:    w.FrozenBalance,
-		Remark:         remark,
-		OperatorUserID: op,
-		RefType:        refType,
-		RefID:          refID,
-	}).Error
+func (r *UserRepository) writeLog(ctx context.Context, session sqlx.Session, w *model.UserWallet, changeType string, amount float64, remark string, op *uint64, refType string, refID uint64) error {
+	_, err := session.ExecCtx(ctx,
+		`INSERT INTO user_wallet_logs (user_id, change_type, amount, balance_after, frozen_after, remark, operator_user_id, ref_type, ref_id)
+		 VALUES (?,?,?,?,?,?,?,?,?)`,
+		w.UserID, changeType, amount, w.Balance, w.FrozenBalance, remark, op, refType, refID,
+	)
+	return err
 }
 
 func (r *UserRepository) HasWalletLog(ctx context.Context, userID uint64, changeType, refType string, refID uint64) (bool, error) {
-	var n int64
-	err := r.db.WithContext(ctx).Model(&model.UserWalletLog{}).
-		Where("user_id = ? AND change_type = ? AND ref_type = ? AND ref_id = ?", userID, changeType, refType, refID).
-		Count(&n).Error
+	n, err := countQuery(ctx, r.conn,
+		"SELECT COUNT(*) FROM user_wallet_logs WHERE user_id=? AND change_type=? AND ref_type=? AND ref_id=?",
+		userID, changeType, refType, refID,
+	)
 	return n > 0, err
 }
 
@@ -73,12 +81,11 @@ func (r *UserRepository) AdjustWallet(ctx context.Context, userID uint64, field 
 		field = model.UserWalletFieldBalance
 	}
 	var out *model.UserWallet
-	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		w, err := r.lockWallet(tx, userID)
+	err := r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
+		w, err := r.lockWallet(ctx, session, userID)
 		if err != nil {
 			return err
 		}
-		updates := map[string]interface{}{}
 		switch field {
 		case model.UserWalletFieldBalance:
 			next := w.Balance + amount
@@ -89,7 +96,6 @@ func (r *UserRepository) AdjustWallet(ctx context.Context, userID uint64, field 
 				next = 0
 			}
 			w.Balance = next
-			updates["balance"] = w.Balance
 		case model.UserWalletFieldFrozen:
 			next := w.FrozenBalance + amount
 			if next < -0.0001 {
@@ -99,14 +105,16 @@ func (r *UserRepository) AdjustWallet(ctx context.Context, userID uint64, field 
 				next = 0
 			}
 			w.FrozenBalance = next
-			updates["frozen_balance"] = w.FrozenBalance
 		default:
 			return errors.New("不支持的调账字段")
 		}
-		if err := tx.Model(w).Updates(updates).Error; err != nil {
+		if _, err := session.ExecCtx(ctx,
+			"UPDATE user_wallets SET balance=?, frozen_balance=? WHERE user_id=?",
+			w.Balance, w.FrozenBalance, w.UserID,
+		); err != nil {
 			return err
 		}
-		if err := r.writeLog(tx, w, model.UserWalletLogAdminAdjust, amount, remark, operatorID, field, 0); err != nil {
+		if err := r.writeLog(ctx, session, w, model.UserWalletLogAdminAdjust, amount, remark, operatorID, field, 0); err != nil {
 			return err
 		}
 		out = w
@@ -116,13 +124,18 @@ func (r *UserRepository) AdjustWallet(ctx context.Context, userID uint64, field 
 }
 
 func (r *UserRepository) ListWalletLogs(ctx context.Context, userID uint64, page, pageSize int) ([]model.UserWalletLog, int64, error) {
-	q := r.db.WithContext(ctx).Model(&model.UserWalletLog{}).Where("user_id = ?", userID)
-	var total int64
-	if err := q.Count(&total).Error; err != nil {
+	total, err := countQuery(ctx, r.conn,
+		"SELECT COUNT(*) FROM user_wallet_logs WHERE user_id=?", userID,
+	)
+	if err != nil {
 		return nil, 0, err
 	}
 	var list []model.UserWalletLog
-	err := q.Order("id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
+	err = r.conn.QueryRowsCtx(ctx, &list,
+		"SELECT id, user_id, change_type, amount, balance_after, frozen_after, remark, operator_user_id, ref_type, ref_id, created_at "+
+			"FROM user_wallet_logs WHERE user_id=? ORDER BY id DESC LIMIT ? OFFSET ?",
+		userID, pageSize, (page-1)*pageSize,
+	)
 	return list, total, err
 }
 
@@ -137,8 +150,8 @@ func (r *UserRepository) FreezeForOrder(ctx context.Context, userID uint64, amou
 	if exists {
 		return nil
 	}
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		w, err := r.lockWallet(tx, userID)
+	return r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
+		w, err := r.lockWallet(ctx, session, userID)
 		if err != nil {
 			return err
 		}
@@ -147,14 +160,14 @@ func (r *UserRepository) FreezeForOrder(ctx context.Context, userID uint64, amou
 		}
 		w.Balance -= amount
 		w.FrozenBalance += amount
-		if err := tx.Model(w).Updates(map[string]interface{}{
-			"balance":        w.Balance,
-			"frozen_balance": w.FrozenBalance,
-		}).Error; err != nil {
+		if _, err := session.ExecCtx(ctx,
+			"UPDATE user_wallets SET balance=?, frozen_balance=? WHERE user_id=?",
+			w.Balance, w.FrozenBalance, w.UserID,
+		); err != nil {
 			return err
 		}
 		remark := "下单冻结 " + orderNo
-		return r.writeLog(tx, w, model.UserWalletLogOrderFreeze, -amount, remark, nil, "order", orderID)
+		return r.writeLog(ctx, session, w, model.UserWalletLogOrderFreeze, -amount, remark, nil, "order", orderID)
 	})
 }
 
@@ -183,8 +196,8 @@ func (r *UserRepository) UnfreezeOrder(ctx context.Context, userID uint64, amoun
 	if !frozen {
 		return nil
 	}
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		w, err := r.lockWallet(tx, userID)
+	return r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
+		w, err := r.lockWallet(ctx, session, userID)
 		if err != nil {
 			return err
 		}
@@ -193,14 +206,14 @@ func (r *UserRepository) UnfreezeOrder(ctx context.Context, userID uint64, amoun
 		}
 		w.FrozenBalance -= amount
 		w.Balance += amount
-		if err := tx.Model(w).Updates(map[string]interface{}{
-			"balance":        w.Balance,
-			"frozen_balance": w.FrozenBalance,
-		}).Error; err != nil {
+		if _, err := session.ExecCtx(ctx,
+			"UPDATE user_wallets SET balance=?, frozen_balance=? WHERE user_id=?",
+			w.Balance, w.FrozenBalance, w.UserID,
+		); err != nil {
 			return err
 		}
 		remark := "取消订单解冻 " + orderNo
-		return r.writeLog(tx, w, model.UserWalletLogOrderUnfreeze, amount, remark, nil, "order", orderID)
+		return r.writeLog(ctx, session, w, model.UserWalletLogOrderUnfreeze, amount, remark, nil, "order", orderID)
 	})
 }
 
@@ -222,8 +235,8 @@ func (r *UserRepository) SettleOrder(ctx context.Context, userID uint64, amount 
 	if unfrozen {
 		return nil
 	}
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		w, err := r.lockWallet(tx, userID)
+	return r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
+		w, err := r.lockWallet(ctx, session, userID)
 		if err != nil {
 			return err
 		}
@@ -231,10 +244,13 @@ func (r *UserRepository) SettleOrder(ctx context.Context, userID uint64, amount 
 			amount = w.FrozenBalance
 		}
 		w.FrozenBalance -= amount
-		if err := tx.Model(w).Update("frozen_balance", w.FrozenBalance).Error; err != nil {
+		if _, err := session.ExecCtx(ctx,
+			"UPDATE user_wallets SET frozen_balance=? WHERE user_id=?",
+			w.FrozenBalance, w.UserID,
+		); err != nil {
 			return err
 		}
 		remark := "订单确认实扣 " + orderNo
-		return r.writeLog(tx, w, model.UserWalletLogOrderSettle, -amount, remark, nil, "order", orderID)
+		return r.writeLog(ctx, session, w, model.UserWalletLogOrderSettle, -amount, remark, nil, "order", orderID)
 	})
 }

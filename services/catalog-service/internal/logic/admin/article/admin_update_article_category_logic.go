@@ -24,10 +24,10 @@ func NewAdminUpdateArticleCategoryLogic(ctx context.Context, svcCtx *svc.Service
 	}
 }
 
-func (l *AdminUpdateArticleCategoryLogic) AdminUpdateArticleCategory(ctx context.Context, req *types.ArticleCategoryUpdateBodyReq) (resp *types.AnyResp, err error) {
+func (l *AdminUpdateArticleCategoryLogic) AdminUpdateArticleCategory(ctx context.Context, req *types.ArticleCategoryUpdateBodyReq) (resp *types.EmptyResp, err error) {
 	id := req.Id
 	if err := clogic.NewArticleLogic(l.svcCtx).SaveCategory(ctx, id, req.ToContent()); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: &types.AnyResp{}}, nil
+	return &types.EmptyResp{}, nil
 }

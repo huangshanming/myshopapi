@@ -26,7 +26,7 @@ func NewMerchantBatchProductsLogic(ctx context.Context, svcCtx *svc.ServiceConte
 	}
 }
 
-func (l *MerchantBatchProductsLogic) MerchantBatchProducts(ctx context.Context, req *types.BatchProductReq) (resp *types.AnyResp, err error) {
+func (l *MerchantBatchProductsLogic) MerchantBatchProducts(ctx context.Context, req *types.BatchProductReq) (resp *types.ProductJobResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -58,5 +58,5 @@ func (l *MerchantBatchProductsLogic) MerchantBatchProducts(ctx context.Context, 
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: job}, nil
+	return &types.ProductJobResp{Data: job}, nil
 }

@@ -25,7 +25,7 @@ func NewUpdateMyShopLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Upda
 	}
 }
 
-func (l *UpdateMyShopLogic) UpdateMyShop(ctx context.Context, req *types.UpdateShopBodyReq) (resp *types.AnyResp, err error) {
+func (l *UpdateMyShopLogic) UpdateMyShop(ctx context.Context, req *types.UpdateShopBodyReq) (resp *types.EmptyResp, err error) {
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
 		return nil, xerr.New(http.StatusUnauthorized, "未授权")
@@ -34,5 +34,5 @@ func (l *UpdateMyShopLogic) UpdateMyShop(ctx context.Context, req *types.UpdateS
 	if err := biz.NewMerchantLogic(l.svcCtx).UpdateMyShop(ctx, shopID, userID, req.ToUpdateShopReq()); err != nil {
 		return nil, xerr.New(http.StatusForbidden, err.Error())
 	}
-	return &types.AnyResp{}, nil
+	return &types.EmptyResp{}, nil
 }

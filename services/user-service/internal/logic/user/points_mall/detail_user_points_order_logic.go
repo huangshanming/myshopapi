@@ -25,7 +25,7 @@ func NewDetailUserPointsOrderLogic(ctx context.Context, svcCtx *svc.ServiceConte
 	}
 }
 
-func (l *DetailUserPointsOrderLogic) DetailUserPointsOrder(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *DetailUserPointsOrderLogic) DetailUserPointsOrder(ctx context.Context, req *types.IdPathReq) (resp *types.PointsOrderResp, err error) {
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
 		return nil, xerr.New(http.StatusUnauthorized, "未登录")
@@ -37,5 +37,5 @@ func (l *DetailUserPointsOrderLogic) DetailUserPointsOrder(ctx context.Context, 
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: o}, nil
+	return &types.PointsOrderResp{Data: o}, nil
 }

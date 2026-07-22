@@ -24,7 +24,7 @@ func NewAdminUpdateThemePackageLogic(ctx context.Context, svcCtx *svc.ServiceCon
 	}
 }
 
-func (l *AdminUpdateThemePackageLogic) AdminUpdateThemePackage(ctx context.Context, req *types.ThemePackageUpdateBodyReq) (resp *types.AnyResp, err error) {
+func (l *AdminUpdateThemePackageLogic) AdminUpdateThemePackage(ctx context.Context, req *types.ThemePackageUpdateBodyReq) (resp *types.EmptyResp, err error) {
 	if req.Id == 0 {
 		return nil, xerr.New(http.StatusBadRequest, "ID无效")
 	}
@@ -35,5 +35,5 @@ func (l *AdminUpdateThemePackageLogic) AdminUpdateThemePackage(ctx context.Conte
 	if err := biz.NewMerchantLogic(l.svcCtx).AdminUpdateThemePackage(req.Id, updates); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{}, nil
+	return &types.EmptyResp{}, nil
 }

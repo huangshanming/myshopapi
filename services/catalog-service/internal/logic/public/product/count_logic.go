@@ -24,7 +24,7 @@ func NewCountLogic(ctx context.Context, svcCtx *svc.ServiceContext) *CountLogic 
 	}
 }
 
-func (l *CountLogic) Count(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *CountLogic) Count(ctx context.Context, req *types.IdPathReq) (resp *types.CountResp, err error) {
 	if req.Id == 0 {
 		return nil, xerr.New(http.StatusBadRequest, "商品ID无效")
 	}
@@ -32,5 +32,5 @@ func (l *CountLogic) Count(ctx context.Context, req *types.IdPathReq) (resp *typ
 	if err != nil {
 		return nil, xerr.New(http.StatusNotFound, "商品不存在")
 	}
-	return &types.AnyResp{Data: map[string]int64{"count": n}}, nil
+	return &types.CountResp{Count: n}, nil
 }

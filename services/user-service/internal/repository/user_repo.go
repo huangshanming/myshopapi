@@ -7,15 +7,17 @@ import (
 	"mymall/common/password"
 	"mymall/services/user-service/internal/model"
 
-	"gorm.io/gorm"
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
+const userColumns = "id, created_at, updated_at, mobile, password, nickname, avatar, gender, status, role, last_login_time, deleted_at"
+
 type UserRepository struct {
-	db *gorm.DB
+	conn sqlx.SqlConn
 }
 
-func NewUserRepository(db *gorm.DB) *UserRepository {
-	return &UserRepository{db: db}
+func NewUserRepository(conn sqlx.SqlConn) *UserRepository {
+	return &UserRepository{conn: conn}
 }
 
 func (r *UserRepository) HashPassword(ctx context.Context, plain string) string {
@@ -23,33 +25,46 @@ func (r *UserRepository) HashPassword(ctx context.Context, plain string) string 
 }
 
 func (r *UserRepository) UpdatePassword(ctx context.Context, id uint64, plain string) error {
-	return r.db.WithContext(ctx).Model(&model.User{}).Where("id = ?", id).Update("password", password.Hash(plain)).Error
+	_, err := r.conn.ExecCtx(ctx,
+		"UPDATE users SET password=? WHERE id=? AND deleted_at IS NULL",
+		password.Hash(plain), id,
+	)
+	return err
 }
 
 func (r *UserRepository) CreateAdmin(ctx context.Context, mobile, plain, nickname string) (*model.User, error) {
 	var existing model.User
-	if err := r.db.WithContext(ctx).Where("mobile = ?", mobile).First(&existing).Error; err == nil {
+	err := r.conn.QueryRowCtx(ctx, &existing,
+		"SELECT "+userColumns+" FROM users WHERE mobile=? AND deleted_at IS NULL LIMIT 1", mobile,
+	)
+	if err == nil {
 		return nil, errors.New("用户已存在")
+	}
+	if !errors.Is(err, sqlx.ErrNotFound) {
+		return nil, err
 	}
 	if nickname == "" {
 		nickname = mobile
 	}
-	user := model.User{
-		Mobile:   mobile,
-		Password: password.Hash(plain),
-		Nickname: nickname,
-		Status:   1,
-		Role:     "platform_admin",
-	}
-	if err := r.db.WithContext(ctx).Create(&user).Error; err != nil {
+	res, err := r.conn.ExecCtx(ctx,
+		"INSERT INTO users (mobile, password, nickname, status, role) VALUES (?,?,?,?,?)",
+		mobile, password.Hash(plain), nickname, 1, "platform_admin",
+	)
+	if err != nil {
 		return nil, err
 	}
-	return &user, nil
+	id, err := lastInsertID(res)
+	if err != nil {
+		return nil, err
+	}
+	return r.FindByID(ctx, id)
 }
 
 func (r *UserRepository) FindByMobile(ctx context.Context, mobile string) (*model.User, error) {
 	var user model.User
-	err := r.db.WithContext(ctx).Where("mobile = ?", mobile).First(&user).Error
+	err := r.conn.QueryRowCtx(ctx, &user,
+		"SELECT "+userColumns+" FROM users WHERE mobile=? AND deleted_at IS NULL LIMIT 1", mobile,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +77,7 @@ func (r *UserRepository) VerifyLogin(ctx context.Context, mobile, plain string) 
 		return nil, err
 	}
 	if user.Password != password.Hash(plain) {
-		return nil, gorm.ErrRecordNotFound
+		return nil, sqlx.ErrNotFound
 	}
 	if user.Status != 1 {
 		return nil, errors.New("账号已禁用")
@@ -72,42 +87,52 @@ func (r *UserRepository) VerifyLogin(ctx context.Context, mobile, plain string) 
 
 func (r *UserRepository) Create(ctx context.Context, mobile, plain string) (*model.User, error) {
 	var existing model.User
-	if err := r.db.WithContext(ctx).Where("mobile = ?", mobile).First(&existing).Error; err == nil {
+	err := r.conn.QueryRowCtx(ctx, &existing,
+		"SELECT "+userColumns+" FROM users WHERE mobile=? AND deleted_at IS NULL LIMIT 1", mobile,
+	)
+	if err == nil {
 		return nil, errors.New("用户已存在")
 	}
-
-	user := model.User{
-		Mobile:   mobile,
-		Password: password.Hash(plain),
-		Nickname: mobile,
-		Status:   1,
-		Role:     "user",
-	}
-	if err := r.db.WithContext(ctx).Create(&user).Error; err != nil {
+	if !errors.Is(err, sqlx.ErrNotFound) {
 		return nil, err
 	}
-	return &user, nil
+
+	res, err := r.conn.ExecCtx(ctx,
+		"INSERT INTO users (mobile, password, nickname, status, role) VALUES (?,?,?,?,?)",
+		mobile, password.Hash(plain), mobile, 1, "user",
+	)
+	if err != nil {
+		return nil, err
+	}
+	id, err := lastInsertID(res)
+	if err != nil {
+		return nil, err
+	}
+	return r.FindByID(ctx, id)
 }
 
 func (r *UserRepository) UpdateProfile(ctx context.Context, id uint64, nickname, avatar, mobile string, gender int) error {
-	updates := map[string]interface{}{
-		"nickname": nickname,
-		"avatar":   avatar,
-		"gender":   gender,
-		"mobile":   mobile,
-	}
-	return r.db.WithContext(ctx).Model(&model.User{}).Where("id = ?", id).Updates(updates).Error
+	_, err := r.conn.ExecCtx(ctx,
+		"UPDATE users SET nickname=?, avatar=?, gender=?, mobile=? WHERE id=? AND deleted_at IS NULL",
+		nickname, avatar, gender, mobile, id,
+	)
+	return err
 }
 
 func (r *UserRepository) MobileTakenByOther(ctx context.Context, mobile string, excludeID uint64) bool {
-	var count int64
-	r.db.WithContext(ctx).Model(&model.User{}).Where("mobile = ? AND id <> ?", mobile, excludeID).Count(&count)
-	return count > 0
+	n, err := countQuery(ctx, r.conn,
+		"SELECT COUNT(*) FROM users WHERE mobile=? AND id<>? AND deleted_at IS NULL",
+		mobile, excludeID,
+	)
+	return err == nil && n > 0
 }
 
 func (r *UserRepository) FindByID(ctx context.Context, id uint64) (*model.User, error) {
 	var user model.User
-	if err := r.db.WithContext(ctx).First(&user, id).Error; err != nil {
+	err := r.conn.QueryRowCtx(ctx, &user,
+		"SELECT "+userColumns+" FROM users WHERE id=? AND deleted_at IS NULL LIMIT 1", id,
+	)
+	if err != nil {
 		return nil, err
 	}
 	return &user, nil
@@ -116,12 +141,14 @@ func (r *UserRepository) FindByID(ctx context.Context, id uint64) (*model.User, 
 // FirstShopID 取用户所属第一家店铺（优先 shop_members，兼容 shop_user_roles）
 func (r *UserRepository) FirstShopID(ctx context.Context, userID uint64) uint64 {
 	var shopID uint64
-	_ = r.db.WithContext(ctx).Table("shop_members").Select("shop_id").Where("user_id = ?", userID).
-		Order("id ASC").Limit(1).Scan(&shopID).Error
+	_ = r.conn.QueryRowCtx(ctx, &shopID,
+		"SELECT shop_id FROM shop_members WHERE user_id=? ORDER BY id ASC LIMIT 1", userID,
+	)
 	if shopID > 0 {
 		return shopID
 	}
-	_ = r.db.WithContext(ctx).Table("shop_user_roles").Select("shop_id").Where("user_id = ?", userID).
-		Order("shop_id ASC").Limit(1).Scan(&shopID).Error
+	_ = r.conn.QueryRowCtx(ctx, &shopID,
+		"SELECT shop_id FROM shop_user_roles WHERE user_id=? ORDER BY shop_id ASC LIMIT 1", userID,
+	)
 	return shopID
 }

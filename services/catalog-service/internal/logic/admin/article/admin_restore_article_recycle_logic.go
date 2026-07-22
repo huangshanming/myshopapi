@@ -24,12 +24,12 @@ func NewAdminRestoreArticleRecycleLogic(ctx context.Context, svcCtx *svc.Service
 	}
 }
 
-func (l *AdminRestoreArticleRecycleLogic) AdminRestoreArticleRecycle(ctx context.Context, req *types.ArticleIdListReq) (resp *types.AnyResp, err error) {
+func (l *AdminRestoreArticleRecycleLogic) AdminRestoreArticleRecycle(ctx context.Context, req *types.ArticleIdListReq) (resp *types.EmptyResp, err error) {
 	if req.Id == 0 {
 		return nil, xerr.New(http.StatusBadRequest, "缺少 id")
 	}
 	if err := clogic.NewArticleLogic(l.svcCtx).Restore(ctx, req.Id); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: &types.AnyResp{}}, nil
+	return &types.EmptyResp{}, nil
 }

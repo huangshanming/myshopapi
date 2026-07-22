@@ -26,7 +26,7 @@ func NewAdminSendNotificationLogic(ctx context.Context, svcCtx *svc.ServiceConte
 	}
 }
 
-func (l *AdminSendNotificationLogic) AdminSendNotification(ctx context.Context, req *types.AdminSendReq) (resp *types.AnyResp, err error) {
+func (l *AdminSendNotificationLogic) AdminSendNotification(ctx context.Context, req *types.AdminSendReq) (resp *types.NotificationBatchResp, err error) {
 	adminID, _ := middleware.GetUserID(ctx)
 	target := model.NotifyTargetUsers
 	if req.SendAll {
@@ -41,5 +41,5 @@ func (l *AdminSendNotificationLogic) AdminSendNotification(ctx context.Context, 
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: batch}, nil
+	return &types.NotificationBatchResp{Data: batch}, nil
 }

@@ -24,10 +24,10 @@ func NewGetRoleMenusLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetR
 	}
 }
 
-func (l *GetRoleMenusLogic) GetRoleMenus(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *GetRoleMenusLogic) GetRoleMenus(ctx context.Context, req *types.IdPathReq) (resp *types.IdListResp, err error) {
 	ids, err := biz.NewRBACLogic(l.svcCtx).GetRoleMenus(ctx, req.Id)
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.AnyResp{Data: ids}, nil
+	return &types.IdListResp{Ids: ids}, nil
 }

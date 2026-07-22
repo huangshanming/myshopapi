@@ -24,10 +24,10 @@ func NewCreateMenuLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Create
 	}
 }
 
-func (l *CreateMenuLogic) CreateMenu(ctx context.Context, req *types.MenuReq) (resp *types.AnyResp, err error) {
+func (l *CreateMenuLogic) CreateMenu(ctx context.Context, req *types.MenuReq) (resp *types.MenuResp, err error) {
 	m, err := biz.NewRBACLogic(l.svcCtx).CreateMenu(ctx, *req)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: m}, nil
+	return &types.MenuResp{Data: m}, nil
 }

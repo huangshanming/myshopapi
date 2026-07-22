@@ -26,7 +26,7 @@ func NewAdminUploadArticleLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 	}
 }
 
-func (l *AdminUploadArticleLogic) AdminUploadArticle(ctx context.Context, r *http.Request) (resp *types.AnyResp, err error) {
+func (l *AdminUploadArticleLogic) AdminUploadArticle(ctx context.Context, r *http.Request) (resp *types.URLResp, err error) {
 	if r == nil {
 		return nil, xerr.New(http.StatusBadRequest, "缺少上传请求")
 	}
@@ -45,5 +45,5 @@ func (l *AdminUploadArticleLogic) AdminUploadArticle(ctx context.Context, r *htt
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: map[string]string{"url": url}}, nil
+	return &types.URLResp{Url: url}, nil
 }

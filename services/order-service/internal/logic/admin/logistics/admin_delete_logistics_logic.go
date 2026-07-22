@@ -21,9 +21,9 @@ func NewAdminDeleteLogisticsLogic(ctx context.Context, svcCtx *svc.ServiceContex
 	return &AdminDeleteLogisticsLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *AdminDeleteLogisticsLogic) AdminDeleteLogistics(ctx context.Context, req *types.IdPathReq) (*types.AnyResp, error) {
+func (l *AdminDeleteLogisticsLogic) AdminDeleteLogistics(ctx context.Context, req *types.IdPathReq) (*types.EmptyResp, error) {
 	if err := biz.NewLogisticsLogic(l.svcCtx).Delete(ctx, req.Id); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{}, nil
+	return &types.EmptyResp{}, nil
 }

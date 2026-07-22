@@ -24,9 +24,9 @@ func NewAdminCreateArticleCategoryLogic(ctx context.Context, svcCtx *svc.Service
 	}
 }
 
-func (l *AdminCreateArticleCategoryLogic) AdminCreateArticleCategory(ctx context.Context, req *types.ArticleCategorySaveReq) (resp *types.AnyResp, err error) {
+func (l *AdminCreateArticleCategoryLogic) AdminCreateArticleCategory(ctx context.Context, req *types.ArticleCategorySaveReq) (resp *types.EmptyResp, err error) {
 	if err := clogic.NewArticleLogic(l.svcCtx).SaveCategory(ctx, 0, req.ToContent()); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: &types.AnyResp{}}, nil
+	return &types.EmptyResp{}, nil
 }

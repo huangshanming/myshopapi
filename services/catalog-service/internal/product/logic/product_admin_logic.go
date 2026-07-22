@@ -100,8 +100,8 @@ func (l *ProductAdminLogic) Batch(ctx context.Context, shopID, operatorID uint64
 }
 
 func (l *ProductAdminLogic) runBatchJob(jobID, shopID, operatorID uint64, req types.BatchProductReq) {
-	db := l.svcCtx.DB
-	_ = db.Model(&model.ProductBatchJob{}).Where("id = ?", jobID).Update("status", "running")
+	ctx := context.Background()
+	_ = l.svcCtx.ProductAdmin.UpdateBatchJob(ctx, jobID, map[string]interface{}{"status": "running"})
 	ok, fail := 0, 0
 	const batch = 50
 	for i := 0; i < len(req.ProductIDs); i += batch {
@@ -114,16 +114,15 @@ func (l *ProductAdminLogic) runBatchJob(jobID, shopID, operatorID uint64, req ty
 			var err error
 			switch req.Action {
 			case "on_sale":
-				err = l.SetStatus(context.Background(), shopID, operatorID, id, model.ProductOnSale)
+				err = l.SetStatus(ctx, shopID, operatorID, id, model.ProductOnSale)
 			case "off_sale":
-				err = l.SetStatus(context.Background(), shopID, operatorID, id, model.ProductOffSale)
+				err = l.SetStatus(ctx, shopID, operatorID, id, model.ProductOffSale)
 			case "recycle":
-				err = l.SetStatus(context.Background(), shopID, operatorID, id, model.ProductDeleted)
+				err = l.SetStatus(ctx, shopID, operatorID, id, model.ProductDeleted)
 			case "category":
-				err = db.Model(&model.Product{}).Where("id = ? AND shop_id = ?", id, shopID).
-					Update("category_id", req.CategoryID).Error
+				err = l.svcCtx.ProductAdmin.UpdateProductCategory(ctx, id, shopID, req.CategoryID)
 			case "price":
-				err = l.batchPrice(context.Background(), id, shopID, req)
+				err = l.batchPrice(ctx, id, shopID, req)
 			default:
 				err = errors.New("未知动作")
 			}
@@ -133,8 +132,7 @@ func (l *ProductAdminLogic) runBatchJob(jobID, shopID, operatorID uint64, req ty
 				ok++
 			}
 		}
-		_ = db.Model(&model.ProductBatchJob{}).Where("id = ?", jobID).
-			Updates(map[string]interface{}{"progress": ok + fail}).Error
+		_ = l.svcCtx.ProductAdmin.UpdateBatchJob(ctx, jobID, map[string]interface{}{"progress": ok + fail})
 	}
 	st := "success"
 	msg := fmt.Sprintf("成功%d 失败%d", ok, fail)
@@ -143,13 +141,14 @@ func (l *ProductAdminLogic) runBatchJob(jobID, shopID, operatorID uint64, req ty
 	} else if fail > 0 {
 		st = "failed"
 	}
-	_ = db.Model(&model.ProductBatchJob{}).Where("id = ?", jobID).
-		Updates(map[string]interface{}{"status": st, "result_msg": msg, "progress": ok + fail}).Error
+	_ = l.svcCtx.ProductAdmin.UpdateBatchJob(ctx, jobID, map[string]interface{}{
+		"status": st, "result_msg": msg, "progress": ok + fail,
+	})
 }
 
 func (l *ProductAdminLogic) batchPrice(ctx context.Context, id, shopID uint64, req types.BatchProductReq) error {
-	var skus []model.ProductSku
-	if err := l.svcCtx.DB.Where("product_id = ? AND shop_id = ? AND deleted_at IS NULL", id, shopID).Find(&skus).Error; err != nil {
+	skus, err := l.svcCtx.ProductAdmin.ListSkusByProductShop(ctx, id, shopID)
+	if err != nil {
 		return err
 	}
 	for _, s := range skus {
@@ -162,7 +161,7 @@ func (l *ProductAdminLogic) batchPrice(ctx context.Context, id, shopID uint64, r
 		if price < 0.01 {
 			price = 0.01
 		}
-		_ = l.svcCtx.DB.Model(&s).Update("sale_price", price).Error
+		_ = l.svcCtx.ProductAdmin.UpdateSkuSalePrice(ctx, s.ID, price)
 	}
 	return l.svcCtx.ProductAdmin.AggregatePublic(ctx, id)
 }

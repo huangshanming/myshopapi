@@ -22,7 +22,7 @@ func NewMerchantDetailLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Me
 	return &MerchantDetailLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *MerchantDetailLogic) MerchantDetail(ctx context.Context, req *types.IdPathReq) (*types.AnyResp, error) {
+func (l *MerchantDetailLogic) MerchantDetail(ctx context.Context, req *types.IdPathReq) (*types.OrderDetailResp, error) {
 	shopID := middleware.GetShopID(ctx)
 	if shopID == 0 {
 		return nil, xerr.New(http.StatusForbidden, "缺少 shop_id")
@@ -33,5 +33,5 @@ func (l *MerchantDetailLogic) MerchantDetail(ctx context.Context, req *types.IdP
 		return nil, xerr.New(http.StatusNotFound, "订单不存在")
 	}
 	as, _ := ol.ListAfterSalesByOrder(ctx, req.Id)
-	return &types.AnyResp{Data: map[string]interface{}{"order": order, "after_sales": as}}, nil
+	return &types.OrderDetailResp{Order: order, AfterSales: as}, nil
 }

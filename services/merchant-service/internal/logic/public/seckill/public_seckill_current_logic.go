@@ -24,11 +24,11 @@ func NewPublicSeckillCurrentLogic(ctx context.Context, svcCtx *svc.ServiceContex
 	}
 }
 
-func (l *PublicSeckillCurrentLogic) PublicSeckillCurrent(ctx context.Context) (resp *types.AnyResp, err error) {
+func (l *PublicSeckillCurrentLogic) PublicSeckillCurrent(ctx context.Context) (resp *types.SeckillCurrentResp, err error) {
 
 	data, err := biz.NewMerchantLogic(l.svcCtx).PublicSeckillCurrent()
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.SeckillCurrentResp{Data: data}, nil
 }

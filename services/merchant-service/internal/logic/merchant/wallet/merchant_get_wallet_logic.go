@@ -25,12 +25,12 @@ func NewMerchantGetWalletLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 	}
 }
 
-func (l *MerchantGetWalletLogic) MerchantGetWallet(ctx context.Context) (resp *types.AnyResp, err error) {
+func (l *MerchantGetWalletLogic) MerchantGetWallet(ctx context.Context) (resp *types.WalletResp, err error) {
 
 	shopID := middleware.GetShopID(ctx)
 	wallet, err := biz.NewMerchantLogic(l.svcCtx).GetWallet(shopID)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: wallet}, nil
+	return &types.WalletResp{Data: wallet}, nil
 }

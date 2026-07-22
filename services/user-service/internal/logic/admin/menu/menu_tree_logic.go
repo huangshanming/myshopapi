@@ -24,10 +24,10 @@ func NewMenuTreeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MenuTree
 	}
 }
 
-func (l *MenuTreeLogic) MenuTree(ctx context.Context) (resp *types.AnyResp, err error) {
+func (l *MenuTreeLogic) MenuTree(ctx context.Context) (resp *types.TreeResp, err error) {
 	tree, err := biz.NewRBACLogic(l.svcCtx).MenuTreeAll(ctx)
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.AnyResp{Data: tree}, nil
+	return &types.TreeResp{Tree: tree}, nil
 }

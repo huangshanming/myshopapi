@@ -25,7 +25,7 @@ func NewMerchantUpdateRoleLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 	}
 }
 
-func (l *MerchantUpdateRoleLogic) MerchantUpdateRole(ctx context.Context, req *types.ShopRoleUpdateBodyReq) (resp *types.AnyResp, err error) {
+func (l *MerchantUpdateRoleLogic) MerchantUpdateRole(ctx context.Context, req *types.ShopRoleUpdateBodyReq) (resp *types.ShopRoleResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -43,5 +43,5 @@ func (l *MerchantUpdateRoleLogic) MerchantUpdateRole(ctx context.Context, req *t
 	if err := l.svcCtx.ShopRBAC.SaveRole(ctx, role, req.MenuIDs); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: role}, nil
+	return &types.ShopRoleResp{Data: role}, nil
 }

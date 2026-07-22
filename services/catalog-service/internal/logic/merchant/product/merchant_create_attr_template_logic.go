@@ -25,7 +25,7 @@ func NewMerchantCreateAttrTemplateLogic(ctx context.Context, svcCtx *svc.Service
 	}
 }
 
-func (l *MerchantCreateAttrTemplateLogic) MerchantCreateAttrTemplate(ctx context.Context, req *types.AttrTemplateReq) (resp *types.AnyResp, err error) {
+func (l *MerchantCreateAttrTemplateLogic) MerchantCreateAttrTemplate(ctx context.Context, req *types.AttrTemplateReq) (resp *types.AttrTemplateResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -40,5 +40,5 @@ func (l *MerchantCreateAttrTemplateLogic) MerchantCreateAttrTemplate(ctx context
 	if err := l.svcCtx.ProductAdmin.SaveAttrTemplate(ctx, t); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: t}, nil
+	return &types.AttrTemplateResp{Data: t}, nil
 }

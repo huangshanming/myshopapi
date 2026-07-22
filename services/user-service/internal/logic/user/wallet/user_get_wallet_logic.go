@@ -20,7 +20,7 @@ func NewUserGetWalletLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Use
 	return &UserGetWalletLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *UserGetWalletLogic) UserGetWallet(ctx context.Context) (*types.AnyResp, error) {
+func (l *UserGetWalletLogic) UserGetWallet(ctx context.Context) (*types.WalletResp, error) {
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
 		return nil, xerr.New(http.StatusUnauthorized, "未授权")
@@ -29,5 +29,5 @@ func (l *UserGetWalletLogic) UserGetWallet(ctx context.Context) (*types.AnyResp,
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.AnyResp{Data: w}, nil
+	return &types.WalletResp{Data: w}, nil
 }

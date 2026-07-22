@@ -24,10 +24,10 @@ func NewAdminAuditArticleLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 	}
 }
 
-func (l *AdminAuditArticleLogic) AdminAuditArticle(ctx context.Context, req *types.ArticleAuditBodyReq) (resp *types.AnyResp, err error) {
+func (l *AdminAuditArticleLogic) AdminAuditArticle(ctx context.Context, req *types.ArticleAuditBodyReq) (resp *types.EmptyResp, err error) {
 	id := req.Id
 	if err := clogic.NewArticleLogic(l.svcCtx).Audit(ctx, id, req.ToContent()); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: &types.AnyResp{}}, nil
+	return &types.EmptyResp{}, nil
 }

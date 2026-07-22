@@ -25,7 +25,7 @@ func NewMerchantCreateTagLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 	}
 }
 
-func (l *MerchantCreateTagLogic) MerchantCreateTag(ctx context.Context, req *types.TagReq) (resp *types.AnyResp, err error) {
+func (l *MerchantCreateTagLogic) MerchantCreateTag(ctx context.Context, req *types.TagReq) (resp *types.TagResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -40,5 +40,5 @@ func (l *MerchantCreateTagLogic) MerchantCreateTag(ctx context.Context, req *typ
 	if err := l.svcCtx.ProductAdmin.SaveTag(ctx, tag); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: tag}, nil
+	return &types.TagResp{Data: tag}, nil
 }

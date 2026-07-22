@@ -22,7 +22,7 @@ func NewGetByOrderLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetByO
 	return &GetByOrderLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *GetByOrderLogic) GetByOrder(ctx context.Context, req *types.IdPathReq) (*types.AnyResp, error) {
+func (l *GetByOrderLogic) GetByOrder(ctx context.Context, req *types.IdPathReq) (*types.ReviewResp, error) {
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
 		return nil, xerr.New(http.StatusUnauthorized, "未授权")
@@ -31,5 +31,5 @@ func (l *GetByOrderLogic) GetByOrder(ctx context.Context, req *types.IdPathReq) 
 	if err != nil {
 		return nil, xerr.New(http.StatusNotFound, err.Error())
 	}
-	return &types.AnyResp{Data: rev}, nil
+	return &types.ReviewResp{Data: rev}, nil
 }

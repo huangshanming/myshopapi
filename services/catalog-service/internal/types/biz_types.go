@@ -409,3 +409,9 @@ type OpLogsReq struct {
 	PageSize  int    `form:"page_size,default=10"`
 	ProductId uint64 `form:"product_id,optional"`
 }
+
+// Aliases for residual Data payload names (canonical types live in types.go)
+type URLData = URLResp
+type CountData = CountResp
+type FavoriteStatusData = FavoriteStatusResp
+type EngagementData = EngagementResp

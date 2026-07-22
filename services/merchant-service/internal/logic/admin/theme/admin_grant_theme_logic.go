@@ -25,11 +25,11 @@ func NewAdminGrantThemeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *A
 	}
 }
 
-func (l *AdminGrantThemeLogic) AdminGrantTheme(ctx context.Context, req *types.ThemeGrantReq) (resp *types.AnyResp, err error) {
+func (l *AdminGrantThemeLogic) AdminGrantTheme(ctx context.Context, req *types.ThemeGrantReq) (resp *types.ThemeOrderResp, err error) {
 	adminID, _ := middleware.GetUserID(ctx)
 	o, err := biz.NewMerchantLogic(l.svcCtx).GrantTheme(adminID, *req)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: o}, nil
+	return &types.ThemeOrderResp{Data: o}, nil
 }

@@ -24,10 +24,10 @@ func NewAdminOffCouponLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Ad
 	}
 }
 
-func (l *AdminOffCouponLogic) AdminOffCoupon(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *AdminOffCouponLogic) AdminOffCoupon(ctx context.Context, req *types.IdPathReq) (resp *types.EmptyResp, err error) {
 	id := req.Id
 	if err := biz.NewMerchantLogic(l.svcCtx).OffCoupon(id, 0, true); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{}, nil
+	return &types.EmptyResp{}, nil
 }

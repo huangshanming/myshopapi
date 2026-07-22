@@ -24,9 +24,9 @@ func NewInternalUnfreezeWalletLogic(ctx context.Context, svcCtx *svc.ServiceCont
 	}
 }
 
-func (l *InternalUnfreezeWalletLogic) InternalUnfreezeWallet(ctx context.Context, req *types.WalletOrderOpReq) error {
+func (l *InternalUnfreezeWalletLogic) InternalUnfreezeWallet(ctx context.Context, req *types.WalletOrderOpReq) (*types.EmptyResp, error) {
 	if err := biz.NewWalletLogic(l.svcCtx).UnfreezeOrder(ctx, req.UserID, req.Amount, req.OrderID, req.OrderNo); err != nil {
-		return xerr.New(http.StatusBadRequest, err.Error())
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return nil
+	return &types.EmptyResp{}, nil
 }

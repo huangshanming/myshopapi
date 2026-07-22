@@ -7,8 +7,8 @@ import (
 
 	"mymall/pkg/cache"
 	"mymall/pkg/mq"
-	"mymall/services/order-service/internal/client/merchanthttp"
-	"mymall/services/order-service/internal/client/userhttp"
+	"mymall/services/order-service/internal/client/merchantrpc"
+	"mymall/services/order-service/internal/client/userrpc"
 	"mymall/services/order-service/internal/model"
 	"mymall/services/order-service/internal/repository"
 
@@ -51,12 +51,12 @@ type Consumer struct {
 	client       *mq.Client
 	repo         *repository.OrderRepository
 	rdb          *redis.Client
-	userHTTP     *userhttp.Client
-	merchantHTTP *merchanthttp.Client
+	userHTTP     *userrpc.Client
+	merchantHTTP *merchantrpc.Client
 	logger       *zap.Logger
 }
 
-func NewConsumer(client *mq.Client, repo *repository.OrderRepository, rdb *redis.Client, userHTTP *userhttp.Client, merchantHTTP *merchanthttp.Client, logger *zap.Logger) *Consumer {
+func NewConsumer(client *mq.Client, repo *repository.OrderRepository, rdb *redis.Client, userHTTP *userrpc.Client, merchantHTTP *merchantrpc.Client, logger *zap.Logger) *Consumer {
 	return &Consumer{client: client, repo: repo, rdb: rdb, userHTTP: userHTTP, merchantHTTP: merchantHTTP, logger: logger}
 }
 
@@ -100,7 +100,7 @@ func (c *Consumer) handleReserved(ctx context.Context, _ string, body []byte) er
 	}
 	if c.userHTTP != nil {
 		extra, _ := json.Marshal(map[string]interface{}{"order_no": order.OrderNo})
-		_ = c.userHTTP.Notify(ctx, userhttp.NotifyReq{
+		_ = c.userHTTP.Notify(ctx, userrpc.NotifyReq{
 			UserID: order.UserID, Title: "订单已支付成功",
 			Content:  fmt.Sprintf("订单 %s 已支付成功，商家将尽快发货", order.OrderNo),
 			MsgType:  "order",
@@ -108,7 +108,7 @@ func (c *Consumer) handleReserved(ctx context.Context, _ string, body []byte) er
 			LinkID:   order.ID,
 			Extra:    string(extra),
 		})
-		_ = c.userHTTP.TaskEvent(ctx, userhttp.TaskEventReq{
+		_ = c.userHTTP.TaskEvent(ctx, userrpc.TaskEventReq{
 			UserID: order.UserID, TaskCode: "place_order", Delta: 1,
 			RefType: "order", RefID: order.ID,
 		})
@@ -140,7 +140,7 @@ func (c *Consumer) handleFailed(ctx context.Context, _ string, body []byte) erro
 	}
 	if c.userHTTP != nil {
 		extra, _ := json.Marshal(map[string]interface{}{"order_no": order.OrderNo})
-		_ = c.userHTTP.Notify(ctx, userhttp.NotifyReq{
+		_ = c.userHTTP.Notify(ctx, userrpc.NotifyReq{
 			UserID: order.UserID, Title: "订单已取消",
 			Content:  fmt.Sprintf("订单 %s 因库存等原因未能完成，已取消", order.OrderNo),
 			MsgType:  "order",

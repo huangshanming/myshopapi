@@ -1,37 +1,45 @@
-# 仅本地 go run 默认值。Docker Compose / K8s 用 MYMALL_*（Secret）覆盖密码与 host
-server:
-  http_port: 8883
-  mode: debug
-mysql:
-  host: 127.0.0.1
-  port: 3306
-  username: homestead
-  # 本地 go run 默认；Docker/K8s 由 MYMALL_MYSQL_* 覆盖
-  password: secret
-  charset: utf8mb4
-  dbname: mymall
-  max_open_conns: 50
-  max_idle_conns: 10
-  conn_max_lifetime: 3600
-  conn_max_idle_time: 3600
-grpc:
-  user_service: localhost:9090
-  catalog_service: localhost:9091
-merchant_http: http://127.0.0.1:8884
-user_http: http://127.0.0.1:8881
-redis:
-  host: 127.0.0.1
-  port: 6379
-  password: ""
-  db: 0
-rabbitmq:
-  host: 127.0.0.1
-  port: 5672
-  username: mymall
-  password: mymall
-  vhost: /
-  exchange: mymall.events
-telemetry:
-  enabled: false
-  endpoint: jaeger-collector.mymall:4318
-  service: order-service
+# go-zero RestConf + business fields. Compose/K8s 仍可用 MYMALL_* 覆盖。
+Name: order-service.api
+Host: 0.0.0.0
+Port: 8883
+Mode: dev
+Timeout: 30000
+Log:
+  Mode: console
+  Encoding: plain
+
+MySQL:
+  Host: 127.0.0.1
+  Port: 3306
+  Username: homestead
+  Password: secret
+  Dbname: mymall
+  Charset: utf8mb4
+  MaxOpenConns: 50
+  MaxIdleConns: 10
+  ConnMaxLifetime: 3600
+  ConnMaxIdleTime: 3600
+
+GRPC:
+  UserService: localhost:9090
+  CatalogService: localhost:9091
+  MerchantService: localhost:9092
+
+Redis:
+  Host: 127.0.0.1
+  Port: 6379
+  Password: ""
+  DB: 0
+
+RabbitMQ:
+  Host: 127.0.0.1
+  Port: 5672
+  Username: mymall
+  Password: mymall
+  Vhost: /
+  Exchange: mymall.events
+
+Telemetry:
+  Enabled: false
+  Endpoint: jaeger-collector.mymall:4318
+  Service: order-service

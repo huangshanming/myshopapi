@@ -24,9 +24,9 @@ func NewResetAdminPasswordLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 	}
 }
 
-func (l *ResetAdminPasswordLogic) ResetAdminPassword(ctx context.Context, req *types.AdminResetPwdReq) error {
+func (l *ResetAdminPasswordLogic) ResetAdminPassword(ctx context.Context, req *types.AdminResetPwdReq) (*types.EmptyResp, error) {
 	if err := biz.NewRBACLogic(l.svcCtx).ResetAdminPassword(ctx, req.Id, req.Password); err != nil {
-		return xerr.New(http.StatusBadRequest, err.Error())
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return nil
+	return &types.EmptyResp{}, nil
 }

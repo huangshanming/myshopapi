@@ -21,13 +21,13 @@ func NewMarkNotificationReadLogic(ctx context.Context, svcCtx *svc.ServiceContex
 	return &MarkNotificationReadLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *MarkNotificationReadLogic) MarkNotificationRead(ctx context.Context, req *types.IdPathReq) error {
+func (l *MarkNotificationReadLogic) MarkNotificationRead(ctx context.Context, req *types.IdPathReq) (*types.EmptyResp, error) {
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
-		return xerr.New(http.StatusUnauthorized, "未授权")
+		return nil, xerr.New(http.StatusUnauthorized, "未授权")
 	}
 	if err := biz.NewUserLogic(l.svcCtx).MarkRead(ctx, userID, req.Id); err != nil {
-		return xerr.New(http.StatusBadRequest, err.Error())
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return nil
+	return &types.EmptyResp{}, nil
 }

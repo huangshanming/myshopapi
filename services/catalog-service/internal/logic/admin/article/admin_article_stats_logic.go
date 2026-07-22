@@ -24,11 +24,11 @@ func NewAdminArticleStatsLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 	}
 }
 
-func (l *AdminArticleStatsLogic) AdminArticleStats(ctx context.Context) (resp *types.AnyResp, err error) {
+func (l *AdminArticleStatsLogic) AdminArticleStats(ctx context.Context) (resp *types.ArticleStatsResp, err error) {
 
 	data, err := clogic.NewArticleLogic(l.svcCtx).Stats(ctx)
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.AnyResp{Data: data}, nil
+	return &types.ArticleStatsResp{Data: data}, nil
 }

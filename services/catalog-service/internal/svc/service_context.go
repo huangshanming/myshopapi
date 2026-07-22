@@ -1,10 +1,10 @@
 package svc
 
 import (
-	"mymall/pkg/config"
 	"mymall/pkg/health"
 	"mymall/pkg/mq"
-	"mymall/services/catalog-service/internal/client/userhttp"
+	"mymall/services/catalog-service/internal/client/userrpc"
+	"mymall/services/catalog-service/internal/config"
 	contentrepo "mymall/services/catalog-service/internal/content/repository"
 	"mymall/services/catalog-service/internal/middleware"
 	notifyrepo "mymall/services/catalog-service/internal/notify/repository"
@@ -12,14 +12,14 @@ import (
 	shopopsrepo "mymall/services/catalog-service/internal/shopops/repository"
 
 	"github.com/redis/go-redis/v9"
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"github.com/zeromicro/go-zero/rest"
-	"gorm.io/gorm"
 )
 
 // ServiceContext 全局依赖（go-zero 惯例）
 type ServiceContext struct {
 	Config        *config.Config
-	DB            *gorm.DB
+	Conn          sqlx.SqlConn
 	Redis         *redis.Client
 	MQ            *mq.Client
 	Products      *productrepo.ProductRepository
@@ -29,7 +29,7 @@ type ServiceContext struct {
 	ShopRBAC      *shopopsrepo.ShopRBACRepository
 	Articles      *contentrepo.ArticleRepository
 	Notifications *notifyrepo.NotificationRepository
-	UserHTTP      *userhttp.Client
+	UserRPC       *userrpc.Client
 	Health        *health.Registry
 
 	RequestID            rest.Middleware
@@ -39,20 +39,24 @@ type ServiceContext struct {
 	RequirePlatformAdmin rest.Middleware
 }
 
-func NewServiceContext(cfg *config.Config, db *gorm.DB, redisClient *redis.Client, mqClient *mq.Client) *ServiceContext {
+func NewServiceContext(cfg *config.Config, conn sqlx.SqlConn, redisClient *redis.Client, mqClient *mq.Client) *ServiceContext {
+	var userRPC *userrpc.Client
+	if u, err := userrpc.New(cfg.UserRpc); err == nil {
+		userRPC = u
+	}
 	return &ServiceContext{
 		Config:               cfg,
-		DB:                   db,
+		Conn:                 conn,
 		Redis:                redisClient,
 		MQ:                   mqClient,
-		Products:             productrepo.NewProductRepository(db),
-		Categories:           productrepo.NewCategoryRepository(db),
-		ProductAdmin:         productrepo.NewProductAdminRepository(db),
-		Favorites:            productrepo.NewFavoriteRepository(db),
-		ShopRBAC:             shopopsrepo.NewShopRBACRepository(db),
-		Articles:             contentrepo.NewArticleRepository(db),
-		Notifications:        notifyrepo.NewNotificationRepository(db),
-		UserHTTP:             userhttp.New(cfg.UserHTTP),
+		Products:             productrepo.NewProductRepository(conn),
+		Categories:           productrepo.NewCategoryRepository(conn),
+		ProductAdmin:         productrepo.NewProductAdminRepository(conn),
+		Favorites:            productrepo.NewFavoriteRepository(conn),
+		ShopRBAC:             shopopsrepo.NewShopRBACRepository(conn),
+		Articles:             contentrepo.NewArticleRepository(conn),
+		Notifications:        notifyrepo.NewNotificationRepository(conn),
+		UserRPC:              userRPC,
 		RequestID:            middleware.NewRequestIDMiddleware().Handle,
 		GatewayIdentity:      middleware.NewGatewayIdentityMiddleware().Handle,
 		GatewayIdentityShop:  middleware.NewGatewayIdentityShopMiddleware().Handle,

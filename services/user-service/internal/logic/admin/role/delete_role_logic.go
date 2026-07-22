@@ -24,9 +24,9 @@ func NewDeleteRoleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Delete
 	}
 }
 
-func (l *DeleteRoleLogic) DeleteRole(ctx context.Context, req *types.IdPathReq) error {
+func (l *DeleteRoleLogic) DeleteRole(ctx context.Context, req *types.IdPathReq) (*types.EmptyResp, error) {
 	if err := biz.NewRBACLogic(l.svcCtx).DeleteRole(ctx, req.Id); err != nil {
-		return xerr.New(http.StatusBadRequest, err.Error())
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return nil
+	return &types.EmptyResp{}, nil
 }

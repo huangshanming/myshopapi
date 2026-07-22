@@ -9,21 +9,28 @@ import (
 	"mymall/common"
 	"mymall/services/user-service/internal/model"
 
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
+)
+
+const (
+	taskDefinitionColumns = "id, code, title, description, icon, period, enabled, reward_points, target_count, daily_limit, sort, rules_json, created_at, updated_at"
+	taskProgressColumns   = "id, user_id, task_code, biz_date, progress, claim_count, status, claimed_at, created_at, updated_at"
+	userPointsColumns     = "user_id, points, created_at, updated_at"
+	userPointLogColumns   = "id, user_id, change_type, delta, points_after, remark, ref_type, ref_id, created_at"
+	pointsOrderColumns    = "id, order_no, user_id, product_id, product_name, product_cover, quantity, points_cost, status, receiver_name, receiver_phone, receiver_address, ship_company, ship_no, admin_remark, shipped_at, completed_at, cancelled_at, created_at, updated_at"
 )
 
 type TaskRepository struct {
-	db *gorm.DB
+	conn sqlx.SqlConn
 }
 
-func NewTaskRepository(db *gorm.DB) *TaskRepository {
-	return &TaskRepository{db: db}
+func NewTaskRepository(conn sqlx.SqlConn) *TaskRepository {
+	return &TaskRepository{conn: conn}
 }
 
 func (r *TaskRepository) SeedIfEmpty(ctx context.Context) error {
-	var n int64
-	if err := r.db.WithContext(ctx).Model(&model.TaskDefinition{}).Count(&n).Error; err != nil {
+	n, err := countQuery(ctx, r.conn, "SELECT COUNT(*) FROM task_definitions")
+	if err != nil {
 		return err
 	}
 	if n > 0 {
@@ -41,22 +48,38 @@ func (r *TaskRepository) SeedIfEmpty(ctx context.Context) error {
 		{Code: "first_favorite_product", Title: "首次收藏商品", Description: "完成第一次商品收藏", Icon: "favorite", Period: model.TaskPeriodOnce, Enabled: 1, RewardPoints: 20, TargetCount: 1, DailyLimit: 0, Sort: 90, RulesJSON: "{}"},
 		{Code: "invite_placeholder", Title: "邀请好友", Description: "邀请好友注册（即将开放）", Icon: "invite", Period: model.TaskPeriodDaily, Enabled: 0, RewardPoints: 100, TargetCount: 1, DailyLimit: 1, Sort: 100, RulesJSON: "{}"},
 	}
-	return r.db.WithContext(ctx).Create(&seeds).Error
+	for i := range seeds {
+		s := &seeds[i]
+		if _, err := r.conn.ExecCtx(ctx,
+			`INSERT INTO task_definitions (code, title, description, icon, period, enabled, reward_points, target_count, daily_limit, sort, rules_json)
+			 VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+			s.Code, s.Title, s.Description, s.Icon, s.Period, s.Enabled, s.RewardPoints, s.TargetCount, s.DailyLimit, s.Sort, s.RulesJSON,
+		); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (r *TaskRepository) ListDefinitions(ctx context.Context, all bool) ([]model.TaskDefinition, error) {
-	q := r.db.WithContext(ctx).Model(&model.TaskDefinition{}).Order("sort ASC, id ASC")
-	if !all {
-		q = q.Where("enabled = 1")
-	}
 	var list []model.TaskDefinition
-	err := q.Find(&list).Error
+	if all {
+		err := r.conn.QueryRowsCtx(ctx, &list,
+			"SELECT "+taskDefinitionColumns+" FROM task_definitions ORDER BY sort ASC, id ASC",
+		)
+		return list, err
+	}
+	err := r.conn.QueryRowsCtx(ctx, &list,
+		"SELECT "+taskDefinitionColumns+" FROM task_definitions WHERE enabled=1 ORDER BY sort ASC, id ASC",
+	)
 	return list, err
 }
 
 func (r *TaskRepository) GetDefinition(ctx context.Context, code string) (*model.TaskDefinition, error) {
 	var t model.TaskDefinition
-	err := r.db.WithContext(ctx).Where("code = ?", code).First(&t).Error
+	err := r.conn.QueryRowCtx(ctx, &t,
+		"SELECT "+taskDefinitionColumns+" FROM task_definitions WHERE code=? LIMIT 1", code,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +88,9 @@ func (r *TaskRepository) GetDefinition(ctx context.Context, code string) (*model
 
 func (r *TaskRepository) GetDefinitionByID(ctx context.Context, id uint64) (*model.TaskDefinition, error) {
 	var t model.TaskDefinition
-	err := r.db.WithContext(ctx).Where("id = ?", id).First(&t).Error
+	err := r.conn.QueryRowCtx(ctx, &t,
+		"SELECT "+taskDefinitionColumns+" FROM task_definitions WHERE id=? LIMIT 1", id,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +98,12 @@ func (r *TaskRepository) GetDefinitionByID(ctx context.Context, id uint64) (*mod
 }
 
 func (r *TaskRepository) UpdateDefinition(ctx context.Context, id uint64, updates map[string]interface{}) error {
-	return r.db.WithContext(ctx).Model(&model.TaskDefinition{}).Where("id = ?", id).Updates(updates).Error
+	query, args, err := buildUpdate("task_definitions", updates, "id=?", id)
+	if err != nil {
+		return err
+	}
+	_, err = r.conn.ExecCtx(ctx, query, args...)
+	return err
 }
 
 func TodayBizDate() string {
@@ -90,21 +120,28 @@ func BizDateFor(def *model.TaskDefinition) string {
 func (r *TaskRepository) GetOrCreateProgress(ctx context.Context, userID uint64, def *model.TaskDefinition) (*model.UserTaskProgress, error) {
 	biz := BizDateFor(def)
 	var p model.UserTaskProgress
-	err := r.db.WithContext(ctx).Where("user_id = ? AND task_code = ? AND biz_date = ?", userID, def.Code, biz).First(&p).Error
+	err := r.conn.QueryRowCtx(ctx, &p,
+		"SELECT "+taskProgressColumns+" FROM user_task_progress WHERE user_id=? AND task_code=? AND biz_date=? LIMIT 1",
+		userID, def.Code, biz,
+	)
 	if err == nil {
 		return &p, nil
 	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
+	if !errors.Is(err, sqlx.ErrNotFound) {
 		return nil, err
 	}
-	p = model.UserTaskProgress{
-		UserID: userID, TaskCode: def.Code, BizDate: biz,
-		Progress: 0, ClaimCount: 0, Status: model.TaskStatusOngoing,
-	}
-	if err := r.db.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&p).Error; err != nil {
+	_, err = r.conn.ExecCtx(ctx,
+		`INSERT IGNORE INTO user_task_progress (user_id, task_code, biz_date, progress, claim_count, status)
+		 VALUES (?,?,?,0,0,?)`,
+		userID, def.Code, biz, model.TaskStatusOngoing,
+	)
+	if err != nil {
 		return nil, err
 	}
-	err = r.db.WithContext(ctx).Where("user_id = ? AND task_code = ? AND biz_date = ?", userID, def.Code, biz).First(&p).Error
+	err = r.conn.QueryRowCtx(ctx, &p,
+		"SELECT "+taskProgressColumns+" FROM user_task_progress WHERE user_id=? AND task_code=? AND biz_date=? LIMIT 1",
+		userID, def.Code, biz,
+	)
 	return &p, err
 }
 
@@ -112,12 +149,15 @@ func (r *TaskRepository) TryDedupe(ctx context.Context, userID uint64, taskCode,
 	if refKey == "" {
 		return true, nil
 	}
-	row := model.UserTaskDedupe{UserID: userID, TaskCode: taskCode, BizDate: bizDate, RefKey: refKey}
-	res := r.db.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&row)
-	if res.Error != nil {
-		return false, res.Error
+	res, err := r.conn.ExecCtx(ctx,
+		"INSERT IGNORE INTO user_task_dedupe (user_id, task_code, biz_date, ref_key) VALUES (?,?,?,?)",
+		userID, taskCode, bizDate, refKey,
+	)
+	if err != nil {
+		return false, err
 	}
-	return res.RowsAffected > 0, nil
+	n, err := res.RowsAffected()
+	return n > 0, err
 }
 
 func (r *TaskRepository) ApplyEvent(ctx context.Context, userID uint64, def *model.TaskDefinition, delta int, refKey string) (*model.UserTaskProgress, error) {
@@ -137,26 +177,32 @@ func (r *TaskRepository) ApplyEvent(ctx context.Context, userID uint64, def *mod
 	}
 
 	var out *model.UserTaskProgress
-	err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	err = r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		var p model.UserTaskProgress
-		e := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-			Where("user_id = ? AND task_code = ? AND biz_date = ?", userID, def.Code, biz).
-			First(&p).Error
-		if errors.Is(e, gorm.ErrRecordNotFound) {
-			p = model.UserTaskProgress{
-				UserID: userID, TaskCode: def.Code, BizDate: biz,
-				Status: model.TaskStatusOngoing,
-			}
-			if err := tx.Create(&p).Error; err != nil {
+		e := session.QueryRowCtx(ctx, &p,
+			"SELECT "+taskProgressColumns+" FROM user_task_progress WHERE user_id=? AND task_code=? AND biz_date=? FOR UPDATE",
+			userID, def.Code, biz,
+		)
+		if errors.Is(e, sqlx.ErrNotFound) {
+			res, err := session.ExecCtx(ctx,
+				`INSERT INTO user_task_progress (user_id, task_code, biz_date, progress, claim_count, status)
+				 VALUES (?,?,?,0,0,?)`,
+				userID, def.Code, biz, model.TaskStatusOngoing,
+			)
+			if err != nil {
 				return err
 			}
-			e = tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-				Where("id = ?", p.ID).First(&p).Error
+			id, err := lastInsertID(res)
+			if err != nil {
+				return err
+			}
+			e = session.QueryRowCtx(ctx, &p,
+				"SELECT "+taskProgressColumns+" FROM user_task_progress WHERE id=? FOR UPDATE", id,
+			)
 		}
 		if e != nil {
 			return e
 		}
-		// 已领满（once 或 daily_limit）
 		if def.Period == model.TaskPeriodOnce && p.Status == model.TaskStatusClaimed {
 			out = &p
 			return nil
@@ -170,7 +216,6 @@ func (r *TaskRepository) ApplyEvent(ctx context.Context, userID uint64, def *mod
 			return nil
 		}
 		if p.Status == model.TaskStatusClaimed && def.Period == model.TaskPeriodDaily {
-			// 日任务领取后若还可再领一轮，重置进度
 			if def.DailyLimit == 0 || p.ClaimCount < def.DailyLimit {
 				p.Progress = 0
 				p.Status = model.TaskStatusOngoing
@@ -188,9 +233,10 @@ func (r *TaskRepository) ApplyEvent(ctx context.Context, userID uint64, def *mod
 			p.Progress = target
 			p.Status = model.TaskStatusClaimable
 		}
-		if err := tx.Model(&p).Updates(map[string]interface{}{
-			"progress": p.Progress, "status": p.Status,
-		}).Error; err != nil {
+		if _, err := session.ExecCtx(ctx,
+			"UPDATE user_task_progress SET progress=?, status=? WHERE id=?",
+			p.Progress, p.Status, p.ID,
+		); err != nil {
 			return err
 		}
 		out = &p
@@ -202,12 +248,13 @@ func (r *TaskRepository) ApplyEvent(ctx context.Context, userID uint64, def *mod
 func (r *TaskRepository) Claim(ctx context.Context, userID uint64, def *model.TaskDefinition) (*model.UserPoints, error) {
 	biz := BizDateFor(def)
 	var points *model.UserPoints
-	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	err := r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		var p model.UserTaskProgress
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-			Where("user_id = ? AND task_code = ? AND biz_date = ?", userID, def.Code, biz).
-			First(&p).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
+		if err := session.QueryRowCtx(ctx, &p,
+			"SELECT "+taskProgressColumns+" FROM user_task_progress WHERE user_id=? AND task_code=? AND biz_date=? FOR UPDATE",
+			userID, def.Code, biz,
+		); err != nil {
+			if errors.Is(err, sqlx.ErrNotFound) {
 				return errors.New("任务尚未完成")
 			}
 			return err
@@ -223,32 +270,30 @@ func (r *TaskRepository) Claim(ctx context.Context, userID uint64, def *model.Ta
 		}
 		reward := def.RewardPoints
 		now := common.LocalTime(time.Now())
-		updates := map[string]interface{}{
-			"claim_count": p.ClaimCount + 1,
-			"claimed_at":  &now,
-		}
-		// 领取后：once 永久 claimed；daily 若还可再做则回到 ongoing
 		nextStatus := model.TaskStatusClaimed
+		nextProgress := p.Progress
+		nextClaim := p.ClaimCount + 1
 		if def.Period == model.TaskPeriodDaily {
-			nextClaim := p.ClaimCount + 1
 			if def.DailyLimit == 0 || nextClaim < def.DailyLimit {
 				nextStatus = model.TaskStatusOngoing
-				updates["progress"] = 0
+				nextProgress = 0
 			}
 		}
-		updates["status"] = nextStatus
-		if err := tx.Model(&p).Updates(updates).Error; err != nil {
+		if _, err := session.ExecCtx(ctx,
+			"UPDATE user_task_progress SET claim_count=?, claimed_at=?, status=?, progress=? WHERE id=?",
+			nextClaim, &now, nextStatus, nextProgress, p.ID,
+		); err != nil {
 			return err
 		}
 		if reward <= 0 {
-			up, err := r.ensurePointsTx(tx, userID)
+			up, err := r.ensurePointsTx(ctx, session, userID)
 			if err != nil {
 				return err
 			}
 			points = up
 			return nil
 		}
-		up, err := r.addPointsTx(tx, userID, reward, model.PointChangeTaskClaim, "任务奖励："+def.Title, "task", def.ID)
+		up, err := r.addPointsTx(ctx, session, userID, reward, model.PointChangeTaskClaim, "任务奖励："+def.Title, "task", def.ID)
 		if err != nil {
 			return err
 		}
@@ -258,15 +303,21 @@ func (r *TaskRepository) Claim(ctx context.Context, userID uint64, def *model.Ta
 	return points, err
 }
 
-func (r *TaskRepository) ensurePointsTx(tx *gorm.DB, userID uint64) (*model.UserPoints, error) {
+func (r *TaskRepository) ensurePointsTx(ctx context.Context, session sqlx.Session, userID uint64) (*model.UserPoints, error) {
 	var up model.UserPoints
-	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("user_id = ?", userID).First(&up).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		up = model.UserPoints{UserID: userID, Points: 0}
-		if err := tx.Create(&up).Error; err != nil {
+	err := session.QueryRowCtx(ctx, &up,
+		"SELECT "+userPointsColumns+" FROM user_points WHERE user_id=? FOR UPDATE", userID,
+	)
+	if errors.Is(err, sqlx.ErrNotFound) {
+		_, err = session.ExecCtx(ctx,
+			"INSERT INTO user_points (user_id, points) VALUES (?, 0)", userID,
+		)
+		if err != nil {
 			return nil, err
 		}
-		return &up, nil
+		err = session.QueryRowCtx(ctx, &up,
+			"SELECT "+userPointsColumns+" FROM user_points WHERE user_id=? FOR UPDATE", userID,
+		)
 	}
 	if err != nil {
 		return nil, err
@@ -274,8 +325,8 @@ func (r *TaskRepository) ensurePointsTx(tx *gorm.DB, userID uint64) (*model.User
 	return &up, nil
 }
 
-func (r *TaskRepository) addPointsTx(tx *gorm.DB, userID uint64, delta int, changeType, remark, refType string, refID uint64) (*model.UserPoints, error) {
-	up, err := r.ensurePointsTx(tx, userID)
+func (r *TaskRepository) addPointsTx(ctx context.Context, session sqlx.Session, userID uint64, delta int, changeType, remark, refType string, refID uint64) (*model.UserPoints, error) {
+	up, err := r.ensurePointsTx(ctx, session, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -283,20 +334,21 @@ func (r *TaskRepository) addPointsTx(tx *gorm.DB, userID uint64, delta int, chan
 	if up.Points < 0 {
 		return nil, errors.New("积分不足")
 	}
-	if err := tx.Model(up).Update("points", up.Points).Error; err != nil {
+	if _, err := session.ExecCtx(ctx,
+		"UPDATE user_points SET points=? WHERE user_id=?", up.Points, userID,
+	); err != nil {
 		return nil, err
 	}
-	log := model.UserPointLog{
-		UserID: userID, ChangeType: changeType, Delta: delta,
-		PointsAfter: up.Points, Remark: remark, RefType: refType, RefID: refID,
-	}
-	if err := tx.Create(&log).Error; err != nil {
+	if _, err := session.ExecCtx(ctx,
+		`INSERT INTO user_point_logs (user_id, change_type, delta, points_after, remark, ref_type, ref_id)
+		 VALUES (?,?,?,?,?,?,?)`,
+		userID, changeType, delta, up.Points, remark, refType, refID,
+	); err != nil {
 		return nil, err
 	}
 	return up, nil
 }
 
-// DeductPoints 扣减积分（幂等：同 ref_type+ref_id+change_type 已存在则直接成功）
 func (r *TaskRepository) DeductPoints(ctx context.Context, userID uint64, points int, changeType, remark, refType string, refID uint64) (*model.UserPoints, error) {
 	if userID == 0 || points <= 0 {
 		return nil, errors.New("参数无效")
@@ -305,22 +357,23 @@ func (r *TaskRepository) DeductPoints(ctx context.Context, userID uint64, points
 		changeType = model.PointChangeMallExchange
 	}
 	var out *model.UserPoints
-	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var n int64
-		if err := tx.Model(&model.UserPointLog{}).
-			Where("ref_type = ? AND ref_id = ? AND change_type = ?", refType, refID, changeType).
-			Count(&n).Error; err != nil {
+	err := r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
+		n, err := countQuery(ctx, session,
+			"SELECT COUNT(*) FROM user_point_logs WHERE ref_type=? AND ref_id=? AND change_type=?",
+			refType, refID, changeType,
+		)
+		if err != nil {
 			return err
 		}
 		if n > 0 {
-			up, err := r.ensurePointsTx(tx, userID)
+			up, err := r.ensurePointsTx(ctx, session, userID)
 			if err != nil {
 				return err
 			}
 			out = up
 			return nil
 		}
-		up, err := r.addPointsTx(tx, userID, -points, changeType, remark, refType, refID)
+		up, err := r.addPointsTx(ctx, session, userID, -points, changeType, remark, refType, refID)
 		if err != nil {
 			return err
 		}
@@ -330,7 +383,6 @@ func (r *TaskRepository) DeductPoints(ctx context.Context, userID uint64, points
 	return out, err
 }
 
-// RefundPoints 退回积分（幂等）
 func (r *TaskRepository) RefundPoints(ctx context.Context, userID uint64, points int, changeType, remark, refType string, refID uint64) (*model.UserPoints, error) {
 	if userID == 0 || points <= 0 {
 		return nil, errors.New("参数无效")
@@ -339,22 +391,23 @@ func (r *TaskRepository) RefundPoints(ctx context.Context, userID uint64, points
 		changeType = model.PointChangeMallRefund
 	}
 	var out *model.UserPoints
-	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var n int64
-		if err := tx.Model(&model.UserPointLog{}).
-			Where("ref_type = ? AND ref_id = ? AND change_type = ?", refType, refID, changeType).
-			Count(&n).Error; err != nil {
+	err := r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
+		n, err := countQuery(ctx, session,
+			"SELECT COUNT(*) FROM user_point_logs WHERE ref_type=? AND ref_id=? AND change_type=?",
+			refType, refID, changeType,
+		)
+		if err != nil {
 			return err
 		}
 		if n > 0 {
-			up, err := r.ensurePointsTx(tx, userID)
+			up, err := r.ensurePointsTx(ctx, session, userID)
 			if err != nil {
 				return err
 			}
 			out = up
 			return nil
 		}
-		up, err := r.addPointsTx(tx, userID, points, changeType, remark, refType, refID)
+		up, err := r.addPointsTx(ctx, session, userID, points, changeType, remark, refType, refID)
 		if err != nil {
 			return err
 		}
@@ -366,10 +419,14 @@ func (r *TaskRepository) RefundPoints(ctx context.Context, userID uint64, points
 
 func (r *TaskRepository) GetPoints(ctx context.Context, userID uint64) (*model.UserPoints, error) {
 	var up model.UserPoints
-	err := r.db.WithContext(ctx).Where("user_id = ?", userID).First(&up).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
+	err := r.conn.QueryRowCtx(ctx, &up,
+		"SELECT "+userPointsColumns+" FROM user_points WHERE user_id=? LIMIT 1", userID,
+	)
+	if errors.Is(err, sqlx.ErrNotFound) {
 		up = model.UserPoints{UserID: userID, Points: 0}
-		_ = r.db.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&up).Error
+		_, _ = r.conn.ExecCtx(ctx,
+			"INSERT IGNORE INTO user_points (user_id, points) VALUES (?, 0)", userID,
+		)
 		return &up, nil
 	}
 	if err != nil {
@@ -379,23 +436,32 @@ func (r *TaskRepository) GetPoints(ctx context.Context, userID uint64) (*model.U
 }
 
 func (r *TaskRepository) ListPointLogs(ctx context.Context, userID uint64, page, pageSize int) ([]model.UserPointLog, int64, error) {
-	var total int64
-	q := r.db.WithContext(ctx).Model(&model.UserPointLog{}).Where("user_id = ?", userID)
-	if err := q.Count(&total).Error; err != nil {
+	total, err := countQuery(ctx, r.conn,
+		"SELECT COUNT(*) FROM user_point_logs WHERE user_id=?", userID,
+	)
+	if err != nil {
 		return nil, 0, err
 	}
 	var list []model.UserPointLog
-	err := q.Order("id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
+	err = r.conn.QueryRowsCtx(ctx, &list,
+		"SELECT "+userPointLogColumns+" FROM user_point_logs WHERE user_id=? ORDER BY id DESC LIMIT ? OFFSET ?",
+		userID, pageSize, (page-1)*pageSize,
+	)
 	return list, total, err
 }
 
 func (r *TaskRepository) GetUserBrief(ctx context.Context, userID uint64) (nickname, avatar string, err error) {
-	var u model.User
-	err = r.db.WithContext(ctx).Select("id", "nickname", "avatar").Where("id = ?", userID).First(&u).Error
+	var brief struct {
+		Nickname string `db:"nickname"`
+		Avatar   string `db:"avatar"`
+	}
+	err = r.conn.QueryRowCtx(ctx, &brief,
+		"SELECT nickname, avatar FROM users WHERE id=? AND deleted_at IS NULL LIMIT 1", userID,
+	)
 	if err != nil {
 		return "", "", err
 	}
-	return u.Nickname, u.Avatar, nil
+	return brief.Nickname, brief.Avatar, nil
 }
 
 func FormatDedupeKey(prefix string, id uint64) string {

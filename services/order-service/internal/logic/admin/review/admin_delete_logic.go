@@ -21,9 +21,9 @@ func NewAdminDeleteLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Admin
 	return &AdminDeleteLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *AdminDeleteLogic) AdminDelete(ctx context.Context, req *types.IdPathReq) (*types.AnyResp, error) {
+func (l *AdminDeleteLogic) AdminDelete(ctx context.Context, req *types.IdPathReq) (*types.EmptyResp, error) {
 	if err := biz.NewReviewLogic(l.svcCtx).SoftDelete(ctx, req.Id, 0); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{}, nil
+	return &types.EmptyResp{}, nil
 }

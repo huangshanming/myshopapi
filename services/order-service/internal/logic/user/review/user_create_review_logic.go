@@ -23,7 +23,7 @@ func NewUserCreateReviewLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 	return &UserCreateReviewLogic{Logger: logx.WithContext(ctx), svcCtx: svcCtx}
 }
 
-func (l *UserCreateReviewLogic) UserCreateReview(ctx context.Context, req *types.CreateReviewBodyReq) (*types.AnyResp, error) {
+func (l *UserCreateReviewLogic) UserCreateReview(ctx context.Context, req *types.CreateReviewBodyReq) (*types.ReviewResp, error) {
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
 		return nil, xerr.New(http.StatusUnauthorized, "未授权")
@@ -35,5 +35,5 @@ func (l *UserCreateReviewLogic) UserCreateReview(ctx context.Context, req *types
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: rev}, nil
+	return &types.ReviewResp{Data: rev}, nil
 }

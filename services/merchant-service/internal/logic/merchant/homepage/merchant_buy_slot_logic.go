@@ -25,7 +25,7 @@ func NewMerchantBuySlotLogic(ctx context.Context, svcCtx *svc.ServiceContext) *M
 	}
 }
 
-func (l *MerchantBuySlotLogic) MerchantBuySlot(ctx context.Context, req *types.BuySlotReq) (resp *types.AnyResp, err error) {
+func (l *MerchantBuySlotLogic) MerchantBuySlot(ctx context.Context, req *types.BuySlotReq) (resp *types.HomepageOrderResp, err error) {
 	shopID := middleware.GetShopID(ctx)
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok || shopID == 0 {
@@ -35,5 +35,5 @@ func (l *MerchantBuySlotLogic) MerchantBuySlot(ctx context.Context, req *types.B
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: order}, nil
+	return &types.HomepageOrderResp{Data: order}, nil
 }

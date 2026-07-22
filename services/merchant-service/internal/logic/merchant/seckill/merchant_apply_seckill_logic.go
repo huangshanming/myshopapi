@@ -25,12 +25,12 @@ func NewMerchantApplySeckillLogic(ctx context.Context, svcCtx *svc.ServiceContex
 	}
 }
 
-func (l *MerchantApplySeckillLogic) MerchantApplySeckill(ctx context.Context, req *types.SeckillApplyReq) (resp *types.AnyResp, err error) {
+func (l *MerchantApplySeckillLogic) MerchantApplySeckill(ctx context.Context, req *types.SeckillApplyReq) (resp *types.SeckillEntryResp, err error) {
 	shopID := middleware.GetShopID(ctx)
 	userID, _ := middleware.GetUserID(ctx)
 	entry, err := biz.NewMerchantLogic(l.svcCtx).ApplySeckill(shopID, userID, *req)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: entry}, nil
+	return &types.SeckillEntryResp{Data: entry}, nil
 }

@@ -26,7 +26,7 @@ func NewMerchantImportProductsLogic(ctx context.Context, svcCtx *svc.ServiceCont
 	}
 }
 
-func (l *MerchantImportProductsLogic) MerchantImportProducts(ctx context.Context, r *http.Request) (resp *types.AnyResp, err error) {
+func (l *MerchantImportProductsLogic) MerchantImportProducts(ctx context.Context, r *http.Request) (resp *types.ImportResultResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -52,5 +52,5 @@ func (l *MerchantImportProductsLogic) MerchantImportProducts(ctx context.Context
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: res}, nil
+	return &types.ImportResultResp{Data: res}, nil
 }

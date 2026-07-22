@@ -25,7 +25,7 @@ func NewBatchStockLogic(ctx context.Context, svcCtx *svc.ServiceContext) *BatchS
 	}
 }
 
-func (l *BatchStockLogic) BatchStock(ctx context.Context, req *types.BatchStockReq) (resp *types.AnyResp, err error) {
+func (l *BatchStockLogic) BatchStock(ctx context.Context, req *types.BatchStockReq) (resp *types.EmptyResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -39,5 +39,5 @@ func (l *BatchStockLogic) BatchStock(ctx context.Context, req *types.BatchStockR
 	if err := plogic.NewProductAdminLogic(l.svcCtx).BatchStock(ctx, shopID, req.ToProduct()); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: &types.AnyResp{}}, nil
+	return &types.EmptyResp{}, nil
 }

@@ -25,5 +25,5 @@ WORKDIR /app
 COPY --from=builder /merchant-service /app/merchant-service
 COPY services/merchant-service/etc/ /app/etc/
 ENV CONFIG_PATH=/app/etc/merchant-service.yaml
-EXPOSE 8888
+EXPOSE 8888 9090
 CMD ["/app/merchant-service"]

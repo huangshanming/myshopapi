@@ -19,11 +19,11 @@ func AssignAdminRolesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := staff.NewAssignAdminRolesLogic(r.Context(), svcCtx)
-		err := l.AssignAdminRoles(r.Context(), &req)
+		resp, err := l.AssignAdminRoles(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {
-			httpx.Ok(w)
+			httpx.OkJsonCtx(r.Context(), w, resp)
 		}
 	}
 }
@@ -91,11 +91,11 @@ func ResetAdminPasswordHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := staff.NewResetAdminPasswordLogic(r.Context(), svcCtx)
-		err := l.ResetAdminPassword(r.Context(), &req)
+		resp, err := l.ResetAdminPassword(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {
-			httpx.Ok(w)
+			httpx.OkJsonCtx(r.Context(), w, resp)
 		}
 	}
 }

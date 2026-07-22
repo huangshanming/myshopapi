@@ -24,7 +24,7 @@ func NewAdminUpdateThemeSlotLogic(ctx context.Context, svcCtx *svc.ServiceContex
 	}
 }
 
-func (l *AdminUpdateThemeSlotLogic) AdminUpdateThemeSlot(ctx context.Context, req *types.ThemeSlotUpdateBodyReq) (resp *types.AnyResp, err error) {
+func (l *AdminUpdateThemeSlotLogic) AdminUpdateThemeSlot(ctx context.Context, req *types.ThemeSlotUpdateBodyReq) (resp *types.EmptyResp, err error) {
 	id := req.Id
 	if id == 0 {
 		return nil, xerr.New(http.StatusBadRequest, "ID无效")
@@ -60,5 +60,5 @@ updates := map[string]interface{}{}
 	if err := biz.NewMerchantLogic(l.svcCtx).AdminUpdateThemeSlot(id, updates); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{}, nil
+	return &types.EmptyResp{}, nil
 }

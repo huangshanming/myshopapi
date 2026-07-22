@@ -76,10 +76,10 @@ func NewCreatePointsProductLogic(ctx context.Context, svcCtx *svc.ServiceContext
 	}
 }
 
-func (l *CreatePointsProductLogic) CreatePointsProduct(ctx context.Context, req *types.PointsProductSaveReq) (resp *types.AnyResp, err error) {
+func (l *CreatePointsProductLogic) CreatePointsProduct(ctx context.Context, req *types.PointsProductSaveReq) (resp *types.PointsProductResp, err error) {
 	p, err := biz.NewPointsProductLogic(l.svcCtx).Create(ctx, toBizPointsProductSave(req))
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: p}, nil
+	return &types.PointsProductResp{Data: p}, nil
 }

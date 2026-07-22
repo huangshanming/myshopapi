@@ -3,21 +3,30 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"mymall/common"
 	"mymall/services/catalog-service/internal/content/model"
 
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
+)
+
+const (
+	communityArticleColumns = "id, shop_id, author_user_id, category_id, title, cover_url, content, audit_status, reject_reason, status, schedule_publish_at, is_top, view_count, like_count, audience_count, read_count, collect_count, comment_count, published_at, deleted_at, created_by, created_at, updated_at"
+	communityArticleCategoryColumns = "id, parent_id, name, sort, status, created_at, updated_at"
+	communityArticleCommentColumns = "id, article_id, shop_id, user_id, parent_id, root_id, reply_to_user_id, content, status, created_at, updated_at"
+	communityArticleImgColumns = "id, article_id, shop_id, url, sort, created_at"
+	communityCommentEmojiColumns = "id, name, image_url, sort, status, created_at, updated_at"
 )
 
 type ArticleRepository struct {
-	db *gorm.DB
+	conn sqlx.SqlConn
 }
 
-func NewArticleRepository(db *gorm.DB) *ArticleRepository {
-	return &ArticleRepository{db: db}
+func NewArticleRepository(conn sqlx.SqlConn) *ArticleRepository {
+	return &ArticleRepository{conn: conn}
 }
 
 type ArticleListFilter struct {
@@ -35,41 +44,53 @@ type ArticleListFilter struct {
 }
 
 func (r *ArticleRepository) List(ctx context.Context, f ArticleListFilter) ([]model.CommunityArticle, int64, error) {
-	q := r.db.WithContext(ctx).Model(&model.CommunityArticle{})
+	where := make([]string, 0, 8)
+	args := make([]any, 0, 12)
 	if f.Recycle {
-		q = q.Where("status = ?", model.ArticleDeleted)
+		where = append(where, "status=?")
+		args = append(args, model.ArticleDeleted)
 	} else {
-		q = q.Where("status <> ?", model.ArticleDeleted)
+		where = append(where, "status<>?")
+		args = append(args, model.ArticleDeleted)
 	}
 	if f.FilterShop {
-		q = q.Where("shop_id = ?", f.ShopID)
+		where = append(where, "shop_id=?")
+		args = append(args, f.ShopID)
 	} else if f.ShopID > 0 {
-		q = q.Where("shop_id = ?", f.ShopID)
+		where = append(where, "shop_id=?")
+		args = append(args, f.ShopID)
 	}
 	if f.Title != "" {
-		q = q.Where("title LIKE ?", "%"+f.Title+"%")
+		where = append(where, "title LIKE ?")
+		args = append(args, "%"+f.Title+"%")
 	}
 	if f.AuditStatus != "" {
-		q = q.Where("audit_status = ?", f.AuditStatus)
+		where = append(where, "audit_status=?")
+		args = append(args, f.AuditStatus)
 	}
 	if f.Status != "" {
-		q = q.Where("status = ?", f.Status)
+		where = append(where, "status=?")
+		args = append(args, f.Status)
 	}
 	if f.HasSchedule != nil {
 		if *f.HasSchedule {
-			q = q.Where("schedule_publish_at IS NOT NULL")
+			where = append(where, "schedule_publish_at IS NOT NULL")
 		} else {
-			q = q.Where("schedule_publish_at IS NULL")
+			where = append(where, "schedule_publish_at IS NULL")
 		}
 	}
 	if f.CreatedFrom != nil {
-		q = q.Where("created_at >= ?", *f.CreatedFrom)
+		where = append(where, "created_at >= ?")
+		args = append(args, *f.CreatedFrom)
 	}
 	if f.CreatedTo != nil {
-		q = q.Where("created_at <= ?", *f.CreatedTo)
+		where = append(where, "created_at <= ?")
+		args = append(args, *f.CreatedTo)
 	}
-	var total int64
-	if err := q.Count(&total).Error; err != nil {
+	whereSQL := strings.Join(where, " AND ")
+
+	total, err := countCtx(ctx, r.conn, "SELECT COUNT(*) FROM community_article WHERE "+whereSQL, args...)
+	if err != nil {
 		return nil, 0, err
 	}
 	if f.Page < 1 {
@@ -79,15 +100,17 @@ func (r *ArticleRepository) List(ctx context.Context, f ArticleListFilter) ([]mo
 		f.PageSize = 20
 	}
 	var list []model.CommunityArticle
-	err := q.Order("is_top DESC, id DESC").
-		Offset((f.Page - 1) * f.PageSize).Limit(f.PageSize).
-		Find(&list).Error
+	qArgs := append(append([]any{}, args...), f.PageSize, (f.Page-1)*f.PageSize)
+	err = r.conn.QueryRowsCtx(ctx, &list,
+		"SELECT "+communityArticleColumns+" FROM community_article WHERE "+whereSQL+" ORDER BY is_top DESC, id DESC LIMIT ? OFFSET ?",
+		qArgs...,
+	)
 	return list, total, err
 }
 
 func (r *ArticleRepository) GetByID(ctx context.Context, id uint64) (*model.CommunityArticle, error) {
 	var a model.CommunityArticle
-	err := r.db.WithContext(ctx).Where("id = ?", id).First(&a).Error
+	err := r.conn.QueryRowCtx(ctx, &a, "SELECT "+communityArticleColumns+" FROM community_article WHERE id=? LIMIT 1", id)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +119,7 @@ func (r *ArticleRepository) GetByID(ctx context.Context, id uint64) (*model.Comm
 
 func (r *ArticleRepository) GetByIDShop(ctx context.Context, id, shopID uint64) (*model.CommunityArticle, error) {
 	var a model.CommunityArticle
-	err := r.db.WithContext(ctx).Where("id = ? AND shop_id = ?", id, shopID).First(&a).Error
+	err := r.conn.QueryRowCtx(ctx, &a, "SELECT "+communityArticleColumns+" FROM community_article WHERE id=? AND shop_id=? LIMIT 1", id, shopID)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +128,10 @@ func (r *ArticleRepository) GetByIDShop(ctx context.Context, id, shopID uint64) 
 
 func (r *ArticleRepository) GetByIDAuthor(ctx context.Context, id, userID uint64) (*model.CommunityArticle, error) {
 	var a model.CommunityArticle
-	err := r.db.WithContext(ctx).Where("id = ? AND author_user_id = ? AND shop_id = 0", id, userID).First(&a).Error
+	err := r.conn.QueryRowCtx(ctx, &a,
+		"SELECT "+communityArticleColumns+" FROM community_article WHERE id=? AND author_user_id=? AND shop_id=0 LIMIT 1",
+		id, userID,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -113,10 +139,10 @@ func (r *ArticleRepository) GetByIDAuthor(ctx context.Context, id, userID uint64
 }
 
 func (r *ArticleRepository) ListByAuthor(ctx context.Context, userID uint64, page, pageSize int) ([]model.CommunityArticle, int64, error) {
-	q := r.db.WithContext(ctx).Model(&model.CommunityArticle{}).
-		Where("author_user_id = ? AND shop_id = 0 AND status <> ?", userID, model.ArticleDeleted)
-	var total int64
-	if err := q.Count(&total).Error; err != nil {
+	whereSQL := "author_user_id=? AND shop_id=0 AND status<>?"
+	args := []any{userID, model.ArticleDeleted}
+	total, err := countCtx(ctx, r.conn, "SELECT COUNT(*) FROM community_article WHERE "+whereSQL, args...)
+	if err != nil {
 		return nil, 0, err
 	}
 	if page < 1 {
@@ -126,17 +152,26 @@ func (r *ArticleRepository) ListByAuthor(ctx context.Context, userID uint64, pag
 		pageSize = 20
 	}
 	var list []model.CommunityArticle
-	err := q.Order("id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
+	err = r.conn.QueryRowsCtx(ctx, &list,
+		"SELECT "+communityArticleColumns+" FROM community_article WHERE "+whereSQL+" ORDER BY id DESC LIMIT ? OFFSET ?",
+		userID, model.ArticleDeleted, pageSize, (page-1)*pageSize,
+	)
 	return list, total, err
 }
 
 func (r *ArticleRepository) UpdateAuthor(ctx context.Context, id, userID uint64, updates map[string]interface{}) error {
-	res := r.db.WithContext(ctx).Model(&model.CommunityArticle{}).
-		Where("id = ? AND author_user_id = ? AND shop_id = 0", id, userID).Updates(updates)
-	if res.RowsAffected == 0 {
+	query, args, err := buildUpdate("community_article", updates, "id=? AND author_user_id=? AND shop_id=0", id, userID)
+	if err != nil {
+		return err
+	}
+	n, err := execAffected(ctx, r.conn, query, args...)
+	if err != nil {
+		return err
+	}
+	if n == 0 {
 		return errors.New("文章不存在或无权操作")
 	}
-	return res.Error
+	return nil
 }
 
 func (r *ArticleRepository) SoftDeleteAuthor(ctx context.Context, id, userID uint64) error {
@@ -147,23 +182,49 @@ func (r *ArticleRepository) SoftDeleteAuthor(ctx context.Context, id, userID uin
 }
 
 func (r *ArticleRepository) Create(ctx context.Context, a *model.CommunityArticle) error {
-	return r.db.WithContext(ctx).Create(a).Error
+	id, err := lastInsertID(ctx, r.conn, `
+INSERT INTO community_article (shop_id, author_user_id, category_id, title, cover_url, content, audit_status, reject_reason, status, schedule_publish_at, is_top, view_count, like_count, audience_count, read_count, collect_count, comment_count, published_at, deleted_at, created_by)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		a.ShopID, a.AuthorUserID, a.CategoryID, a.Title, a.CoverURL, a.Content,
+		a.AuditStatus, a.RejectReason, a.Status, a.SchedulePublishAt, a.IsTop,
+		a.ViewCount, a.LikeCount, a.AudienceCount, a.ReadCount, a.CollectCount, a.CommentCount,
+		a.PublishedAt, a.DeletedAt, a.CreatedBy,
+	)
+	if err != nil {
+		return err
+	}
+	a.ID = id
+	return nil
 }
 
 func (r *ArticleRepository) Update(ctx context.Context, id uint64, updates map[string]interface{}) error {
-	res := r.db.WithContext(ctx).Model(&model.CommunityArticle{}).Where("id = ?", id).Updates(updates)
-	if res.RowsAffected == 0 {
+	query, args, err := buildUpdate("community_article", updates, "id=?", id)
+	if err != nil {
+		return err
+	}
+	n, err := execAffected(ctx, r.conn, query, args...)
+	if err != nil {
+		return err
+	}
+	if n == 0 {
 		return errors.New("文章不存在")
 	}
-	return res.Error
+	return nil
 }
 
 func (r *ArticleRepository) UpdateShop(ctx context.Context, id, shopID uint64, updates map[string]interface{}) error {
-	res := r.db.WithContext(ctx).Model(&model.CommunityArticle{}).Where("id = ? AND shop_id = ?", id, shopID).Updates(updates)
-	if res.RowsAffected == 0 {
+	query, args, err := buildUpdate("community_article", updates, "id=? AND shop_id=?", id, shopID)
+	if err != nil {
+		return err
+	}
+	n, err := execAffected(ctx, r.conn, query, args...)
+	if err != nil {
+		return err
+	}
+	if n == 0 {
 		return errors.New("文章不存在或无权操作")
 	}
-	return res.Error
+	return nil
 }
 
 func (r *ArticleRepository) SoftDelete(ctx context.Context, id uint64) error {
@@ -187,28 +248,31 @@ func (r *ArticleRepository) Restore(ctx context.Context, id uint64) error {
 }
 
 func (r *ArticleRepository) PermanentDelete(ctx context.Context, id uint64) error {
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("article_id = ?", id).Delete(&model.CommunityArticleComment{}).Error; err != nil {
+	return r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
+		if _, err := execSession(ctx, session, "DELETE FROM community_article_comment WHERE article_id=?", id); err != nil {
 			return err
 		}
-		if err := tx.Where("article_id = ?", id).Delete(&model.CommunityArticleImg{}).Error; err != nil {
+		if _, err := execSession(ctx, session, "DELETE FROM community_article_img WHERE article_id=?", id); err != nil {
 			return err
 		}
-		return tx.Where("id = ?", id).Delete(&model.CommunityArticle{}).Error
+		_, err := execSession(ctx, session, "DELETE FROM community_article WHERE id=?", id)
+		return err
 	})
 }
 
 func (r *ArticleRepository) ReplaceImages(ctx context.Context, articleID, shopID uint64, urls []string) error {
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("article_id = ?", articleID).Delete(&model.CommunityArticleImg{}).Error; err != nil {
+	return r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
+		if _, err := execSession(ctx, session, "DELETE FROM community_article_img WHERE article_id=?", articleID); err != nil {
 			return err
 		}
 		for i, u := range urls {
 			if u == "" {
 				continue
 			}
-			img := model.CommunityArticleImg{ArticleID: articleID, ShopID: shopID, URL: u, Sort: i}
-			if err := tx.Create(&img).Error; err != nil {
+			if _, err := session.ExecCtx(ctx,
+				"INSERT INTO community_article_img (article_id, shop_id, url, sort) VALUES (?, ?, ?, ?)",
+				articleID, shopID, u, i,
+			); err != nil {
 				return err
 			}
 		}
@@ -218,28 +282,36 @@ func (r *ArticleRepository) ReplaceImages(ctx context.Context, articleID, shopID
 
 func (r *ArticleRepository) ListImages(ctx context.Context, articleID uint64) ([]model.CommunityArticleImg, error) {
 	var list []model.CommunityArticleImg
-	err := r.db.WithContext(ctx).Where("article_id = ?", articleID).Order("sort ASC, id ASC").Find(&list).Error
+	err := r.conn.QueryRowsCtx(ctx, &list,
+		"SELECT "+communityArticleImgColumns+" FROM community_article_img WHERE article_id=? ORDER BY sort ASC, id ASC",
+		articleID,
+	)
 	return list, err
 }
 
 func (r *ArticleRepository) ClaimDuePublish(ctx context.Context, limit int) ([]model.CommunityArticle, error) {
-	var list []model.CommunityArticle
 	now := time.Now()
-	err := r.db.WithContext(ctx).Where("status = ? AND audit_status = ? AND schedule_publish_at IS NOT NULL AND schedule_publish_at <= ?",
-		model.ArticleScheduled, model.ArticleAuditApproved, now).
-		Limit(limit).Find(&list).Error
+	var list []model.CommunityArticle
+	err := r.conn.QueryRowsCtx(ctx, &list,
+		"SELECT "+communityArticleColumns+` FROM community_article
+WHERE status=? AND audit_status=? AND schedule_publish_at IS NOT NULL AND schedule_publish_at<=?
+LIMIT ?`,
+		model.ArticleScheduled, model.ArticleAuditApproved, now, limit,
+	)
 	if err != nil {
 		return nil, err
 	}
 	out := make([]model.CommunityArticle, 0, len(list))
 	pub := common.LocalTime(now)
 	for _, a := range list {
-		res := r.db.WithContext(ctx).Model(&model.CommunityArticle{}).
-			Where("id = ? AND status = ?", a.ID, model.ArticleScheduled).
-			Updates(map[string]interface{}{
-				"status": model.ArticlePublished, "published_at": pub,
-			})
-		if res.RowsAffected == 1 {
+		n, err := execAffected(ctx, r.conn,
+			"UPDATE community_article SET status=?, published_at=? WHERE id=? AND status=?",
+			model.ArticlePublished, pub, a.ID, model.ArticleScheduled,
+		)
+		if err != nil {
+			return nil, err
+		}
+		if n == 1 {
 			out = append(out, a)
 		}
 	}
@@ -247,43 +319,47 @@ func (r *ArticleRepository) ClaimDuePublish(ctx context.Context, limit int) ([]m
 }
 
 func (r *ArticleRepository) Stats(ctx context.Context) (map[string]interface{}, error) {
-	type row struct {
-		Status string
-		Cnt    int64
+	type statusRow struct {
+		Status string `db:"status"`
+		Cnt    int64  `db:"cnt"`
 	}
-	var rows []row
-	_ = r.db.Model(&model.CommunityArticle{}).
-		Select("status, count(*) as cnt").
-		Where("status <> ?", model.ArticleDeleted).
-		Group("status").Scan(&rows).Error
+	var rows []statusRow
+	_ = r.conn.QueryRowsCtx(ctx, &rows,
+		"SELECT status, COUNT(*) AS cnt FROM community_article WHERE status<>? GROUP BY status",
+		model.ArticleDeleted,
+	)
 
 	byStatus := map[string]int64{}
 	for _, x := range rows {
 		byStatus[x.Status] = x.Cnt
 	}
 
-	var auditPending int64
-	_ = r.db.Model(&model.CommunityArticle{}).
-		Where("audit_status = ? AND status <> ?", model.ArticleAuditPending, model.ArticleDeleted).
-		Count(&auditPending).Error
+	auditPending, _ := countCtx(ctx, r.conn,
+		"SELECT COUNT(*) FROM community_article WHERE audit_status=? AND status<>?",
+		model.ArticleAuditPending, model.ArticleDeleted,
+	)
 
 	var viewSum, likeSum int64
-	_ = r.db.Model(&model.CommunityArticle{}).
-		Where("status <> ?", model.ArticleDeleted).
-		Select("COALESCE(SUM(view_count),0), COALESCE(SUM(like_count),0)").
-		Row().Scan(&viewSum, &likeSum)
+	_ = r.conn.QueryRowCtx(ctx, &viewSum,
+		"SELECT COALESCE(SUM(view_count),0) FROM community_article WHERE status<>?",
+		model.ArticleDeleted,
+	)
+	_ = r.conn.QueryRowCtx(ctx, &likeSum,
+		"SELECT COALESCE(SUM(like_count),0) FROM community_article WHERE status<>?",
+		model.ArticleDeleted,
+	)
 
 	type dayRow struct {
-		Day string `json:"day"`
-		Cnt int64  `json:"cnt"`
+		Day string `db:"day" json:"day"`
+		Cnt int64  `db:"cnt" json:"cnt"`
 	}
 	var recent []dayRow
-	_ = r.db.Raw(`
+	_ = r.conn.QueryRowsCtx(ctx, &recent, `
 		SELECT DATE(created_at) AS day, COUNT(*) AS cnt
 		FROM community_article
 		WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND status <> ?
 		GROUP BY DATE(created_at) ORDER BY day ASC
-	`, model.ArticleDeleted).Scan(&recent).Error
+	`, model.ArticleDeleted)
 
 	return map[string]interface{}{
 		"by_status":     byStatus,
@@ -298,35 +374,53 @@ func (r *ArticleRepository) Stats(ctx context.Context) (map[string]interface{}, 
 
 func (r *ArticleRepository) ListCategories(ctx context.Context) ([]model.CommunityArticleCategory, error) {
 	var list []model.CommunityArticleCategory
-	err := r.db.WithContext(ctx).Order("sort ASC, id ASC").Find(&list).Error
+	err := r.conn.QueryRowsCtx(ctx, &list,
+		"SELECT "+communityArticleCategoryColumns+" FROM community_article_category ORDER BY sort ASC, id ASC",
+	)
 	return list, err
 }
 
 func (r *ArticleRepository) CreateCategory(ctx context.Context, c *model.CommunityArticleCategory) error {
-	return r.db.WithContext(ctx).Create(c).Error
+	id, err := lastInsertID(ctx, r.conn,
+		"INSERT INTO community_article_category (parent_id, name, sort, status) VALUES (?, ?, ?, ?)",
+		c.ParentID, c.Name, c.Sort, c.Status,
+	)
+	if err != nil {
+		return err
+	}
+	c.ID = id
+	return nil
 }
 
 func (r *ArticleRepository) UpdateCategory(ctx context.Context, id uint64, updates map[string]interface{}) error {
-	res := r.db.WithContext(ctx).Model(&model.CommunityArticleCategory{}).Where("id = ?", id).Updates(updates)
-	if res.RowsAffected == 0 {
+	query, args, err := buildUpdate("community_article_category", updates, "id=?", id)
+	if err != nil {
+		return err
+	}
+	n, err := execAffected(ctx, r.conn, query, args...)
+	if err != nil {
+		return err
+	}
+	if n == 0 {
 		return errors.New("分类不存在")
 	}
-	return res.Error
+	return nil
 }
 
 func (r *ArticleRepository) DeleteCategory(ctx context.Context, id uint64) error {
-	var child int64
-	_ = r.db.WithContext(ctx).Model(&model.CommunityArticleCategory{}).Where("parent_id = ?", id).Count(&child).Error
+	child, _ := countCtx(ctx, r.conn, "SELECT COUNT(*) FROM community_article_category WHERE parent_id=?", id)
 	if child > 0 {
 		return errors.New("请先删除子分类")
 	}
-	var used int64
-	_ = r.db.WithContext(ctx).Model(&model.CommunityArticle{}).
-		Where("category_id = ? AND status <> ?", id, model.ArticleDeleted).Count(&used).Error
+	used, _ := countCtx(ctx, r.conn,
+		"SELECT COUNT(*) FROM community_article WHERE category_id=? AND status<>?",
+		id, model.ArticleDeleted,
+	)
 	if used > 0 {
 		return errors.New("分类下仍有文章")
 	}
-	return r.db.WithContext(ctx).Where("id = ?", id).Delete(&model.CommunityArticleCategory{}).Error
+	_, err := r.conn.ExecCtx(ctx, "DELETE FROM community_article_category WHERE id=?", id)
+	return err
 }
 
 // ---- comments ----
@@ -340,18 +434,24 @@ type CommentListFilter struct {
 }
 
 func (r *ArticleRepository) ListComments(ctx context.Context, f CommentListFilter) ([]model.CommunityArticleComment, int64, error) {
-	q := r.db.WithContext(ctx).Model(&model.CommunityArticleComment{}).Where("status <> ?", model.CommentDeleted)
+	where := []string{"status<>?"}
+	args := []any{model.CommentDeleted}
 	if f.ShopID > 0 {
-		q = q.Where("shop_id = ?", f.ShopID)
+		where = append(where, "shop_id=?")
+		args = append(args, f.ShopID)
 	}
 	if f.ArticleID > 0 {
-		q = q.Where("article_id = ?", f.ArticleID)
+		where = append(where, "article_id=?")
+		args = append(args, f.ArticleID)
 	}
 	if f.Status != "" {
-		q = q.Where("status = ?", f.Status)
+		where = append(where, "status=?")
+		args = append(args, f.Status)
 	}
-	var total int64
-	if err := q.Count(&total).Error; err != nil {
+	whereSQL := strings.Join(where, " AND ")
+
+	total, err := countCtx(ctx, r.conn, "SELECT COUNT(*) FROM community_article_comment WHERE "+whereSQL, args...)
+	if err != nil {
 		return nil, 0, err
 	}
 	if f.Page < 1 {
@@ -361,20 +461,29 @@ func (r *ArticleRepository) ListComments(ctx context.Context, f CommentListFilte
 		f.PageSize = 20
 	}
 	var list []model.CommunityArticleComment
-	err := q.Order("id DESC").Offset((f.Page - 1) * f.PageSize).Limit(f.PageSize).Find(&list).Error
+	qArgs := append(append([]any{}, args...), f.PageSize, (f.Page-1)*f.PageSize)
+	err = r.conn.QueryRowsCtx(ctx, &list,
+		"SELECT "+communityArticleCommentColumns+" FROM community_article_comment WHERE "+whereSQL+" ORDER BY id DESC LIMIT ? OFFSET ?",
+		qArgs...,
+	)
 	return list, total, err
 }
 
 func (r *ArticleRepository) PatchComment(ctx context.Context, id uint64, shopID uint64, status string) error {
-	q := r.db.WithContext(ctx).Model(&model.CommunityArticleComment{}).Where("id = ?", id)
+	where := "id=?"
+	args := []any{status, id}
 	if shopID > 0 {
-		q = q.Where("shop_id = ?", shopID)
+		where = "id=? AND shop_id=?"
+		args = []any{status, id, shopID}
 	}
-	res := q.Update("status", status)
-	if res.RowsAffected == 0 {
+	n, err := execAffected(ctx, r.conn, "UPDATE community_article_comment SET status=? WHERE "+where, args...)
+	if err != nil {
+		return err
+	}
+	if n == 0 {
 		return errors.New("评论不存在或无权操作")
 	}
-	return res.Error
+	return nil
 }
 
 func (r *ArticleRepository) DeleteComment(ctx context.Context, id uint64, shopID uint64) error {
@@ -383,33 +492,46 @@ func (r *ArticleRepository) DeleteComment(ctx context.Context, id uint64, shopID
 
 func (r *ArticleRepository) GetComment(ctx context.Context, id uint64) (*model.CommunityArticleComment, error) {
 	var c model.CommunityArticleComment
-	if err := r.db.WithContext(ctx).Where("id = ? AND status = ?", id, model.CommentVisible).First(&c).Error; err != nil {
+	err := r.conn.QueryRowCtx(ctx, &c,
+		"SELECT "+communityArticleCommentColumns+" FROM community_article_comment WHERE id=? AND status=? LIMIT 1",
+		id, model.CommentVisible,
+	)
+	if err != nil {
 		return nil, err
 	}
 	return &c, nil
 }
 
 func (r *ArticleRepository) CreateComment(ctx context.Context, c *model.CommunityArticleComment) error {
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(c).Error; err != nil {
+	return r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
+		id, err := lastInsertID(ctx, session, `
+INSERT INTO community_article_comment (article_id, shop_id, user_id, parent_id, root_id, reply_to_user_id, content, status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+			c.ArticleID, c.ShopID, c.UserID, c.ParentID, c.RootID, c.ReplyToUserID, c.Content, c.Status,
+		)
+		if err != nil {
 			return err
 		}
+		c.ID = id
 		if c.RootID == 0 {
-			if err := tx.Model(c).Update("root_id", c.ID).Error; err != nil {
+			if _, err := execSession(ctx, session, "UPDATE community_article_comment SET root_id=? WHERE id=?", id, id); err != nil {
 				return err
 			}
-			c.RootID = c.ID
+			c.RootID = id
 		}
-		return tx.Model(&model.CommunityArticle{}).Where("id = ?", c.ArticleID).
-			UpdateColumn("comment_count", gorm.Expr("comment_count + 1")).Error
+		_, err = session.ExecCtx(ctx,
+			"UPDATE community_article SET comment_count=comment_count+1 WHERE id=?",
+			c.ArticleID,
+		)
+		return err
 	})
 }
 
 type CommentUserBrief struct {
-	ID       uint64 `json:"id"`
-	Nickname string `json:"nickname"`
-	Avatar   string `json:"avatar"`
-	Mobile   string `json:"mobile"`
+	ID       uint64 `db:"id" json:"id"`
+	Nickname string `db:"nickname" json:"nickname"`
+	Avatar   string `db:"avatar" json:"avatar"`
+	Mobile   string `db:"mobile" json:"mobile"`
 }
 
 func (r *ArticleRepository) MapUserBriefs(ctx context.Context, ids []uint64) map[uint64]CommentUserBrief {
@@ -418,7 +540,10 @@ func (r *ArticleRepository) MapUserBriefs(ctx context.Context, ids []uint64) map
 		return out
 	}
 	var rows []CommentUserBrief
-	_ = r.db.WithContext(ctx).Table("users").Select("id, nickname, COALESCE(avatar,'') AS avatar, mobile").Where("id IN ?", ids).Scan(&rows).Error
+	_ = r.conn.QueryRowsCtx(ctx, &rows,
+		"SELECT id, nickname, COALESCE(avatar,'') AS avatar, mobile FROM users WHERE id IN ("+placeholders(len(ids))+")",
+		inArgs(ids)...,
+	)
 	for _, u := range rows {
 		out[u.ID] = u
 	}
@@ -426,9 +551,9 @@ func (r *ArticleRepository) MapUserBriefs(ctx context.Context, ids []uint64) map
 }
 
 type ShopBrief struct {
-	ID   uint64 `json:"id"`
-	Name string `json:"name"`
-	Logo string `json:"logo"`
+	ID   uint64 `db:"id" json:"id"`
+	Name string `db:"name" json:"name"`
+	Logo string `db:"logo" json:"logo"`
 }
 
 func (r *ArticleRepository) MapShopBriefs(ctx context.Context, ids []uint64) map[uint64]ShopBrief {
@@ -437,7 +562,10 @@ func (r *ArticleRepository) MapShopBriefs(ctx context.Context, ids []uint64) map
 		return out
 	}
 	var rows []ShopBrief
-	_ = r.db.WithContext(ctx).Table("shops").Select("id, name, COALESCE(logo,'') AS logo").Where("id IN ?", ids).Scan(&rows).Error
+	_ = r.conn.QueryRowsCtx(ctx, &rows,
+		"SELECT id, name, COALESCE(logo,'') AS logo FROM shops WHERE id IN ("+placeholders(len(ids))+")",
+		inArgs(ids)...,
+	)
 	for _, s := range rows {
 		out[s.ID] = s
 	}
@@ -451,14 +579,16 @@ func (r *ArticleRepository) ListPublicCommentRoots(ctx context.Context, articleI
 	if pageSize < 1 {
 		pageSize = 20
 	}
-	q := r.db.WithContext(ctx).Model(&model.CommunityArticleComment{}).
-		Where("article_id = ? AND parent_id = 0 AND status = ?", articleID, model.CommentVisible)
-	var total int64
-	if err := q.Count(&total).Error; err != nil {
+	whereSQL := "article_id=? AND parent_id=0 AND status=?"
+	total, err := countCtx(ctx, r.conn, "SELECT COUNT(*) FROM community_article_comment WHERE "+whereSQL, articleID, model.CommentVisible)
+	if err != nil {
 		return nil, 0, err
 	}
 	var list []model.CommunityArticleComment
-	err := q.Order("id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
+	err = r.conn.QueryRowsCtx(ctx, &list,
+		"SELECT "+communityArticleCommentColumns+" FROM community_article_comment WHERE "+whereSQL+" ORDER BY id DESC LIMIT ? OFFSET ?",
+		articleID, model.CommentVisible, pageSize, (page-1)*pageSize,
+	)
 	return list, total, err
 }
 
@@ -466,10 +596,13 @@ func (r *ArticleRepository) ListPublicCommentChildren(ctx context.Context, artic
 	if len(rootIDs) == 0 {
 		return nil, nil
 	}
+	args := append([]any{articleID}, inArgs(rootIDs)...)
+	args = append(args, model.CommentVisible)
 	var list []model.CommunityArticleComment
-	err := r.db.WithContext(ctx).Where("article_id = ? AND root_id IN ? AND parent_id > 0 AND status = ?",
-		articleID, rootIDs, model.CommentVisible).
-		Order("id ASC").Find(&list).Error
+	err := r.conn.QueryRowsCtx(ctx, &list,
+		"SELECT "+communityArticleCommentColumns+" FROM community_article_comment WHERE article_id=? AND root_id IN ("+placeholders(len(rootIDs))+") AND parent_id>0 AND status=? ORDER BY id ASC",
+		args...,
+	)
 	return list, err
 }
 
@@ -482,40 +615,67 @@ func (r *ArticleRepository) ListEmojisAdmin(ctx context.Context, page, pageSize 
 	if pageSize < 1 {
 		pageSize = 50
 	}
-	q := r.db.WithContext(ctx).Model(&model.CommunityCommentEmoji{})
-	var total int64
-	if err := q.Count(&total).Error; err != nil {
+	total, err := countCtx(ctx, r.conn, "SELECT COUNT(*) FROM community_comment_emojis")
+	if err != nil {
 		return nil, 0, err
 	}
 	var list []model.CommunityCommentEmoji
-	err := q.Order("sort ASC, id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
+	err = r.conn.QueryRowsCtx(ctx, &list,
+		"SELECT "+communityCommentEmojiColumns+" FROM community_comment_emojis ORDER BY sort ASC, id DESC LIMIT ? OFFSET ?",
+		pageSize, (page-1)*pageSize,
+	)
 	return list, total, err
 }
 
 func (r *ArticleRepository) ListEmojisPublic(ctx context.Context) ([]model.CommunityCommentEmoji, error) {
 	var list []model.CommunityCommentEmoji
-	err := r.db.WithContext(ctx).Where("status = 1").Order("sort ASC, id ASC").Find(&list).Error
+	err := r.conn.QueryRowsCtx(ctx, &list,
+		"SELECT "+communityCommentEmojiColumns+" FROM community_comment_emojis WHERE status=1 ORDER BY sort ASC, id ASC",
+	)
 	return list, err
 }
 
 func (r *ArticleRepository) GetEmoji(ctx context.Context, id uint64) (*model.CommunityCommentEmoji, error) {
 	var e model.CommunityCommentEmoji
-	if err := r.db.WithContext(ctx).First(&e, id).Error; err != nil {
+	err := r.conn.QueryRowCtx(ctx, &e, "SELECT "+communityCommentEmojiColumns+" FROM community_comment_emojis WHERE id=? LIMIT 1", id)
+	if err != nil {
 		return nil, err
 	}
 	return &e, nil
 }
 
 func (r *ArticleRepository) CreateEmoji(ctx context.Context, e *model.CommunityCommentEmoji) error {
-	return r.db.WithContext(ctx).Create(e).Error
+	id, err := lastInsertID(ctx, r.conn,
+		"INSERT INTO community_comment_emojis (name, image_url, sort, status) VALUES (?, ?, ?, ?)",
+		e.Name, e.ImageURL, e.Sort, e.Status,
+	)
+	if err != nil {
+		return err
+	}
+	e.ID = id
+	return nil
 }
 
 func (r *ArticleRepository) UpdateEmoji(ctx context.Context, id uint64, updates map[string]interface{}) error {
-	return r.db.WithContext(ctx).Model(&model.CommunityCommentEmoji{}).Where("id = ?", id).Updates(updates).Error
+	query, args, err := buildUpdate("community_comment_emojis", updates, "id=?", id)
+	if err != nil {
+		return err
+	}
+	_, err = r.conn.ExecCtx(ctx, query, args...)
+	return err
 }
 
 func (r *ArticleRepository) DeleteEmoji(ctx context.Context, id uint64) error {
-	return r.db.WithContext(ctx).Where("id = ?", id).Delete(&model.CommunityCommentEmoji{}).Error
+	_, err := r.conn.ExecCtx(ctx, "DELETE FROM community_comment_emojis WHERE id=?", id)
+	return err
+}
+
+func articleColumnsAliased(alias string) string {
+	cols := strings.Split(communityArticleColumns, ", ")
+	for i, c := range cols {
+		cols[i] = alias + "." + c
+	}
+	return strings.Join(cols, ", ")
 }
 
 func (r *ArticleRepository) ListPublic(ctx context.Context, page, pageSize, homeLimit int) ([]model.CommunityArticle, int64, error) {
@@ -526,12 +686,16 @@ func (r *ArticleRepository) ListPublic(ctx context.Context, page, pageSize, home
 		pageSize = 20
 	}
 	now := time.Now()
-	_ = r.db.WithContext(ctx).Exec(`UPDATE homepage_slot_orders SET status='expired' WHERE slot_type='article' AND status='active' AND end_at < ?`, now)
+	_, _ = r.conn.ExecCtx(ctx,
+		`UPDATE homepage_slot_orders SET status='expired' WHERE slot_type='article' AND status='active' AND end_at < ?`,
+		now,
+	)
 
-	type row struct {
+	type articleBoostRow struct {
 		model.CommunityArticle
-		Boost int `gorm:"column:boost"`
+		Boost int `db:"boost"`
 	}
+
 	base := `
 FROM community_article a
 LEFT JOIN (
@@ -541,7 +705,7 @@ LEFT JOIN (
 WHERE a.status=? AND a.audit_status=? AND a.deleted_at IS NULL`
 
 	var total int64
-	if err := r.db.WithContext(ctx).Raw("SELECT COUNT(*) "+base, now, now, model.ArticlePublished, model.ArticleAuditApproved).Scan(&total).Error; err != nil {
+	if err := r.conn.QueryRowCtx(ctx, &total, "SELECT COUNT(*) "+base, now, now, model.ArticlePublished, model.ArticleAuditApproved); err != nil {
 		return nil, 0, err
 	}
 	limit, offset := pageSize, (page-1)*pageSize
@@ -551,10 +715,10 @@ WHERE a.status=? AND a.audit_status=? AND a.deleted_at IS NULL`
 			total = int64(homeLimit)
 		}
 	}
-	var rows []row
-	sql := `SELECT a.*, CASE WHEN o.target_id IS NULL THEN 0 ELSE 1 END AS boost ` + base + `
+	var rows []articleBoostRow
+	sql := fmt.Sprintf("SELECT %s, CASE WHEN o.target_id IS NULL THEN 0 ELSE 1 END AS boost ", articleColumnsAliased("a")) + base + `
 ORDER BY boost DESC, a.is_top DESC, a.id DESC LIMIT ? OFFSET ?`
-	if err := r.db.WithContext(ctx).Raw(sql, now, now, model.ArticlePublished, model.ArticleAuditApproved, limit, offset).Scan(&rows).Error; err != nil {
+	if err := r.conn.QueryRowsCtx(ctx, &rows, sql, now, now, model.ArticlePublished, model.ArticleAuditApproved, limit, offset); err != nil {
 		return nil, 0, err
 	}
 	out := make([]model.CommunityArticle, 0, len(rows))
@@ -566,7 +730,10 @@ ORDER BY boost DESC, a.is_top DESC, a.id DESC LIMIT ? OFFSET ?`
 
 func (r *ArticleRepository) GetPublished(ctx context.Context, id uint64) (*model.CommunityArticle, error) {
 	var a model.CommunityArticle
-	err := r.db.WithContext(ctx).Where("id = ? AND status = ? AND audit_status = ?", id, model.ArticlePublished, model.ArticleAuditApproved).First(&a).Error
+	err := r.conn.QueryRowCtx(ctx, &a,
+		"SELECT "+communityArticleColumns+" FROM community_article WHERE id=? AND status=? AND audit_status=? LIMIT 1",
+		id, model.ArticlePublished, model.ArticleAuditApproved,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -574,53 +741,68 @@ func (r *ArticleRepository) GetPublished(ctx context.Context, id uint64) (*model
 }
 
 func (r *ArticleRepository) RecordRead(ctx context.Context, articleID, userID uint64) error {
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(&model.CommunityArticle{}).Where("id = ?", articleID).
-			Updates(map[string]interface{}{
-				"read_count": gorm.Expr("read_count + 1"),
-				"view_count": gorm.Expr("view_count + 1"),
-			}).Error; err != nil {
+	return r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
+		if _, err := session.ExecCtx(ctx,
+			"UPDATE community_article SET read_count=read_count+1, view_count=view_count+1 WHERE id=?",
+			articleID,
+		); err != nil {
 			return err
 		}
 		if userID == 0 {
 			return nil
 		}
-		res := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&model.ArticleAudience{
-			UserID: userID, ArticleID: articleID,
-		})
-		if res.Error != nil {
-			return res.Error
+		n, err := execSession(ctx, session,
+			"INSERT IGNORE INTO article_audiences (user_id, article_id) VALUES (?, ?)",
+			userID, articleID,
+		)
+		if err != nil {
+			return err
 		}
-		if res.RowsAffected > 0 {
-			return tx.Model(&model.CommunityArticle{}).Where("id = ?", articleID).
-				UpdateColumn("audience_count", gorm.Expr("audience_count + 1")).Error
+		if n > 0 {
+			_, err = session.ExecCtx(ctx,
+				"UPDATE community_article SET audience_count=audience_count+1 WHERE id=?",
+				articleID,
+			)
+			return err
 		}
 		return nil
 	})
 }
 
 func (r *ArticleRepository) ToggleLike(ctx context.Context, userID, articleID uint64, like bool) (changed bool, err error) {
-	err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	err = r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		if like {
-			res := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&model.ArticleLike{UserID: userID, ArticleID: articleID})
-			if res.Error != nil {
-				return res.Error
+			n, err := execSession(ctx, session,
+				"INSERT IGNORE INTO article_likes (user_id, article_id) VALUES (?, ?)",
+				userID, articleID,
+			)
+			if err != nil {
+				return err
 			}
-			if res.RowsAffected > 0 {
+			if n > 0 {
 				changed = true
-				return tx.Model(&model.CommunityArticle{}).Where("id = ?", articleID).
-					UpdateColumn("like_count", gorm.Expr("like_count + 1")).Error
+				_, err = session.ExecCtx(ctx,
+					"UPDATE community_article SET like_count=like_count+1 WHERE id=?",
+					articleID,
+				)
+				return err
 			}
 			return nil
 		}
-		res := tx.Where("user_id = ? AND article_id = ?", userID, articleID).Delete(&model.ArticleLike{})
-		if res.Error != nil {
-			return res.Error
+		n, err := execSession(ctx, session,
+			"DELETE FROM article_likes WHERE user_id=? AND article_id=?",
+			userID, articleID,
+		)
+		if err != nil {
+			return err
 		}
-		if res.RowsAffected > 0 {
+		if n > 0 {
 			changed = true
-			return tx.Model(&model.CommunityArticle{}).Where("id = ?", articleID).
-				UpdateColumn("like_count", gorm.Expr("GREATEST(0, like_count - 1)")).Error
+			_, err = session.ExecCtx(ctx,
+				"UPDATE community_article SET like_count=GREATEST(0, like_count-1) WHERE id=?",
+				articleID,
+			)
+			return err
 		}
 		return nil
 	})
@@ -628,27 +810,39 @@ func (r *ArticleRepository) ToggleLike(ctx context.Context, userID, articleID ui
 }
 
 func (r *ArticleRepository) ToggleFavorite(ctx context.Context, userID, articleID uint64, fav bool) (changed bool, err error) {
-	err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	err = r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		if fav {
-			res := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&model.ArticleFavorite{UserID: userID, ArticleID: articleID})
-			if res.Error != nil {
-				return res.Error
+			n, err := execSession(ctx, session,
+				"INSERT IGNORE INTO article_favorites (user_id, article_id) VALUES (?, ?)",
+				userID, articleID,
+			)
+			if err != nil {
+				return err
 			}
-			if res.RowsAffected > 0 {
+			if n > 0 {
 				changed = true
-				return tx.Model(&model.CommunityArticle{}).Where("id = ?", articleID).
-					UpdateColumn("collect_count", gorm.Expr("collect_count + 1")).Error
+				_, err = session.ExecCtx(ctx,
+					"UPDATE community_article SET collect_count=collect_count+1 WHERE id=?",
+					articleID,
+				)
+				return err
 			}
 			return nil
 		}
-		res := tx.Where("user_id = ? AND article_id = ?", userID, articleID).Delete(&model.ArticleFavorite{})
-		if res.Error != nil {
-			return res.Error
+		n, err := execSession(ctx, session,
+			"DELETE FROM article_favorites WHERE user_id=? AND article_id=?",
+			userID, articleID,
+		)
+		if err != nil {
+			return err
 		}
-		if res.RowsAffected > 0 {
+		if n > 0 {
 			changed = true
-			return tx.Model(&model.CommunityArticle{}).Where("id = ?", articleID).
-				UpdateColumn("collect_count", gorm.Expr("GREATEST(0, collect_count - 1)")).Error
+			_, err = session.ExecCtx(ctx,
+				"UPDATE community_article SET collect_count=GREATEST(0, collect_count-1) WHERE id=?",
+				articleID,
+			)
+			return err
 		}
 		return nil
 	})
@@ -656,10 +850,9 @@ func (r *ArticleRepository) ToggleFavorite(ctx context.Context, userID, articleI
 }
 
 func (r *ArticleRepository) EngagementStatus(ctx context.Context, userID, articleID uint64) (liked, favorited bool) {
-	var n int64
-	r.db.WithContext(ctx).Model(&model.ArticleLike{}).Where("user_id = ? AND article_id = ?", userID, articleID).Count(&n)
+	n, _ := countCtx(ctx, r.conn, "SELECT COUNT(*) FROM article_likes WHERE user_id=? AND article_id=?", userID, articleID)
 	liked = n > 0
-	r.db.WithContext(ctx).Model(&model.ArticleFavorite{}).Where("user_id = ? AND article_id = ?", userID, articleID).Count(&n)
+	n, _ = countCtx(ctx, r.conn, "SELECT COUNT(*) FROM article_favorites WHERE user_id=? AND article_id=?", userID, articleID)
 	favorited = n > 0
 	return
 }
@@ -686,25 +879,25 @@ func (r *ArticleRepository) listUserArticles(ctx context.Context, userID uint64,
 	if pageSize < 1 {
 		pageSize = 20
 	}
-	var total int64
-	if err := r.db.WithContext(ctx).Table(table).Where("user_id = ?", userID).Count(&total).Error; err != nil {
+	total, err := countCtx(ctx, r.conn, "SELECT COUNT(*) FROM "+table+" WHERE user_id=?", userID)
+	if err != nil {
 		return nil, 0, err
 	}
 	type row struct {
-		ArticleID    uint64 `gorm:"column:article_id"`
-		EngagedAt    string `gorm:"column:engaged_at"`
-		ID           uint64 `gorm:"column:id"`
-		ShopID       uint64 `gorm:"column:shop_id"`
-		Title        string `gorm:"column:title"`
-		CoverURL     string `gorm:"column:cover_url"`
-		LikeCount    uint64 `gorm:"column:like_count"`
-		ReadCount    uint64 `gorm:"column:read_count"`
-		CollectCount uint64 `gorm:"column:collect_count"`
-		Status       string `gorm:"column:status"`
-		AuditStatus  string `gorm:"column:audit_status"`
+		ArticleID    uint64 `db:"article_id"`
+		EngagedAt    string `db:"engaged_at"`
+		ID           uint64 `db:"id"`
+		ShopID       uint64 `db:"shop_id"`
+		Title        string `db:"title"`
+		CoverURL     string `db:"cover_url"`
+		LikeCount    uint64 `db:"like_count"`
+		ReadCount    uint64 `db:"read_count"`
+		CollectCount uint64 `db:"collect_count"`
+		Status       string `db:"status"`
+		AuditStatus  string `db:"audit_status"`
 	}
 	var rows []row
-	err := r.db.WithContext(ctx).Raw(`
+	err = r.conn.QueryRowsCtx(ctx, &rows, `
 SELECT e.article_id, DATE_FORMAT(e.created_at, '%Y-%m-%d %H:%i:%s') AS engaged_at,
        a.id, a.shop_id, COALESCE(a.title,'') AS title, COALESCE(a.cover_url,'') AS cover_url,
        COALESCE(a.like_count,0) AS like_count, COALESCE(a.read_count,0) AS read_count,
@@ -714,7 +907,7 @@ FROM `+table+` e
 LEFT JOIN community_article a ON a.id = e.article_id
 WHERE e.user_id = ?
 ORDER BY e.id DESC
-LIMIT ? OFFSET ?`, userID, pageSize, (page-1)*pageSize).Scan(&rows).Error
+LIMIT ? OFFSET ?`, userID, pageSize, (page-1)*pageSize)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -746,16 +939,16 @@ func (r *ArticleRepository) ListUserLikes(ctx context.Context, userID uint64, pa
 
 func (r *ArticleRepository) IsArticleBoosted(ctx context.Context, articleID uint64) bool {
 	now := time.Now()
-	var n int64
-	r.db.WithContext(ctx).Table("homepage_slot_orders").
-		Where("slot_type='article' AND status='active' AND target_id=? AND start_at<=? AND end_at>?", articleID, now, now).
-		Count(&n)
+	n, _ := countCtx(ctx, r.conn,
+		`SELECT COUNT(*) FROM homepage_slot_orders WHERE slot_type='article' AND status='active' AND target_id=? AND start_at<=? AND end_at>?`,
+		articleID, now, now,
+	)
 	return n > 0
 }
 
 func (r *ArticleRepository) GetHomeArticleLimit(ctx context.Context) int {
 	var lim int
-	_ = r.db.WithContext(ctx).Table("homepage_slot_settings").Select("home_limit").Where("slot_type=?", "article").Scan(&lim).Error
+	_ = r.conn.QueryRowCtx(ctx, &lim, "SELECT home_limit FROM homepage_slot_settings WHERE slot_type=? LIMIT 1", "article")
 	if lim < 1 {
 		return 6
 	}

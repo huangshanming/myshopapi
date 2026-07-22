@@ -25,7 +25,7 @@ func NewDeleteMineLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Delete
 	}
 }
 
-func (l *DeleteMineLogic) DeleteMine(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *DeleteMineLogic) DeleteMine(ctx context.Context, req *types.IdPathReq) (resp *types.EmptyResp, err error) {
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
 		return nil, xerr.New(http.StatusUnauthorized, "未登录")
@@ -34,5 +34,5 @@ func (l *DeleteMineLogic) DeleteMine(ctx context.Context, req *types.IdPathReq) 
 	if err := clogic.NewArticleLogic(l.svcCtx).UserDelete(ctx, userID, id); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: &types.AnyResp{}}, nil
+	return &types.EmptyResp{}, nil
 }

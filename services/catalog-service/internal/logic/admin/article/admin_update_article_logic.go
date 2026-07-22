@@ -25,10 +25,10 @@ func NewAdminUpdateArticleLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 	}
 }
 
-func (l *AdminUpdateArticleLogic) AdminUpdateArticle(ctx context.Context, req *types.ArticleUpdateBodyReq) (resp *types.AnyResp, err error) {
+func (l *AdminUpdateArticleLogic) AdminUpdateArticle(ctx context.Context, req *types.ArticleUpdateBodyReq) (resp *types.EmptyResp, err error) {
 	uid, _ := middleware.GetUserID(ctx)
 	if err := clogic.NewArticleLogic(l.svcCtx).AdminUpdate(ctx, req.Id, uid, req.ToContent()); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: &types.AnyResp{}}, nil
+	return &types.EmptyResp{}, nil
 }

@@ -25,7 +25,7 @@ func NewCreateCommentLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Cre
 	}
 }
 
-func (l *CreateCommentLogic) CreateComment(ctx context.Context, req *types.CreateCommentBodyReq) (resp *types.AnyResp, err error) {
+func (l *CreateCommentLogic) CreateComment(ctx context.Context, req *types.CreateCommentBodyReq) (resp *types.CommentResp, err error) {
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok || userID == 0 {
 		return nil, xerr.New(http.StatusUnauthorized, "未登录")
@@ -34,5 +34,5 @@ func (l *CreateCommentLogic) CreateComment(ctx context.Context, req *types.Creat
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: c}, nil
+	return &types.CommentResp{Data: c}, nil
 }

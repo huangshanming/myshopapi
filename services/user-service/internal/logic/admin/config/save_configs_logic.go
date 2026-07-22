@@ -24,9 +24,9 @@ func NewSaveConfigsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *SaveC
 	}
 }
 
-func (l *SaveConfigsLogic) SaveConfigs(ctx context.Context, req *types.ConfigBatchReq) error {
+func (l *SaveConfigsLogic) SaveConfigs(ctx context.Context, req *types.ConfigBatchReq) (*types.EmptyResp, error) {
 	if err := biz.NewRBACLogic(l.svcCtx).SaveConfigs(ctx, req.Items); err != nil {
-		return xerr.New(http.StatusBadRequest, err.Error())
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return nil
+	return &types.EmptyResp{}, nil
 }

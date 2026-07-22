@@ -24,7 +24,7 @@ func NewInternalCreateNotificationLogic(ctx context.Context, svcCtx *svc.Service
 	}
 }
 
-func (l *InternalCreateNotificationLogic) InternalCreateNotification(ctx context.Context, req *types.NotifyCreateReq) (resp *types.AnyResp, err error) {
+func (l *InternalCreateNotificationLogic) InternalCreateNotification(ctx context.Context, req *types.NotifyCreateReq) (resp *types.NotificationResp, err error) {
 	n, err := biz.NewUserLogic(l.svcCtx).CreateNotification(ctx, biz.NotifyCreateReq{
 		UserID:  req.UserID,
 		Title:   req.Title,
@@ -34,5 +34,5 @@ func (l *InternalCreateNotificationLogic) InternalCreateNotification(ctx context
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: n}, nil
+	return &types.NotificationResp{Data: n}, nil
 }

@@ -25,11 +25,11 @@ func NewAdminGrantSlotLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Ad
 	}
 }
 
-func (l *AdminGrantSlotLogic) AdminGrantSlot(ctx context.Context, req *types.GrantSlotReq) (resp *types.AnyResp, err error) {
+func (l *AdminGrantSlotLogic) AdminGrantSlot(ctx context.Context, req *types.GrantSlotReq) (resp *types.HomepageOrderResp, err error) {
 	adminID, _ := middleware.GetUserID(ctx)
 	order, err := biz.NewMerchantLogic(l.svcCtx).GrantSlot(adminID, *req)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: order}, nil
+	return &types.HomepageOrderResp{Data: order}, nil
 }

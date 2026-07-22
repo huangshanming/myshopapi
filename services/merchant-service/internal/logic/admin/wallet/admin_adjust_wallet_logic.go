@@ -25,12 +25,12 @@ func NewAdminAdjustWalletLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 	}
 }
 
-func (l *AdminAdjustWalletLogic) AdminAdjustWallet(ctx context.Context, req *types.WalletAdjustBodyReq) (resp *types.AnyResp, err error) {
+func (l *AdminAdjustWalletLogic) AdminAdjustWallet(ctx context.Context, req *types.WalletAdjustBodyReq) (resp *types.WalletResp, err error) {
 	shopID := req.Id
 	adminID, _ := middleware.GetUserID(ctx)
 	wallet, err := biz.NewMerchantLogic(l.svcCtx).AdjustWallet(shopID, req.Field, req.Amount, req.Remark, adminID)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: wallet}, nil
+	return &types.WalletResp{Data: wallet}, nil
 }

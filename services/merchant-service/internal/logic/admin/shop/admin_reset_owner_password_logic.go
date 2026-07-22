@@ -24,10 +24,10 @@ func NewAdminResetOwnerPasswordLogic(ctx context.Context, svcCtx *svc.ServiceCon
 	}
 }
 
-func (l *AdminResetOwnerPasswordLogic) AdminResetOwnerPassword(ctx context.Context, req *types.OwnerPasswordBodyReq) (resp *types.AnyResp, err error) {
+func (l *AdminResetOwnerPasswordLogic) AdminResetOwnerPassword(ctx context.Context, req *types.OwnerPasswordBodyReq) (resp *types.EmptyResp, err error) {
 	id := req.Id
 	if err := biz.NewMerchantLogic(l.svcCtx).ResetOwnerPassword(ctx, id, req.Password); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{}, nil
+	return &types.EmptyResp{}, nil
 }

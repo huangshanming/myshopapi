@@ -13,15 +13,26 @@ import (
 	"mymall/services/catalog-service/internal/product/skuutil"
 	"mymall/services/catalog-service/internal/product/types"
 
-	"gorm.io/gorm"
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
+)
+
+const (
+	productSkuColumns = "id, product_id, shop_id, sku_no, spec_values, spec_key, sale_price, market_price, cost_price, stock, stock_warn, barcode, status, sold_count, created_at, updated_at, deleted_at"
+	productImageColumns = "id, product_id, shop_id, url, typ, sort, created_at, updated_at"
+	productAttrColumns = "id, product_id, template_id, attr_key, attr_label, attr_value"
+	productTagColumns = "id, shop_id, name, color, status, created_at, updated_at"
+	productAttrTemplateColumns = "id, shop_id, name, attrs_json, status, created_at, updated_at"
+	productScheduleColumns = "id, product_id, shop_id, action, run_at, status, locked_at, created_at, updated_at"
+	productBatchJobColumns = "id, shop_id, job_type, payload_json, progress, total, status, result_msg, operator_id, created_at, updated_at"
+	productOpLogColumns = "id, shop_id, product_id, operator_id, action, before_json, after_json, ip, created_at"
 )
 
 type ProductAdminRepository struct {
-	db *gorm.DB
+	conn sqlx.SqlConn
 }
 
-func NewProductAdminRepository(db *gorm.DB) *ProductAdminRepository {
-	return &ProductAdminRepository{db: db}
+func NewProductAdminRepository(conn sqlx.SqlConn) *ProductAdminRepository {
+	return &ProductAdminRepository{conn: conn}
 }
 
 type ProductListFilter struct {
@@ -35,60 +46,76 @@ type ProductListFilter struct {
 	Page          int
 	PageSize      int
 	OrderBy       string
-	Recycle       bool // true=仅回收站
+	Recycle       bool
 	CreatedFrom   *time.Time
 	CreatedTo     *time.Time
 	PublishFrom   *time.Time
 	PublishTo     *time.Time
-	PlatformScope bool // true=允许 ShopID=0 查全站
+	PlatformScope bool
 }
 
 func (r *ProductAdminRepository) List(ctx context.Context, f ProductListFilter) ([]model.Product, int64, error) {
-	q := r.db.WithContext(ctx).Model(&model.Product{})
+	where := []string{"1=1"}
+	args := make([]any, 0, 16)
 	if f.PlatformScope {
 		if f.ShopID > 0 {
-			q = q.Where("shop_id = ?", f.ShopID)
+			where = append(where, "shop_id=?")
+			args = append(args, f.ShopID)
 		}
 	} else {
-		q = q.Where("shop_id = ?", f.ShopID)
+		where = append(where, "shop_id=?")
+		args = append(args, f.ShopID)
 	}
 	if f.Recycle {
-		q = q.Where("status = ?", model.ProductDeleted)
+		where = append(where, "status=?")
+		args = append(args, model.ProductDeleted)
 	} else {
-		q = q.Where("status <> ?", model.ProductDeleted)
+		where = append(where, "status<>?")
+		args = append(args, model.ProductDeleted)
 	}
 	if f.Name != "" {
-		q = q.Where("name LIKE ?", "%"+f.Name+"%")
+		where = append(where, "name LIKE ?")
+		args = append(args, "%"+f.Name+"%")
 	}
 	if f.ProductNo != "" {
-		q = q.Where("product_no LIKE ?", "%"+f.ProductNo+"%")
+		where = append(where, "product_no LIKE ?")
+		args = append(args, "%"+f.ProductNo+"%")
 	}
 	if f.CategoryID > 0 {
-		q = q.Where("category_id = ?", f.CategoryID)
+		where = append(where, "category_id=?")
+		args = append(args, f.CategoryID)
 	}
 	if f.Status != "" {
-		q = q.Where("status = ?", f.Status)
+		where = append(where, "status=?")
+		args = append(args, f.Status)
 	}
 	if f.ProductType != "" {
-		q = q.Where("product_type = ?", f.ProductType)
+		where = append(where, "product_type=?")
+		args = append(args, f.ProductType)
 	}
 	if f.StockWarnOnly {
-		q = q.Where("stock <= stock_warn")
+		where = append(where, "stock <= stock_warn")
 	}
 	if f.CreatedFrom != nil {
-		q = q.Where("created_at >= ?", *f.CreatedFrom)
+		where = append(where, "created_at >= ?")
+		args = append(args, *f.CreatedFrom)
 	}
 	if f.CreatedTo != nil {
-		q = q.Where("created_at <= ?", *f.CreatedTo)
+		where = append(where, "created_at <= ?")
+		args = append(args, *f.CreatedTo)
 	}
 	if f.PublishFrom != nil {
-		q = q.Where("publish_time >= ?", *f.PublishFrom)
+		where = append(where, "publish_time >= ?")
+		args = append(args, *f.PublishFrom)
 	}
 	if f.PublishTo != nil {
-		q = q.Where("publish_time <= ?", *f.PublishTo)
+		where = append(where, "publish_time <= ?")
+		args = append(args, *f.PublishTo)
 	}
-	var total int64
-	if err := q.Count(&total).Error; err != nil {
+	whereSQL := strings.Join(where, " AND ")
+
+	total, err := countCtx(ctx, r.conn, "SELECT COUNT(*) FROM products WHERE "+whereSQL, args...)
+	if err != nil {
 		return nil, 0, err
 	}
 	if f.Page < 1 {
@@ -115,25 +142,28 @@ func (r *ProductAdminRepository) List(ctx context.Context, f ProductListFilter) 
 		order = "id ASC"
 	}
 	var list []model.Product
-	err := q.Order(order).Offset((f.Page - 1) * f.PageSize).Limit(f.PageSize).Find(&list).Error
+	qArgs := append(args, f.PageSize, (f.Page-1)*f.PageSize)
+	err = r.conn.QueryRowsCtx(ctx, &list,
+		"SELECT "+productColumns+" FROM products WHERE "+whereSQL+" ORDER BY "+order+" LIMIT ? OFFSET ?",
+		qArgs...,
+	)
 	return list, total, err
 }
 
 func (r *ProductAdminRepository) GetDetail(ctx context.Context, id, shopID uint64) (*model.Product, []model.ProductSku, []model.ProductImage, []model.ProductAttr, error) {
 	var p model.Product
-	if err := r.db.WithContext(ctx).Where("id = ? AND shop_id = ?", id, shopID).First(&p).Error; err != nil {
+	if err := r.conn.QueryRowCtx(ctx, &p, "SELECT "+productColumns+" FROM products WHERE id=? AND shop_id=? LIMIT 1", id, shopID); err != nil {
 		return nil, nil, nil, nil, err
 	}
 	var skus []model.ProductSku
-	_ = r.db.WithContext(ctx).Where("product_id = ? AND deleted_at IS NULL", id).Find(&skus).Error
+	_ = r.conn.QueryRowsCtx(ctx, &skus, "SELECT "+productSkuColumns+" FROM product_skus WHERE product_id=? AND deleted_at IS NULL", id)
 	var imgs []model.ProductImage
-	_ = r.db.WithContext(ctx).Where("product_id = ?", id).Order("sort ASC, id ASC").Find(&imgs).Error
+	_ = r.conn.QueryRowsCtx(ctx, &imgs, "SELECT "+productImageColumns+" FROM product_images WHERE product_id=? ORDER BY sort ASC, id ASC", id)
 	var attrs []model.ProductAttr
-	_ = r.db.WithContext(ctx).Where("product_id = ?", id).Find(&attrs).Error
+	_ = r.conn.QueryRowsCtx(ctx, &attrs, "SELECT "+productAttrColumns+" FROM product_attrs WHERE product_id=?", id)
 	return &p, skus, imgs, attrs, nil
 }
 
-// SaveProduct 创建或更新商品 + SKU/图片/参数（事务）
 func (r *ProductAdminRepository) SaveProduct(ctx context.Context, shopID, operatorID uint64, id uint64, req types.MerchantProductSaveReq) (*model.Product, error) {
 	status := req.Status
 	if status == "" {
@@ -154,7 +184,7 @@ func (r *ProductAdminRepository) SaveProduct(ctx context.Context, shopID, operat
 	specBytes, _ := json.Marshal(req.SpecJSON)
 	var product *model.Product
 
-	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	err := r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		if id == 0 {
 			product = &model.Product{
 				ShopID:           shopID,
@@ -176,12 +206,20 @@ func (r *ProductAdminRepository) SaveProduct(ctx context.Context, shopID, operat
 			if status == model.ProductOnSale {
 				product.PublishTime = common.LocalTime(time.Now())
 			}
-			if err := tx.Create(product).Error; err != nil {
+			newID, err := lastInsertID(ctx, session,
+				`INSERT INTO products (shop_id, product_no, name, subtitle, description, category_id, product_type, spec_json, main_image, status, pet_type, discount, shelf_life, storage_condition, stock_warn, publish_time)
+				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+				product.ShopID, product.ProductNo, product.Name, product.Subtitle, product.Description,
+				product.CategoryID, product.ProductType, product.SpecJSON, product.MainImage, product.Status,
+				product.PetType, product.Discount, product.ShelfLife, product.StorageCondition, product.StockWarn, product.PublishTime,
+			)
+			if err != nil {
 				return err
 			}
+			product.ID = newID
 		} else {
 			var existing model.Product
-			if err := tx.Where("id = ? AND shop_id = ?", id, shopID).First(&existing).Error; err != nil {
+			if err := session.QueryRowCtx(ctx, &existing, "SELECT "+productColumns+" FROM products WHERE id=? AND shop_id=? LIMIT 1", id, shopID); err != nil {
 				return errors.New("商品不存在")
 			}
 			if existing.Status == model.ProductDeleted {
@@ -206,27 +244,30 @@ func (r *ProductAdminRepository) SaveProduct(ctx context.Context, shopID, operat
 					updates["publish_time"] = time.Now()
 				}
 			}
-			if err := tx.Model(&existing).Updates(updates).Error; err != nil {
+			query, args, err := buildUpdate("products", updates, "id=?", id)
+			if err != nil {
+				return err
+			}
+			if _, err := session.ExecCtx(ctx, query, args...); err != nil {
 				return err
 			}
 			product.Name = req.Name
 			product.Status = status
 		}
 
-		if err := r.syncSKUs(tx, product, req); err != nil {
+		if err := r.syncSKUs(ctx, session, product, req); err != nil {
 			return err
 		}
-		if err := r.syncImages(tx, product.ID, shopID, req.Images, req.MainImage); err != nil {
+		if err := r.syncImages(ctx, session, product.ID, shopID, req.Images, req.MainImage); err != nil {
 			return err
 		}
-		if err := r.syncAttrs(tx, product.ID, req.Attrs); err != nil {
+		if err := r.syncAttrs(ctx, session, product.ID, req.Attrs); err != nil {
 			return err
 		}
-		if err := r.syncTags(tx, product.ID, req.TagIDs); err != nil {
+		if err := r.syncTags(ctx, session, product.ID, req.TagIDs); err != nil {
 			return err
 		}
-		// 聚合主表价库存
-		return r.aggregateFromSKUs(tx, product.ID)
+		return r.aggregateFromSKUs(ctx, session, product.ID)
 	})
 	if err != nil {
 		return nil, err
@@ -243,8 +284,7 @@ func (r *ProductAdminRepository) SaveProduct(ctx context.Context, shopID, operat
 	return product, nil
 }
 
-func (r *ProductAdminRepository) syncSKUs(tx *gorm.DB, product *model.Product, req types.MerchantProductSaveReq) error {
-	// 若前端传了 skus 则以其为准；否则按 spec 笛卡尔积生成
+func (r *ProductAdminRepository) syncSKUs(ctx context.Context, session sqlx.Session, product *model.Product, req types.MerchantProductSaveReq) error {
 	skuInputs := req.Skus
 	if len(skuInputs) == 0 {
 		specs := make([]skuutil.SpecItem, 0, len(req.SpecJSON))
@@ -269,7 +309,7 @@ func (r *ProductAdminRepository) syncSKUs(tx *gorm.DB, product *model.Product, r
 	}
 
 	var existing []model.ProductSku
-	_ = tx.Where("product_id = ? AND deleted_at IS NULL", product.ID).Find(&existing).Error
+	_ = session.QueryRowsCtx(ctx, &existing, "SELECT "+productSkuColumns+" FROM product_skus WHERE product_id=? AND deleted_at IS NULL", product.ID)
 	byKey := map[string]model.ProductSku{}
 	for _, e := range existing {
 		byKey[e.SpecKey] = e
@@ -289,40 +329,30 @@ func (r *ProductAdminRepository) syncSKUs(tx *gorm.DB, product *model.Product, r
 			warn = 10
 		}
 		if old, ok := byKey[key]; ok {
-			if err := tx.Model(&old).Updates(map[string]interface{}{
-				"spec_values":  sv,
-				"sale_price":   in.SalePrice,
-				"market_price": in.MarketPrice,
-				"cost_price":   in.CostPrice,
-				"stock":        in.Stock,
-				"stock_warn":   warn,
-				"barcode":      in.Barcode,
-				"status":       st,
-			}).Error; err != nil {
+			query, args, err := buildUpdate("product_skus", map[string]interface{}{
+				"spec_values": sv, "sale_price": in.SalePrice, "market_price": in.MarketPrice,
+				"cost_price": in.CostPrice, "stock": in.Stock, "stock_warn": warn,
+				"barcode": in.Barcode, "status": st,
+			}, "id=?", old.ID)
+			if err != nil {
+				return err
+			}
+			if _, err := session.ExecCtx(ctx, query, args...); err != nil {
 				return err
 			}
 			continue
 		}
-		sku := model.ProductSku{
-			ProductID:   product.ID,
-			ShopID:      product.ShopID,
-			SkuNo:       skuutil.SkuNo(product.ProductNo, key),
-			SpecValues:  sv,
-			SpecKey:     key,
-			SalePrice:   in.SalePrice,
-			MarketPrice: in.MarketPrice,
-			CostPrice:   in.CostPrice,
-			Stock:       in.Stock,
-			StockWarn:   warn,
-			Barcode:     in.Barcode,
-			Status:      st,
-		}
-		if err := tx.Create(&sku).Error; err != nil {
+		_, err := lastInsertID(ctx, session,
+			`INSERT INTO product_skus (product_id, shop_id, sku_no, spec_values, spec_key, sale_price, market_price, cost_price, stock, stock_warn, barcode, status)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			product.ID, product.ShopID, skuutil.SkuNo(product.ProductNo, key), sv, key,
+			in.SalePrice, in.MarketPrice, in.CostPrice, in.Stock, warn, in.Barcode, st,
+		)
+		if err != nil {
 			return err
 		}
 	}
 
-	// 删除未保留的 SKU（已售禁止删）
 	for key, old := range byKey {
 		if _, ok := keepKeys[key]; ok {
 			continue
@@ -331,18 +361,21 @@ func (r *ProductAdminRepository) syncSKUs(tx *gorm.DB, product *model.Product, r
 			return fmt.Errorf("SKU「%s」已有销量，不可删除，请禁用", old.SkuNo)
 		}
 		now := common.LocalTime(time.Now())
-		if err := tx.Model(&old).Updates(map[string]interface{}{
-			"deleted_at": now,
-			"status":     model.SKUDisabled,
-		}).Error; err != nil {
+		query, args, err := buildUpdate("product_skus", map[string]interface{}{
+			"deleted_at": now, "status": model.SKUDisabled,
+		}, "id=?", old.ID)
+		if err != nil {
+			return err
+		}
+		if _, err := session.ExecCtx(ctx, query, args...); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (r *ProductAdminRepository) syncImages(tx *gorm.DB, productID, shopID uint64, images []types.ImageInput, mainImage string) error {
-	if err := tx.Where("product_id = ?", productID).Delete(&model.ProductImage{}).Error; err != nil {
+func (r *ProductAdminRepository) syncImages(ctx context.Context, session sqlx.Session, productID, shopID uint64, images []types.ImageInput, mainImage string) error {
+	if _, err := session.ExecCtx(ctx, "DELETE FROM product_images WHERE product_id=?", productID); err != nil {
 		return err
 	}
 	if mainImage != "" {
@@ -357,44 +390,48 @@ func (r *ProductAdminRepository) syncImages(tx *gorm.DB, productID, shopID uint6
 		if sort == 0 {
 			sort = i
 		}
-		row := model.ProductImage{ProductID: productID, ShopID: shopID, URL: im.URL, Typ: typ, Sort: sort}
-		if err := tx.Create(&row).Error; err != nil {
+		if _, err := lastInsertID(ctx, session,
+			"INSERT INTO product_images (product_id, shop_id, url, typ, sort) VALUES (?, ?, ?, ?, ?)",
+			productID, shopID, im.URL, typ, sort,
+		); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (r *ProductAdminRepository) syncAttrs(tx *gorm.DB, productID uint64, attrs []types.AttrInput) error {
-	_ = tx.Where("product_id = ?", productID).Delete(&model.ProductAttr{}).Error
+func (r *ProductAdminRepository) syncAttrs(ctx context.Context, session sqlx.Session, productID uint64, attrs []types.AttrInput) error {
+	_, _ = session.ExecCtx(ctx, "DELETE FROM product_attrs WHERE product_id=?", productID)
 	for _, a := range attrs {
 		if a.AttrKey == "" {
 			continue
 		}
-		row := model.ProductAttr{
-			ProductID: productID, TemplateID: a.TemplateID,
-			AttrKey: a.AttrKey, AttrLabel: a.AttrLabel, AttrValue: a.AttrValue,
-		}
-		if err := tx.Create(&row).Error; err != nil {
+		if _, err := lastInsertID(ctx, session,
+			"INSERT INTO product_attrs (product_id, template_id, attr_key, attr_label, attr_value) VALUES (?, ?, ?, ?, ?)",
+			productID, a.TemplateID, a.AttrKey, a.AttrLabel, a.AttrValue,
+		); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (r *ProductAdminRepository) syncTags(tx *gorm.DB, productID uint64, tagIDs []uint64) error {
-	_ = tx.Where("product_id = ?", productID).Delete(&model.ProductTagRel{}).Error
+func (r *ProductAdminRepository) syncTags(ctx context.Context, session sqlx.Session, productID uint64, tagIDs []uint64) error {
+	_, _ = session.ExecCtx(ctx, "DELETE FROM product_tag_rels WHERE product_id=?", productID)
 	for _, tid := range tagIDs {
-		if err := tx.Create(&model.ProductTagRel{ProductID: productID, TagID: tid}).Error; err != nil {
+		if _, err := session.ExecCtx(ctx, "INSERT INTO product_tag_rels (product_id, tag_id) VALUES (?, ?)", productID, tid); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (r *ProductAdminRepository) aggregateFromSKUs(tx *gorm.DB, productID uint64) error {
+func (r *ProductAdminRepository) aggregateFromSKUs(ctx context.Context, session sqlx.Session, productID uint64) error {
 	var skus []model.ProductSku
-	if err := tx.Where("product_id = ? AND deleted_at IS NULL AND status = ?", productID, model.SKUEnabled).Find(&skus).Error; err != nil {
+	if err := session.QueryRowsCtx(ctx, &skus,
+		"SELECT "+productSkuColumns+" FROM product_skus WHERE product_id=? AND deleted_at IS NULL AND status=?",
+		productID, model.SKUEnabled,
+	); err != nil {
 		return err
 	}
 	totalStock := 0
@@ -405,10 +442,14 @@ func (r *ProductAdminRepository) aggregateFromSKUs(tx *gorm.DB, productID uint64
 			minPrice = s.SalePrice
 		}
 	}
-	return tx.Model(&model.Product{}).Where("id = ?", productID).Updates(map[string]interface{}{
-		"stock":      totalStock,
-		"sale_price": minPrice,
-	}).Error
+	query, args, err := buildUpdate("products", map[string]interface{}{
+		"stock": totalStock, "sale_price": minPrice,
+	}, "id=?", productID)
+	if err != nil {
+		return err
+	}
+	_, err = session.ExecCtx(ctx, query, args...)
+	return err
 }
 
 func (r *ProductAdminRepository) SetStatus(ctx context.Context, id, shopID uint64, status string) error {
@@ -422,16 +463,23 @@ func (r *ProductAdminRepository) SetStatus(ctx context.Context, id, shopID uint6
 	if status != model.ProductDeleted {
 		updates["deleted_at"] = nil
 	}
-	res := r.db.WithContext(ctx).Model(&model.Product{}).Where("id = ? AND shop_id = ?", id, shopID).Updates(updates)
-	if res.RowsAffected == 0 {
+	query, args, err := buildUpdate("products", updates, "id=? AND shop_id=?", id, shopID)
+	if err != nil {
+		return err
+	}
+	n, err := execAffected(ctx, r.conn, query, args...)
+	if err != nil {
+		return err
+	}
+	if n == 0 {
 		return errors.New("商品不存在")
 	}
-	return res.Error
+	return nil
 }
 
 func (r *ProductAdminRepository) GetByID(ctx context.Context, id uint64) (*model.Product, error) {
 	var p model.Product
-	if err := r.db.WithContext(ctx).Where("id = ?", id).First(&p).Error; err != nil {
+	if err := r.conn.QueryRowCtx(ctx, &p, "SELECT "+productColumns+" FROM products WHERE id=? LIMIT 1", id); err != nil {
 		return nil, err
 	}
 	return &p, nil
@@ -483,25 +531,26 @@ func (r *ProductAdminRepository) CopyProduct(ctx context.Context, id, shopID, op
 	if err != nil {
 		return nil, err
 	}
-	_ = r.db.WithContext(ctx).Model(np).Update("copy_from_id", id).Error
+	_, _ = r.conn.ExecCtx(ctx, "UPDATE products SET copy_from_id=? WHERE id=?", id, np.ID)
 	return np, nil
 }
 
 func (r *ProductAdminRepository) PermanentDelete(ctx context.Context, shopID uint64, ids []uint64) error {
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	return r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		for _, id := range ids {
 			var p model.Product
-			if err := tx.Where("id = ? AND shop_id = ? AND status = ?", id, shopID, model.ProductDeleted).First(&p).Error; err != nil {
+			if err := session.QueryRowCtx(ctx, &p, "SELECT "+productColumns+" FROM products WHERE id=? AND shop_id=? AND status=? LIMIT 1", id, shopID, model.ProductDeleted); err != nil {
 				return fmt.Errorf("商品 %d 不在回收站", id)
 			}
-			_ = tx.Where("product_id = ?", id).Delete(&model.ProductSku{}).Error
-			_ = tx.Where("product_id = ?", id).Delete(&model.ProductImage{}).Error
-			_ = tx.Where("product_id = ?", id).Delete(&model.ProductAttr{}).Error
-			_ = tx.Where("product_id = ?", id).Delete(&model.ProductTagRel{}).Error
-			_ = tx.Where("product_id = ?", id).Delete(&model.ProductSchedule{}).Error
-			if err := tx.Delete(&p).Error; err != nil {
+			_, _ = session.ExecCtx(ctx, "DELETE FROM product_skus WHERE product_id=?", id)
+			_, _ = session.ExecCtx(ctx, "DELETE FROM product_images WHERE product_id=?", id)
+			_, _ = session.ExecCtx(ctx, "DELETE FROM product_attrs WHERE product_id=?", id)
+			_, _ = session.ExecCtx(ctx, "DELETE FROM product_tag_rels WHERE product_id=?", id)
+			_, _ = session.ExecCtx(ctx, "DELETE FROM product_schedules WHERE product_id=?", id)
+			if _, err := session.ExecCtx(ctx, "DELETE FROM products WHERE id=?", id); err != nil {
 				return err
 			}
+			_ = p
 		}
 		return nil
 	})
@@ -509,7 +558,7 @@ func (r *ProductAdminRepository) PermanentDelete(ctx context.Context, shopID uin
 
 func (r *ProductAdminRepository) AdjustSkuStock(ctx context.Context, shopID uint64, req types.StockAdjustReq) error {
 	var sku model.ProductSku
-	if err := r.db.WithContext(ctx).Where("id = ? AND shop_id = ? AND deleted_at IS NULL", req.SkuID, shopID).First(&sku).Error; err != nil {
+	if err := r.conn.QueryRowCtx(ctx, &sku, "SELECT "+productSkuColumns+" FROM product_skus WHERE id=? AND shop_id=? AND deleted_at IS NULL LIMIT 1", req.SkuID, shopID); err != nil {
 		return errors.New("SKU不存在")
 	}
 	newStock := sku.Stock
@@ -521,16 +570,15 @@ func (r *ProductAdminRepository) AdjustSkuStock(ctx context.Context, shopID uint
 	if newStock < 0 {
 		return errors.New("库存不能为负")
 	}
-	if err := r.db.WithContext(ctx).Model(&sku).Update("stock", newStock).Error; err != nil {
+	if _, err := r.conn.ExecCtx(ctx, "UPDATE product_skus SET stock=? WHERE id=?", newStock, sku.ID); err != nil {
 		return err
 	}
-	return r.aggregateFromSKUs(r.db.WithContext(ctx), sku.ProductID)
+	return r.aggregateFromSKUs(ctx, r.conn, sku.ProductID)
 }
 
 func (r *ProductAdminRepository) ListStockWarnings(ctx context.Context, shopID uint64, page, pageSize int) ([]model.ProductSku, int64, error) {
-	q := r.db.WithContext(ctx).Model(&model.ProductSku{}).Where("shop_id = ? AND deleted_at IS NULL AND stock <= stock_warn", shopID)
-	var total int64
-	_ = q.Count(&total)
+	where := "shop_id=? AND deleted_at IS NULL AND stock <= stock_warn"
+	total, _ := countCtx(ctx, r.conn, "SELECT COUNT(*) FROM product_skus WHERE "+where, shopID)
 	if page < 1 {
 		page = 1
 	}
@@ -538,28 +586,69 @@ func (r *ProductAdminRepository) ListStockWarnings(ctx context.Context, shopID u
 		pageSize = 20
 	}
 	var list []model.ProductSku
-	err := q.Order("stock ASC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
+	err := r.conn.QueryRowsCtx(ctx, &list,
+		"SELECT "+productSkuColumns+" FROM product_skus WHERE "+where+" ORDER BY stock ASC LIMIT ? OFFSET ?",
+		shopID, pageSize, (page-1)*pageSize,
+	)
 	return list, total, err
 }
 
 func (r *ProductAdminRepository) CreateBatchJob(ctx context.Context, job *model.ProductBatchJob) error {
-	return r.db.WithContext(ctx).Create(job).Error
+	id, err := lastInsertID(ctx, r.conn,
+		`INSERT INTO product_batch_jobs (shop_id, job_type, payload_json, progress, total, status, result_msg, operator_id)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		job.ShopID, job.JobType, job.PayloadJSON, job.Progress, job.Total, job.Status, job.ResultMsg, job.OperatorID,
+	)
+	if err != nil {
+		return err
+	}
+	job.ID = id
+	return nil
 }
 
 func (r *ProductAdminRepository) GetBatchJob(ctx context.Context, id, shopID uint64) (*model.ProductBatchJob, error) {
 	var j model.ProductBatchJob
-	err := r.db.WithContext(ctx).Where("id = ? AND shop_id = ?", id, shopID).First(&j).Error
+	err := r.conn.QueryRowCtx(ctx, &j, "SELECT "+productBatchJobColumns+" FROM product_batch_jobs WHERE id=? AND shop_id=? LIMIT 1", id, shopID)
 	return &j, err
 }
 
+func (r *ProductAdminRepository) UpdateBatchJob(ctx context.Context, id uint64, updates map[string]interface{}) error {
+	query, args, err := buildUpdate("product_batch_jobs", updates, "id=?", id)
+	if err != nil {
+		return err
+	}
+	_, err = r.conn.ExecCtx(ctx, query, args...)
+	return err
+}
+
+func (r *ProductAdminRepository) UpdateProductCategory(ctx context.Context, id, shopID, categoryID uint64) error {
+	_, err := r.conn.ExecCtx(ctx, "UPDATE products SET category_id=? WHERE id=? AND shop_id=?", categoryID, id, shopID)
+	return err
+}
+
+func (r *ProductAdminRepository) ListSkusByProductShop(ctx context.Context, productID, shopID uint64) ([]model.ProductSku, error) {
+	var skus []model.ProductSku
+	err := r.conn.QueryRowsCtx(ctx, &skus,
+		"SELECT "+productSkuColumns+" FROM product_skus WHERE product_id=? AND shop_id=? AND deleted_at IS NULL",
+		productID, shopID,
+	)
+	return skus, err
+}
+
+func (r *ProductAdminRepository) UpdateSkuSalePrice(ctx context.Context, skuID uint64, price float64) error {
+	_, err := r.conn.ExecCtx(ctx, "UPDATE product_skus SET sale_price=? WHERE id=?", price, skuID)
+	return err
+}
+
 func (r *ProductAdminRepository) AddOpLog(ctx context.Context, shopID uint64, productID *uint64, operatorID uint64, action, before, after string) error {
-	// MySQL JSON 列不能写空字符串，空值必须用 null
 	before = jsonOrNull(before)
 	after = jsonOrNull(after)
-	return r.db.WithContext(ctx).Create(&model.ProductOpLog{
-		ShopID: shopID, ProductID: productID, OperatorID: operatorID,
-		Action: action, BeforeJSON: before, AfterJSON: after,
-	}).Error
+	_, err := lastInsertID(ctx, r.conn,
+		`INSERT INTO product_op_logs (shop_id, product_id, operator_id, action, before_json, after_json)
+		 VALUES (?, ?, ?, ?, ?, ?)`,
+		shopID, productID, operatorID, action, before, after,
+	)
+	return err
 }
 
 func jsonOrNull(s string) string {
@@ -592,14 +681,21 @@ type OpLogItem struct {
 }
 
 func (r *ProductAdminRepository) ListOpLogs(ctx context.Context, shopID uint64, productID uint64, page, pageSize int) ([]OpLogItem, int64, error) {
-	q := r.db.WithContext(ctx).Model(&model.ProductOpLog{}).Where("shop_id = ?", shopID)
+	where := []string{"shop_id=?"}
+	args := []any{shopID}
 	if productID > 0 {
-		q = q.Where("product_id = ?", productID)
+		where = append(where, "product_id=?")
+		args = append(args, productID)
 	}
-	var total int64
-	_ = q.Count(&total)
+	whereSQL := strings.Join(where, " AND ")
+
+	total, _ := countCtx(ctx, r.conn, "SELECT COUNT(*) FROM product_op_logs WHERE "+whereSQL, args...)
 	var logs []model.ProductOpLog
-	err := q.Order("id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&logs).Error
+	qArgs := append(args, pageSize, (page-1)*pageSize)
+	err := r.conn.QueryRowsCtx(ctx, &logs,
+		"SELECT "+productOpLogColumns+" FROM product_op_logs WHERE "+whereSQL+" ORDER BY id DESC LIMIT ? OFFSET ?",
+		qArgs...,
+	)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -625,11 +721,11 @@ func (r *ProductAdminRepository) ListOpLogs(ctx context.Context, shopID uint64, 
 	nameByProduct := map[uint64]string{}
 	if len(productIDs) > 0 {
 		type row struct {
-			ID   uint64
-			Name string
+			ID   uint64 `db:"id"`
+			Name string `db:"name"`
 		}
 		var rows []row
-		_ = r.db.WithContext(ctx).Table("products").Select("id, name").Where("id IN ?", productIDs).Find(&rows).Error
+		_ = r.conn.QueryRowsCtx(ctx, &rows, "SELECT id, name FROM products WHERE id IN ("+placeholders(len(productIDs))+")", inArgs(productIDs)...)
 		for _, x := range rows {
 			nameByProduct[x.ID] = x.Name
 		}
@@ -637,12 +733,12 @@ func (r *ProductAdminRepository) ListOpLogs(ctx context.Context, shopID uint64, 
 	nameByUser := map[uint64]string{}
 	if len(operatorIDs) > 0 {
 		type row struct {
-			ID       uint64
-			Nickname string
-			Mobile   string
+			ID       uint64 `db:"id"`
+			Nickname string `db:"nickname"`
+			Mobile   string `db:"mobile"`
 		}
 		var rows []row
-		_ = r.db.WithContext(ctx).Table("users").Select("id, nickname, mobile").Where("id IN ?", operatorIDs).Find(&rows).Error
+		_ = r.conn.QueryRowsCtx(ctx, &rows, "SELECT id, nickname, mobile FROM users WHERE id IN ("+placeholders(len(operatorIDs))+")", inArgs(operatorIDs)...)
 		for _, x := range rows {
 			n := strings.TrimSpace(x.Nickname)
 			if n == "" {
@@ -669,7 +765,6 @@ func (r *ProductAdminRepository) ListOpLogs(ctx context.Context, shopID uint64, 
 		if lg.ProductID != nil && *lg.ProductID > 0 {
 			item.ProductName = nameByProduct[*lg.ProductID]
 			if item.ProductName == "" {
-				// 尝试从 after_json 取 name（永久删除后商品可能已不在）
 				item.ProductName = pickJSONString(lg.AfterJSON, "name")
 			}
 			if item.ProductName == "" {
@@ -792,45 +887,45 @@ func buildOpSummary(item OpLogItem) string {
 }
 
 func (r *ProductAdminRepository) ReserveSkuStock(ctx context.Context, items []SkuStockItem) error {
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	return r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		for _, it := range items {
 			if it.SkuID > 0 {
-				res := tx.Model(&model.ProductSku{}).
-					Where("id = ? AND deleted_at IS NULL AND stock >= ?", it.SkuID, it.Quantity).
-					Update("stock", gorm.Expr("stock - ?", it.Quantity))
-				if res.Error != nil {
-					return res.Error
+				n, err := execSession(ctx, session,
+					"UPDATE product_skus SET stock=stock-? WHERE id=? AND deleted_at IS NULL AND stock>=?",
+					it.Quantity, it.SkuID, it.Quantity,
+				)
+				if err != nil {
+					return err
 				}
-				if res.RowsAffected == 0 {
+				if n == 0 {
 					return fmt.Errorf("SKU %d 库存不足", it.SkuID)
 				}
 				var sku model.ProductSku
-				_ = tx.First(&sku, it.SkuID).Error
-				_ = r.aggregateFromSKUs(tx, sku.ProductID)
+				_ = session.QueryRowCtx(ctx, &sku, "SELECT product_id FROM product_skus WHERE id=? LIMIT 1", it.SkuID)
+				_ = r.aggregateFromSKUs(ctx, session, sku.ProductID)
 				continue
 			}
-			// 兼容：无 sku_id 时优先扣默认 SKU，否则扣商品级库存
-			skuID := r.FirstSkuID(ctx, it.ProductID)
+			skuID := r.firstSkuIDSession(ctx, session, it.ProductID)
 			if skuID > 0 {
-				res := tx.Model(&model.ProductSku{}).
-					Where("id = ? AND deleted_at IS NULL AND stock >= ?", skuID, it.Quantity).
-					Update("stock", gorm.Expr("stock - ?", it.Quantity))
-				if res.Error != nil {
-					return res.Error
+				n, err := execSession(ctx, session,
+					"UPDATE product_skus SET stock=stock-? WHERE id=? AND deleted_at IS NULL AND stock>=?",
+					it.Quantity, skuID, it.Quantity,
+				)
+				if err != nil {
+					return err
 				}
-				if res.RowsAffected == 0 {
+				if n == 0 {
 					return fmt.Errorf("SKU %d 库存不足", skuID)
 				}
-				_ = r.aggregateFromSKUs(tx, it.ProductID)
+				_ = r.aggregateFromSKUs(ctx, session, it.ProductID)
 				continue
 			}
-			res := tx.Model(&model.Product{}).
-				Where("id = ? AND stock >= ?", it.ProductID, it.Quantity).
-				Update("stock", gorm.Expr("stock - ?", it.Quantity))
-			if res.Error != nil {
-				return res.Error
+			n, err := execSession(ctx, session,
+				"UPDATE products SET stock=stock-? WHERE id=? AND stock>=?", it.Quantity, it.ProductID, it.Quantity)
+			if err != nil {
+				return err
 			}
-			if res.RowsAffected == 0 {
+			if n == 0 {
 				return fmt.Errorf("商品 %d 库存不足", it.ProductID)
 			}
 		}
@@ -839,24 +934,22 @@ func (r *ProductAdminRepository) ReserveSkuStock(ctx context.Context, items []Sk
 }
 
 func (r *ProductAdminRepository) ReleaseSkuStock(ctx context.Context, items []SkuStockItem) error {
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	return r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		for _, it := range items {
 			skuID := it.SkuID
 			if skuID == 0 {
-				skuID = r.FirstSkuID(ctx, it.ProductID)
+				skuID = r.firstSkuIDSession(ctx, session, it.ProductID)
 			}
 			if skuID > 0 {
-				if err := tx.Model(&model.ProductSku{}).Where("id = ?", skuID).
-					Update("stock", gorm.Expr("stock + ?", it.Quantity)).Error; err != nil {
+				if _, err := session.ExecCtx(ctx, "UPDATE product_skus SET stock=stock+? WHERE id=?", it.Quantity, skuID); err != nil {
 					return err
 				}
 				var sku model.ProductSku
-				_ = tx.First(&sku, skuID).Error
-				_ = r.aggregateFromSKUs(tx, sku.ProductID)
+				_ = session.QueryRowCtx(ctx, &sku, "SELECT product_id FROM product_skus WHERE id=? LIMIT 1", skuID)
+				_ = r.aggregateFromSKUs(ctx, session, sku.ProductID)
 				continue
 			}
-			_ = tx.Model(&model.Product{}).Where("id = ?", it.ProductID).
-				Update("stock", gorm.Expr("stock + ?", it.Quantity)).Error
+			_, _ = session.ExecCtx(ctx, "UPDATE products SET stock=stock+? WHERE id=?", it.Quantity, it.ProductID)
 		}
 		return nil
 	})
@@ -868,68 +961,103 @@ type SkuStockItem struct {
 	Quantity  int
 }
 
-// Tags / templates CRUD
 func (r *ProductAdminRepository) ListTags(ctx context.Context, shopID uint64) ([]model.ProductTag, error) {
 	var list []model.ProductTag
-	err := r.db.WithContext(ctx).Where("shop_id IN (0, ?)", shopID).Order("id DESC").Find(&list).Error
+	err := r.conn.QueryRowsCtx(ctx, &list, "SELECT "+productTagColumns+" FROM product_tags WHERE shop_id IN (0, ?) ORDER BY id DESC", shopID)
 	return list, err
 }
 
 func (r *ProductAdminRepository) SaveTag(ctx context.Context, tag *model.ProductTag) error {
 	if tag.ID == 0 {
-		return r.db.WithContext(ctx).Create(tag).Error
+		id, err := lastInsertID(ctx, r.conn, "INSERT INTO product_tags (shop_id, name, color, status) VALUES (?, ?, ?, ?)",
+			tag.ShopID, tag.Name, tag.Color, tag.Status)
+		if err != nil {
+			return err
+		}
+		tag.ID = id
+		return nil
 	}
-	return r.db.WithContext(ctx).Model(tag).Updates(map[string]interface{}{"name": tag.Name, "color": tag.Color, "status": tag.Status}).Error
+	query, args, err := buildUpdate("product_tags", map[string]interface{}{"name": tag.Name, "color": tag.Color, "status": tag.Status}, "id=?", tag.ID)
+	if err != nil {
+		return err
+	}
+	_, err = r.conn.ExecCtx(ctx, query, args...)
+	return err
 }
 
 func (r *ProductAdminRepository) DeleteTag(ctx context.Context, id, shopID uint64) error {
-	return r.db.WithContext(ctx).Where("id = ? AND shop_id = ?", id, shopID).Delete(&model.ProductTag{}).Error
+	_, err := r.conn.ExecCtx(ctx, "DELETE FROM product_tags WHERE id=? AND shop_id=?", id, shopID)
+	return err
 }
 
 func (r *ProductAdminRepository) ListAttrTemplates(ctx context.Context, shopID uint64) ([]model.ProductAttrTemplate, error) {
 	var list []model.ProductAttrTemplate
-	err := r.db.WithContext(ctx).Where("shop_id IN (0, ?)", shopID).Order("id DESC").Find(&list).Error
+	err := r.conn.QueryRowsCtx(ctx, &list, "SELECT "+productAttrTemplateColumns+" FROM product_attr_templates WHERE shop_id IN (0, ?) ORDER BY id DESC", shopID)
 	return list, err
 }
 
 func (r *ProductAdminRepository) SaveAttrTemplate(ctx context.Context, t *model.ProductAttrTemplate) error {
 	if t.ID == 0 {
-		return r.db.WithContext(ctx).Create(t).Error
+		id, err := lastInsertID(ctx, r.conn, "INSERT INTO product_attr_templates (shop_id, name, attrs_json, status) VALUES (?, ?, ?, ?)",
+			t.ShopID, t.Name, t.AttrsJSON, t.Status)
+		if err != nil {
+			return err
+		}
+		t.ID = id
+		return nil
 	}
-	return r.db.WithContext(ctx).Model(t).Updates(map[string]interface{}{"name": t.Name, "attrs_json": t.AttrsJSON, "status": t.Status}).Error
+	query, args, err := buildUpdate("product_attr_templates", map[string]interface{}{"name": t.Name, "attrs_json": t.AttrsJSON, "status": t.Status}, "id=?", t.ID)
+	if err != nil {
+		return err
+	}
+	_, err = r.conn.ExecCtx(ctx, query, args...)
+	return err
 }
 
 func (r *ProductAdminRepository) DeleteAttrTemplate(ctx context.Context, id, shopID uint64) error {
-	return r.db.WithContext(ctx).Where("id = ? AND shop_id = ?", id, shopID).Delete(&model.ProductAttrTemplate{}).Error
+	_, err := r.conn.ExecCtx(ctx, "DELETE FROM product_attr_templates WHERE id=? AND shop_id=?", id, shopID)
+	return err
 }
 
 func (r *ProductAdminRepository) CreateSchedule(ctx context.Context, s *model.ProductSchedule) error {
-	_ = r.db.WithContext(ctx).Model(&model.ProductSchedule{}).
-		Where("product_id = ? AND action = ? AND status = ?", s.ProductID, s.Action, "pending").
-		Update("status", "cancelled").Error
-	return r.db.WithContext(ctx).Create(s).Error
+	_, _ = r.conn.ExecCtx(ctx,
+		"UPDATE product_schedules SET status='cancelled' WHERE product_id=? AND action=? AND status='pending'",
+		s.ProductID, s.Action)
+	id, err := lastInsertID(ctx, r.conn,
+		"INSERT INTO product_schedules (product_id, shop_id, action, run_at, status) VALUES (?, ?, ?, ?, ?)",
+		s.ProductID, s.ShopID, s.Action, s.RunAt, s.Status,
+	)
+	if err != nil {
+		return err
+	}
+	s.ID = id
+	return nil
 }
 
 func (r *ProductAdminRepository) CancelSchedule(ctx context.Context, id, shopID uint64) error {
-	return r.db.WithContext(ctx).Model(&model.ProductSchedule{}).
-		Where("id = ? AND shop_id = ? AND status = ?", id, shopID, "pending").
-		Update("status", "cancelled").Error
+	_, err := r.conn.ExecCtx(ctx,
+		"UPDATE product_schedules SET status='cancelled' WHERE id=? AND shop_id=? AND status='pending'", id, shopID)
+	return err
 }
 
 func (r *ProductAdminRepository) ClaimDueSchedules(ctx context.Context, limit int) ([]model.ProductSchedule, error) {
 	var list []model.ProductSchedule
 	now := time.Now()
-	err := r.db.WithContext(ctx).Where("status = ? AND run_at <= ? AND locked_at IS NULL", "pending", now).
-		Limit(limit).Find(&list).Error
+	err := r.conn.QueryRowsCtx(ctx, &list,
+		"SELECT "+productScheduleColumns+" FROM product_schedules WHERE status='pending' AND run_at<=? AND locked_at IS NULL LIMIT ?",
+		now, limit,
+	)
 	if err != nil {
 		return nil, err
 	}
 	out := make([]model.ProductSchedule, 0, len(list))
 	for _, s := range list {
-		res := r.db.WithContext(ctx).Model(&model.ProductSchedule{}).
-			Where("id = ? AND status = ? AND locked_at IS NULL", s.ID, "pending").
-			Update("locked_at", now)
-		if res.RowsAffected == 1 {
+		n, err := execAffected(ctx, r.conn,
+			"UPDATE product_schedules SET locked_at=? WHERE id=? AND status='pending' AND locked_at IS NULL", now, s.ID)
+		if err != nil {
+			continue
+		}
+		if n == 1 {
 			out = append(out, s)
 		}
 	}
@@ -941,23 +1069,27 @@ func (r *ProductAdminRepository) FinishSchedule(ctx context.Context, id uint64, 
 	if !ok {
 		st = "cancelled"
 	}
-	return r.db.WithContext(ctx).Model(&model.ProductSchedule{}).Where("id = ?", id).Update("status", st).Error
+	_, err := r.conn.ExecCtx(ctx, "UPDATE product_schedules SET status=? WHERE id=?", st, id)
+	return err
 }
 
 func (r *ProductAdminRepository) FirstSkuID(ctx context.Context, productID uint64) uint64 {
+	return r.firstSkuIDSession(ctx, r.conn, productID)
+}
+
+func (r *ProductAdminRepository) firstSkuIDSession(ctx context.Context, session sqlx.Session, productID uint64) uint64 {
 	var id uint64
-	_ = r.db.WithContext(ctx).Model(&model.ProductSku{}).Select("id").
-		Where("product_id = ? AND deleted_at IS NULL", productID).
-		Order("id ASC").Limit(1).Scan(&id).Error
+	_ = session.QueryRowCtx(ctx, &id,
+		"SELECT id FROM product_skus WHERE product_id=? AND deleted_at IS NULL ORDER BY id ASC LIMIT 1", productID)
 	return id
 }
 
 func (r *ProductAdminRepository) GetSku(ctx context.Context, id uint64) (*model.ProductSku, error) {
 	var s model.ProductSku
-	err := r.db.WithContext(ctx).Where("id = ? AND deleted_at IS NULL", id).First(&s).Error
+	err := r.conn.QueryRowCtx(ctx, &s, "SELECT "+productSkuColumns+" FROM product_skus WHERE id=? AND deleted_at IS NULL LIMIT 1", id)
 	return &s, err
 }
 
 func (r *ProductAdminRepository) AggregatePublic(ctx context.Context, productID uint64) error {
-	return r.aggregateFromSKUs(r.db.WithContext(ctx), productID)
+	return r.aggregateFromSKUs(ctx, r.conn, productID)
 }

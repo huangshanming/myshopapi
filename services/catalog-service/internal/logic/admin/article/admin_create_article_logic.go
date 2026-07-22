@@ -25,11 +25,11 @@ func NewAdminCreateArticleLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 	}
 }
 
-func (l *AdminCreateArticleLogic) AdminCreateArticle(ctx context.Context, req *types.ArticleSaveReq) (resp *types.AnyResp, err error) {
+func (l *AdminCreateArticleLogic) AdminCreateArticle(ctx context.Context, req *types.ArticleSaveReq) (resp *types.ArticleResp, err error) {
 	uid, _ := middleware.GetUserID(ctx)
 	a, err := clogic.NewArticleLogic(l.svcCtx).AdminCreate(ctx, uid, req.ToContent())
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: a}, nil
+	return &types.ArticleResp{Data: a}, nil
 }

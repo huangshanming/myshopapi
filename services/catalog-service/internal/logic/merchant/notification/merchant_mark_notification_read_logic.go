@@ -25,7 +25,7 @@ func NewMerchantMarkNotificationReadLogic(ctx context.Context, svcCtx *svc.Servi
 	}
 }
 
-func (l *MerchantMarkNotificationReadLogic) MerchantMarkNotificationRead(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *MerchantMarkNotificationReadLogic) MerchantMarkNotificationRead(ctx context.Context, req *types.IdPathReq) (resp *types.EmptyResp, err error) {
 	shopID := middleware.GetShopID(ctx)
 	if shopID == 0 {
 		return nil, xerr.New(http.StatusForbidden, "缺少店铺上下文")
@@ -34,5 +34,5 @@ func (l *MerchantMarkNotificationReadLogic) MerchantMarkNotificationRead(ctx con
 	if err := nlogic.NewNotificationLogic(l.svcCtx).MarkRead(ctx, id, shopID); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: &types.AnyResp{}}, nil
+	return &types.EmptyResp{}, nil
 }

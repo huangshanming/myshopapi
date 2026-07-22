@@ -18,11 +18,11 @@ func InternalEventHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := task.NewInternalEventLogic(r.Context(), svcCtx)
-		err := l.InternalEvent(r.Context(), &req)
+		resp, err := l.InternalEvent(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {
-			httpx.Ok(w)
+			httpx.OkJsonCtx(r.Context(), w, resp)
 		}
 	}
 }

@@ -10,7 +10,7 @@ import (
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
 
-	"gorm.io/gorm"
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
 type LogisticsLogic struct {
@@ -60,7 +60,7 @@ func (l *LogisticsLogic) Update(ctx context.Context, id uint64, req types.Logist
 		return errors.New("名称与编码必填")
 	}
 	if err := l.svcCtx.LogisticsRepo.Update(ctx, id, name, code, req.Sort); err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, sqlx.ErrNotFound) {
 			return errors.New("记录不存在")
 		}
 		if isDuplicate(err) {
@@ -76,7 +76,7 @@ func (l *LogisticsLogic) UpdateStatus(ctx context.Context, id uint64, status int
 		return errors.New("状态无效")
 	}
 	if err := l.svcCtx.LogisticsRepo.UpdateStatus(ctx, id, status); err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, sqlx.ErrNotFound) {
 			return errors.New("记录不存在")
 		}
 		return err
@@ -86,7 +86,7 @@ func (l *LogisticsLogic) UpdateStatus(ctx context.Context, id uint64, status int
 
 func (l *LogisticsLogic) Delete(ctx context.Context, id uint64) error {
 	if err := l.svcCtx.LogisticsRepo.Delete(ctx, id); err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, sqlx.ErrNotFound) {
 			return errors.New("记录不存在")
 		}
 		return err

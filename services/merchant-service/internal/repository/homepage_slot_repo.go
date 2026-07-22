@@ -8,61 +8,94 @@ import (
 	"mymall/common"
 	"mymall/services/merchant-service/internal/model"
 
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
+)
+
+const (
+	slotPackageColumns = "id, slot_type, name, price, duration_days, status, sort, remark, created_at, updated_at"
+	slotSettingColumns = "slot_type, home_limit, updated_at"
+	slotOrderColumns = "id, shop_id, slot_type, package_id, target_id, amount, duration_days, start_at, end_at, status, pay_source, wallet_log_id, operator_id, created_at, updated_at"
 )
 
 func (r *MerchantRepository) ExpireDueSlotOrders(ctx context.Context) {
 	now := time.Now()
-	_ = r.db.WithContext(ctx).Model(&model.HomepageSlotOrder{}).
-		Where("status = ? AND end_at < ?", model.SlotOrderActive, now).
-		Update("status", model.SlotOrderExpired)
+	_, _ = r.conn.ExecCtx(ctx,
+		"UPDATE homepage_slot_orders SET status=? WHERE status=? AND end_at<?",
+		model.SlotOrderExpired, model.SlotOrderActive, now,
+	)
 }
 
 func (r *MerchantRepository) ListSlotPackages(ctx context.Context, slotType string, onlyOn bool) ([]model.HomepageSlotPackage, error) {
-	q := r.db.WithContext(ctx).Model(&model.HomepageSlotPackage{})
+	where := "1=1"
+	args := make([]any, 0, 2)
 	if slotType != "" {
-		q = q.Where("slot_type = ?", slotType)
+		where += " AND slot_type=?"
+		args = append(args, slotType)
 	}
 	if onlyOn {
-		q = q.Where("status = ?", model.SlotPkgOn)
+		where += " AND status=?"
+		args = append(args, model.SlotPkgOn)
 	}
 	var list []model.HomepageSlotPackage
-	err := q.Order("sort ASC, id ASC").Find(&list).Error
+	err := r.conn.QueryRowsCtx(ctx, &list,
+		"SELECT "+slotPackageColumns+" FROM homepage_slot_packages WHERE "+where+" ORDER BY sort ASC, id ASC",
+		args...,
+	)
 	return list, err
 }
 
 func (r *MerchantRepository) GetSlotPackage(ctx context.Context, id uint64) (*model.HomepageSlotPackage, error) {
 	var p model.HomepageSlotPackage
-	if err := r.db.WithContext(ctx).First(&p, id).Error; err != nil {
+	err := r.conn.QueryRowCtx(ctx, &p,
+		"SELECT "+slotPackageColumns+" FROM homepage_slot_packages WHERE id=? LIMIT 1", id,
+	)
+	if err != nil {
 		return nil, err
 	}
 	return &p, nil
 }
 
 func (r *MerchantRepository) CreateSlotPackage(ctx context.Context, p *model.HomepageSlotPackage) error {
-	return r.db.WithContext(ctx).Create(p).Error
+	res, err := r.conn.ExecCtx(ctx,
+		`INSERT INTO homepage_slot_packages (slot_type, name, price, duration_days, status, sort, remark)
+		 VALUES (?,?,?,?,?,?,?)`,
+		p.SlotType, p.Name, p.Price, p.DurationDays, p.Status, p.Sort, p.Remark,
+	)
+	if err != nil {
+		return err
+	}
+	id, err := lastInsertID(res)
+	if err != nil {
+		return err
+	}
+	p.ID = id
+	return nil
 }
 
 func (r *MerchantRepository) UpdateSlotPackage(ctx context.Context, p *model.HomepageSlotPackage) error {
-	return r.db.WithContext(ctx).Model(p).Updates(map[string]interface{}{
-		"slot_type": p.SlotType, "name": p.Name, "price": p.Price,
-		"duration_days": p.DurationDays, "status": p.Status, "sort": p.Sort, "remark": p.Remark,
-	}).Error
+	_, err := r.conn.ExecCtx(ctx,
+		`UPDATE homepage_slot_packages SET slot_type=?, name=?, price=?, duration_days=?, status=?, sort=?, remark=? WHERE id=?`,
+		p.SlotType, p.Name, p.Price, p.DurationDays, p.Status, p.Sort, p.Remark, p.ID,
+	)
+	return err
 }
 
 func (r *MerchantRepository) ListSlotSettings(ctx context.Context) ([]model.HomepageSlotSetting, error) {
 	var list []model.HomepageSlotSetting
-	err := r.db.WithContext(ctx).Find(&list).Error
+	err := r.conn.QueryRowsCtx(ctx, &list, "SELECT "+slotSettingColumns+" FROM homepage_slot_settings")
 	return list, err
 }
 
 func (r *MerchantRepository) GetSlotSetting(ctx context.Context, slotType string) (*model.HomepageSlotSetting, error) {
 	var s model.HomepageSlotSetting
-	err := r.db.WithContext(ctx).Where("slot_type = ?", slotType).First(&s).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
+	err := r.conn.QueryRowCtx(ctx, &s,
+		"SELECT "+slotSettingColumns+" FROM homepage_slot_settings WHERE slot_type=? LIMIT 1", slotType,
+	)
+	if errors.Is(err, sqlx.ErrNotFound) {
 		s = model.HomepageSlotSetting{SlotType: slotType, HomeLimit: 8}
-		_ = r.db.WithContext(ctx).Create(&s).Error
+		_, _ = r.conn.ExecCtx(ctx,
+			"INSERT INTO homepage_slot_settings (slot_type, home_limit) VALUES (?,?)", slotType, s.HomeLimit,
+		)
 		return &s, nil
 	}
 	if err != nil {
@@ -73,14 +106,22 @@ func (r *MerchantRepository) GetSlotSetting(ctx context.Context, slotType string
 
 func (r *MerchantRepository) UpsertSlotSetting(ctx context.Context, slotType string, homeLimit int) error {
 	var s model.HomepageSlotSetting
-	err := r.db.WithContext(ctx).Where("slot_type = ?", slotType).First(&s).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return r.db.WithContext(ctx).Create(&model.HomepageSlotSetting{SlotType: slotType, HomeLimit: homeLimit}).Error
+	err := r.conn.QueryRowCtx(ctx, &s,
+		"SELECT "+slotSettingColumns+" FROM homepage_slot_settings WHERE slot_type=? LIMIT 1", slotType,
+	)
+	if errors.Is(err, sqlx.ErrNotFound) {
+		_, err := r.conn.ExecCtx(ctx,
+			"INSERT INTO homepage_slot_settings (slot_type, home_limit) VALUES (?,?)", slotType, homeLimit,
+		)
+		return err
 	}
 	if err != nil {
 		return err
 	}
-	return r.db.WithContext(ctx).Model(&s).Update("home_limit", homeLimit).Error
+	_, err = r.conn.ExecCtx(ctx,
+		"UPDATE homepage_slot_settings SET home_limit=? WHERE slot_type=?", homeLimit, slotType,
+	)
+	return err
 }
 
 func (r *MerchantRepository) ListSlotOrders(ctx context.Context, shopID uint64, slotType, status string, page, pageSize int) ([]model.HomepageSlotOrder, int64, error) {
@@ -90,36 +131,48 @@ func (r *MerchantRepository) ListSlotOrders(ctx context.Context, shopID uint64, 
 	if pageSize < 1 {
 		pageSize = 20
 	}
-	q := r.db.WithContext(ctx).Model(&model.HomepageSlotOrder{})
+	where := "1=1"
+	args := make([]any, 0, 3)
 	if shopID > 0 {
-		q = q.Where("shop_id = ?", shopID)
+		where += " AND shop_id=?"
+		args = append(args, shopID)
 	}
 	if slotType != "" {
-		q = q.Where("slot_type = ?", slotType)
+		where += " AND slot_type=?"
+		args = append(args, slotType)
 	}
 	if status != "" {
-		q = q.Where("status = ?", status)
+		where += " AND status=?"
+		args = append(args, status)
 	}
-	var total int64
-	if err := q.Count(&total).Error; err != nil {
+	total, err := countQuery(ctx, r.conn, "SELECT COUNT(*) FROM homepage_slot_orders WHERE "+where, args...)
+	if err != nil {
 		return nil, 0, err
 	}
+	listArgs := append(append([]any{}, args...), pageSize, (page-1)*pageSize)
 	var list []model.HomepageSlotOrder
-	err := q.Order("id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
+	err = r.conn.QueryRowsCtx(ctx, &list,
+		"SELECT "+slotOrderColumns+" FROM homepage_slot_orders WHERE "+where+" ORDER BY id DESC LIMIT ? OFFSET ?",
+		listArgs...,
+	)
 	return list, total, err
 }
 
 func (r *MerchantRepository) LatestActiveSlotOrder(ctx context.Context, shopID uint64, slotType string, targetID uint64) (*model.HomepageSlotOrder, error) {
 	r.ExpireDueSlotOrders(ctx)
-	q := r.db.WithContext(ctx).Where("shop_id = ? AND slot_type = ? AND status = ?", shopID, slotType, model.SlotOrderActive)
+	args := []any{shopID, slotType, model.SlotOrderActive}
+	query := "SELECT " + slotOrderColumns + " FROM homepage_slot_orders WHERE shop_id=? AND slot_type=? AND status=?"
 	if slotType == model.SlotArticle {
-		q = q.Where("target_id = ?", targetID)
+		query += " AND target_id=?"
+		args = append(args, targetID)
 	} else {
-		q = q.Where("target_id = ?", shopID)
+		query += " AND target_id=?"
+		args = append(args, shopID)
 	}
+	query += " ORDER BY end_at DESC LIMIT 1"
 	var o model.HomepageSlotOrder
-	err := q.Order("end_at DESC").First(&o).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
+	err := r.conn.QueryRowCtx(ctx, &o, query, args...)
+	if errors.Is(err, sqlx.ErrNotFound) {
 		return nil, nil
 	}
 	if err != nil {
@@ -128,27 +181,36 @@ func (r *MerchantRepository) LatestActiveSlotOrder(ctx context.Context, shopID u
 	return &o, nil
 }
 
-// PurchaseSlotOrder 钱包扣款或超管开通，立即生效（可顺延）
 func (r *MerchantRepository) PurchaseSlotOrder(ctx context.Context, order *model.HomepageSlotOrder, deductWallet bool, operatorID *uint64) error {
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	return r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		now := time.Now()
-		_ = tx.Model(&model.HomepageSlotOrder{}).
-			Where("status = ? AND end_at < ?", model.SlotOrderActive, now).
-			Update("status", model.SlotOrderExpired)
+		_, _ = session.ExecCtx(ctx,
+			"UPDATE homepage_slot_orders SET status=? WHERE status=? AND end_at<?",
+			model.SlotOrderExpired, model.SlotOrderActive, now,
+		)
 
 		targetID := order.TargetID
-		q := tx.Where("shop_id = ? AND slot_type = ? AND status = ?", order.ShopID, order.SlotType, model.SlotOrderActive)
+		args := []any{order.ShopID, order.SlotType, model.SlotOrderActive}
+		query := "SELECT " + slotOrderColumns + " FROM homepage_slot_orders WHERE shop_id=? AND slot_type=? AND status=?"
 		if order.SlotType == model.SlotArticle {
-			q = q.Where("target_id = ?", targetID)
+			query += " AND target_id=?"
+			args = append(args, targetID)
 		} else {
-			q = q.Where("target_id = ?", order.ShopID)
+			query += " AND target_id=?"
+			args = append(args, order.ShopID)
 		}
-		var prev model.HomepageSlotOrder
-		err := q.Order("end_at DESC").First(&prev).Error
+		query += " ORDER BY end_at DESC LIMIT 1"
+
 		start := now
-		if err == nil && time.Time(prev.EndAt).After(now) {
-			start = time.Time(prev.EndAt)
+		var prev model.HomepageSlotOrder
+		if err := session.QueryRowCtx(ctx, &prev, query, args...); err == nil {
+			if time.Time(prev.EndAt).After(now) {
+				start = time.Time(prev.EndAt)
+			}
+		} else if !errors.Is(err, sqlx.ErrNotFound) {
+			return err
 		}
+
 		end := start.Add(time.Duration(order.DurationDays) * 24 * time.Hour)
 		order.StartAt = common.LocalTime(start)
 		order.EndAt = common.LocalTime(end)
@@ -157,17 +219,8 @@ func (r *MerchantRepository) PurchaseSlotOrder(ctx context.Context, order *model
 			order.TargetID = order.ShopID
 		}
 
-		var walletLogID uint64
 		if deductWallet {
-			var w model.ShopWallet
-			err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("shop_id = ?", order.ShopID).First(&w).Error
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				w = model.ShopWallet{ShopID: order.ShopID}
-				if err := tx.Create(&w).Error; err != nil {
-					return err
-				}
-				err = tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("shop_id = ?", order.ShopID).First(&w).Error
-			}
+			w, err := r.lockShopWallet(ctx, session, order.ShopID)
 			if err != nil {
 				return err
 			}
@@ -175,31 +228,59 @@ func (r *MerchantRepository) PurchaseSlotOrder(ctx context.Context, order *model
 				return errors.New("余额不足，请联系平台充值后再购买")
 			}
 			w.Balance -= order.Amount
-			if err := tx.Model(&w).Update("balance", w.Balance).Error; err != nil {
+			if _, err := session.ExecCtx(ctx,
+				"UPDATE shop_wallets SET balance=? WHERE shop_id=?", w.Balance, order.ShopID,
+			); err != nil {
 				return err
 			}
-			if err := tx.Create(order).Error; err != nil {
+			res, err := session.ExecCtx(ctx,
+				`INSERT INTO homepage_slot_orders (shop_id, slot_type, package_id, target_id, amount, duration_days, start_at, end_at, status, pay_source, operator_id)
+				 VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+				order.ShopID, order.SlotType, order.PackageID, order.TargetID, order.Amount, order.DurationDays,
+				order.StartAt, order.EndAt, order.Status, order.PaySource, order.OperatorID,
+			)
+			if err != nil {
 				return err
 			}
-			log := model.ShopWalletLog{
-				ShopID:         order.ShopID,
-				ChangeType:     model.WalletLogHomepageSlot,
-				Amount:         -order.Amount,
-				BalanceAfter:   w.Balance,
-				FrozenAfter:    w.FrozenBalance,
-				DepositAfter:   w.Deposit,
-				Remark:         "首页展位套餐购买",
-				OperatorUserID: operatorID,
-				RefType:        "homepage_slot_order",
-				RefID:          order.ID,
-			}
-			if err := tx.Create(&log).Error; err != nil {
+			orderID, err := lastInsertID(res)
+			if err != nil {
 				return err
 			}
-			walletLogID = log.ID
-			return tx.Model(order).Update("wallet_log_id", walletLogID).Error
+			order.ID = orderID
+			logRes, err := session.ExecCtx(ctx,
+				`INSERT INTO shop_wallet_logs (shop_id, change_type, amount, balance_after, frozen_after, deposit_after, remark, operator_user_id, ref_type, ref_id)
+				 VALUES (?,?,?,?,?,?,?,?,?,?)`,
+				order.ShopID, model.WalletLogHomepageSlot, -order.Amount, w.Balance, w.FrozenBalance, w.Deposit,
+				"首页展位套餐购买", operatorID, "homepage_slot_order", orderID,
+			)
+			if err != nil {
+				return err
+			}
+			walletLogID, err := lastInsertID(logRes)
+			if err != nil {
+				return err
+			}
+			order.WalletLogID = walletLogID
+			_, err = session.ExecCtx(ctx,
+				"UPDATE homepage_slot_orders SET wallet_log_id=? WHERE id=?", walletLogID, orderID,
+			)
+			return err
 		}
-		return tx.Create(order).Error
+		res, err := session.ExecCtx(ctx,
+			`INSERT INTO homepage_slot_orders (shop_id, slot_type, package_id, target_id, amount, duration_days, start_at, end_at, status, pay_source, operator_id)
+			 VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+			order.ShopID, order.SlotType, order.PackageID, order.TargetID, order.Amount, order.DurationDays,
+			order.StartAt, order.EndAt, order.Status, order.PaySource, order.OperatorID,
+		)
+		if err != nil {
+			return err
+		}
+		orderID, err := lastInsertID(res)
+		if err != nil {
+			return err
+		}
+		order.ID = orderID
+		return nil
 	})
 }
 
@@ -213,11 +294,6 @@ func (r *MerchantRepository) ListPublicShopsWithSlot(ctx context.Context, slotTy
 	}
 	now := time.Now()
 
-	type row struct {
-		model.Shop
-		Boost int `gorm:"column:boost"`
-	}
-
 	baseFrom := `
 FROM shops s
 LEFT JOIN (
@@ -229,7 +305,9 @@ WHERE s.status = ?`
 
 	countSQL := "SELECT COUNT(*) " + baseFrom
 	var total int64
-	if err := r.db.WithContext(ctx).Raw(countSQL, slotType, model.SlotOrderActive, now, now, model.ShopApproved).Scan(&total).Error; err != nil {
+	if err := r.conn.QueryRowCtx(ctx, &total, countSQL,
+		slotType, model.SlotOrderActive, now, now, model.ShopApproved,
+	); err != nil {
 		return nil, 0, err
 	}
 
@@ -244,43 +322,50 @@ WHERE s.status = ?`
 	}
 
 	listSQL := `
-SELECT s.*, CASE WHEN o.target_id IS NULL THEN 0 ELSE 1 END AS boost
+SELECT s.id, s.name, s.logo, s.contact_name, s.contact_phone, s.description, s.category, s.province, s.city, s.district, s.address, s.business_license_no, s.legal_person, s.license_image, s.storefront_image, s.owner_user_id, s.status, s.reject_reason, s.created_at, s.updated_at
 ` + baseFrom + `
-ORDER BY boost DESC, s.id DESC
+ORDER BY CASE WHEN o.target_id IS NULL THEN 0 ELSE 1 END DESC, s.id DESC
 LIMIT ? OFFSET ?`
 
-	var rows []row
-	if err := r.db.WithContext(ctx).Raw(listSQL, slotType, model.SlotOrderActive, now, now, model.ShopApproved, limit, offset).Scan(&rows).Error; err != nil {
+	var list []model.Shop
+	if err := r.conn.QueryRowsCtx(ctx, &list, listSQL,
+		slotType, model.SlotOrderActive, now, now, model.ShopApproved, limit, offset,
+	); err != nil {
 		return nil, 0, err
 	}
-	out := make([]model.Shop, 0, len(rows))
-	for _, x := range rows {
-		out = append(out, x.Shop)
-	}
-	return out, total, nil
+	return list, total, nil
 }
 
-// GetArticleTitle 同库查文章标题（catalog 表 community_article）
 func (r *MerchantRepository) GetArticleTitle(ctx context.Context, id uint64) (string, error) {
 	var title string
-	err := r.db.WithContext(ctx).Table("community_article").Select("title").Where("id = ?", id).Scan(&title).Error
+	err := r.conn.QueryRowCtx(ctx, &title,
+		"SELECT title FROM community_article WHERE id=? LIMIT 1", id,
+	)
 	if err != nil {
 		return "", err
 	}
 	if title == "" {
-		return "", gorm.ErrRecordNotFound
+		return "", sqlx.ErrNotFound
 	}
 	return title, nil
 }
 
-// ActivePaidTargetIDs 返回当前生效的 target_id 集合（用于标记 paid）
+func (r *MerchantRepository) ArticlePublishedForShop(ctx context.Context, articleID, shopID uint64) bool {
+	n, err := countQuery(ctx, r.conn,
+		"SELECT COUNT(*) FROM community_article WHERE id=? AND shop_id=? AND status=? AND audit_status=?",
+		articleID, shopID, "published", "approved",
+	)
+	return err == nil && n > 0
+}
+
 func (r *MerchantRepository) ActivePaidTargetIDs(ctx context.Context, slotType string) (map[uint64]bool, error) {
 	r.ExpireDueSlotOrders(ctx)
 	now := time.Now()
 	var ids []uint64
-	err := r.db.WithContext(ctx).Model(&model.HomepageSlotOrder{}).
-		Where("slot_type = ? AND status = ? AND start_at <= ? AND end_at > ?", slotType, model.SlotOrderActive, now, now).
-		Distinct("target_id").Pluck("target_id", &ids).Error
+	err := r.conn.QueryRowsCtx(ctx, &ids,
+		"SELECT DISTINCT target_id FROM homepage_slot_orders WHERE slot_type=? AND status=? AND start_at<=? AND end_at>?",
+		slotType, model.SlotOrderActive, now, now,
+	)
 	m := make(map[uint64]bool, len(ids))
 	for _, id := range ids {
 		m[id] = true

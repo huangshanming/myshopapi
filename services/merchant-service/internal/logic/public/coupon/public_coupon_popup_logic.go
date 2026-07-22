@@ -25,12 +25,12 @@ func NewPublicCouponPopupLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 	}
 }
 
-func (l *PublicCouponPopupLogic) PublicCouponPopup(ctx context.Context) (resp *types.AnyResp, err error) {
+func (l *PublicCouponPopupLogic) PublicCouponPopup(ctx context.Context) (resp *types.ListResp, err error) {
 
 	userID, _ := middleware.GetUserID(ctx)
 	list, err := biz.NewMerchantLogic(l.svcCtx).ListPopup(userID)
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.AnyResp{Data: map[string]interface{}{"list": list}}, nil
+	return &types.ListResp{List: list}, nil
 }

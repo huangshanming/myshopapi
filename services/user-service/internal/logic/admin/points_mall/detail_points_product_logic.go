@@ -24,7 +24,7 @@ func NewDetailPointsProductLogic(ctx context.Context, svcCtx *svc.ServiceContext
 	}
 }
 
-func (l *DetailPointsProductLogic) DetailPointsProduct(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *DetailPointsProductLogic) DetailPointsProduct(ctx context.Context, req *types.IdPathReq) (resp *types.PointsProductResp, err error) {
 	if req.Id == 0 {
 		return nil, xerr.New(http.StatusBadRequest, "商品ID无效")
 	}
@@ -32,5 +32,5 @@ func (l *DetailPointsProductLogic) DetailPointsProduct(ctx context.Context, req 
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: p}, nil
+	return &types.PointsProductResp{Data: p}, nil
 }

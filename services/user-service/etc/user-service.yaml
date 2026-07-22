@@ -1,27 +1,34 @@
-# 仅本地 go run / 镜像默认值。Docker Compose / K8s 用 MYMALL_*（Secret）覆盖密码与 host
-server:
-  http_port: 8881
-  grpc_port: 9090
-  mode: debug
-mysql:
-  host: 127.0.0.1
-  port: 3306
-  username: homestead
-  # 本地 go run 默认；Docker/K8s 由 MYMALL_MYSQL_*（Compose env / Secret）覆盖
-  password: secret
-  charset: utf8mb4
-  dbname: mymall
-  max_open_conns: 50
-  max_idle_conns: 10
-  conn_max_lifetime: 3600
-  conn_max_idle_time: 3600
-jwt:
-  # 本地 go run 默认；K8s 由 Secret 的 MYMALL_JWT_SECRET 覆盖
-  secret: fsdfascwegrgtecqwerty
-  consumer_key: mymall-user-key
-  expire_hours: 24
-  issuer: mymall
-telemetry:
-  enabled: false
-  endpoint: jaeger-collector.mymall:4318
-  service: user-service
+# go-zero RestConf + business fields. Compose/K8s 仍可用 MYMALL_* 覆盖。
+Name: user-service.api
+Host: 0.0.0.0
+Port: 8881
+Mode: dev
+Timeout: 30000
+Log:
+  Mode: console
+  Encoding: plain
+
+RpcListenOn: 0.0.0.0:9090
+
+MySQL:
+  Host: 127.0.0.1
+  Port: 3306
+  Username: homestead
+  Password: secret
+  Dbname: mymall
+  Charset: utf8mb4
+  MaxOpenConns: 50
+  MaxIdleConns: 10
+  ConnMaxLifetime: 3600
+  ConnMaxIdleTime: 3600
+
+Auth:
+  AccessSecret: fsdfascwegrgtecqwerty
+  AccessExpire: 86400
+  ConsumerKey: mymall-user-key
+  Issuer: mymall
+
+Telemetry:
+  Enabled: false
+  Endpoint: jaeger-collector.mymall:4318
+  Service: user-service

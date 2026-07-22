@@ -24,9 +24,9 @@ func NewSeckillRestoreLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Se
 	}
 }
 
-func (l *SeckillRestoreLogic) SeckillRestore(ctx context.Context, req *types.SeckillRestoreReq) (resp *types.AnyResp, err error) {
+func (l *SeckillRestoreLogic) SeckillRestore(ctx context.Context, req *types.SeckillRestoreReq) (resp *types.EmptyResp, err error) {
 	if err := biz.NewMerchantLogic(l.svcCtx).RestoreSeckill(req.EntryID, req.Quantity); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{}, nil
+	return &types.EmptyResp{}, nil
 }

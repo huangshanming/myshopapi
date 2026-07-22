@@ -25,11 +25,11 @@ func NewMerchantOffCouponLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 	}
 }
 
-func (l *MerchantOffCouponLogic) MerchantOffCoupon(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *MerchantOffCouponLogic) MerchantOffCoupon(ctx context.Context, req *types.IdPathReq) (resp *types.EmptyResp, err error) {
 	id := req.Id
 	shopID := middleware.GetShopID(ctx)
 	if err := biz.NewMerchantLogic(l.svcCtx).OffCoupon(id, shopID, false); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{}, nil
+	return &types.EmptyResp{}, nil
 }

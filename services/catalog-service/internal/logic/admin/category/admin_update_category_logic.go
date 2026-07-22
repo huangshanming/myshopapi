@@ -24,7 +24,7 @@ func NewAdminUpdateCategoryLogic(ctx context.Context, svcCtx *svc.ServiceContext
 	}
 }
 
-func (l *AdminUpdateCategoryLogic) AdminUpdateCategory(ctx context.Context, req *types.CategoryUpdateBodyReq) (resp *types.AnyResp, err error) {
+func (l *AdminUpdateCategoryLogic) AdminUpdateCategory(ctx context.Context, req *types.CategoryUpdateBodyReq) (resp *types.EmptyResp, err error) {
 	id := req.Id
 	if req.Name == "" {
 		return nil, xerr.New(http.StatusBadRequest, "参数错误")
@@ -32,5 +32,5 @@ func (l *AdminUpdateCategoryLogic) AdminUpdateCategory(ctx context.Context, req 
 	if err := plogic.NewCatalogLogic(l.svcCtx).UpdateCategory(ctx, id, req.ToProduct()); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: &types.AnyResp{}}, nil
+	return &types.EmptyResp{}, nil
 }

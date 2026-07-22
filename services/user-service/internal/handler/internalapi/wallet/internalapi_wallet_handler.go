@@ -19,11 +19,11 @@ func InternalFreezeWalletHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := wallet.NewInternalFreezeWalletLogic(r.Context(), svcCtx)
-		err := l.InternalFreezeWallet(r.Context(), &req)
+		resp, err := l.InternalFreezeWallet(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {
-			httpx.Ok(w)
+			httpx.OkJsonCtx(r.Context(), w, resp)
 		}
 	}
 }
@@ -37,11 +37,11 @@ func InternalSettleWalletHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 
 		l := wallet.NewInternalSettleWalletLogic(r.Context(), svcCtx)
-		err := l.InternalSettleWallet(r.Context(), &req)
+		resp, err := l.InternalSettleWallet(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {
-			httpx.Ok(w)
+			httpx.OkJsonCtx(r.Context(), w, resp)
 		}
 	}
 }
@@ -55,11 +55,11 @@ func InternalUnfreezeWalletHandler(svcCtx *svc.ServiceContext) http.HandlerFunc 
 		}
 
 		l := wallet.NewInternalUnfreezeWalletLogic(r.Context(), svcCtx)
-		err := l.InternalUnfreezeWallet(r.Context(), &req)
+		resp, err := l.InternalUnfreezeWallet(r.Context(), &req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {
-			httpx.Ok(w)
+			httpx.OkJsonCtx(r.Context(), w, resp)
 		}
 	}
 }

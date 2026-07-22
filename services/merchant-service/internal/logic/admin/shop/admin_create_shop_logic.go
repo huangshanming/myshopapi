@@ -24,10 +24,10 @@ func NewAdminCreateShopLogic(ctx context.Context, svcCtx *svc.ServiceContext) *A
 	}
 }
 
-func (l *AdminCreateShopLogic) AdminCreateShop(ctx context.Context, req *types.AdminCreateShopReq) (resp *types.AnyResp, err error) {
+func (l *AdminCreateShopLogic) AdminCreateShop(ctx context.Context, req *types.AdminCreateShopReq) (resp *types.ShopResp, err error) {
 	shop, err := biz.NewMerchantLogic(l.svcCtx).CreateShop(ctx, *req)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: shop}, nil
+	return &types.ShopResp{Data: shop}, nil
 }

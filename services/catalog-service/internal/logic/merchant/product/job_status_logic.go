@@ -25,7 +25,7 @@ func NewJobStatusLogic(ctx context.Context, svcCtx *svc.ServiceContext) *JobStat
 	}
 }
 
-func (l *JobStatusLogic) JobStatus(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *JobStatusLogic) JobStatus(ctx context.Context, req *types.IdPathReq) (resp *types.ProductJobResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -41,5 +41,5 @@ func (l *JobStatusLogic) JobStatus(ctx context.Context, req *types.IdPathReq) (r
 	if err != nil {
 		return nil, xerr.New(http.StatusNotFound, "任务不存在")
 	}
-	return &types.AnyResp{Data: job}, nil
+	return &types.ProductJobResp{Data: job}, nil
 }

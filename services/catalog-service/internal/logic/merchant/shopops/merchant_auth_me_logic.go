@@ -25,7 +25,7 @@ func NewMerchantAuthMeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Me
 	}
 }
 
-func (l *MerchantAuthMeLogic) MerchantAuthMe(ctx context.Context) (resp *types.AnyResp, err error) {
+func (l *MerchantAuthMeLogic) MerchantAuthMe(ctx context.Context) (resp *types.ShopAuthMeResp, err error) {
 
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
@@ -40,9 +40,9 @@ func (l *MerchantAuthMeLogic) MerchantAuthMe(ctx context.Context) (resp *types.A
 	_ = l.svcCtx.ShopRBAC.EnsureOwnerRole(ctx, shopID, uid)
 	perms, _ := l.svcCtx.ShopRBAC.ListPerms(ctx, shopID, uid)
 	menus, _ := l.svcCtx.ShopRBAC.ListMenusForUser(ctx, shopID, uid)
-	return &types.AnyResp{Data: map[string]interface{}{
-		"perms": perms, "menus": menus, "menu_tree": repository.BuildShopMenuTree(menus),
-		"is_owner": l.svcCtx.ShopRBAC.IsOwner(ctx, shopID, uid),
-	}}, nil
+	return &types.ShopAuthMeResp{
+		Perms: perms, Menus: menus, MenuTree: repository.BuildShopMenuTree(menus),
+		IsOwner: l.svcCtx.ShopRBAC.IsOwner(ctx, shopID, uid),
+	}, nil
 
 }

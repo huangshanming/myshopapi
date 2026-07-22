@@ -24,14 +24,14 @@ func NewUpdateRoleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Update
 	}
 }
 
-func (l *UpdateRoleLogic) UpdateRole(ctx context.Context, req *types.RoleUpdateReq) error {
+func (l *UpdateRoleLogic) UpdateRole(ctx context.Context, req *types.RoleUpdateReq) (*types.EmptyResp, error) {
 	if err := biz.NewRBACLogic(l.svcCtx).UpdateRole(ctx, req.Id, types.RoleReq{
 		Code:   req.Code,
 		Name:   req.Name,
 		Status: req.Status,
 		Remark: req.Remark,
 	}); err != nil {
-		return xerr.New(http.StatusBadRequest, err.Error())
+		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return nil
+	return &types.EmptyResp{}, nil
 }

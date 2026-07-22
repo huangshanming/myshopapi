@@ -25,7 +25,7 @@ func NewAdminRejectLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Admin
 	}
 }
 
-func (l *AdminRejectLogic) AdminReject(ctx context.Context, req *types.RejectBodyReq) (resp *types.AnyResp, err error) {
+func (l *AdminRejectLogic) AdminReject(ctx context.Context, req *types.RejectBodyReq) (resp *types.EmptyResp, err error) {
 	adminID, ok := middleware.GetUserID(ctx)
 	if !ok {
 		return nil, xerr.New(http.StatusUnauthorized, "未授权")
@@ -34,5 +34,5 @@ func (l *AdminRejectLogic) AdminReject(ctx context.Context, req *types.RejectBod
 	if err := biz.NewMerchantLogic(l.svcCtx).Reject(ctx, appID, adminID, req.Reason); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{}, nil
+	return &types.EmptyResp{}, nil
 }

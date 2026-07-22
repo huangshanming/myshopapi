@@ -26,7 +26,7 @@ func NewMerchantDeleteArticleLogic(ctx context.Context, svcCtx *svc.ServiceConte
 	}
 }
 
-func (l *MerchantDeleteArticleLogic) MerchantDeleteArticle(ctx context.Context, req *types.IdPathReq) (resp *types.AnyResp, err error) {
+func (l *MerchantDeleteArticleLogic) MerchantDeleteArticle(ctx context.Context, req *types.IdPathReq) (resp *types.EmptyResp, err error) {
 	shopUser := func(ctx context.Context) (shopID, userID uint64, ok bool) {
 		shopID = middleware.GetShopID(ctx)
 		userID, _ = middleware.GetUserID(ctx)
@@ -55,5 +55,5 @@ func (l *MerchantDeleteArticleLogic) MerchantDeleteArticle(ctx context.Context, 
 	if err := clogic.NewArticleLogic(l.svcCtx).MerchantDelete(ctx, shopID, id); err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.AnyResp{Data: &types.AnyResp{}}, nil
+	return &types.EmptyResp{}, nil
 }
