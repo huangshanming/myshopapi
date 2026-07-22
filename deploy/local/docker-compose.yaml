@@ -6,6 +6,15 @@ x-service-build-args: &service-build-args
   ALPINE_IMAGE: ${ALPINE_IMAGE:-alpine:3.19}
 
 services:
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.16
+    command:
+      - etcd
+      - --advertise-client-urls=http://0.0.0.0:2379
+      - --listen-client-urls=http://0.0.0.0:2379
+    ports:
+      - "2379:2379"
+
   redis:
     image: redis:7-alpine
     ports:
@@ -55,9 +64,13 @@ services:
       - "9090:9090"
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    depends_on:
+      - etcd
     environment:
       MYMALL_SERVER_HTTP_PORT: "8888"
       MYMALL_SERVER_GRPC_PORT: "9090"
+      MYMALL_ETCD_HOSTS: etcd:2379
+      POD_IP: user-service
       MYMALL_MYSQL_HOST: host.docker.internal
       MYMALL_MYSQL_PORT: "3306"
       MYMALL_MYSQL_USERNAME: homestead
@@ -81,9 +94,13 @@ services:
     depends_on:
       - redis
       - rabbitmq
+      - etcd
+      - user-service
     environment:
       MYMALL_SERVER_HTTP_PORT: "8888"
       MYMALL_SERVER_GRPC_PORT: "9090"
+      MYMALL_ETCD_HOSTS: etcd:2379
+      POD_IP: catalog-service
       MYMALL_MYSQL_HOST: host.docker.internal
       MYMALL_MYSQL_PORT: "3306"
       MYMALL_MYSQL_USERNAME: homestead
@@ -111,11 +128,13 @@ services:
     depends_on:
       - redis
       - rabbitmq
+      - etcd
       - user-service
       - catalog-service
       - merchant-service
     environment:
       MYMALL_SERVER_HTTP_PORT: "8888"
+      MYMALL_ETCD_HOSTS: etcd:2379
       MYMALL_MYSQL_HOST: host.docker.internal
       MYMALL_MYSQL_PORT: "3306"
       MYMALL_MYSQL_USERNAME: homestead
@@ -171,9 +190,13 @@ services:
       - "9092:9090"
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    depends_on:
+      - etcd
     environment:
       MYMALL_SERVER_HTTP_PORT: "8888"
       MYMALL_SERVER_GRPC_PORT: "9090"
+      MYMALL_ETCD_HOSTS: etcd:2379
+      POD_IP: merchant-service
       MYMALL_MYSQL_HOST: host.docker.internal
       MYMALL_MYSQL_PORT: "3306"
       MYMALL_MYSQL_USERNAME: homestead

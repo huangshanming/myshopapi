@@ -10,6 +10,9 @@ Log:
 
 RpcListenOn: 0.0.0.0:9091
 UserRpc: localhost:9090
+# Etcd:
+#   Hosts:
+#     - 127.0.0.1:2379
 
 MySQL:
   Host: 127.0.0.1

@@ -1,2 +1,6 @@
-# 本服务相关 DDL 权威来源（勿在此处维护多份真相）：
-# - scripts/init-order-tables.sql
+# 本服务相关 DDL
+#
+# - 权威迁移脚本：`scripts/*.sql`
+# - goctl model 输入：`scripts/ddl/order-tables.sql`
+# - 生成：`./scripts/gen-model.sh order`
+# - 输出：`internal/modelgen`

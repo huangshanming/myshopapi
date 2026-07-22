@@ -42,18 +42,18 @@ type ServiceContext struct {
 }
 
 func NewServiceContext(cfg *config.Config, conn sqlx.SqlConn) (*ServiceContext, error) {
-	catalogRPC, err := catalogrpc.New(cfg.GRPC.CatalogService)
+	catalogRPC, err := catalogrpc.New(cfg.GRPC.CatalogService, cfg.Etcd.Hosts)
 	if err != nil {
 		return nil, err
 	}
 
 	var userRPC *userrpc.Client
-	if u, err := userrpc.New(cfg.GRPC.UserService); err == nil {
+	if u, err := userrpc.New(cfg.GRPC.UserService, cfg.Etcd.Hosts); err == nil {
 		userRPC = u
 	}
 
 	var merchantRPC *merchantrpc.Client
-	if m, err := merchantrpc.New(cfg.GRPC.MerchantService); err == nil {
+	if m, err := merchantrpc.New(cfg.GRPC.MerchantService, cfg.Etcd.Hosts); err == nil {
 		merchantRPC = m
 	}
 

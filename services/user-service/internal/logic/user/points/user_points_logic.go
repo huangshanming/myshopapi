@@ -30,5 +30,5 @@ func (l *UserPointsLogic) UserPoints(ctx context.Context) (*types.PointsResp, er
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.PointsResp{Points: n.Points}, nil
+	return &types.PointsResp{Points: int64(n.Points)}, nil
 }

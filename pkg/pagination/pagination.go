@@ -1,6 +1,7 @@
 package pagination
 
-import "gorm.io/gorm"
+// Page helpers shared by business services (sqlx). GORM Paginate was removed;
+// inventory-sync does not use this package.
 
 type PageReq struct {
 	Page     int    `form:"page" json:"page"`
@@ -32,26 +33,13 @@ func Normalize(req *PageReq) (page, pageSize, offset int) {
 	return page, pageSize, offset
 }
 
-func Paginate[T any](db *gorm.DB, pageReq *PageReq) (*PageRes[T], error) {
-	page, pageSize, offset := Normalize(pageReq)
-
-	var (
-		list  []T
-		total int64
-	)
-
-	if err := db.Count(&total).Error; err != nil {
-		return nil, err
+func NewPageRes[T any](list []T, total int64, page, pageSize int) *PageRes[T] {
+	if page < 1 {
+		page = 1
 	}
-
-	dbQuery := db.Offset(offset).Limit(pageSize)
-	if pageReq.OrderBy != "" {
-		dbQuery = dbQuery.Order(pageReq.OrderBy)
+	if pageSize < 1 {
+		pageSize = 10
 	}
-	if err := dbQuery.Find(&list).Error; err != nil {
-		return nil, err
-	}
-
 	totalPage := (int(total) + pageSize - 1) / pageSize
 	return &PageRes[T]{
 		Total:     total,
@@ -59,5 +47,5 @@ func Paginate[T any](db *gorm.DB, pageReq *PageReq) (*PageRes[T], error) {
 		PageSize:  pageSize,
 		TotalPage: totalPage,
 		List:      list,
-	}, nil
+	}
 }

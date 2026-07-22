@@ -63,7 +63,7 @@ func main() {
 	}()
 
 	grpcPort := c.GRPCPort()
-	rpcServer := server.StartZRPC(grpcPort, svcCtx, logger)
+	rpcServer := server.StartZRPC(grpcPort, c.Etcd.Hosts, svcCtx, logger)
 	go func() {
 		logger.Info(fmt.Sprintf("merchant-service zRPC 启动 :%d", grpcPort))
 		rpcServer.Start()

@@ -9,6 +9,9 @@ Log:
   Encoding: plain
 
 RpcListenOn: 0.0.0.0:9090
+# Etcd:          # 非空 Hosts 时向 etcd 注册 user.rpc；本地默认直连可省略
+#   Hosts:
+#     - 127.0.0.1:2379
 
 MySQL:
   Host: 127.0.0.1

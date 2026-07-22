@@ -24,6 +24,9 @@ GRPC:
   UserService: localhost:9090
   CatalogService: localhost:9091
   MerchantService: localhost:9092
+# Etcd:          # 非空 Hosts 时走发现（user.rpc / catalog.rpc / merchant.rpc）
+#   Hosts:
+#     - 127.0.0.1:2379
 
 Redis:
   Host: 127.0.0.1

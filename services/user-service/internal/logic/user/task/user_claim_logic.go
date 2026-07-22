@@ -30,5 +30,5 @@ func (l *UserClaimLogic) UserClaim(ctx context.Context, req *types.CodePathReq) 
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.PointsResp{Points: n.Points}, nil
+	return &types.PointsResp{Points: int64(n.Points)}, nil
 }

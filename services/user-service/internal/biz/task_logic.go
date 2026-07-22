@@ -30,7 +30,7 @@ type TaskItemVO struct {
 	Progress     int    `json:"progress"`
 	ClaimCount   int    `json:"claim_count"`
 	Status       string `json:"status"`
-	Enabled      int8   `json:"enabled"`
+	Enabled      int    `json:"enabled"`
 }
 
 func (l *TaskLogic) ListUserTasks(ctx context.Context, userID uint64) ([]TaskItemVO, error) {
@@ -62,7 +62,7 @@ type UpdateTaskReq struct {
 	Title        *string `json:"title"`
 	Description  *string `json:"description"`
 	Icon         *string `json:"icon"`
-	Enabled      *int8   `json:"enabled"`
+	Enabled      *int   `json:"enabled"`
 	RewardPoints *int    `json:"reward_points"`
 	TargetCount  *int    `json:"target_count"`
 	DailyLimit   *int    `json:"daily_limit"`

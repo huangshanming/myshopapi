@@ -39,5 +39,5 @@ func (l *InternalDeductPointsLogic) InternalDeductPoints(ctx context.Context, re
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
-	return &types.PointsResp{Points: p.Points}, nil
+	return &types.PointsResp{Points: int64(p.Points)}, nil
 }

@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	catalogv1 "mymall/api/gen/catalog/v1"
+	"mymall/api/rpcclient/catalogservice"
+	"mymall/pkg/zrpcx"
 
 	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc"
@@ -12,21 +14,17 @@ import (
 
 type Client struct {
 	cli    zrpc.Client
-	client catalogv1.CatalogServiceClient
+	client catalogservice.CatalogService
 }
 
-func New(addr string) (*Client, error) {
-	c := zrpc.RpcClientConf{
-		Endpoints: []string{addr},
-		NonBlock:  true, // 滚动发布时 catalog 可能尚未就绪，勿在启动时硬失败
-	}
-	cli, err := zrpc.NewClient(c)
+func New(addr string, etcdHosts []string) (*Client, error) {
+	cli, err := zrpcx.Dial(addr, etcdHosts, zrpcx.KeyCatalog)
 	if err != nil {
 		return nil, fmt.Errorf("catalog zrpc dial: %w", err)
 	}
 	return &Client{
 		cli:    cli,
-		client: catalogv1.NewCatalogServiceClient(cli.Conn()),
+		client: catalogservice.NewCatalogService(cli),
 	}, nil
 }
 

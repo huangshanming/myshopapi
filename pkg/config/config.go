@@ -1,3 +1,5 @@
+// Package config is Viper-based bootstrap for inventory-sync-service only.
+// Business services (user/catalog/order/merchant) use go-zero conf.MustLoad + rest.RestConf.
 package config
 
 import (

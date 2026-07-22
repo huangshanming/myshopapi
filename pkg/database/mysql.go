@@ -1,3 +1,6 @@
+// Package database provides GORM MySQL helpers.
+// Only inventory-sync-service still uses GORM; business services (user/catalog/order/merchant)
+// use go-zero sqlx via sqlx.NewMysql(dsn). Prefer scripts/*.sql for schema changes.
 package database
 
 import (

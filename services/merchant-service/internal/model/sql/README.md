@@ -1,3 +1,6 @@
-# 本服务相关 DDL 权威来源（勿在此处维护多份真相）：
-# - scripts/init-merchant-tables.sql
-# - scripts/seed-admin-merchant.sql
+# 本服务相关 DDL
+#
+# - 权威迁移脚本：`scripts/*.sql`
+# - goctl model 输入：`scripts/ddl/merchant-tables.sql`
+# - 生成：`./scripts/gen-model.sh merchant`
+# - 输出：`internal/modelgen`

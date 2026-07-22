@@ -330,7 +330,7 @@ func (r *TaskRepository) addPointsTx(ctx context.Context, session sqlx.Session, 
 	if err != nil {
 		return nil, err
 	}
-	up.Points += int64(delta)
+	up.Points += delta
 	if up.Points < 0 {
 		return nil, errors.New("积分不足")
 	}

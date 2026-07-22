@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	userv1 "mymall/api/gen/user/v1"
+	"mymall/api/rpcclient/userservice"
+	"mymall/pkg/zrpcx"
 
 	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc/status"
@@ -12,21 +14,17 @@ import (
 
 type Client struct {
 	cli    zrpc.Client
-	client userv1.UserServiceClient
+	client userservice.UserService
 }
 
-func New(addr string) (*Client, error) {
-	c := zrpc.RpcClientConf{
-		Endpoints: []string{addr},
-		NonBlock:  true,
-	}
-	cli, err := zrpc.NewClient(c)
+func New(addr string, etcdHosts []string) (*Client, error) {
+	cli, err := zrpcx.Dial(addr, etcdHosts, zrpcx.KeyUser)
 	if err != nil {
 		return nil, fmt.Errorf("user zrpc dial: %w", err)
 	}
 	return &Client{
 		cli:    cli,
-		client: userv1.NewUserServiceClient(cli.Conn()),
+		client: userservice.NewUserService(cli),
 	}, nil
 }
 

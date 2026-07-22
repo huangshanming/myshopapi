@@ -128,7 +128,7 @@ func main() {
 	}
 
 	grpcPort := c.GRPCPort()
-	rpcServer := server.StartZRPC(grpcPort, catalogLogic, logger)
+	rpcServer := server.StartZRPC(grpcPort, c.Etcd.Hosts, svcCtx, logger)
 	go func() {
 		logger.Info(fmt.Sprintf("catalog-service zRPC 启动 :%d", grpcPort))
 		rpcServer.Start()

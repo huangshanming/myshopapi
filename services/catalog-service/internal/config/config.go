@@ -16,11 +16,16 @@ type Config struct {
 
 	RpcListenOn string `json:",default=0.0.0.0:9091"`
 	UserRpc     string `json:",default=localhost:9090"`
+	Etcd        EtcdConf `json:",optional"`
 
 	MySQL     MySQLConf
 	Redis     RedisConf
 	RabbitMQ  RabbitMQConf
 	Telemetry TelemetryConf
+}
+
+type EtcdConf struct {
+	Hosts []string `json:",optional"`
 }
 
 type MySQLConf struct {
@@ -101,14 +106,6 @@ func (c Config) GRPCPort() int {
 	return p
 }
 
-func (c Config) MigrateMode() string {
-	switch strings.ToLower(c.Mode) {
-	case "pro", "prod", "production", "release":
-		return "release"
-	default:
-		return "debug"
-	}
-}
 
 func (c *Config) OverlayFromEnv() {
 	if v := strings.TrimSpace(os.Getenv("MYMALL_SERVER_HTTP_PORT")); v != "" {
@@ -134,6 +131,9 @@ func (c *Config) OverlayFromEnv() {
 	overlayRabbit(&c.RabbitMQ)
 	if v := strings.TrimSpace(os.Getenv("MYMALL_GRPC_USER_SERVICE")); v != "" {
 		c.UserRpc = v
+	}
+	if v := strings.TrimSpace(os.Getenv("MYMALL_ETCD_HOSTS")); v != "" {
+		c.Etcd.Hosts = splitHosts(v)
 	}
 	if v := strings.TrimSpace(os.Getenv("MYMALL_TELEMETRY_ENABLED")); v != "" {
 		c.Telemetry.Enabled = v == "1" || strings.EqualFold(v, "true")
@@ -209,4 +209,18 @@ func overlayRabbit(r *RabbitMQConf) {
 	if v := strings.TrimSpace(os.Getenv("MYMALL_RABBITMQ_EXCHANGE")); v != "" {
 		r.Exchange = v
 	}
+}
+
+func splitHosts(v string) []string {
+	parts := strings.FieldsFunc(v, func(r rune) bool {
+		return r == ',' || r == ' ' || r == ';'
+	})
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }

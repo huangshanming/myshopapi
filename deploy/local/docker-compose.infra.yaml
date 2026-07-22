@@ -1,7 +1,16 @@
-# Redis + RabbitMQ + Canal（仅基础设施，不含微服务）
+# Redis + RabbitMQ + Canal + etcd（仅基础设施，不含微服务）
 # 完整一键启动请用: bash scripts/start-all.sh
 # Canal 前请先: mysql ... < scripts/init-canal-mysql.sql，并开启 ROW binlog
 services:
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.16
+    command:
+      - etcd
+      - --advertise-client-urls=http://0.0.0.0:2379
+      - --listen-client-urls=http://0.0.0.0:2379
+    ports:
+      - "2379:2379"
+
   redis:
     image: redis:7-alpine
     ports:

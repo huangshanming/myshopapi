@@ -1,63 +1,61 @@
 # mymall 微服务商城
 
-Go 1.24 Monorepo，user / catalog / order / merchant 微服务，**HTTP 框架为 go-zero rest**，服务间 **zrpc**（基于现有 proto），经 APISIX 统一入口。
+Go 1.24 Monorepo，user / catalog / order / merchant 微服务，**HTTP 为 go-zero rest + goctl**，服务间 **zrpc**，数据层 **sqlx**，经 APISIX 统一入口。
 
 ## 架构
 
 ```
-Client → APISIX (JWT) → user-service     (go-zero rest :8888, zrpc :9090)
-                       → catalog-service (go-zero rest :8888, zrpc :9090, Redis, MQ)
-                       → order-service   (go-zero rest :8888, zrpc Client, Redis, MQ)
-                       → merchant-service(go-zero rest :8888)
+Client → APISIX (JWT) → user-service     (rest :8881, zrpc :9090)
+                       → catalog-service (rest :8882, zrpc :9091, Redis, MQ)
+                       → order-service   (rest :8883, zrpc Client → user/catalog/merchant)
+                       → merchant-service(rest :8884, zrpc :9092)
                        → inventory-sync  (health :8885, Canal→Redis 库存预热)
 ```
 
-- **HTTP**：go-zero `rest`（已替换 Gin）
-- **同步调用**：order-service 通过 **zrpc** 调用 user / catalog（沿用 `api/proto` 生成代码）
-- **异步事件**：RabbitMQ `mymall.events` exchange（下单、库存 Saga）
-- **库存**：下单先扣 Redis（`catalog:sku:stock:{skuId}`），再发 MQ；catalog 用 MySQL 乐观锁落库；`inventory-sync-service` 经 Canal 监听 binlog 同步/预热 Redis
-- **数据库**：本机 MySQL，服务共用 **`mymall`** 库（本地开发简化；上线可再拆库）
-- **缓存**：本机 Redis（catalog 商品列表 + SKU 库存）
-- **K8s Pod 访问本机**：`host.docker.internal`
-- **接口文档**：`bash scripts/serve-docs.sh`（Scalar）；服务内不再挂 gin-swagger
-- **HTTP 契约**：成功为业务 DTO（`httpx.OkJson`）；失败为非 2xx + `{code,msg}`。见 [`docs/gozero-http-contract.md`](docs/gozero-http-contract.md)
-- **goctl**：`go install github.com/zeromicro/go-zero/tools/goctl@v1.8.5`；生成示例见 [`docs/gozero-migration-runbook.md`](docs/gozero-migration-runbook.md)
+- **HTTP**：go-zero `rest`；契约见 [`docs/gozero-http-contract.md`](docs/gozero-http-contract.md)
+- **配置**：每服务 `internal/config` 嵌入 `rest.RestConf`，`conf.MustLoad` + `MYMALL_*` 覆盖
+- **同步调用**：order → user/catalog/merchant **zrpc**（goctl rpc：`api/gen` + `api/rpcclient`；可选 etcd）
+- **边缘网关**：**APISIX**（JWT / 路由 / `X-User-*`；刻意不换成 go-zero gateway）
+- **异步事件**：RabbitMQ `mymall.events`
+- **数据层**：四业务服务 **sqlx**；goctl model → `internal/modelgen`；schema 靠 `scripts/*.sql` + `scripts/ddl/`
+- **库存**：Redis 预扣 + MQ + MySQL；`inventory-sync-service` 经 Canal 同步 Redis
+- **goctl**：见 [`docs/gozero-migration-runbook.md`](docs/gozero-migration-runbook.md)
 
 ## 目录结构
 
 ```
 mymall/
-├── api/proto/           # gRPC 定义
-├── api/gen/             # protoc 生成代码
-├── pkg/                 # 共享库（config/jwt/database/httpserver/middleware…）
+├── api/proto/           # gRPC 定义（user / catalog / merchant）
+├── api/gen/             # goctl/protoc 生成 pb
+├── api/rpcclient/       # goctl 生成的 zrpc client
+├── pkg/                 # 共享库（xerr/jwt/middleware/cache/mq/zrpcx…；database 仅 inventory-sync）
 ├── common/              # LocalTime 等
 ├── apps/admin-web/      # 管理端 / 商家端 Vue3
-├── apps/mall-uni/       # 用户端 UniApp（Vue3+Vite，H5）
-├── services/<svc>/      # goctl 风格目录（业务服务 + inventory-sync）
-│   ├── etc/<svc>.yaml   # 本地/镜像默认配置（CONFIG_PATH）
-│   ├── cmd/main.go
+├── apps/mall-uni/       # 用户端 UniApp
+├── services/<svc>/
+│   ├── api/*.api        # goctl HTTP 源
+│   ├── etc/<svc>.yaml   # RestConf + 业务字段（CONFIG_PATH）
+│   ├── internal/modelgen/ # goctl model 实体
+│   ├── internal/rpclogic/ # goctl rpc 业务（与 HTTP logic 分离）
+│   ├── cmd/main.go      # conf.MustLoad + rest + 可选 zrpc
 │   └── internal/
-│       ├── handler/     # HTTP 薄入口
+│       ├── config/      # RestConf 嵌入
+│       ├── handler/     # goctl 生成
 │       ├── logic/       # 业务逻辑
-│       ├── types/       # HTTP Req/Resp
-│       ├── svc/         # ServiceContext（DB/Redis/MQ/RPC）
-│       ├── model/       # 表模型；model/sql 指向 scripts/*.sql
-│       ├── repository/  # 数据访问（迁移期内保留）
-│       ├── server/      # zrpc 服务端（user/catalog）
-│       └── client/      # zrpc 客户端（order: userrpc/catalogrpc）
+│       ├── types/
+│       ├── svc/         # ServiceContext（sqlx.Conn / Redis / MQ / RPC）
+│       ├── model/       # 表实体（db tag）
+│       ├── repository/  # sqlx 数据访问
+│       ├── server/      # zrpc 服务端（user/catalog/merchant）
+│       └── client/      # zrpc 客户端
 ├── deploy/
-│   ├── k8s/             # Deployment / Service / Secret；ConfigMap 挂载 /app/etc/<svc>.yaml
-│   ├── apisix/          # 路由 + JWT
-│   └── local/           # docker-compose（Redis + RabbitMQ + 四服务）
+│   ├── k8s/
+│   ├── apisix/
+│   └── local/docker-compose.yaml
 └── scripts/
-    ├── migrate-db.sql
-    ├── init-schema.sql
-    ├── init-order-tables.sql
-    ├── init-merchant-tables.sql
-    ├── seed-admin-merchant.sql
-    ├── init-rbac-tables.sql
-    ├── seed-rbac.sql
-    └── dev.sh           # go run；默认读 ./etc/<svc>.yaml
+    ├── gen-api.sh / generate-proto.sh / gen-model.sh
+    ├── init-*.sql / alter-*.sql / seed-*.sql
+    └── dev.sh
 ```
 
 ## 本地开发
@@ -125,7 +123,7 @@ bash scripts/dev.sh             # 含 inventory-sync
 
 验证：`redis-cli KEYS 'catalog:sku:stock:*'`；管理端改 SKU 库存后 Redis 应跟随。
 
-本地 `server.mode: debug`（默认）启动时会按各服务 model 做 **GORM AutoMigrate**（加表/加列，类似 Beego sync；**不删列**）。K8s `release` 不会跑。可用 `MYMALL_MYSQL_AUTO_MIGRATE=true|false` 强制开关。种子数据仍靠 SQL，AutoMigrate 不会插账号。
+表结构变更请执行 `scripts/*.sql`（四业务服务已不用 GORM AutoMigrate）。
 
 ### 2. 一键启动（Docker 打包）
 

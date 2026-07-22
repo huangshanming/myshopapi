@@ -40,7 +40,7 @@ func (l *AdminUpdateTaskLogic) AdminUpdateTask(ctx context.Context, req *types.U
 		bizReq.RewardPoints = &p
 	}
 	if req.Status != "" {
-		var enabled int8
+		var enabled int
 		switch req.Status {
 		case "1", "enabled", "true":
 			enabled = 1

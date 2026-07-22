@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	merchantv1 "mymall/api/gen/merchant/v1"
+	"mymall/api/rpcclient/merchantservice"
+	"mymall/pkg/zrpcx"
 
 	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc/status"
@@ -12,7 +14,7 @@ import (
 
 type Client struct {
 	cli    zrpc.Client
-	client merchantv1.MerchantServiceClient
+	client merchantservice.MerchantService
 }
 
 type ConsumeResult struct {
@@ -51,18 +53,14 @@ type MatchResp struct {
 	Unavailable      []MatchCouponView
 }
 
-func New(addr string) (*Client, error) {
-	c := zrpc.RpcClientConf{
-		Endpoints: []string{addr},
-		NonBlock:  true,
-	}
-	cli, err := zrpc.NewClient(c)
+func New(addr string, etcdHosts []string) (*Client, error) {
+	cli, err := zrpcx.Dial(addr, etcdHosts, zrpcx.KeyMerchant)
 	if err != nil {
 		return nil, fmt.Errorf("merchant zrpc dial: %w", err)
 	}
 	return &Client{
 		cli:    cli,
-		client: merchantv1.NewMerchantServiceClient(cli.Conn()),
+		client: merchantservice.NewMerchantService(cli),
 	}, nil
 }
 

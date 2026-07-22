@@ -17,10 +17,16 @@ type Config struct {
 
 	// RpcListenOn e.g. 0.0.0.0:9090
 	RpcListenOn string `json:",default=0.0.0.0:9090"`
+	// Etcd optional; empty Hosts = no register (clients use Endpoints).
+	Etcd EtcdConf `json:",optional"`
 
 	MySQL     MySQLConf
 	Auth      AuthConf
 	Telemetry TelemetryConf
+}
+
+type EtcdConf struct {
+	Hosts []string `json:",optional"`
 }
 
 type MySQLConf struct {
@@ -158,6 +164,9 @@ func (c *Config) OverlayFromEnv() {
 			c.Auth.AccessExpire = int64(n) * 3600
 		}
 	}
+	if v := strings.TrimSpace(os.Getenv("MYMALL_ETCD_HOSTS")); v != "" {
+		c.Etcd.Hosts = splitHosts(v)
+	}
 	if v := strings.TrimSpace(os.Getenv("MYMALL_TELEMETRY_ENABLED")); v != "" {
 		c.Telemetry.Enabled = v == "1" || strings.EqualFold(v, "true")
 	}
@@ -167,4 +176,18 @@ func (c *Config) OverlayFromEnv() {
 	if v := strings.TrimSpace(os.Getenv("MYMALL_TELEMETRY_SERVICE")); v != "" {
 		c.Telemetry.Service = v
 	}
+}
+
+func splitHosts(v string) []string {
+	parts := strings.FieldsFunc(v, func(r rune) bool {
+		return r == ',' || r == ' ' || r == ';'
+	})
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }

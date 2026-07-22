@@ -14,10 +14,15 @@ import (
 type Config struct {
 	rest.RestConf
 
-	RpcListenOn string `json:",default=0.0.0.0:9092"`
+	RpcListenOn string   `json:",default=0.0.0.0:9092"`
+	Etcd        EtcdConf `json:",optional"`
 
 	MySQL     MySQLConf
 	Telemetry TelemetryConf
+}
+
+type EtcdConf struct {
+	Hosts []string `json:",optional"`
 }
 
 type MySQLConf struct {
@@ -59,14 +64,6 @@ func (c TelemetryConf) ToPkg() pkgconfig.TelemetryConfig {
 	return pkgconfig.TelemetryConfig{Enabled: c.Enabled, Endpoint: c.Endpoint, Service: c.Service}
 }
 
-func (c Config) MigrateMode() string {
-	switch strings.ToLower(c.Mode) {
-	case "pro", "prod", "production", "release":
-		return "release"
-	default:
-		return "debug"
-	}
-}
 
 func (c Config) GRPCPort() int {
 	parts := strings.Split(c.RpcListenOn, ":")
@@ -119,6 +116,9 @@ func (c *Config) OverlayFromEnv() {
 	if v := strings.TrimSpace(os.Getenv("MYMALL_MYSQL_CHARSET")); v != "" {
 		c.MySQL.Charset = v
 	}
+	if v := strings.TrimSpace(os.Getenv("MYMALL_ETCD_HOSTS")); v != "" {
+		c.Etcd.Hosts = splitHosts(v)
+	}
 	if v := strings.TrimSpace(os.Getenv("MYMALL_TELEMETRY_ENABLED")); v != "" {
 		c.Telemetry.Enabled = v == "1" || strings.EqualFold(v, "true")
 	}
@@ -128,4 +128,18 @@ func (c *Config) OverlayFromEnv() {
 	if v := strings.TrimSpace(os.Getenv("MYMALL_TELEMETRY_SERVICE")); v != "" {
 		c.Telemetry.Service = v
 	}
+}
+
+func splitHosts(v string) []string {
+	parts := strings.FieldsFunc(v, func(r rune) bool {
+		return r == ',' || r == ' ' || r == ';'
+	})
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }

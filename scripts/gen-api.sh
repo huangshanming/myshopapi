@@ -56,6 +56,7 @@ echo "==> goctl api go ($SERVICE)"
 )
 
 # Drop goctl default main; keep hand-maintained internal/config when present.
+# Project bootstrap: cmd/main.go + conf.MustLoad(RestConf) + sqlx.
 rm -f "$DIR"/*api.go 2>/dev/null || true
 if [[ -f "$DIR/internal/config/config.go" ]]; then
   echo "==> keeping internal/config/config.go"

@@ -41,7 +41,7 @@ type ServiceContext struct {
 
 func NewServiceContext(cfg *config.Config, conn sqlx.SqlConn, redisClient *redis.Client, mqClient *mq.Client) *ServiceContext {
 	var userRPC *userrpc.Client
-	if u, err := userrpc.New(cfg.UserRpc); err == nil {
+	if u, err := userrpc.New(cfg.UserRpc, cfg.Etcd.Hosts); err == nil {
 		userRPC = u
 	}
 	return &ServiceContext{
