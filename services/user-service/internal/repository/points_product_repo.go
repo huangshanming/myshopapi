@@ -35,7 +35,7 @@ func (r *PointsProductRepository) List(ctx context.Context, page, pageSize int, 
 		return nil, 0, err
 	}
 	listArgs := append(append([]any{}, args...), pageSize, (page-1)*pageSize)
-	var list []model.PointsProduct
+	list := make([]model.PointsProduct, 0)
 	err = r.conn.QueryRowsPartialCtx(ctx, &list,
 		"SELECT "+pointsProductColumns+" FROM points_products WHERE "+where+" ORDER BY sort DESC, id DESC LIMIT ? OFFSET ?",
 		listArgs...,

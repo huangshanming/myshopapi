@@ -79,6 +79,42 @@
       </scroll-view>
     </view>
 
+    <!-- 积分商城入口：热闹舞台风，配色贴合首页金棕 -->
+    <view class="points-entry" @tap="goPointsMall">
+      <view class="pe-glow" />
+      <view class="pe-ring" />
+      <view class="pe-beam pe-beam-a" />
+      <view class="pe-beam pe-beam-b" />
+      <view class="pe-floor" />
+
+      <view class="pe-gift">
+        <view class="pe-gift-lid" />
+        <view class="pe-gift-body" />
+        <view class="pe-gift-bow" />
+      </view>
+      <view class="pe-ticket">
+        <view class="pe-ticket-cut" />
+      </view>
+      <view class="pe-coin c1">¥</view>
+      <view class="pe-coin c2">¥</view>
+      <view class="pe-coin c3">会</view>
+      <view class="pe-spark s1" />
+      <view class="pe-spark s2" />
+      <view class="pe-spark s3" />
+      <view class="pe-spark s4" />
+      <view class="pe-bolt" />
+
+      <text class="pe-chip pe-chip-a">新人专享</text>
+      <text class="pe-chip pe-chip-b">热门兑换</text>
+      <text class="pe-chip pe-chip-c">每日福利</text>
+
+      <view class="pe-main">
+        <text class="pe-title">积分商城</text>
+        <view class="pe-sub">积分翻倍兑 · 福利限时抢</view>
+      </view>
+      <view class="pe-cta">立即逛逛</view>
+    </view>
+
     <!-- 头部品牌商户 -->
     <view class="block">
       <view class="block-head">
@@ -313,6 +349,7 @@ const fixedTail = [
   { name: '限时秒杀', icon: CAT_ICON.seckill, bg: '#FEF2F2', bounce: true },
 ]
 const fillEntries = [
+  { name: '积分商城', icon: CAT_ICON.coupon, bg: '#FEF3C7', pointsMall: true },
   { name: '领券中心', icon: CAT_ICON.coupon, bg: '#FEF3C7', coupon: true },
   { name: '我的订单', icon: CAT_ICON.orders, bg: '#DBEAFE', orders: true },
   { name: '消息中心', icon: CAT_ICON.messages, bg: '#FCE7F3', messages: true },
@@ -406,6 +443,10 @@ function onCategory(c) {
   }
   if (c.name === '限时秒杀') {
     goSeckillList()
+    return
+  }
+  if (c.pointsMall || c.name === '积分商城') {
+    goPointsMall()
     return
   }
   if (c.coupon) {
@@ -526,6 +567,10 @@ async function loadCouponBar() {
 
 function goCouponCenter() {
   uni.navigateTo({ url: '/pages/coupon/center' })
+}
+
+function goPointsMall() {
+  uni.navigateTo({ url: '/pages/points-mall/list' })
 }
 
 function goMessages() {
@@ -743,6 +788,196 @@ onUnmounted(() => {
 .banner-wrap { margin: 24rpx 32rpx 0; border-radius: 32rpx; overflow: hidden; position: relative; box-shadow: 0 4rpx 24rpx rgba(200,168,118,.08); }
 .banner { height: 344rpx; }
 .banner-img { width: 100%; height: 344rpx; }
+.points-entry {
+  position: relative;
+  margin: 24rpx 32rpx 0;
+  height: 268rpx;
+  border-radius: 28rpx;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 70% 80% at 55% 40%, rgba(255, 214, 140, 0.55) 0%, transparent 55%),
+    radial-gradient(circle at 20% 80%, rgba(255, 140, 70, 0.35) 0%, transparent 40%),
+    linear-gradient(155deg, #6b4423 0%, #9a5c28 38%, #c4783a 68%, #e0a04a 100%);
+  box-shadow: 0 12rpx 36rpx rgba(154, 92, 40, 0.28);
+}
+.pe-glow {
+  position: absolute; inset: -20%;
+  background: radial-gradient(circle at 50% 45%, rgba(255, 236, 180, 0.45) 0%, transparent 48%);
+  animation: pe-pulse 2.8s ease-in-out infinite;
+  pointer-events: none;
+}
+.pe-ring {
+  position: absolute; left: 50%; top: 42%;
+  width: 220rpx; height: 220rpx;
+  margin: -110rpx 0 0 -110rpx;
+  border-radius: 50%;
+  border: 6rpx solid rgba(255, 214, 120, 0.55);
+  box-shadow:
+    0 0 0 10rpx rgba(255, 180, 80, 0.12),
+    inset 0 0 40rpx rgba(255, 220, 140, 0.25),
+    0 0 48rpx rgba(255, 190, 90, 0.35);
+  pointer-events: none;
+}
+.pe-beam {
+  position: absolute; left: 50%; top: 40%; width: 8rpx; height: 160%;
+  margin-left: -4rpx; transform-origin: center top;
+  background: linear-gradient(180deg, rgba(255, 230, 160, 0.55), transparent 70%);
+  pointer-events: none;
+}
+.pe-beam-a { transform: rotate(-28deg); opacity: .7; }
+.pe-beam-b { transform: rotate(32deg); opacity: .55; }
+.pe-floor {
+  position: absolute; left: -10%; right: -10%; bottom: -8%;
+  height: 46%;
+  background: linear-gradient(180deg, transparent 0%, rgba(60, 32, 12, 0.35) 100%);
+  transform: perspective(200rpx) rotateX(18deg);
+  pointer-events: none;
+}
+.pe-main {
+  position: absolute; left: 0; right: 0; top: 58rpx;
+  display: flex; flex-direction: column; align-items: center; z-index: 3;
+}
+.pe-title {
+  font-size: 56rpx; font-weight: 800; letter-spacing: 6rpx; color: #fffaf0;
+  text-shadow:
+    0 2rpx 0 #8b5a20,
+    0 4rpx 0 #6b4010,
+    0 8rpx 0 #4a2c08,
+    0 12rpx 20rpx rgba(40, 20, 0, 0.45);
+}
+.pe-sub {
+  margin-top: 14rpx;
+  padding: 8rpx 28rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx; color: #fff8e8; font-weight: 600;
+  background: linear-gradient(135deg, rgba(90, 48, 18, 0.88), rgba(140, 72, 28, 0.85));
+  border: 1rpx solid rgba(255, 220, 160, 0.55);
+  box-shadow: 0 4rpx 12rpx rgba(40, 20, 0, 0.25);
+}
+.pe-cta {
+  position: absolute; right: 28rpx; bottom: 28rpx; z-index: 4;
+  padding: 14rpx 34rpx; border-radius: 999rpx;
+  font-size: 26rpx; font-weight: 700; color: #5c3a12;
+  background: linear-gradient(135deg, #ffe9a8 0%, #ffc85a 45%, #f0a020 100%);
+  border: 2rpx solid rgba(255, 245, 200, 0.9);
+  box-shadow:
+    0 0 0 4rpx rgba(255, 180, 60, 0.25),
+    0 8rpx 24rpx rgba(255, 160, 40, 0.55),
+    inset 0 2rpx 0 rgba(255, 255, 255, 0.55);
+  animation: pe-cta-glow 1.8s ease-in-out infinite;
+}
+.pe-chip {
+  position: absolute; z-index: 3;
+  padding: 6rpx 16rpx; border-radius: 12rpx;
+  font-size: 18rpx; font-weight: 600; color: #7a4a18;
+  background: linear-gradient(180deg, #fff8e8, #ffe2a8);
+  border: 1rpx solid rgba(255, 200, 120, 0.8);
+  box-shadow: 0 4rpx 12rpx rgba(80, 40, 10, 0.2);
+}
+.pe-chip-a { left: 24rpx; top: 36rpx; transform: rotate(-8deg); }
+.pe-chip-b { left: 36rpx; top: 118rpx; transform: rotate(4deg); }
+.pe-chip-c { right: 36rpx; top: 48rpx; transform: rotate(7deg); }
+.pe-gift {
+  position: absolute; left: 28rpx; bottom: 32rpx; z-index: 2;
+  width: 56rpx; height: 52rpx;
+  animation: pe-float-a 2.2s ease-in-out infinite;
+  filter: drop-shadow(0 6rpx 8rpx rgba(40, 20, 0, 0.3));
+  pointer-events: none;
+}
+.pe-gift-body {
+  position: absolute; left: 4rpx; bottom: 0; width: 48rpx; height: 34rpx;
+  border-radius: 6rpx;
+  background: linear-gradient(180deg, #ff9a4a, #e86a20);
+}
+.pe-gift-body::before {
+  content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 10rpx;
+  margin-left: -5rpx; background: #ffe08a;
+}
+.pe-gift-lid {
+  position: absolute; left: 0; top: 8rpx; width: 56rpx; height: 14rpx;
+  border-radius: 4rpx;
+  background: linear-gradient(180deg, #ffb06a, #f07828);
+}
+.pe-gift-bow {
+  position: absolute; left: 50%; top: 0; width: 18rpx; height: 14rpx;
+  margin-left: -9rpx; border-radius: 50% 50% 40% 40%;
+  background: #ffe08a;
+  box-shadow: -14rpx 2rpx 0 -2rpx #ffe08a, 14rpx 2rpx 0 -2rpx #ffe08a;
+}
+.pe-ticket {
+  position: absolute; right: 118rpx; top: 30rpx; z-index: 2;
+  width: 52rpx; height: 30rpx; border-radius: 6rpx;
+  background: linear-gradient(135deg, #fff3c4, #ffd56a);
+  border: 2rpx dashed rgba(180, 110, 20, 0.45);
+  box-shadow: 0 4rpx 10rpx rgba(80, 40, 10, 0.25);
+  animation: pe-float-b 2.6s ease-in-out infinite;
+  pointer-events: none;
+}
+.pe-ticket-cut {
+  position: absolute; left: -6rpx; top: 50%; width: 12rpx; height: 12rpx;
+  margin-top: -6rpx; border-radius: 50%;
+  background: transparent;
+  box-shadow: 46rpx 0 0 0 transparent;
+}
+.pe-ticket::after {
+  content: ''; position: absolute; right: 10rpx; top: 6rpx; bottom: 6rpx; width: 10rpx;
+  border-radius: 2rpx; background: rgba(200, 120, 30, 0.25);
+}
+.pe-bolt {
+  position: absolute; left: 42%; bottom: 40rpx; z-index: 2;
+  width: 0; height: 0;
+  border-left: 10rpx solid transparent;
+  border-right: 10rpx solid transparent;
+  border-bottom: 28rpx solid #ffe08a;
+  transform: skewX(-12deg);
+  filter: drop-shadow(0 0 8rpx rgba(255, 200, 80, 0.7));
+  animation: pe-twinkle 1.6s ease-in-out infinite .2s;
+  pointer-events: none;
+}
+.pe-coin {
+  position: absolute; z-index: 2;
+  width: 44rpx; height: 44rpx; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22rpx; font-weight: 800; color: #8a5200;
+  background: linear-gradient(145deg, #fff1b8, #f0b429 55%, #d4920a);
+  border: 2rpx solid rgba(255, 240, 180, 0.9);
+  box-shadow: 0 4rpx 10rpx rgba(120, 70, 10, 0.35);
+  pointer-events: none;
+}
+.pe-coin.c1 { right: 48rpx; top: 100rpx; animation: pe-float-a 1.8s ease-in-out infinite; }
+.pe-coin.c2 { left: 110rpx; bottom: 28rpx; width: 36rpx; height: 36rpx; font-size: 18rpx; animation: pe-float-b 2.1s ease-in-out infinite; }
+.pe-coin.c3 { right: 150rpx; bottom: 52rpx; width: 40rpx; height: 40rpx; font-size: 18rpx; animation: pe-float-a 2.4s ease-in-out infinite .3s; }
+.pe-spark {
+  position: absolute; z-index: 2; width: 12rpx; height: 12rpx;
+  background: #ffe08a; transform: rotate(45deg);
+  box-shadow: 0 0 10rpx rgba(255, 220, 120, 0.9);
+  animation: pe-twinkle 1.4s ease-in-out infinite;
+  pointer-events: none;
+}
+.pe-spark.s1 { left: 48%; top: 28rpx; }
+.pe-spark.s2 { left: 62%; top: 72rpx; width: 8rpx; height: 8rpx; animation-delay: .35s; background: #fff6d0; }
+.pe-spark.s3 { left: 28%; bottom: 72rpx; width: 10rpx; height: 10rpx; animation-delay: .7s; }
+.pe-spark.s4 { right: 28%; top: 40rpx; animation-delay: 1s; background: #ffb347; }
+@keyframes pe-pulse {
+  0%, 100% { opacity: .7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+@keyframes pe-cta-glow {
+  0%, 100% { box-shadow: 0 0 0 4rpx rgba(255, 180, 60, 0.25), 0 8rpx 24rpx rgba(255, 160, 40, 0.55), inset 0 2rpx 0 rgba(255, 255, 255, 0.55); }
+  50% { box-shadow: 0 0 0 8rpx rgba(255, 180, 60, 0.35), 0 10rpx 32rpx rgba(255, 170, 50, 0.7), inset 0 2rpx 0 rgba(255, 255, 255, 0.65); }
+}
+@keyframes pe-float-a {
+  0%, 100% { transform: translateY(0) rotate(-6deg); }
+  50% { transform: translateY(-12rpx) rotate(4deg); }
+}
+@keyframes pe-float-b {
+  0%, 100% { transform: translateY(0) rotate(8deg); }
+  50% { transform: translateY(-10rpx) rotate(-4deg); }
+}
+@keyframes pe-twinkle {
+  0%, 100% { opacity: .35; transform: rotate(45deg) scale(.8); }
+  50% { opacity: 1; transform: rotate(45deg) scale(1.25); }
+}
 .corner-tag { position: absolute; top: 0; right: 0; width: 140rpx; height: 140rpx; overflow: hidden; }
 .corner-text {
   position: absolute; top: 24rpx; right: -44rpx; width: 180rpx; text-align: center;

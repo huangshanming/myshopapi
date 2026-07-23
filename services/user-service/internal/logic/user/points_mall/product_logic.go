@@ -22,7 +22,7 @@ func NewProductLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ProductLo
 }
 
 func (l *ProductLogic) ListProducts(ctx context.Context, req *types.ProductListReq) (*types.ProductListResp, error) {
-	list, total, err := biz.NewPointsProductLogic(l.svcCtx).List(ctx, req.Page, req.PageSize, req.Keyword, req.Status)
+	list, total, err := biz.NewPointsProductLogic(l.svcCtx).List(ctx, req.Page, req.PageSize, req.Status, req.Keyword)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func (l *ProductLogic) ListProducts(ctx context.Context, req *types.ProductListR
 }
 
 func (l *ProductLogic) DetailProduct(ctx context.Context, req *types.IdPathReq) (*types.ProductDetailResp, error) {
-	product, err := biz.NewPointsProductLogic(l.svcCtx).Get(ctx, req.ID)
+	product, err := biz.NewPointsProductLogic(l.svcCtx).Get(ctx, req.Id)
 	if err != nil {
 		return nil, err
 	}

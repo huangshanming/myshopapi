@@ -4,6 +4,7 @@
       <text class="hero-label">我的积分</text>
       <text class="hero-points">{{ points }}</text>
       <text class="hero-sub">完成任务后记得领取奖励</text>
+      <view class="hero-cta" @tap="goPointsMall">去兑换</view>
     </view>
 
     <view class="card checkin" :class="{ done: checkinDone }" @tap="onCheckinCard">
@@ -141,6 +142,10 @@ function ensureLogin() {
   return false
 }
 
+function goPointsMall() {
+  uni.navigateTo({ url: '/pages/points-mall/list' })
+}
+
 async function load() {
   if (!ensureLogin()) return
   loading.value = true
@@ -163,10 +168,16 @@ onShow(load)
 .hero {
   background: linear-gradient(135deg, #e8d5b5, #c8a876);
   border-radius: 24rpx; padding: 40rpx 32rpx; margin-bottom: 24rpx; color: #fff;
+  position: relative;
 }
 .hero-label { font-size: 24rpx; opacity: .9; }
 .hero-points { display: block; font-size: 72rpx; font-weight: 700; margin: 8rpx 0; }
 .hero-sub { font-size: 22rpx; opacity: .85; }
+.hero-cta {
+  position: absolute; right: 32rpx; top: 50%; transform: translateY(-50%);
+  background: rgba(255,255,255,.92); color: #8b7355;
+  font-size: 26rpx; font-weight: 600; padding: 14rpx 28rpx; border-radius: 999rpx;
+}
 .checkin {
   display: flex; justify-content: space-between; align-items: center;
   background: #fff; border-radius: 16rpx; padding: 28rpx; margin-bottom: 20rpx;

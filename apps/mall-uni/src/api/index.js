@@ -140,6 +140,26 @@ export function listUserPointLogs(params) {
   return http.get('/api/v1/user/points/logs', params)
 }
 
+export function listPointsMallProducts(params) {
+  return http.get('/api/v1/user/points-mall/product', params)
+}
+
+export function getPointsMallProduct(id) {
+  return http.get(`/api/v1/user/points-mall/product/${id}`)
+}
+
+export function exchangePointsMall(data) {
+  return http.post('/api/v1/user/points-mall/exchange', data)
+}
+
+export function listPointsMallOrders(params) {
+  return http.get('/api/v1/user/points-mall/orders', params)
+}
+
+export function getPointsMallOrder(id) {
+  return http.get(`/api/v1/user/points-mall/orders/${id}`)
+}
+
 export function listUserTasks() {
   return http.get('/api/v1/user/tasks')
 }

@@ -42,7 +42,7 @@
             <text class="a-unit">张</text>
           </view>
         </view>
-        <view class="asset-col" @tap="goTasks">
+        <view class="asset-col" @tap="goPointsMall">
           <text class="a-label">积分</text>
           <view class="a-amount-row">
             <text class="a-num">{{ points }}</text>
@@ -212,6 +212,20 @@ function goTasks() {
   uni.navigateTo({ url: '/pages/task/index' })
 }
 
+function goPointsMall() {
+  uni.navigateTo({ url: '/pages/points-mall/list' })
+}
+
+function goPointsOrders() {
+  if (!isLoggedIn()) {
+    uni.navigateTo({
+      url: '/pages/login/login?redirect=' + encodeURIComponent('/pages/points-mall/orders'),
+    })
+    return
+  }
+  uni.navigateTo({ url: '/pages/points-mall/orders' })
+}
+
 function goMyNotes() {
   if (!isLoggedIn()) {
     goLogin()
@@ -232,6 +246,7 @@ function logout() {
 
 const menuItems = computed(() => [
   { key: 'tasks', label: '任务中心', icon: ICO.gift, bg: '#faf6ef', needLogin: true, onTap: goTasks },
+  { key: 'pointsOrders', label: '兑换记录', icon: ICO.bill, bg: '#f7f3ec', needLogin: true, onTap: goPointsOrders },
   { key: 'notes', label: '我的笔记', icon: ICO.like, bg: '#f7f3ec', needLogin: true, onTap: goMyNotes },
   { key: 'coupons', label: '我的优惠券', icon: ICO.coupon, bg: '#faf6ef', needLogin: true, onTap: goCoupons },
   { key: 'center', label: '领券中心', icon: ICO.gift, bg: '#f7f3ec', needLogin: false, onTap: goCouponCenter },

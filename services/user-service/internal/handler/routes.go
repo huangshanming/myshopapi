@@ -592,7 +592,7 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				{
 					Method:  http.MethodGet,
 					Path:    "/api/v1/user/points-mall/product",
-					Handler: userpoints_mall.ListPointsProductsHandler(serverCtx),
+					Handler: userpoints_mall.ListProductsHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,

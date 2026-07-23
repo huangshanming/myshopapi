@@ -177,6 +177,30 @@
       "style": {
         "navigationBarTitleText": "任务中心"
       }
+    },
+    {
+      "path": "pages/points-mall/list",
+      "style": {
+        "navigationBarTitleText": "积分商城"
+      }
+    },
+    {
+      "path": "pages/points-mall/detail",
+      "style": {
+        "navigationBarTitleText": "积分兑换"
+      }
+    },
+    {
+      "path": "pages/points-mall/orders",
+      "style": {
+        "navigationBarTitleText": "兑换记录"
+      }
+    },
+    {
+      "path": "pages/points-mall/order-detail",
+      "style": {
+        "navigationBarTitleText": "兑换详情"
+      }
     }
   ],
   "globalStyle": {
