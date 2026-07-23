@@ -70,6 +70,7 @@ export default defineConfig({
       '/api/v1/coupons': to(svc.merchant),
       '/api/v1/user/coupons': to(svc.merchant),
       '/api/v1/user/points-mall': to(svc.user),
+      '/api/v1/user/cps': to(svc.user),
       '/api/v1/orders': to(svc.order),
       '/api/v1/user': to(svc.user),
       '/api/v1/regions': to(svc.user),

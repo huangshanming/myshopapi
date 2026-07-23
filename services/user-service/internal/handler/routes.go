@@ -25,6 +25,7 @@ import (
 	publicpoints_mall "mymall/services/user-service/internal/handler/public/points_mall"
 	publicregion "mymall/services/user-service/internal/handler/public/region"
 	useraddress "mymall/services/user-service/internal/handler/user/address"
+	usercps "mymall/services/user-service/internal/handler/user/cps"
 	usernotification "mymall/services/user-service/internal/handler/user/notification"
 	userpoints "mymall/services/user-service/internal/handler/user/points"
 	userpoints_mall "mymall/services/user-service/internal/handler/user/points_mall"
@@ -598,6 +599,42 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Method:  http.MethodGet,
 					Path:    "/api/v1/user/points-mall/product/:id",
 					Handler: userpoints_mall.DetailProductHandler(serverCtx),
+				},
+			}...,
+		),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.RequestID},
+			[]rest.Route{
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/user/cps/acts",
+					Handler: usercps.ListActsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/user/cps/goods",
+					Handler: usercps.ListGoodsHandler(serverCtx),
+				},
+			}...,
+		),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.RequestID, serverCtx.GatewayIdentity},
+			[]rest.Route{
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/user/cps/convert",
+					Handler: usercps.ConvertHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/user/cps/goods/convert",
+					Handler: usercps.ConvertGoodsHandler(serverCtx),
 				},
 			}...,
 		),

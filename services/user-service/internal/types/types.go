@@ -99,6 +99,26 @@ type ExchangeReq struct {
 	Remark    string `json:"remark,optional"`
 }
 
+type CpsConvertReq struct {
+	ActID uint64 `json:"act_id"`
+}
+
+type CpsConvertResp = DataResp
+
+type CpsGoodsListReq struct {
+	Platform string `form:"platform"`
+	Keyword  string `form:"keyword,optional"`
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+}
+
+type CpsGoodsConvertReq struct {
+	Platform string `json:"platform"`
+	ItemID   string `json:"item_id,optional"`
+	RawURL   string `json:"raw_url,optional"`
+}
+
+
 type FilePathReq struct {
 	File string `path:"file"`
 }

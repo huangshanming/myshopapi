@@ -35,3 +35,16 @@ AppTelemetry:
   Enabled: false
   Endpoint: jaeger-collector.mymall:4318
   Service: user-service
+
+# 聚推客联盟（优惠购）；ApiKey 也可通过 MYMALL_JUTUIKE_APIKEY 注入
+Jutuike:
+  ApiKey: "ZlAqOzQbKNzAiICsVrcnzgxjxztpwda0"
+  BaseURL: http://api.jutuike.com
+  Timeout: 8
+
+# 订单侠（优惠商品）；ApiKey 也可通过 MYMALL_DINGDANXIA_APIKEY 注入
+Dingdanxia:
+  ApiKey: ""
+  BaseURL: http://api.tbk.dingdanxia.com
+  Timeout: 8
+  PddPid: ""

@@ -115,6 +115,15 @@
       <view class="pe-cta">立即逛逛</view>
     </view>
 
+    <!-- 优惠购入口 -->
+    <view class="cps-entry" @tap="goCpsList">
+      <view class="cps-entry-text">
+        <text class="cps-entry-title">优惠购</text>
+        <text class="cps-entry-sub">外卖打车省更多 · 复制链接去第三方购买</text>
+      </view>
+      <text class="cps-entry-cta">去看看</text>
+    </view>
+
     <!-- 头部品牌商户 -->
     <view class="block">
       <view class="block-head">
@@ -349,6 +358,7 @@ const fixedTail = [
   { name: '限时秒杀', icon: CAT_ICON.seckill, bg: '#FEF2F2', bounce: true },
 ]
 const fillEntries = [
+  { name: '优惠购', icon: CAT_ICON.coupon, bg: '#FEF3C7', cps: true },
   { name: '积分商城', icon: CAT_ICON.coupon, bg: '#FEF3C7', pointsMall: true },
   { name: '领券中心', icon: CAT_ICON.coupon, bg: '#FEF3C7', coupon: true },
   { name: '我的订单', icon: CAT_ICON.orders, bg: '#DBEAFE', orders: true },
@@ -447,6 +457,10 @@ function onCategory(c) {
   }
   if (c.pointsMall || c.name === '积分商城') {
     goPointsMall()
+    return
+  }
+  if (c.cps || c.name === '优惠购') {
+    goCpsList()
     return
   }
   if (c.coupon) {
@@ -571,6 +585,10 @@ function goCouponCenter() {
 
 function goPointsMall() {
   uni.navigateTo({ url: '/pages/points-mall/list' })
+}
+
+function goCpsList() {
+  uni.navigateTo({ url: '/pages/cps/index' })
 }
 
 function goMessages() {
@@ -977,6 +995,23 @@ onUnmounted(() => {
 @keyframes pe-twinkle {
   0%, 100% { opacity: .35; transform: rotate(45deg) scale(.8); }
   50% { opacity: 1; transform: rotate(45deg) scale(1.25); }
+}
+.cps-entry {
+  margin: 24rpx 32rpx 0;
+  padding: 32rpx;
+  border-radius: 28rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #f3ebe0 0%, #e8d5b5 55%, #d4b890 100%);
+  box-shadow: 0 8rpx 28rpx rgba(200,168,118,.18);
+}
+.cps-entry-text { display: flex; flex-direction: column; gap: 8rpx; flex: 1; min-width: 0; }
+.cps-entry-title { font-size: 34rpx; font-weight: 700; color: #5c4a32; }
+.cps-entry-sub { font-size: 22rpx; color: rgba(92,74,50,.82); }
+.cps-entry-cta {
+  flex-shrink: 0; font-size: 26rpx; color: #5c4a32; background: rgba(255,255,255,.78);
+  padding: 14rpx 28rpx; border-radius: 999rpx; font-weight: 600;
 }
 .corner-tag { position: absolute; top: 0; right: 0; width: 140rpx; height: 140rpx; overflow: hidden; }
 .corner-text {

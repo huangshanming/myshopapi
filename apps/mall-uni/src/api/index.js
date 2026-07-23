@@ -160,6 +160,22 @@ export function getPointsMallOrder(id) {
   return http.get(`/api/v1/user/points-mall/orders/${id}`)
 }
 
+export function listCpsActs(params) {
+  return http.get('/api/v1/user/cps/acts', params)
+}
+
+export function convertCpsAct(data) {
+  return http.post('/api/v1/user/cps/convert', data)
+}
+
+export function listCpsGoods(params) {
+  return http.get('/api/v1/user/cps/goods', params)
+}
+
+export function convertCpsGoods(data) {
+  return http.post('/api/v1/user/cps/goods/convert', data)
+}
+
 export function listUserTasks() {
   return http.get('/api/v1/user/tasks')
 }

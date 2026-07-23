@@ -201,6 +201,24 @@
       "style": {
         "navigationBarTitleText": "兑换详情"
       }
+    },
+    {
+      "path": "pages/cps/index",
+      "style": {
+        "navigationBarTitleText": "优惠购"
+      }
+    },
+    {
+      "path": "pages/cps/redpacket",
+      "style": {
+        "navigationBarTitleText": "平台优惠红包"
+      }
+    },
+    {
+      "path": "pages/cps/products",
+      "style": {
+        "navigationBarTitleText": "优惠商品"
+      }
     }
   ],
   "globalStyle": {

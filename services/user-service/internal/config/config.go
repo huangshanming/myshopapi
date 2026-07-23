@@ -20,14 +20,29 @@ type Config struct {
 	// Etcd optional; empty Hosts = no register (clients use Endpoints).
 	Etcd EtcdConf `json:",optional"`
 
-	MySQL     MySQLConf
-	Auth      AuthConf
+	MySQL      MySQLConf
+	Auth       AuthConf
+	Jutuike    JutuikeConf    `json:",optional"`
+	Dingdanxia DingdanxiaConf `json:",optional"`
 	// AppTelemetry is our OTel init config. Named to avoid clash with rest.RestConf / ServiceConf.Telemetry.
 	AppTelemetry TelemetryConf
 }
 
 type EtcdConf struct {
 	Hosts []string `json:",optional"`
+}
+
+type JutuikeConf struct {
+	ApiKey  string `json:",optional"`
+	BaseURL string `json:",default=http://api.jutuike.com"`
+	Timeout int    `json:",default=8"` // seconds
+}
+
+type DingdanxiaConf struct {
+	ApiKey  string `json:",optional"`
+	BaseURL string `json:",default=http://api.tbk.dingdanxia.com"`
+	Timeout int    `json:",default=8"`
+	PddPid  string `json:",optional"` // 拼多多推广位，转链需要
 }
 
 type MySQLConf struct {
@@ -176,6 +191,31 @@ func (c *Config) OverlayFromEnv() {
 	}
 	if v := strings.TrimSpace(os.Getenv("MYMALL_TELEMETRY_SERVICE")); v != "" {
 		c.AppTelemetry.Service = v
+	}
+	if v := strings.TrimSpace(os.Getenv("MYMALL_JUTUIKE_APIKEY")); v != "" {
+		c.Jutuike.ApiKey = v
+	}
+	if v := strings.TrimSpace(os.Getenv("MYMALL_JUTUIKE_BASE_URL")); v != "" {
+		c.Jutuike.BaseURL = v
+	}
+	if v := strings.TrimSpace(os.Getenv("MYMALL_JUTUIKE_TIMEOUT")); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			c.Jutuike.Timeout = n
+		}
+	}
+	if v := strings.TrimSpace(os.Getenv("MYMALL_DINGDANXIA_APIKEY")); v != "" {
+		c.Dingdanxia.ApiKey = v
+	}
+	if v := strings.TrimSpace(os.Getenv("MYMALL_DINGDANXIA_BASE_URL")); v != "" {
+		c.Dingdanxia.BaseURL = v
+	}
+	if v := strings.TrimSpace(os.Getenv("MYMALL_DINGDANXIA_TIMEOUT")); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			c.Dingdanxia.Timeout = n
+		}
+	}
+	if v := strings.TrimSpace(os.Getenv("MYMALL_DINGDANXIA_PDD_PID")); v != "" {
+		c.Dingdanxia.PddPid = v
 	}
 }
 

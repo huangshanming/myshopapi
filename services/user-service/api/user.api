@@ -277,6 +277,27 @@ type ExchangeReq {
 	Remark    string `json:"remark,optional"`
 }
 
+type CpsConvertReq {
+	ActID uint64 `json:"act_id"`
+}
+
+type CpsConvertResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type CpsGoodsListReq {
+	Platform string `form:"platform"`
+	Keyword  string `form:"keyword,optional"`
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+}
+
+type CpsGoodsConvertReq {
+	Platform string `json:"platform"`
+	ItemID   string `json:"item_id,optional"`
+	RawURL   string `json:"raw_url,optional"`
+}
+
 type PointsProductSaveReq {
 	Name         string `json:"name"`
 	CoverURL     string `json:"cover_url,optional"`
@@ -792,6 +813,30 @@ service userapi {
 
 	@handler DetailProduct
 	get /api/v1/user/points-mall/product/:id (IdPathReq) returns (ProductDetailResp)
+}
+
+@server (
+	middleware: RequestID
+	group:      user/cps
+)
+service userapi {
+	@handler ListCpsActs
+	get /api/v1/user/cps/acts (PageReq) returns (PageListResp)
+
+	@handler ListCpsGoods
+	get /api/v1/user/cps/goods (CpsGoodsListReq) returns (PageListResp)
+}
+
+@server (
+	middleware: RequestID,GatewayIdentity
+	group:      user/cps
+)
+service userapi {
+	@handler ConvertCpsAct
+	post /api/v1/user/cps/convert (CpsConvertReq) returns (CpsConvertResp)
+
+	@handler ConvertCpsGoods
+	post /api/v1/user/cps/goods/convert (CpsGoodsConvertReq) returns (CpsConvertResp)
 }
 
 @server (

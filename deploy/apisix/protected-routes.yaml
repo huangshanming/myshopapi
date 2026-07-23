@@ -17,6 +17,8 @@ spec:
           - /api/v1/user/points/*
           - /api/v1/user/points-mall
           - /api/v1/user/points-mall/*
+          - /api/v1/user/cps/convert
+          - /api/v1/user/cps/goods/convert
           - /api/v1/user/tasks
           - /api/v1/user/tasks/*
         methods:
