@@ -9,6 +9,10 @@ INSERT INTO sys_config (config_key, config_value, remark)
 VALUES ('site_name', 'mymall 管理后台', '站点名称')
 ON DUPLICATE KEY UPDATE config_value=VALUES(config_value);
 
+INSERT INTO sys_config (config_key, config_value, remark)
+VALUES ('order_after_sale_days', '7', '确认收货后可申请售后天数')
+ON DUPLICATE KEY UPDATE remark=VALUES(remark);
+
 -- 菜单：业务 + 系统管理（固定 id 便于角色关联）
 INSERT INTO sys_menu (id, parent_id, name, type, path, component, icon, perms, sort, visible, status) VALUES
 (1,  0, '业务管理', 'dir',  '', '', 'Menu', '', 10, 1, 1),

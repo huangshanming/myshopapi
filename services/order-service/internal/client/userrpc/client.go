@@ -160,6 +160,17 @@ func (c *Client) TaskEvent(ctx context.Context, req TaskEventReq) error {
 	return nil
 }
 
+func (c *Client) GetConfig(ctx context.Context, key string) (string, error) {
+	if c == nil {
+		return "", fmt.Errorf("用户配置服务不可用")
+	}
+	resp, err := c.client.GetConfig(ctx, &userv1.GetConfigRequest{Key: key})
+	if err != nil {
+		return "", rpcErr(err, "读取配置失败")
+	}
+	return resp.GetValue(), nil
+}
+
 func rpcErr(err error, fallback string) error {
 	if err == nil {
 		return nil

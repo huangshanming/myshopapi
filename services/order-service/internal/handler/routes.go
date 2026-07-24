@@ -251,6 +251,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Handler: userorder.UserGetOrderHandler(serverCtx),
 				},
 				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/orders/:id/after-sale-eligible",
+					Handler: userorder.AfterSaleEligibleHandler(serverCtx),
+				},
+				{
 					Method:  http.MethodPost,
 					Path:    "/api/v1/orders/:id/after-sales",
 					Handler: userorder.CreateAfterSaleHandler(serverCtx),

@@ -70,6 +70,7 @@ const tabs = [
   { v: 'confirmed', l: '待发货' },
   { v: 'shipped', l: '待收货' },
   { v: 'completed', l: '待评价' },
+  { v: 'reviewed', l: '已评价' },
   { v: 'after_sale', l: '退款/售后' },
 ]
 

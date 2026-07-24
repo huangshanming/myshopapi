@@ -8,7 +8,6 @@ package userv1
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -27,6 +26,7 @@ const (
 	UserService_SettleWallet_FullMethodName   = "/user.v1.UserService/SettleWallet"
 	UserService_Notify_FullMethodName         = "/user.v1.UserService/Notify"
 	UserService_TaskEvent_FullMethodName      = "/user.v1.UserService/TaskEvent"
+	UserService_GetConfig_FullMethodName      = "/user.v1.UserService/GetConfig"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -40,6 +40,7 @@ type UserServiceClient interface {
 	SettleWallet(ctx context.Context, in *WalletOpRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
 	Notify(ctx context.Context, in *NotifyRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
 	TaskEvent(ctx context.Context, in *TaskEventRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
+	GetConfig(ctx context.Context, in *GetConfigRequest, opts ...grpc.CallOption) (*GetConfigResponse, error)
 }
 
 type userServiceClient struct {
@@ -120,6 +121,16 @@ func (c *userServiceClient) TaskEvent(ctx context.Context, in *TaskEventRequest,
 	return out, nil
 }
 
+func (c *userServiceClient) GetConfig(ctx context.Context, in *GetConfigRequest, opts ...grpc.CallOption) (*GetConfigResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetConfigResponse)
+	err := c.cc.Invoke(ctx, UserService_GetConfig_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserServiceServer is the server API for UserService service.
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility.
@@ -131,6 +142,7 @@ type UserServiceServer interface {
 	SettleWallet(context.Context, *WalletOpRequest) (*EmptyResponse, error)
 	Notify(context.Context, *NotifyRequest) (*EmptyResponse, error)
 	TaskEvent(context.Context, *TaskEventRequest) (*EmptyResponse, error)
+	GetConfig(context.Context, *GetConfigRequest) (*GetConfigResponse, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -161,6 +173,9 @@ func (UnimplementedUserServiceServer) Notify(context.Context, *NotifyRequest) (*
 }
 func (UnimplementedUserServiceServer) TaskEvent(context.Context, *TaskEventRequest) (*EmptyResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method TaskEvent not implemented")
+}
+func (UnimplementedUserServiceServer) GetConfig(context.Context, *GetConfigRequest) (*GetConfigResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetConfig not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 func (UnimplementedUserServiceServer) testEmbeddedByValue()                     {}
@@ -309,6 +324,24 @@ func _UserService_TaskEvent_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_GetConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetConfigRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).GetConfig(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_GetConfig_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).GetConfig(ctx, req.(*GetConfigRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -343,6 +376,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "TaskEvent",
 			Handler:    _UserService_TaskEvent_Handler,
+		},
+		{
+			MethodName: "GetConfig",
+			Handler:    _UserService_GetConfig_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

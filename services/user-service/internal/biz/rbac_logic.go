@@ -345,6 +345,10 @@ func (l *RBACLogic) ListConfigs(ctx context.Context) ([]model.SysConfig, error) 
 	return l.svcCtx.RBAC.ListConfigs(ctx)
 }
 
+func (l *RBACLogic) GetConfigValue(ctx context.Context, key string) (string, error) {
+	return l.svcCtx.RBAC.GetConfigValue(ctx, key)
+}
+
 func (l *RBACLogic) SaveConfigs(ctx context.Context, items []types.ConfigItemReq) error {
 	for _, it := range items {
 		if it.ConfigKey == "" {

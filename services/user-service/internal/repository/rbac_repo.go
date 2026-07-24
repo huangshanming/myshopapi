@@ -361,6 +361,17 @@ func (r *RBACRepository) ListConfigs(ctx context.Context) ([]model.SysConfig, er
 	return list, err
 }
 
+func (r *RBACRepository) GetConfigValue(ctx context.Context, key string) (string, error) {
+	var c model.SysConfig
+	err := r.conn.QueryRowPartialCtx(ctx, &c,
+		"SELECT "+configColumns+" FROM sys_config WHERE config_key=? LIMIT 1", key,
+	)
+	if err != nil {
+		return "", err
+	}
+	return c.ConfigValue, nil
+}
+
 func (r *RBACRepository) UpsertConfig(ctx context.Context, key, value, remark string) error {
 	var c model.SysConfig
 	err := r.conn.QueryRowPartialCtx(ctx, &c,

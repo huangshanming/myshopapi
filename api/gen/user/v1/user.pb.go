@@ -565,6 +565,102 @@ func (x *TaskEventRequest) GetRefId() uint64 {
 	return 0
 }
 
+type GetConfigRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Key           string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetConfigRequest) Reset() {
+	*x = GetConfigRequest{}
+	mi := &file_user_v1_user_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetConfigRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetConfigRequest) ProtoMessage() {}
+
+func (x *GetConfigRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_user_v1_user_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetConfigRequest.ProtoReflect.Descriptor instead.
+func (*GetConfigRequest) Descriptor() ([]byte, []int) {
+	return file_user_v1_user_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *GetConfigRequest) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+type GetConfigResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Key           string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value         string                 `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetConfigResponse) Reset() {
+	*x = GetConfigResponse{}
+	mi := &file_user_v1_user_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetConfigResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetConfigResponse) ProtoMessage() {}
+
+func (x *GetConfigResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_user_v1_user_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetConfigResponse.ProtoReflect.Descriptor instead.
+func (*GetConfigResponse) Descriptor() ([]byte, []int) {
+	return file_user_v1_user_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *GetConfigResponse) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *GetConfigResponse) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
+}
+
 var File_user_v1_user_proto protoreflect.FileDescriptor
 
 const file_user_v1_user_proto_rawDesc = "" +
@@ -611,7 +707,12 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\ttask_code\x18\x02 \x01(\tR\btaskCode\x12\x14\n" +
 	"\x05delta\x18\x03 \x01(\x05R\x05delta\x12\x19\n" +
 	"\bref_type\x18\x04 \x01(\tR\arefType\x12\x15\n" +
-	"\x06ref_id\x18\x05 \x01(\x04R\x05refId2\xd4\x03\n" +
+	"\x06ref_id\x18\x05 \x01(\x04R\x05refId\"$\n" +
+	"\x10GetConfigRequest\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\";\n" +
+	"\x11GetConfigResponse\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value2\x98\x04\n" +
 	"\vUserService\x12<\n" +
 	"\aGetUser\x12\x17.user.v1.GetUserRequest\x1a\x18.user.v1.GetUserResponse\x12E\n" +
 	"\n" +
@@ -620,7 +721,8 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\x0eUnfreezeWallet\x12\x18.user.v1.WalletOpRequest\x1a\x16.user.v1.EmptyResponse\x12@\n" +
 	"\fSettleWallet\x12\x18.user.v1.WalletOpRequest\x1a\x16.user.v1.EmptyResponse\x128\n" +
 	"\x06Notify\x12\x16.user.v1.NotifyRequest\x1a\x16.user.v1.EmptyResponse\x12>\n" +
-	"\tTaskEvent\x12\x19.user.v1.TaskEventRequest\x1a\x16.user.v1.EmptyResponseB\x1fZ\x1dmymall/api/gen/user/v1;userv1b\x06proto3"
+	"\tTaskEvent\x12\x19.user.v1.TaskEventRequest\x1a\x16.user.v1.EmptyResponse\x12B\n" +
+	"\tGetConfig\x12\x19.user.v1.GetConfigRequest\x1a\x1a.user.v1.GetConfigResponseB\x1fZ\x1dmymall/api/gen/user/v1;userv1b\x06proto3"
 
 var (
 	file_user_v1_user_proto_rawDescOnce sync.Once
@@ -634,7 +736,7 @@ func file_user_v1_user_proto_rawDescGZIP() []byte {
 	return file_user_v1_user_proto_rawDescData
 }
 
-var file_user_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_user_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_user_v1_user_proto_goTypes = []any{
 	(*EmptyResponse)(nil),      // 0: user.v1.EmptyResponse
 	(*GetUserRequest)(nil),     // 1: user.v1.GetUserRequest
@@ -644,6 +746,8 @@ var file_user_v1_user_proto_goTypes = []any{
 	(*WalletOpRequest)(nil),    // 5: user.v1.WalletOpRequest
 	(*NotifyRequest)(nil),      // 6: user.v1.NotifyRequest
 	(*TaskEventRequest)(nil),   // 7: user.v1.TaskEventRequest
+	(*GetConfigRequest)(nil),   // 8: user.v1.GetConfigRequest
+	(*GetConfigResponse)(nil),  // 9: user.v1.GetConfigResponse
 }
 var file_user_v1_user_proto_depIdxs = []int32{
 	1, // 0: user.v1.UserService.GetUser:input_type -> user.v1.GetUserRequest
@@ -653,15 +757,17 @@ var file_user_v1_user_proto_depIdxs = []int32{
 	5, // 4: user.v1.UserService.SettleWallet:input_type -> user.v1.WalletOpRequest
 	6, // 5: user.v1.UserService.Notify:input_type -> user.v1.NotifyRequest
 	7, // 6: user.v1.UserService.TaskEvent:input_type -> user.v1.TaskEventRequest
-	2, // 7: user.v1.UserService.GetUser:output_type -> user.v1.GetUserResponse
-	4, // 8: user.v1.UserService.GetAddress:output_type -> user.v1.GetAddressResponse
-	0, // 9: user.v1.UserService.FreezeWallet:output_type -> user.v1.EmptyResponse
-	0, // 10: user.v1.UserService.UnfreezeWallet:output_type -> user.v1.EmptyResponse
-	0, // 11: user.v1.UserService.SettleWallet:output_type -> user.v1.EmptyResponse
-	0, // 12: user.v1.UserService.Notify:output_type -> user.v1.EmptyResponse
-	0, // 13: user.v1.UserService.TaskEvent:output_type -> user.v1.EmptyResponse
-	7, // [7:14] is the sub-list for method output_type
-	0, // [0:7] is the sub-list for method input_type
+	8, // 7: user.v1.UserService.GetConfig:input_type -> user.v1.GetConfigRequest
+	2, // 8: user.v1.UserService.GetUser:output_type -> user.v1.GetUserResponse
+	4, // 9: user.v1.UserService.GetAddress:output_type -> user.v1.GetAddressResponse
+	0, // 10: user.v1.UserService.FreezeWallet:output_type -> user.v1.EmptyResponse
+	0, // 11: user.v1.UserService.UnfreezeWallet:output_type -> user.v1.EmptyResponse
+	0, // 12: user.v1.UserService.SettleWallet:output_type -> user.v1.EmptyResponse
+	0, // 13: user.v1.UserService.Notify:output_type -> user.v1.EmptyResponse
+	0, // 14: user.v1.UserService.TaskEvent:output_type -> user.v1.EmptyResponse
+	9, // 15: user.v1.UserService.GetConfig:output_type -> user.v1.GetConfigResponse
+	8, // [8:16] is the sub-list for method output_type
+	0, // [0:8] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -678,7 +784,7 @@ func file_user_v1_user_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_user_v1_user_proto_rawDesc), len(file_user_v1_user_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

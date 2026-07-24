@@ -12,6 +12,7 @@ service UserService {
   rpc SettleWallet(WalletOpRequest) returns (EmptyResponse);
   rpc Notify(NotifyRequest) returns (EmptyResponse);
   rpc TaskEvent(TaskEventRequest) returns (EmptyResponse);
+  rpc GetConfig(GetConfigRequest) returns (GetConfigResponse);
 }
 
 message EmptyResponse {}
@@ -67,4 +68,13 @@ message TaskEventRequest {
   int32 delta = 3;
   string ref_type = 4;
   uint64 ref_id = 5;
+}
+
+message GetConfigRequest {
+  string key = 1;
+}
+
+message GetConfigResponse {
+  string key = 1;
+  string value = 2;
 }

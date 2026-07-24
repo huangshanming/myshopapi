@@ -321,6 +321,14 @@ export function listMyAfterSales(params) {
   return http.get('/api/v1/orders/after-sales', params)
 }
 
+export function getAfterSaleEligible(orderId) {
+  return http.get(`/api/v1/orders/${orderId}/after-sale-eligible`)
+}
+
+export function createAfterSale(orderId, data) {
+  return http.post(`/api/v1/orders/${orderId}/after-sales`, data)
+}
+
 export function getOrder(id) {
   return http.get(`/api/v1/orders/${id}`)
 }

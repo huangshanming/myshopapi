@@ -36,6 +36,13 @@ type ReviewEligibleResp {
 	OrderId  uint64 `json:"order_id"`
 }
 
+type AfterSaleEligibleResp {
+	Eligible bool   `json:"eligible"`
+	Reason   string `json:"reason,optional"`
+	Days     int    `json:"days"`
+	Deadline string `json:"deadline,optional"`
+}
+
 type CouponPreviewResp {
 	GoodsAmount      float64     `json:"goods_amount"`
 	DiscountAmount   float64     `json:"discount_amount"`
@@ -217,6 +224,9 @@ service orderapi {
 
 	@handler CreateAfterSale
 	post /api/v1/orders/:id/after-sales (CreateAfterSaleBodyReq) returns (AfterSaleResp)
+
+	@handler AfterSaleEligible
+	get /api/v1/orders/:id/after-sale-eligible (IdPathReq) returns (AfterSaleEligibleResp)
 }
 
 @server (

@@ -35,6 +35,10 @@
         <text class="label">物流</text>
         <text>{{ order.ship_company }} {{ order.ship_no }}</text>
       </view>
+      <view v-if="afterSale.deadline" class="row">
+        <text class="label">售后截止</text>
+        <text>{{ afterSale.deadline }}</text>
+      </view>
     </view>
 
     <view class="card">
@@ -45,26 +49,81 @@
       </view>
     </view>
 
-    <view class="actions">
+    <view v-if="showAfterSaleForm" class="card form">
+      <text class="sec">申请售后</text>
+      <view class="field">
+        <text class="flabel">类型</text>
+        <view class="seg">
+          <text
+            class="seg-item"
+            :class="{ on: afterForm.type === 'refund' }"
+            @tap="afterForm.type = 'refund'"
+          >仅退款</text>
+          <text
+            class="seg-item"
+            :class="{ on: afterForm.type === 'return_refund' }"
+            @tap="afterForm.type = 'return_refund'"
+          >退货退款</text>
+        </view>
+      </view>
+      <view class="field">
+        <text class="flabel">退款金额</text>
+        <input
+          class="input"
+          type="digit"
+          v-model="afterForm.amount"
+          :placeholder="`最多 ¥${payAmount}`"
+        />
+      </view>
+      <view class="field">
+        <text class="flabel">原因</text>
+        <textarea
+          class="textarea"
+          v-model="afterForm.reason"
+          maxlength="200"
+          placeholder="请填写售后原因"
+        />
+      </view>
+      <button class="btn primary" :loading="busy" @tap="onSubmitAfterSale">提交申请</button>
+      <button class="btn outline" :disabled="busy" @tap="showAfterSaleForm = false">取消</button>
+    </view>
+
+    <view class="actions" v-else>
       <button v-if="canCancel" class="btn outline" :loading="busy" @tap="onCancel">取消订单</button>
       <button v-if="canConfirm" class="btn primary" :loading="busy" @tap="onConfirm">确认收货</button>
       <button v-if="canReview" class="btn primary" @tap="goReview">去评价</button>
       <button v-if="canViewReview" class="btn outline" @tap="goViewReview">查看评价</button>
+      <button v-if="canAfterSale" class="btn outline" @tap="openAfterSale">申请售后</button>
     </view>
   </view>
   <view v-else class="empty">{{ loading ? '加载中...' : '订单不存在' }}</view>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { cancelOrder, confirmReceive, getOrder, getShop, ORDER_STATUS } from '../../api/index'
+import {
+  cancelOrder,
+  confirmReceive,
+  createAfterSale,
+  getAfterSaleEligible,
+  getOrder,
+  getShop,
+  ORDER_STATUS,
+} from '../../api/index'
 
 const shopPlaceholder = 'https://picsum.photos/id/20/100/100'
 const order = ref(null)
 const shop = ref({})
+const afterSale = ref({ eligible: false, reason: '', days: 7, deadline: '' })
 const loading = ref(false)
 const busy = ref(false)
+const showAfterSaleForm = ref(false)
+const afterForm = reactive({
+  type: 'refund',
+  amount: '',
+  reason: '',
+})
 let orderId = 0
 
 const canCancel = computed(() => {
@@ -74,6 +133,13 @@ const canCancel = computed(() => {
 const canConfirm = computed(() => order.value?.status === 'shipped')
 const canReview = computed(() => order.value?.status === 'completed')
 const canViewReview = computed(() => order.value?.status === 'reviewed')
+const canAfterSale = computed(() => !!afterSale.value?.eligible)
+const payAmount = computed(() => {
+  const o = order.value
+  if (!o) return '0'
+  const n = Number(o.pay_amount > 0 ? o.pay_amount : o.total_amount)
+  return Number.isFinite(n) ? n.toFixed(2) : '0'
+})
 
 const shopDisplayName = computed(() =>
   shop.value.name || order.value?.shop_name || (order.value?.shop_id ? `店铺 #${order.value.shop_id}` : '店铺'),
@@ -107,9 +173,25 @@ async function loadShop(shopID) {
   }
 }
 
+async function loadEligible() {
+  if (!orderId) return
+  try {
+    const res = await getAfterSaleEligible(orderId)
+    afterSale.value = {
+      eligible: !!res?.eligible,
+      reason: res?.reason || '',
+      days: res?.days ?? 7,
+      deadline: res?.deadline || '',
+    }
+  } catch {
+    afterSale.value = { eligible: false, reason: '', days: 7, deadline: '' }
+  }
+}
+
 async function load() {
   if (!orderId) return
   loading.value = true
+  showAfterSaleForm.value = false
   try {
     const res = await getOrder(orderId)
     order.value = res || null
@@ -118,9 +200,11 @@ async function load() {
     } else {
       shop.value = { name: order.value?.shop_name || '店铺' }
     }
+    await loadEligible()
   } catch {
     order.value = null
     shop.value = {}
+    afterSale.value = { eligible: false, reason: '', days: 7, deadline: '' }
   } finally {
     loading.value = false
   }
@@ -130,6 +214,41 @@ function goShop() {
   const id = order.value?.shop_id
   if (!id) return
   uni.navigateTo({ url: `/pages/shop/detail?id=${id}` })
+}
+
+function openAfterSale() {
+  afterForm.type = 'refund'
+  afterForm.amount = payAmount.value
+  afterForm.reason = ''
+  showAfterSaleForm.value = true
+}
+
+async function onSubmitAfterSale() {
+  const reason = (afterForm.reason || '').trim()
+  if (!reason) {
+    uni.showToast({ title: '请填写原因', icon: 'none' })
+    return
+  }
+  const amount = Number(afterForm.amount)
+  if (!Number.isFinite(amount) || amount <= 0) {
+    uni.showToast({ title: '请输入有效金额', icon: 'none' })
+    return
+  }
+  busy.value = true
+  try {
+    await createAfterSale(orderId, {
+      type: afterForm.type,
+      reason,
+      amount,
+    })
+    uni.showToast({ title: '已提交', icon: 'success' })
+    showAfterSaleForm.value = false
+    load()
+  } catch {
+    /* handled */
+  } finally {
+    busy.value = false
+  }
 }
 
 async function onCancel() {
@@ -217,4 +336,18 @@ function goViewReview() {
 .btn.outline { background: #fff; color: #d83636; border: 2rpx solid #d83636; }
 .btn.primary { background: linear-gradient(135deg, #bfa472, #d4b890); color: #fff; border: none; }
 .empty { text-align: center; padding: 120rpx; color: #71717a; }
+.form .field { margin-bottom: 20rpx; }
+.flabel { display: block; font-size: 24rpx; color: #71717a; margin-bottom: 10rpx; }
+.seg { display: flex; gap: 12rpx; }
+.seg-item {
+  flex: 1; text-align: center; padding: 16rpx 0; border-radius: 12rpx;
+  background: #f4f4f5; font-size: 26rpx; color: #52525b;
+}
+.seg-item.on { background: rgba(200,168,118,.18); color: #9a7b4f; font-weight: 600; }
+.input, .textarea {
+  width: 100%; box-sizing: border-box; background: #fafafa; border-radius: 12rpx;
+  padding: 18rpx 20rpx; font-size: 26rpx; color: #18181b;
+}
+.textarea { min-height: 140rpx; }
+.form .btn { margin-top: 8rpx; }
 </style>

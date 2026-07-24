@@ -3,6 +3,13 @@
 
 package types
 
+type AfterSaleEligibleResp struct {
+	Eligible bool   `json:"eligible"`
+	Reason   string `json:"reason,optional"`
+	Days     int    `json:"days"`
+	Deadline string `json:"deadline,optional"`
+}
+
 type AnyResp struct {
 	Data interface{} `json:"data,optional"`
 }

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"mymall/pkg/cache"
@@ -590,10 +592,9 @@ func (l *OrderLogic) CreateAfterSale(ctx context.Context, userID, orderID uint64
 	if err != nil {
 		return nil, errors.New("订单不存在")
 	}
-	switch order.Status {
-	case model.OrderStatusConfirmed, model.OrderStatusShipped, model.OrderStatusCompleted:
-	default:
-		return nil, errors.New("当前订单状态不可申请售后")
+	gate := l.evaluateAfterSale(ctx, order)
+	if !gate.Eligible {
+		return nil, errors.New(gate.Reason)
 	}
 	n, _ := l.svcCtx.Repo.CountOpenAfterSales(ctx, orderID)
 	if n > 0 {
@@ -628,6 +629,76 @@ func (l *OrderLogic) CreateAfterSale(ctx context.Context, userID, orderID uint64
 		return nil, err
 	}
 	return as, nil
+}
+
+func (l *OrderLogic) AfterSaleEligible(ctx context.Context, userID, orderID uint64) (*types.AfterSaleEligibleResp, error) {
+	order, err := l.svcCtx.Repo.FindByID(ctx, orderID, userID)
+	if err != nil {
+		return nil, errors.New("订单不存在")
+	}
+	gate := l.evaluateAfterSale(ctx, order)
+	if gate.Eligible {
+		n, _ := l.svcCtx.Repo.CountOpenAfterSales(ctx, orderID)
+		if n > 0 {
+			gate.Eligible = false
+			gate.Reason = "已有进行中的售后单"
+		}
+	}
+	return &types.AfterSaleEligibleResp{
+		Eligible: gate.Eligible,
+		Reason:   gate.Reason,
+		Days:     gate.Days,
+		Deadline: gate.Deadline,
+	}, nil
+}
+
+const (
+	configKeyAfterSaleDays = "order_after_sale_days"
+	defaultAfterSaleDays   = 7
+)
+
+type afterSaleGate struct {
+	Eligible bool
+	Reason   string
+	Days     int
+	Deadline string
+}
+
+func (l *OrderLogic) afterSaleWindowDays(ctx context.Context) int {
+	if l.svcCtx.UserRPC == nil {
+		return defaultAfterSaleDays
+	}
+	val, err := l.svcCtx.UserRPC.GetConfig(ctx, configKeyAfterSaleDays)
+	if err != nil || strings.TrimSpace(val) == "" {
+		return defaultAfterSaleDays
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(val))
+	if err != nil || n < 0 {
+		return defaultAfterSaleDays
+	}
+	return n
+}
+
+func (l *OrderLogic) evaluateAfterSale(ctx context.Context, order *model.Order) afterSaleGate {
+	days := l.afterSaleWindowDays(ctx)
+	out := afterSaleGate{Days: days}
+	switch order.Status {
+	case model.OrderStatusConfirmed, model.OrderStatusShipped, model.OrderStatusCompleted, model.OrderStatusReviewed:
+	default:
+		out.Reason = "当前订单状态不可申请售后"
+		return out
+	}
+	if order.CompletedAt != nil {
+		completed := time.Time(*order.CompletedAt)
+		deadline := completed.Add(time.Duration(days) * 24 * time.Hour)
+		out.Deadline = deadline.Format("2006-01-02 15:04:05")
+		if time.Now().After(deadline) {
+			out.Reason = "已超过售后申请期限"
+			return out
+		}
+	}
+	out.Eligible = true
+	return out
 }
 
 func (l *OrderLogic) ListAfterSales(ctx context.Context, f repository.AfterSaleListFilter) ([]model.OrderAfterSale, int64, error) {
@@ -685,7 +756,8 @@ func (l *OrderLogic) HandleAfterSale(ctx context.Context, id, shopID, handledBy 
 			_ = l.svcCtx.MerchantRPC.ReturnCoupon(ctx, order.UserCouponID, order.ID)
 		}
 		// 已扣库存的状态：还库存；并标记订单取消（若尚未取消）
-		if order.Status == model.OrderStatusConfirmed || order.Status == model.OrderStatusShipped || order.Status == model.OrderStatusCompleted {
+		if order.Status == model.OrderStatusConfirmed || order.Status == model.OrderStatusShipped ||
+			order.Status == model.OrderStatusCompleted || order.Status == model.OrderStatusReviewed {
 			// releaseStock 内 unlock 对已 used 券也会走 return 语义前的 unlock；全额已单独 Return
 			if as.Amount+0.001 < pay {
 				// 部分退不 unlock（券保持 used）；临时清 user_coupon 避免 release 解锁
