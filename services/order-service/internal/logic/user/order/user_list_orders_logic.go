@@ -30,7 +30,7 @@ func (l *UserListOrdersLogic) UserListOrders(ctx context.Context, req *types.Pag
 	}
 	page, pageSize, _ := pagination.Normalize(&pagination.PageReq{Page: req.Page, PageSize: req.PageSize})
 	// status comes from query; PageReq may not include it — keep empty for now
-	orders, total, err := biz.NewOrderLogic(l.svcCtx).ListOrders(ctx, userID, page, pageSize, "")
+	orders, total, err := biz.NewOrderLogic(l.svcCtx).ListOrders(ctx, userID, page, pageSize, req.Status)
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}

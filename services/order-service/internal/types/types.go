@@ -116,7 +116,7 @@ type PageListResp struct {
 type PageReq struct {
 	Page     int    `form:"page,default=1"`
 	PageSize int    `form:"page_size,default=10"`
-	Status   string `form:"status,default=''"`
+	Status   string `form:"status,optional"`
 }
 
 type RemarkBodyReq struct {

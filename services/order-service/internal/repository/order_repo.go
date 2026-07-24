@@ -8,6 +8,7 @@ import (
 	"mymall/common"
 	"mymall/services/order-service/internal/model"
 
+	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
@@ -156,6 +157,7 @@ func (r *OrderRepository) List(ctx context.Context, f OrderListFilter) ([]model.
 		where = append(where, "status=?")
 		args = append(args, f.Status)
 	}
+	logx.Infof("order status************222222: %s", f.Status)
 	if f.OrderNo != "" {
 		where = append(where, "order_no LIKE ?")
 		args = append(args, "%"+f.OrderNo+"%")
