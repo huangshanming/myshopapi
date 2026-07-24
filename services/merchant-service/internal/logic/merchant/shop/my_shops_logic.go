@@ -35,5 +35,20 @@ func (l *MyShopsLogic) MyShops(ctx context.Context) (resp *types.ShopListResp, e
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}
-	return &types.ShopListResp{Data: shops}, nil
+	out := make([]map[string]interface{}, 0, len(shops))
+	for _, s := range shops {
+		imgs, _ := l.svcCtx.Repo.ListShopImages(ctx, s.ID)
+		urls := make([]string, 0, len(imgs))
+		for _, im := range imgs {
+			urls = append(urls, im.URL)
+		}
+		out = append(out, map[string]interface{}{
+			"id": s.ID, "name": s.Name, "logo": s.Logo, "contact_name": s.ContactName,
+			"contact_phone": s.ContactPhone, "description": s.Description, "category": s.Category,
+			"province": s.Province, "city": s.City, "district": s.District, "address": s.Address,
+			"latitude": s.Latitude, "longitude": s.Longitude, "local_enabled": s.LocalEnabled,
+			"storefront_image": s.StorefrontImage, "status": s.Status, "images": urls,
+		})
+	}
+	return &types.ShopListResp{Data: out}, nil
 }

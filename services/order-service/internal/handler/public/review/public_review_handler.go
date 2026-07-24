@@ -3,11 +3,11 @@ package review
 import (
 	"net/http"
 
+	"github.com/zeromicro/go-zero/rest/httpx"
+
 	"mymall/services/order-service/internal/logic/public/review"
 	"mymall/services/order-service/internal/svc"
 	"mymall/services/order-service/internal/types"
-
-	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
 func PublicListProductReviewsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {

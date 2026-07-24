@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"mymall/common/password"
 	"mymall/services/merchant-service/internal/model"
@@ -11,9 +12,9 @@ import (
 )
 
 const (
-	shopColumns = "id, name, IFNULL(logo,'') AS logo, IFNULL(contact_name,'') AS contact_name, IFNULL(contact_phone,'') AS contact_phone, IFNULL(description,'') AS description, IFNULL(category,'') AS category, IFNULL(province,'') AS province, IFNULL(city,'') AS city, IFNULL(district,'') AS district, IFNULL(address,'') AS address, IFNULL(business_license_no,'') AS business_license_no, IFNULL(legal_person,'') AS legal_person, IFNULL(license_image,'') AS license_image, IFNULL(storefront_image,'') AS storefront_image, owner_user_id, status, IFNULL(reject_reason,'') AS reject_reason, created_at, updated_at"
+	shopColumns = "id, name, IFNULL(logo,'') AS logo, IFNULL(contact_name,'') AS contact_name, IFNULL(contact_phone,'') AS contact_phone, IFNULL(description,'') AS description, IFNULL(category,'') AS category, IFNULL(province,'') AS province, IFNULL(city,'') AS city, IFNULL(district,'') AS district, IFNULL(address,'') AS address, IFNULL(latitude,0) AS latitude, IFNULL(longitude,0) AS longitude, IFNULL(local_enabled,0) AS local_enabled, IFNULL(business_license_no,'') AS business_license_no, IFNULL(legal_person,'') AS legal_person, IFNULL(license_image,'') AS license_image, IFNULL(storefront_image,'') AS storefront_image, owner_user_id, status, IFNULL(reject_reason,'') AS reject_reason, created_at, updated_at"
 	// shopColumnsS is shopColumns with table alias s. for JOIN queries.
-	shopColumnsS = "s.id, s.name, IFNULL(s.logo,'') AS logo, IFNULL(s.contact_name,'') AS contact_name, IFNULL(s.contact_phone,'') AS contact_phone, IFNULL(s.description,'') AS description, IFNULL(s.category,'') AS category, IFNULL(s.province,'') AS province, IFNULL(s.city,'') AS city, IFNULL(s.district,'') AS district, IFNULL(s.address,'') AS address, IFNULL(s.business_license_no,'') AS business_license_no, IFNULL(s.legal_person,'') AS legal_person, IFNULL(s.license_image,'') AS license_image, IFNULL(s.storefront_image,'') AS storefront_image, s.owner_user_id, s.status, IFNULL(s.reject_reason,'') AS reject_reason, s.created_at, s.updated_at"
+	shopColumnsS = "s.id, s.name, IFNULL(s.logo,'') AS logo, IFNULL(s.contact_name,'') AS contact_name, IFNULL(s.contact_phone,'') AS contact_phone, IFNULL(s.description,'') AS description, IFNULL(s.category,'') AS category, IFNULL(s.province,'') AS province, IFNULL(s.city,'') AS city, IFNULL(s.district,'') AS district, IFNULL(s.address,'') AS address, IFNULL(s.latitude,0) AS latitude, IFNULL(s.longitude,0) AS longitude, IFNULL(s.local_enabled,0) AS local_enabled, IFNULL(s.business_license_no,'') AS business_license_no, IFNULL(s.legal_person,'') AS legal_person, IFNULL(s.license_image,'') AS license_image, IFNULL(s.storefront_image,'') AS storefront_image, s.owner_user_id, s.status, IFNULL(s.reject_reason,'') AS reject_reason, s.created_at, s.updated_at"
 	shopAppColumns = "id, user_id, shop_name, IFNULL(contact_name,'') AS contact_name, IFNULL(contact_phone,'') AS contact_phone, IFNULL(description,'') AS description, IFNULL(category,'') AS category, IFNULL(province,'') AS province, IFNULL(city,'') AS city, IFNULL(district,'') AS district, IFNULL(address,'') AS address, IFNULL(business_license_no,'') AS business_license_no, IFNULL(legal_person,'') AS legal_person, IFNULL(license_image,'') AS license_image, IFNULL(storefront_image,'') AS storefront_image, status, IFNULL(reject_reason,'') AS reject_reason, IFNULL(reviewed_by,0) AS reviewed_by, reviewed_at, IFNULL(shop_id,0) AS shop_id, created_at, updated_at"
 )
 
@@ -183,15 +184,22 @@ func (r *MerchantRepository) ListShops(ctx context.Context, status, name string,
 	return list, total, err
 }
 
-func (r *MerchantRepository) ListPublicShops(ctx context.Context, page, pageSize int) ([]model.Shop, int64, error) {
-	total, err := countQuery(ctx, r.conn, "SELECT COUNT(*) FROM shops WHERE status=?", model.ShopApproved)
+func (r *MerchantRepository) ListPublicShops(ctx context.Context, page, pageSize int, city string) ([]model.Shop, int64, error) {
+	where := "status=?"
+	args := []any{model.ShopApproved}
+	if c := strings.TrimSpace(city); c != "" {
+		where += " AND city=?"
+		args = append(args, c)
+	}
+	total, err := countQuery(ctx, r.conn, "SELECT COUNT(*) FROM shops WHERE "+where, args...)
 	if err != nil {
 		return nil, 0, err
 	}
+	listArgs := append(append([]any{}, args...), pageSize, (page-1)*pageSize)
 	var list []model.Shop
 	err = r.conn.QueryRowsPartialCtx(ctx, &list,
-		"SELECT "+shopColumns+" FROM shops WHERE status=? ORDER BY id ASC LIMIT ? OFFSET ?",
-		model.ShopApproved, pageSize, (page-1)*pageSize,
+		"SELECT "+shopColumns+" FROM shops WHERE "+where+" ORDER BY id ASC LIMIT ? OFFSET ?",
+		listArgs...,
 	)
 	return list, total, err
 }
@@ -220,9 +228,10 @@ func (r *MerchantRepository) UpdateShopStatus(ctx context.Context, id uint64, st
 
 func (r *MerchantRepository) UpdateShop(ctx context.Context, shop *model.Shop) error {
 	_, err := r.conn.ExecCtx(ctx,
-		`UPDATE shops SET name=?, logo=?, contact_name=?, contact_phone=?, description=?, category=?, province=?, city=?, district=?, address=?, business_license_no=?, legal_person=?, license_image=?, storefront_image=? WHERE id=?`,
+		`UPDATE shops SET name=?, logo=?, contact_name=?, contact_phone=?, description=?, category=?, province=?, city=?, district=?, address=?, latitude=?, longitude=?, local_enabled=?, business_license_no=?, legal_person=?, license_image=?, storefront_image=? WHERE id=?`,
 		shop.Name, shop.Logo, shop.ContactName, shop.ContactPhone, shop.Description, shop.Category,
-		shop.Province, shop.City, shop.District, shop.Address, shop.BusinessLicenseNo, shop.LegalPerson,
+		shop.Province, shop.City, shop.District, shop.Address, nullFloat(shop.Latitude), nullFloat(shop.Longitude), shop.LocalEnabled,
+		shop.BusinessLicenseNo, shop.LegalPerson,
 		shop.LicenseImage, shop.StorefrontImage, shop.ID,
 	)
 	return err
@@ -230,11 +239,103 @@ func (r *MerchantRepository) UpdateShop(ctx context.Context, shop *model.Shop) e
 
 func (r *MerchantRepository) UpdateShopDisplay(ctx context.Context, shop *model.Shop) error {
 	_, err := r.conn.ExecCtx(ctx,
-		`UPDATE shops SET name=?, logo=?, contact_name=?, contact_phone=?, description=?, category=?, province=?, city=?, district=?, address=?, storefront_image=? WHERE id=?`,
+		`UPDATE shops SET name=?, logo=?, contact_name=?, contact_phone=?, description=?, category=?, province=?, city=?, district=?, address=?, latitude=?, longitude=?, local_enabled=?, storefront_image=? WHERE id=?`,
 		shop.Name, shop.Logo, shop.ContactName, shop.ContactPhone, shop.Description, shop.Category,
-		shop.Province, shop.City, shop.District, shop.Address, shop.StorefrontImage, shop.ID,
+		shop.Province, shop.City, shop.District, shop.Address, nullFloat(shop.Latitude), nullFloat(shop.Longitude), shop.LocalEnabled,
+		shop.StorefrontImage, shop.ID,
 	)
 	return err
+}
+
+func nullFloat(v float64) interface{} {
+	if v == 0 {
+		return nil
+	}
+	return v
+}
+
+func (r *MerchantRepository) ListShopImages(ctx context.Context, shopID uint64) ([]model.ShopImage, error) {
+	var list []model.ShopImage
+	err := r.conn.QueryRowsPartialCtx(ctx, &list,
+		"SELECT id, shop_id, url, sort, created_at FROM shop_images WHERE shop_id=? ORDER BY sort ASC, id ASC", shopID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if list == nil {
+		list = []model.ShopImage{}
+	}
+	return list, nil
+}
+
+func (r *MerchantRepository) ReplaceShopImages(ctx context.Context, shopID uint64, urls []string) error {
+	return r.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
+		if _, err := session.ExecCtx(ctx, "DELETE FROM shop_images WHERE shop_id=?", shopID); err != nil {
+			return err
+		}
+		for i, u := range urls {
+			u = strings.TrimSpace(u)
+			if u == "" {
+				continue
+			}
+			if _, err := session.ExecCtx(ctx,
+				"INSERT INTO shop_images (shop_id, url, sort) VALUES (?,?,?)", shopID, u, i,
+			); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func (r *MerchantRepository) ListLocalShops(ctx context.Context, keyword string, lat, lng float64, sortBy string, page, pageSize int) ([]model.Shop, []float64, int64, error) {
+	where := "status=? AND local_enabled=1 AND latitude IS NOT NULL AND longitude IS NOT NULL"
+	args := []any{model.ShopApproved}
+	if k := strings.TrimSpace(keyword); k != "" {
+		where += " AND (name LIKE ? OR address LIKE ? OR category LIKE ? OR city LIKE ?)"
+		like := "%" + k + "%"
+		args = append(args, like, like, like, like)
+	}
+	total, err := countQuery(ctx, r.conn, "SELECT COUNT(*) FROM shops WHERE "+where, args...)
+	if err != nil {
+		return nil, nil, 0, err
+	}
+
+	hasUserLoc := lat != 0 || lng != 0
+	distExpr := "0"
+	var selectArgs []any
+	if hasUserLoc {
+		distExpr = `(6371 * ACOS(LEAST(1, GREATEST(-1,
+			COS(RADIANS(?)) * COS(RADIANS(latitude)) * COS(RADIANS(longitude) - RADIANS(?))
+			+ SIN(RADIANS(?)) * SIN(RADIANS(latitude))
+		))))`
+		selectArgs = append(selectArgs, lat, lng, lat)
+	}
+	order := "id DESC"
+	if hasUserLoc && sortBy == "distance" {
+		order = "distance_km ASC, id DESC"
+	}
+
+	listSQL := "SELECT " + shopColumns + ", " + distExpr + " AS distance_km FROM shops WHERE " + where +
+		" ORDER BY " + order + " LIMIT ? OFFSET ?"
+	listArgs := append(selectArgs, args...)
+	listArgs = append(listArgs, pageSize, (page-1)*pageSize)
+
+	type row struct {
+		model.Shop
+		DistanceKm float64 `db:"distance_km"`
+	}
+	var rows []row
+	if err := r.conn.QueryRowsPartialCtx(ctx, &rows, listSQL, listArgs...); err != nil {
+		return nil, nil, 0, err
+	}
+	list := make([]model.Shop, 0, len(rows))
+	dists := make([]float64, 0, len(rows))
+	for _, r0 := range rows {
+		list = append(list, r0.Shop)
+		dists = append(dists, r0.DistanceKm)
+	}
+	return list, dists, total, nil
 }
 
 func (r *MerchantRepository) CreateShopWithOwner(ctx context.Context, shop *model.Shop, mobile, plainPwd, nickname string) (*model.Shop, error) {

@@ -28,33 +28,41 @@ type RejectReq struct {
 
 // UpdateShopReq 商家侧更新店铺资料（展示类）
 type UpdateShopReq struct {
-	Name            string `json:"name"`
-	Logo            string `json:"logo"`
-	ContactName     string `json:"contact_name"`
-	ContactPhone    string `json:"contact_phone"`
-	Description     string `json:"description"`
-	Category        string `json:"category"`
-	Province        string `json:"province"`
-	City            string `json:"city"`
-	District        string `json:"district"`
-	Address         string `json:"address"`
-	StorefrontImage string `json:"storefront_image"`
+	Name            string   `json:"name"`
+	Logo            string   `json:"logo"`
+	ContactName     string   `json:"contact_name"`
+	ContactPhone    string   `json:"contact_phone"`
+	Description     string   `json:"description"`
+	Category        string   `json:"category"`
+	Province        string   `json:"province"`
+	City            string   `json:"city"`
+	District        string   `json:"district"`
+	Address         string   `json:"address"`
+	StorefrontImage string   `json:"storefront_image"`
+	Latitude        float64  `json:"latitude"`
+	Longitude       float64  `json:"longitude"`
+	LocalEnabled    int      `json:"local_enabled"`
+	Images          []string `json:"images,optional"`
 }
 
 // UpdateShopBodyReq path+body
 type UpdateShopBodyReq struct {
-	Id              uint64 `path:"id"`
-	Name            string `json:"name"`
-	Logo            string `json:"logo"`
-	ContactName     string `json:"contact_name"`
-	ContactPhone    string `json:"contact_phone"`
-	Description     string `json:"description"`
-	Category        string `json:"category"`
-	Province        string `json:"province"`
-	City            string `json:"city"`
-	District        string `json:"district"`
-	Address         string `json:"address"`
-	StorefrontImage string `json:"storefront_image"`
+	Id              uint64   `path:"id"`
+	Name            string   `json:"name"`
+	Logo            string   `json:"logo"`
+	ContactName     string   `json:"contact_name"`
+	ContactPhone    string   `json:"contact_phone"`
+	Description     string   `json:"description"`
+	Category        string   `json:"category"`
+	Province        string   `json:"province"`
+	City            string   `json:"city"`
+	District        string   `json:"district"`
+	Address         string   `json:"address"`
+	StorefrontImage string   `json:"storefront_image"`
+	Latitude        float64  `json:"latitude,optional"`
+	Longitude       float64  `json:"longitude,optional"`
+	LocalEnabled    int      `json:"local_enabled,optional"`
+	Images          []string `json:"images,optional"`
 }
 
 func (r *UpdateShopBodyReq) ToUpdateShopReq() UpdateShopReq {
@@ -62,6 +70,7 @@ func (r *UpdateShopBodyReq) ToUpdateShopReq() UpdateShopReq {
 		Name: r.Name, Logo: r.Logo, ContactName: r.ContactName, ContactPhone: r.ContactPhone,
 		Description: r.Description, Category: r.Category, Province: r.Province, City: r.City,
 		District: r.District, Address: r.Address, StorefrontImage: r.StorefrontImage,
+		Latitude: r.Latitude, Longitude: r.Longitude, LocalEnabled: r.LocalEnabled, Images: r.Images,
 	}
 }
 
@@ -442,6 +451,21 @@ type OrderGiftCouponReq struct {
 
 type SlotTypeQueryReq struct {
 	SlotType string `form:"slot_type,optional"`
+	City     string `form:"city,optional"`
+}
+
+type LocalShopsReq struct {
+	Page     int     `form:"page,default=1"`
+	PageSize int     `form:"page_size,default=10"`
+	Lat      float64 `form:"lat,optional"`
+	Lng      float64 `form:"lng,optional"`
+	Keyword  string  `form:"keyword,optional"`
+	Sort     string  `form:"sort,optional"`
+}
+
+type MapGeocoderReq struct {
+	Lat float64 `form:"lat"`
+	Lng float64 `form:"lng"`
 }
 
 type ShopIdQueryReq struct {

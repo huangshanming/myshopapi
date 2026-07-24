@@ -117,6 +117,8 @@ spec:
           - /api/v1/shops
           - /api/v1/shops/*
           - /api/v1/home/theme-tiles
+          - /api/v1/map
+          - /api/v1/map/*
           - /api/v1/coupons/center
           - /api/v1/coupons/popup
           - /api/v1/seckill/current

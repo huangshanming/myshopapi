@@ -3,6 +3,8 @@ package biz
 import (
 	"context"
 	"errors"
+	"math"
+	"strings"
 
 	"mymall/services/merchant-service/internal/model"
 	"mymall/services/merchant-service/internal/repository"
@@ -84,7 +86,7 @@ func (l *MerchantLogic) ListShops(ctx context.Context, status, name string, page
 	return l.svcCtx.Repo.ListShops(ctx, status, name, page, pageSize)
 }
 
-func (l *MerchantLogic) ListPublicShops(ctx context.Context, page, pageSize int) ([]model.Shop, int64, error) {
+func (l *MerchantLogic) ListPublicShops(ctx context.Context, page, pageSize int, city, slotType string) ([]map[string]interface{}, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -94,7 +96,22 @@ func (l *MerchantLogic) ListPublicShops(ctx context.Context, page, pageSize int)
 	if pageSize > 50 {
 		pageSize = 50
 	}
-	return l.svcCtx.Repo.ListPublicShops(ctx, page, pageSize)
+	if slotType != "" {
+		return l.ListPublicShopsSlot(slotType, page, pageSize, city)
+	}
+	list, total, err := l.svcCtx.Repo.ListPublicShops(ctx, page, pageSize, city)
+	if err != nil {
+		return nil, 0, err
+	}
+	out := make([]map[string]interface{}, 0, len(list))
+	for _, s := range list {
+		out = append(out, map[string]interface{}{
+			"id": s.ID, "name": s.Name, "logo": s.Logo, "category": s.Category,
+			"storefront_image": s.StorefrontImage, "description": s.Description,
+			"city": s.City, "province": s.Province, "district": s.District,
+		})
+	}
+	return out, total, nil
 }
 
 func (l *MerchantLogic) GetShop(ctx context.Context, id uint64) (*model.Shop, error) {
@@ -190,6 +207,9 @@ func (l *MerchantLogic) UpdateMyShop(ctx context.Context, shopID, userID uint64,
 	if err != nil {
 		return errors.New("店铺不存在")
 	}
+	if req.LocalEnabled == 1 && (req.Latitude == 0 || req.Longitude == 0) {
+		return errors.New("开启本地商家需先在地图选点")
+	}
 	existing.Name = req.Name
 	existing.Logo = req.Logo
 	existing.ContactName = req.ContactName
@@ -201,5 +221,54 @@ func (l *MerchantLogic) UpdateMyShop(ctx context.Context, shopID, userID uint64,
 	existing.District = req.District
 	existing.Address = req.Address
 	existing.StorefrontImage = req.StorefrontImage
-	return l.svcCtx.Repo.UpdateShopDisplay(ctx, existing)
+	existing.Latitude = req.Latitude
+	existing.Longitude = req.Longitude
+	existing.LocalEnabled = req.LocalEnabled
+	if err := l.svcCtx.Repo.UpdateShopDisplay(ctx, existing); err != nil {
+		return err
+	}
+	if req.Images != nil {
+		return l.svcCtx.Repo.ReplaceShopImages(ctx, shopID, req.Images)
+	}
+	return nil
+}
+
+func (l *MerchantLogic) ListLocalShops(ctx context.Context, lat, lng float64, keyword, sort string, page, pageSize int) ([]map[string]interface{}, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 10
+	}
+	if pageSize > 50 {
+		pageSize = 50
+	}
+	if sort == "" && (lat != 0 || lng != 0) {
+		sort = "distance"
+	}
+	list, dists, total, err := l.svcCtx.Repo.ListLocalShops(ctx, keyword, lat, lng, sort, page, pageSize)
+	if err != nil {
+		return nil, 0, err
+	}
+	out := make([]map[string]interface{}, 0, len(list))
+	for i, s := range list {
+		imgs, _ := l.svcCtx.Repo.ListShopImages(ctx, s.ID)
+		urls := make([]string, 0, len(imgs))
+		for _, im := range imgs {
+			urls = append(urls, im.URL)
+		}
+		fullAddr := strings.TrimSpace(s.Province + s.City + s.District + s.Address)
+		item := map[string]interface{}{
+			"id": s.ID, "name": s.Name, "logo": s.Logo, "category": s.Category,
+			"storefront_image": s.StorefrontImage, "description": s.Description,
+			"province": s.Province, "city": s.City, "district": s.District, "address": s.Address,
+			"full_address": fullAddr, "latitude": s.Latitude, "longitude": s.Longitude,
+			"images": urls,
+		}
+		if lat != 0 || lng != 0 {
+			item["distance_km"] = math.Round(dists[i]*100) / 100
+		}
+		out = append(out, item)
+	}
+	return out, total, nil
 }

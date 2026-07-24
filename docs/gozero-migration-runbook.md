@@ -37,9 +37,11 @@ export PATH="$(go env GOPATH)/bin:$PATH"
 ./scripts/gen-api.sh merchant-service   # 或 order / user / catalog
 ```
 
-   - 同模块 handler 合并为单文件（`merge-handlers.py`）
+   - 同模块 handler 合并为单文件（`merge-handlers.py`）；已有合并文件优先保留（避免覆盖手改如上传）
+   - `fix-goctl-types.py`：`DataResp = AnyResp`，并去掉与 `entity_resp.go` 冲突的实体 Resp struct
    - **保留**已有 `internal/config/config.go` 与 `cmd/main.go`；只删 goctl 默认 `*api.go` / `etc/*api.yaml`
    - goctl **不会覆盖**已存在的 logic/handler；需按新模板重生成时用 `FORCE_REGEN=1` 或先删对应文件
+   - `biz_types.go` 只放 **不在** `api/*.api` 里的类型；同名会让 gen 失败
 
 3. **只改**业务实现：`logic` / `middleware` / `svc/service_context.go`（gen 会还原 svc）
 4. **禁止手改** `internal/handler/routes.go`

@@ -24,7 +24,7 @@ func NewAdminListOrdersLogic(ctx context.Context, svcCtx *svc.ServiceContext) *A
 
 func (l *AdminListOrdersLogic) AdminListOrders(ctx context.Context, req *types.PageReq) (*types.PageListResp, error) {
 	page, pageSize, _ := pagination.Normalize(&pagination.PageReq{Page: req.Page, PageSize: req.PageSize})
-	orders, total, err := biz.NewOrderLogic(l.svcCtx).ListAll(ctx, 0, page, pageSize, "", "")
+	orders, total, err := biz.NewOrderLogic(l.svcCtx).ListAll(ctx, 0, page, pageSize, req.Status, "")
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}

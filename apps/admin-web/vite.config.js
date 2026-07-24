@@ -117,6 +117,7 @@ export default defineConfig({
       '/uploads/points-mall': to(svc.user),
       '/api/v1/shops': to(svc.merchant),
       '/api/v1/home': to(svc.merchant),
+      '/api/v1/map': to(svc.merchant),
       '/api/v1/seckill': to(svc.merchant),
       '/api/v1/coupons': to(svc.merchant),
       '/api/v1/user/coupons': to(svc.merchant),

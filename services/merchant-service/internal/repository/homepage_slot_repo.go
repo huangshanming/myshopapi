@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"mymall/common"
@@ -284,7 +285,7 @@ func (r *MerchantRepository) PurchaseSlotOrder(ctx context.Context, order *model
 	})
 }
 
-func (r *MerchantRepository) ListPublicShopsWithSlot(ctx context.Context, slotType string, page, pageSize, homeLimit int) ([]model.Shop, int64, error) {
+func (r *MerchantRepository) ListPublicShopsWithSlot(ctx context.Context, slotType string, page, pageSize, homeLimit int, city string) ([]model.Shop, int64, error) {
 	r.ExpireDueSlotOrders(ctx)
 	if page < 1 {
 		page = 1
@@ -302,12 +303,15 @@ LEFT JOIN (
   WHERE slot_type = ? AND status = ? AND start_at <= ? AND end_at > ?
 ) o ON o.target_id = s.id
 WHERE s.status = ?`
+	args := []any{slotType, model.SlotOrderActive, now, now, model.ShopApproved}
+	if c := strings.TrimSpace(city); c != "" {
+		baseFrom += " AND s.city = ?"
+		args = append(args, c)
+	}
 
 	countSQL := "SELECT COUNT(*) " + baseFrom
 	var total int64
-	if err := r.conn.QueryRowPartialCtx(ctx, &total, countSQL,
-		slotType, model.SlotOrderActive, now, now, model.ShopApproved,
-	); err != nil {
+	if err := r.conn.QueryRowPartialCtx(ctx, &total, countSQL, args...); err != nil {
 		return nil, 0, err
 	}
 
@@ -327,10 +331,9 @@ SELECT ` + shopColumnsS + `
 ORDER BY CASE WHEN o.target_id IS NULL THEN 0 ELSE 1 END DESC, s.id DESC
 LIMIT ? OFFSET ?`
 
+	listArgs := append(append([]any{}, args...), limit, offset)
 	var list []model.Shop
-	if err := r.conn.QueryRowsPartialCtx(ctx, &list, listSQL,
-		slotType, model.SlotOrderActive, now, now, model.ShopApproved, limit, offset,
-	); err != nil {
+	if err := r.conn.QueryRowsPartialCtx(ctx, &list, listSQL, listArgs...); err != nil {
 		return nil, 0, err
 	}
 	return list, total, nil

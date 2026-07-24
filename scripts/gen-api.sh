@@ -77,5 +77,10 @@ echo "==> merge handlers (one file per module)"
 python3 "$ROOT/scripts/merge-handlers.py" "$DIR"
 gofmt -w "$DIR/internal/handler"
 
+# DataResp = AnyResp + strip entity_resp aliases; fail on duplicate type names
+echo "==> fix goctl types (DataResp unwrap / entity aliases)"
+python3 "$ROOT/scripts/fix-goctl-types.py" "$DIR"
+gofmt -w "$DIR/internal/types/types.go" 2>/dev/null || true
+
 echo "==> done. Edit logic/middleware as needed; do NOT hand-edit handler/routes.go"
 echo "    verify: ./scripts/check-api-routes.sh $SERVICE"

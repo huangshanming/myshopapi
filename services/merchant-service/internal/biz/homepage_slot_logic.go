@@ -173,7 +173,7 @@ func (l *MerchantLogic) GrantSlot(adminID uint64, req types.GrantSlotReq) (*mode
 	return order, nil
 }
 
-func (l *MerchantLogic) HomeSlots(slotType string) ([]map[string]interface{}, error) {
+func (l *MerchantLogic) HomeSlots(slotType string, city string) ([]map[string]interface{}, error) {
 	if !validSlotType(slotType) || slotType == model.SlotArticle {
 		return nil, errors.New("无效展位类型")
 	}
@@ -182,7 +182,7 @@ func (l *MerchantLogic) HomeSlots(slotType string) ([]map[string]interface{}, er
 	if setting != nil && setting.HomeLimit > 0 {
 		limit = setting.HomeLimit
 	}
-	list, _, err := l.svcCtx.Repo.ListPublicShopsWithSlot(context.Background(), slotType, 1, limit, limit)
+	list, _, err := l.svcCtx.Repo.ListPublicShopsWithSlot(context.Background(), slotType, 1, limit, limit, city)
 	if err != nil {
 		return nil, err
 	}
@@ -192,20 +192,20 @@ func (l *MerchantLogic) HomeSlots(slotType string) ([]map[string]interface{}, er
 		out = append(out, map[string]interface{}{
 			"id": s.ID, "name": s.Name, "logo": s.Logo, "category": s.Category,
 			"storefront_image": s.StorefrontImage, "description": s.Description,
-			"paid": paid[s.ID],
+			"city": s.City, "paid": paid[s.ID],
 		})
 	}
 	return out, nil
 }
 
-func (l *MerchantLogic) ListPublicShopsSlot(slotType string, page, pageSize int) ([]map[string]interface{}, int64, error) {
+func (l *MerchantLogic) ListPublicShopsSlot(slotType string, page, pageSize int, city string) ([]map[string]interface{}, int64, error) {
 	if slotType == "" {
 		slotType = model.SlotQualityShop
 	}
 	if !validSlotType(slotType) || slotType == model.SlotArticle {
 		return nil, 0, errors.New("无效展位类型")
 	}
-	list, total, err := l.svcCtx.Repo.ListPublicShopsWithSlot(context.Background(), slotType, page, pageSize, 0)
+	list, total, err := l.svcCtx.Repo.ListPublicShopsWithSlot(context.Background(), slotType, page, pageSize, 0, city)
 	if err != nil {
 		return nil, 0, err
 	}

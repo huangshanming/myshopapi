@@ -1,8 +1,10 @@
 syntax = "v1"
 
 type PageReq {
-	Page     int `form:"page,default=1"`
-	PageSize int `form:"page_size,default=10"`
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+	City     string `form:"city,optional"`
+	SlotType string `form:"slot_type,optional"`
 }
 
 type IdPathReq {
@@ -171,6 +173,7 @@ type SeckillEntryListReq {
 
 type SlotTypeQueryReq {
 	SlotType string `form:"slot_type,optional"`
+	City     string `form:"city,optional"`
 }
 type ShopIdQueryReq {
 	ShopId uint64 `form:"shop_id,optional"`
@@ -193,18 +196,22 @@ type ApplyReq {
 }
 
 type UpdateShopBodyReq {
-	Id              uint64 `path:"id"`
-	Name            string `json:"name"`
-	Logo            string `json:"logo"`
-	ContactName     string `json:"contact_name"`
-	ContactPhone    string `json:"contact_phone"`
-	Description     string `json:"description"`
-	Category        string `json:"category"`
-	Province        string `json:"province"`
-	City            string `json:"city"`
-	District        string `json:"district"`
-	Address         string `json:"address"`
-	StorefrontImage string `json:"storefront_image"`
+	Id              uint64   `path:"id"`
+	Name            string   `json:"name"`
+	Logo            string   `json:"logo"`
+	ContactName     string   `json:"contact_name"`
+	ContactPhone    string   `json:"contact_phone"`
+	Description     string   `json:"description"`
+	Category        string   `json:"category"`
+	Province        string   `json:"province"`
+	City            string   `json:"city"`
+	District        string   `json:"district"`
+	Address         string   `json:"address"`
+	StorefrontImage string   `json:"storefront_image"`
+	Latitude        float64  `json:"latitude,optional"`
+	Longitude       float64  `json:"longitude,optional"`
+	LocalEnabled    int      `json:"local_enabled,optional"`
+	Images          []string `json:"images,optional"`
 }
 
 type AdminCreateShopReq {

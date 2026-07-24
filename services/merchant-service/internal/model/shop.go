@@ -28,6 +28,9 @@ type Shop struct {
 	City               string           `gorm:"column:city;type:varchar(50)" db:"city" json:"city"`
 	District           string           `gorm:"column:district;type:varchar(50)" db:"district" json:"district"`
 	Address            string           `gorm:"column:address;type:varchar(255)" db:"address" json:"address"`
+	Latitude           float64          `gorm:"column:latitude" db:"latitude" json:"latitude"`
+	Longitude          float64          `gorm:"column:longitude" db:"longitude" json:"longitude"`
+	LocalEnabled       int              `gorm:"column:local_enabled" db:"local_enabled" json:"local_enabled"`
 	BusinessLicenseNo  string           `gorm:"column:business_license_no;type:varchar(64)" db:"business_license_no" json:"business_license_no"`
 	LegalPerson        string           `gorm:"column:legal_person;type:varchar(50)" db:"legal_person" json:"legal_person"`
 	LicenseImage       string           `gorm:"column:license_image;type:varchar(500)" db:"license_image" json:"license_image"`
@@ -79,3 +82,13 @@ type ShopMember struct {
 }
 
 func (ShopMember) TableName() string { return "shop_members" }
+
+type ShopImage struct {
+	ID        uint64           `db:"id" json:"id"`
+	ShopID    uint64           `db:"shop_id" json:"shop_id"`
+	URL       string           `db:"url" json:"url"`
+	Sort      int              `db:"sort" json:"sort"`
+	CreatedAt common.LocalTime `db:"created_at" json:"created_at"`
+}
+
+func (ShopImage) TableName() string { return "shop_images" }

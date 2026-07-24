@@ -1,8 +1,9 @@
 syntax = "v1"
 
 type PageReq {
-	Page     int `form:"page,default=1"`
-	PageSize int `form:"page_size,default=10"`
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+	Status   string `form:"status,default=''"`
 }
 
 type IdPathReq {
@@ -29,21 +30,20 @@ type ListResp {
 }
 
 type ReviewEligibleResp {
-	Eligible bool `json:"eligible"`
-	Reviewed bool `json:"reviewed"`
-	Status string `json:"status"`
-	OrderId uint64 `json:"order_id"`
+	Eligible bool   `json:"eligible"`
+	Reviewed bool   `json:"reviewed"`
+	Status   string `json:"status"`
+	OrderId  uint64 `json:"order_id"`
 }
 
 type CouponPreviewResp {
-	GoodsAmount float64 `json:"goods_amount"`
-	DiscountAmount float64 `json:"discount_amount"`
-	PayAmount float64 `json:"pay_amount"`
-	BestUserCouponID uint64 `json:"best_user_coupon_id"`
-	Available interface{} `json:"available"`
-	Unavailable interface{} `json:"unavailable"`
+	GoodsAmount      float64     `json:"goods_amount"`
+	DiscountAmount   float64     `json:"discount_amount"`
+	PayAmount        float64     `json:"pay_amount"`
+	BestUserCouponID uint64      `json:"best_user_coupon_id"`
+	Available        interface{} `json:"available"`
+	Unavailable      interface{} `json:"unavailable"`
 }
-
 
 type URLResp {
 	Url string `json:"url"`
@@ -77,7 +77,6 @@ type AfterSaleResp {
 type OrderResp {
 	Data interface{} `json:"data,optional"`
 }
-
 
 type CreateOrderItem {
 	ProductID      uint64 `json:"product_id"`
@@ -135,7 +134,7 @@ type LogisticsSaveBodyReq {
 
 type CreateReviewBodyReq {
 	Id          uint64   `path:"id"`
-	Rating      int      `json:"rating"`
+	Rating      int8     `json:"rating"`
 	Content     string   `json:"content,optional"`
 	IsAnonymous bool     `json:"is_anonymous,optional"`
 	OrderItemID uint64   `json:"order_item_id,optional"`
@@ -157,7 +156,7 @@ type LogisticsUpdateBodyReq {
 
 type LogisticsStatusBodyReq {
 	Id     uint64 `path:"id"`
-	Status int    `json:"status"`
+	Status int8   `json:"status"`
 }
 
 // Route table SSOT for order-service.

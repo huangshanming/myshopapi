@@ -3,10 +3,8 @@ package health
 import (
 	"net/http"
 
-	"mymall/pkg/metrics"
-
 	"mymall/pkg/httpserver"
-
+	"mymall/pkg/metrics"
 	"mymall/services/order-service/internal/svc"
 )
 

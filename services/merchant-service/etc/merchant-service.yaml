@@ -29,3 +29,7 @@ AppTelemetry:
   Enabled: false
   Endpoint: jaeger-collector.mymall:4318
   Service: merchant-service
+
+TencentMap:
+  Key: "5Q7BZ-SA4W2-L62UO-CEVI7-GC75F-XBBD5"
+  BaseURL: https://apis.map.qq.com

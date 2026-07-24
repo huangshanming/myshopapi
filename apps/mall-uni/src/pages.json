@@ -92,6 +92,12 @@
       }
     },
     {
+      "path": "pages/location/city",
+      "style": {
+        "navigationBarTitleText": "选择定位"
+      }
+    },
+    {
       "path": "pages/favorite/list",
       "style": {
         "navigationBarTitleText": "我的收藏"
@@ -131,6 +137,12 @@
       "path": "pages/shop/list",
       "style": {
         "navigationBarTitleText": "店铺列表"
+      }
+    },
+    {
+      "path": "pages/shop/local",
+      "style": {
+        "navigationBarTitleText": "本地商家"
       }
     },
     {

@@ -20,6 +20,12 @@ type Config struct {
 	MySQL     MySQLConf
 	// AppTelemetry is our OTel init config. Named to avoid clash with rest.RestConf / ServiceConf.Telemetry.
 	AppTelemetry TelemetryConf
+	TencentMap   TencentMapConf `json:",optional"`
+}
+
+type TencentMapConf struct {
+	Key     string `json:",optional"`
+	BaseURL string `json:",default=https://apis.map.qq.com"`
 }
 
 type EtcdConf struct {
@@ -128,6 +134,12 @@ func (c *Config) OverlayFromEnv() {
 	}
 	if v := strings.TrimSpace(os.Getenv("MYMALL_TELEMETRY_SERVICE")); v != "" {
 		c.AppTelemetry.Service = v
+	}
+	if v := strings.TrimSpace(os.Getenv("MYMALL_TENCENT_MAP_KEY")); v != "" {
+		c.TencentMap.Key = v
+	}
+	if v := strings.TrimSpace(os.Getenv("MYMALL_TENCENT_MAP_BASE_URL")); v != "" {
+		c.TencentMap.BaseURL = v
 	}
 }
 

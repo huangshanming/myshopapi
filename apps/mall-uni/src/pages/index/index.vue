@@ -8,9 +8,9 @@
 
     <!-- 顶栏 -->
     <view class="header">
-      <view class="loc" @tap="toast('定位即将开放')">
+      <view class="loc" @tap="goChooseCity">
         <text class="loc-icon">📍</text>
-        <text>长沙市</text>
+        <text>{{ locCity }}</text>
       </view>
       <view class="search" @tap="toast('搜索即将开放')">
         <text class="search-icon">🔍</text>
@@ -143,6 +143,7 @@
               <text class="line-1 brand-name">{{ s.name }}</text>
               <view class="brand-meta">
                 <text class="gold">{{ s.tag }}</text>
+                <text v-if="s.city" class="sub">{{ s.city }}</text>
                 <text v-if="s.paid" class="sub">推广</text>
               </view>
             </view>
@@ -223,7 +224,7 @@
             <image class="shop-cover" :src="s.img" mode="aspectFill" />
             <view class="shop-body">
               <text class="line-1 brand-name">{{ s.name }}</text>
-              <text class="sub shop-score">{{ s.category || '优选商户' }}{{ s.paid ? ' · 推广' : '' }}</text>
+              <text class="sub shop-score">{{ s.category || '优选商户' }}{{ s.city ? ` · ${s.city}` : '' }}{{ s.paid ? ' · 推广' : '' }}</text>
               <view class="shop-promo">
                 <text class="sub line-1">{{ s.desc || '品质好店' }}</text>
               </view>
@@ -231,6 +232,38 @@
           </view>
           <view v-if="!shops.length" class="seckill-empty">
             <text class="sub">暂无优质商户</text>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+
+    <!-- 本地商家 -->
+    <view class="block">
+      <view class="block-head">
+        <text class="sec-title">📍 本地商家</text>
+        <text class="sec-more" @tap="goLocalShops">更多 ›</text>
+      </view>
+      <scroll-view scroll-x :show-scrollbar="false" class="scroll-hide">
+        <view class="shop-row">
+          <view
+            v-for="s in localShops"
+            :key="s.id"
+            class="shop-card"
+            @tap="goShopDetail(s.id)"
+          >
+            <image class="shop-cover" :src="s.img" mode="aspectFill" />
+            <view class="shop-body">
+              <text class="line-1 brand-name">{{ s.name }}</text>
+              <text class="sub shop-score">
+                {{ s.city || '本地' }}{{ s.distance_km != null ? ` · ${formatDist(s.distance_km)}` : '' }}
+              </text>
+              <view class="shop-promo">
+                <text class="sub line-1">{{ s.address || s.desc || '附近好店' }}</text>
+              </view>
+            </view>
+          </view>
+          <view v-if="!localShops.length" class="seckill-empty">
+            <text class="sub">{{ localHint }}</text>
           </view>
         </view>
       </scroll-view>
@@ -306,16 +339,18 @@
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { onReachBottom, onShow } from '@dcloudio/uni-app'
 import {
-  getNotificationUnreadCount, getSeckillCurrent, listArticles, listBanners, listCategories,
-  listCouponCenter, listHomeSlots, listProducts, listSalesRank, listThemeTiles,
+  getNotificationUnreadCount, getSeckillCurrent, listAddresses, listArticles, listBanners, listCategories,
+  listCouponCenter, listHomeSlots, listLocalShops, listProducts, listSalesRank, listThemeTiles,
 } from '../../api/index'
 import { isLoggedIn } from '../../stores/user'
+import { applyAddressCityIfNeeded, getCity, getCoords, hasCoords } from '../../stores/location'
 
 const placeholder = 'https://picsum.photos/id/96/400/400'
+const locCity = ref(getCity())
 const fallbackBanners = [
-  { id: 'f1', image_url: 'https://picsum.photos/id/1059/750/340', link_type: 'none' },
-  { id: 'f2', image_url: 'https://picsum.photos/id/1062/750/340', link_type: 'none' },
-  { id: 'f3', image_url: 'https://picsum.photos/id/1068/750/340', link_type: 'none' },
+  { id: 'f1', image_url: '/static/banner/banner-1.png', link_type: 'none' },
+  { id: 'f2', image_url: '/static/banner/banner-2.png', link_type: 'none' },
+  { id: 'f3', image_url: '/static/banner/banner-3.png', link_type: 'none' },
 ]
 const banners = ref([...fallbackBanners])
 
@@ -329,6 +364,7 @@ const CAT_ICON = {
   community: '/static/cat/community.png',
   seckill: '/static/cat/seckill.png',
   coupon: '/static/cat/coupon.png',
+  points: '/static/cat/points.png',
   orders: '/static/cat/orders.png',
   messages: '/static/cat/messages.png',
   more: '/static/cat/more.png',
@@ -353,13 +389,16 @@ const fixedLead = {
   icon: CAT_ICON.shop,
   bg: 'rgba(230,213,188,.45)',
 }
+const fixedFeatures = [
+  { name: '本地商家', icon: CAT_ICON.shop, bg: '#E8F0FE', local: true },
+  { name: '优惠购', icon: CAT_ICON.coupon, bg: '#FEF3C7', cps: true },
+  { name: '积分商城', icon: CAT_ICON.points, bg: '#FFF1E0', pointsMall: true },
+]
 const fixedTail = [
   { name: '种草社区', icon: CAT_ICON.community, bg: 'rgba(230,213,188,.45)' },
   { name: '限时秒杀', icon: CAT_ICON.seckill, bg: '#FEF2F2', bounce: true },
 ]
 const fillEntries = [
-  { name: '优惠购', icon: CAT_ICON.coupon, bg: '#FEF3C7', cps: true },
-  { name: '积分商城', icon: CAT_ICON.coupon, bg: '#FEF3C7', pointsMall: true },
   { name: '领券中心', icon: CAT_ICON.coupon, bg: '#FEF3C7', coupon: true },
   { name: '我的订单', icon: CAT_ICON.orders, bg: '#DBEAFE', orders: true },
   { name: '消息中心', icon: CAT_ICON.messages, bg: '#FCE7F3', messages: true },
@@ -367,24 +406,27 @@ const fillEntries = [
   { name: '品牌好店', icon: CAT_ICON.brand, bg: 'rgba(230,213,188,.45)', brand: true },
 ]
 const apiCats = ref([])
+// 10 格：全部商户 + 4 分类 + 本地商家/优惠购/积分 + 种草社区 + 限时秒杀
 const categoryEntries = computed(() => {
   const colors = ['#E8F8EF', '#E8F0FE', '#FDE8F2', '#FFF6E0', '#EEF0FF']
-  const mid = apiCats.value.slice(0, 5).map((c, i) => ({
+  const mid = apiCats.value.slice(0, 4).map((c, i) => ({
     name: c.name,
     icon: resolveApiCatIcon(c.name, i),
     id: c.id,
     bg: colors[i % colors.length],
   }))
   let fi = 0
-  while (mid.length < 5 && fi < fillEntries.length) {
+  while (mid.length < 4 && fi < fillEntries.length) {
     mid.push(fillEntries[fi++])
   }
-  return [fixedLead, ...mid, ...fixedTail]
+  return [fixedLead, ...mid, ...fixedFeatures, ...fixedTail]
 })
 
 const seckillItems = ref([])
 const brandShops = ref([])
 const shops = ref([])
+const localShops = ref([])
+const localHint = ref('加载中...')
 const notes = ref([])
 
 const themes = ref([])
@@ -461,6 +503,10 @@ function onCategory(c) {
   }
   if (c.cps || c.name === '优惠购') {
     goCpsList()
+    return
+  }
+  if (c.local || c.name === '本地商家') {
+    goLocalShops()
     return
   }
   if (c.coupon) {
@@ -656,6 +702,7 @@ function mapShop(s) {
     category: s.category,
     desc: s.description || '',
     paid: !!s.paid,
+    city: s.city || '',
     img: s.storefront_image || s.logo || placeholder,
   }
 }
@@ -684,6 +731,66 @@ async function loadHomeSlots() {
     brandShops.value = []
     shops.value = []
   }
+}
+
+function formatDist(km) {
+  if (km == null || Number.isNaN(Number(km))) return '—'
+  const n = Number(km)
+  if (n < 1) return `${Math.round(n * 1000)}m`
+  return `${n.toFixed(1)}km`
+}
+
+async function loadLocalShops() {
+  if (!hasCoords()) {
+    localShops.value = []
+    localHint.value = '请先选择定位'
+    return
+  }
+  try {
+    const coords = getCoords()
+    const res = await listLocalShops({
+      page: 1,
+      page_size: 10,
+      lat: coords.latitude,
+      lng: coords.longitude,
+      sort: 'distance',
+    })
+    const rows = res?.list || []
+    localShops.value = rows.map((s) => ({
+      id: s.id,
+      name: s.name,
+      city: s.city,
+      address: s.full_address || s.address,
+      desc: s.description || '',
+      distance_km: s.distance_km,
+      img: s.storefront_image || s.logo || placeholder,
+    }))
+    localHint.value = rows.length ? '' : '附近暂无本地商家'
+  } catch {
+    localShops.value = []
+    localHint.value = '本地商家加载失败'
+  }
+}
+
+function goLocalShops() {
+  uni.navigateTo({ url: '/pages/shop/local' })
+}
+
+async function syncCityFromAddress() {
+  if (!isLoggedIn()) return
+  try {
+    const res = await listAddresses({ silent: true })
+    const list = res?.list || res || []
+    const rows = Array.isArray(list) ? list : []
+    const addr = rows.find((a) => a.is_default) || rows[0]
+    if (applyAddressCityIfNeeded(addr)) {
+      locCity.value = getCity()
+    }
+  } catch { /* ignore */ }
+}
+
+function goChooseCity() {
+  uni.navigateTo({ url: '/pages/location/city' })
 }
 
 async function loadNotes() {
@@ -736,8 +843,12 @@ function loadMore() {
 
 onReachBottom(() => loadMore())
 
-onShow(() => {
+onShow(async () => {
   loadUnread()
+  await syncCityFromAddress()
+  locCity.value = getCity()
+  loadHomeSlots()
+  loadLocalShops()
 })
 
 onMounted(() => {
@@ -746,6 +857,7 @@ onMounted(() => {
   loadBanners()
   loadCats()
   loadHomeSlots()
+  loadLocalShops()
   loadNotes()
   loadSeckill()
   loadThemes()
@@ -1020,21 +1132,21 @@ onUnmounted(() => {
 }
 .scroll-hide { width: 100%; white-space: nowrap; }
 .cat-grid {
-  display: flex; flex-wrap: wrap; padding: 28rpx 8rpx 20rpx;
+  display: flex; flex-wrap: wrap; padding: 24rpx 4rpx 12rpx;
 }
 .cat-item {
-  width: 25%; box-sizing: border-box;
+  width: 20%; box-sizing: border-box;
   display: flex; flex-direction: column; align-items: center;
-  padding: 14rpx 0 22rpx;
+  padding: 12rpx 0 18rpx;
 }
 .cat-icon {
-  width: 120rpx; height: 120rpx; border-radius: 32rpx;
+  width: 100rpx; height: 100rpx; border-radius: 28rpx;
   display: flex; align-items: center; justify-content: center;
 }
 .cat-icon.bounce {
   animation: cat-float 1.2s ease-in-out infinite;
 }
-.cat-img { width: 96rpx; height: 96rpx; }
+.cat-img { width: 80rpx; height: 80rpx; }
 .cat-item:active .cat-icon { transform: scale(0.92); }
 .cat-item:active .cat-icon.bounce { animation-play-state: paused; }
 @keyframes cat-float {
@@ -1042,8 +1154,8 @@ onUnmounted(() => {
   50% { transform: translateY(-10rpx) scale(1.06); }
 }
 .cat-name {
-  font-size: 22rpx; margin-top: 12rpx; color: var(--shop-text);
-  width: 100%; text-align: center; padding: 0 6rpx;
+  font-size: 20rpx; margin-top: 10rpx; color: var(--shop-text);
+  width: 100%; text-align: center; padding: 0 4rpx;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .task-fab {

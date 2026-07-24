@@ -36,6 +36,8 @@ type PageListResp struct {
 }
 
 type PageReq struct {
-	Page     int `form:"page,default=1"`
-	PageSize int `form:"page_size,default=10"`
+	Page     int    `form:"page,default=1"`
+	PageSize int    `form:"page_size,default=10"`
+	City     string `form:"city,optional"`
+	SlotType string `form:"slot_type,optional"`
 }

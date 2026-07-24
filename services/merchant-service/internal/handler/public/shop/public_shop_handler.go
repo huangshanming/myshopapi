@@ -64,6 +64,23 @@ func PublicListShopsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	}
 }
 
+func PublicListLocalShopsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req types.LocalShopsReq
+		if err := httpx.Parse(r, &req); err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+			return
+		}
+		l := shop.NewPublicListLocalShopsLogic(r.Context(), svcCtx)
+		resp, err := l.PublicListLocalShops(r.Context(), &req)
+		if err != nil {
+			httpx.ErrorCtx(r.Context(), w, err)
+		} else {
+			httpx.OkJsonCtx(r.Context(), w, resp)
+		}
+	}
+}
+
 func PublicThemeTilesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		l := shop.NewPublicThemeTilesLogic(r.Context(), svcCtx)

@@ -23,6 +23,7 @@ import (
 	merchantwallet "mymall/services/merchant-service/internal/handler/merchant/wallet"
 	publiccoupon "mymall/services/merchant-service/internal/handler/public/coupon"
 	publichealth "mymall/services/merchant-service/internal/handler/public/health"
+	publicmap "mymall/services/merchant-service/internal/handler/public/map"
 	publicseckill "mymall/services/merchant-service/internal/handler/public/seckill"
 	publicshop "mymall/services/merchant-service/internal/handler/public/shop"
 	usercoupon "mymall/services/merchant-service/internal/handler/user/coupon"
@@ -595,8 +596,13 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				},
 				{
 					Method:  http.MethodGet,
-					Path:    "/api/v1/shops/:id",
-					Handler: publicshop.PublicGetShopHandler(serverCtx),
+					Path:    "/api/v1/shops/local",
+					Handler: publicshop.PublicListLocalShopsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/shops/list",
+					Handler: publicshop.PublicListShopsHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
@@ -605,8 +611,18 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				},
 				{
 					Method:  http.MethodGet,
-					Path:    "/api/v1/shops/list",
-					Handler: publicshop.PublicListShopsHandler(serverCtx),
+					Path:    "/api/v1/shops/:id",
+					Handler: publicshop.PublicGetShopHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/map/config",
+					Handler: publicmap.PublicMapConfigHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/map/geocoder",
+					Handler: publicmap.PublicMapGeocoderHandler(serverCtx),
 				},
 			}...,
 		),

@@ -66,6 +66,7 @@ export default defineConfig({
       '/api/v1/comment-emojis': to(svc.catalog),
       '/api/v1/shops': to(svc.merchant),
       '/api/v1/home': to(svc.merchant),
+      '/api/v1/map': to(svc.merchant),
       '/api/v1/seckill': to(svc.merchant),
       '/api/v1/coupons': to(svc.merchant),
       '/api/v1/user/coupons': to(svc.merchant),

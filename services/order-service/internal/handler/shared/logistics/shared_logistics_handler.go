@@ -3,10 +3,10 @@ package logistics
 import (
 	"net/http"
 
+	"github.com/zeromicro/go-zero/rest/httpx"
+
 	"mymall/services/order-service/internal/logic/shared/logistics"
 	"mymall/services/order-service/internal/svc"
-
-	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
 func LogisticsOptionsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {

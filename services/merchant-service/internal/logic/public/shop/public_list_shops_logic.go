@@ -26,7 +26,7 @@ func NewPublicListShopsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *P
 
 func (l *PublicListShopsLogic) PublicListShops(ctx context.Context, req *types.PageReq) (resp *types.PageListResp, err error) {
 	p, ps := req.Page, req.PageSize
-	list, total, err := biz.NewMerchantLogic(l.svcCtx).ListPublicShops(ctx, p, ps)
+	list, total, err := biz.NewMerchantLogic(l.svcCtx).ListPublicShops(ctx, p, ps, req.City, req.SlotType)
 	if err != nil {
 		return nil, xerr.New(http.StatusInternalServerError, err.Error())
 	}

@@ -38,6 +38,7 @@ import MerchantNotifications from '../views/merchant/Notifications.vue'
 import AdminSeckillRule from '../views/admin/SeckillRule.vue'
 import AdminSeckillSessions from '../views/admin/SeckillSessions.vue'
 import MerchantWallet from '../views/merchant/Wallet.vue'
+import MerchantShopProfile from '../views/merchant/ShopProfile.vue'
 import MerchantSeckillApply from '../views/merchant/SeckillApply.vue'
 import MerchantReviews from '../views/merchant/Reviews.vue'
 import AdminReviews from '../views/admin/Reviews.vue'
@@ -119,6 +120,7 @@ const router = createRouter({
         { path: 'articles/edit/:id?', component: MerchantArticleEdit, meta: { shopPerm: 'article:edit' } },
         { path: 'notifications', component: MerchantNotifications, meta: { shopPerm: 'notif:list' } },
         { path: 'wallet', component: MerchantWallet, meta: { shopPerm: 'wallet:view' } },
+        { path: 'shop/profile', component: MerchantShopProfile, meta: { shopPerm: 'shop:profile' } },
         { path: 'seckill', component: MerchantSeckillApply, meta: { shopPerm: 'seckill:apply' } },
       ],
     },

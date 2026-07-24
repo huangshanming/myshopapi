@@ -94,6 +94,7 @@ func (r *ShopRBACRepository) EnsureShopMenus(ctx context.Context) error {
 		{ID: 9, ParentID: 104, Name: "发布文章", Type: "menu", Path: "/merchant/articles/edit", Component: "merchant/ArticleEdit", Icon: "Edit", Perms: "article:edit", Sort: 11, Visible: 1, Status: 1},
 		{ID: 24, ParentID: 105, Name: "秒杀报名", Type: "menu", Path: "/merchant/seckill", Component: "merchant/SeckillApply", Icon: "Timer", Perms: "seckill:apply", Sort: 10, Visible: 1, Status: 1},
 		{ID: 25, ParentID: 103, Name: "店铺钱包", Type: "menu", Path: "/merchant/wallet", Component: "merchant/Wallet", Icon: "Wallet", Perms: "wallet:view", Sort: 5, Visible: 1, Status: 1},
+		{ID: 37, ParentID: 103, Name: "店铺资料", Type: "menu", Path: "/merchant/shop/profile", Component: "merchant/ShopProfile", Icon: "Shop", Perms: "shop:profile", Sort: 1, Visible: 1, Status: 1},
 		{ID: 6, ParentID: 103, Name: "员工权限", Type: "menu", Path: "/merchant/staff", Component: "merchant/Staff", Icon: "User", Perms: "shop:staff", Sort: 10, Visible: 1, Status: 1},
 		{ID: 10, ParentID: 103, Name: "消息通知", Type: "menu", Path: "/merchant/notifications", Component: "merchant/Notifications", Icon: "Bell", Perms: "notif:list", Sort: 20, Visible: 1, Status: 1},
 

@@ -21,8 +21,20 @@ export function listShops(params = { page: 1, page_size: 20 }) {
   return http.get('/api/v1/shops/list', params)
 }
 
-export function listHomeSlots(slotType) {
-  return http.get('/api/v1/shops/home-slots', { slot_type: slotType })
+export function listLocalShops(params = {}) {
+  return http.get('/api/v1/shops/local', params)
+}
+
+export function getMapConfig() {
+  return http.get('/api/v1/map/config')
+}
+
+export function reverseGeocode(lat, lng) {
+  return http.get('/api/v1/map/geocoder', { lat, lng })
+}
+
+export function listHomeSlots(slotType, params = {}) {
+  return http.get('/api/v1/shops/home-slots', { slot_type: slotType, ...params })
 }
 
 export function listThemeTiles() {
@@ -277,8 +289,8 @@ export function markAllNotificationsRead() {
   return http.post('/api/v1/user/notifications/read-all')
 }
 
-export function listAddresses() {
-  return http.get('/api/v1/user/addresses')
+export function listAddresses(opts) {
+  return http.get('/api/v1/user/addresses', undefined, opts)
 }
 
 export function createAddress(data) {

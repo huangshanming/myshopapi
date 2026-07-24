@@ -18,60 +18,75 @@ from pathlib import Path
 
 
 def merge_dir(dir_path: Path, handler_root: Path) -> None:
+    target_name = out_name(dir_path, handler_root)
+    target_path = dir_path / target_name
     files = sorted(
         p
         for p in dir_path.glob("*_handler.go")
         if p.is_file() and p.name != "routes.go"
     )
-    # Also include any .go that is a handler file from goctl (all except routes)
-    # Prefer *_handler.go only.
-    if len(files) <= 1:
-        # Already consolidated or empty — if single file has wrong name, rename
-        if len(files) == 1:
-            target = out_name(dir_path, handler_root)
-            if files[0].name != target:
-                text = files[0].read_text()
-                files[0].unlink()
-                (dir_path / target).write_text(text)
+    leaf = [f for f in files if f.name != target_name]
+
+    # Already consolidated or empty — if single file has wrong name, rename
+    if not leaf:
+        if len(files) == 1 and files[0].name != target_name:
+            text = files[0].read_text()
+            files[0].unlink()
+            target_path.write_text(text)
         return
 
-    package = None
-    imports: dict[str, str] = {}  # path -> full import line (with alias)
-    funcs: list[str] = []
-
-    for f in files:
-        text = f.read_text()
+    def extract(path: Path) -> tuple[str, dict[str, str], dict[str, str]]:
+        text = path.read_text()
         pm = re.search(r"^package\s+(\w+)", text, re.M)
         if not pm:
-            raise SystemExit(f"no package in {f}")
-        if package is None:
-            package = pm.group(1)
-        elif package != pm.group(1):
-            raise SystemExit(f"package mismatch in {f}: {pm.group(1)} vs {package}")
-
+            raise SystemExit(f"no package in {path}")
+        imports: dict[str, str] = {}
         im = re.search(r"import\s*\(([\s\S]*?)\)", text)
         if im:
             for line in im.group(1).splitlines():
                 s = line.strip()
                 if not s or s.startswith("//"):
                     continue
-                # "path" or alias "path"
                 parts = s.split()
-                path = parts[-1].strip('"')
-                imports[path] = s
-
-        # Extract top-level func blocks (handlers)
+                path_s = parts[-1].strip('"')
+                imports[path_s] = s
+        funcs: dict[str, str] = {}
         for m in re.finditer(
             r"^func (\w+Handler)\(.*?^}\n?",
             text,
             re.M | re.S,
         ):
-            funcs.append(m.group(0).rstrip() + "\n")
+            funcs[m.group(1)] = m.group(0).rstrip() + "\n"
+        return pm.group(1), imports, funcs
 
-    if not funcs:
+    package = None
+    imports: dict[str, str] = {}
+    funcs_by_name: dict[str, str] = {}
+
+    # Prefer previous merge target bodies (hand-tuned, e.g. multipart upload).
+    if target_path.is_file():
+        package, imports, funcs_by_name = extract(target_path)
+
+    for f in leaf:
+        pkg, imps, funcs = extract(f)
+        if package is None:
+            package = pkg
+        elif package != pkg:
+            raise SystemExit(f"package mismatch in {f}: {pkg} vs {package}")
+        added_new = False
+        for name, body in funcs.items():
+            if name not in funcs_by_name:
+                funcs_by_name[name] = body
+                added_new = True
+        # Only pull leaf imports when introducing new handlers (avoids unused imports).
+        if added_new or not funcs_by_name:
+            imports.update(imps)
+        elif not target_path.is_file():
+            imports.update(imps)
+
+    if not funcs_by_name:
         raise SystemExit(f"no handler funcs in {dir_path}")
 
-    # Format imports
     std, third, local = [], [], []
     for path, line in sorted(imports.items(), key=lambda x: x[0]):
         if path.startswith("mymall/") or "/internal/" in path:
@@ -87,22 +102,21 @@ def merge_dir(dir_path: Path, handler_root: Path) -> None:
             sections.append("\n".join("\t" + x for x in block))
     import_block = "\n\n".join(sections)
 
+    func_bodies = [funcs_by_name[k] for k in sorted(funcs_by_name)]
     out = f"""package {package}
 
 import (
 {import_block}
 )
 
-{chr(10).join(funcs)}"""
-    # Ensure trailing newline
+{chr(10).join(func_bodies)}"""
     if not out.endswith("\n"):
         out += "\n"
 
-    target = dir_path / out_name(dir_path, handler_root)
-    # Remove old files first
-    for f in files:
-        f.unlink()
-    target.write_text(out)
+    for f in dir_path.glob("*_handler.go"):
+        if f.is_file() and f.name != "routes.go":
+            f.unlink()
+    target_path.write_text(out)
 
 
 def out_name(dir_path: Path, handler_root: Path) -> str:
