@@ -1,0 +1,25 @@
+Name: recommend-service
+Host: 0.0.0.0
+Port: 8888
+Mode: dev
+
+CatalogHTTP: http://127.0.0.1:8882
+
+MySQL:
+  Host: 127.0.0.1
+  Port: 3306
+  Username: homestead
+  Password: secret
+  Dbname: mymall
+  Charset: utf8mb4
+
+Redis:
+  Host: 127.0.0.1
+  Port: 6379
+  DB: 0
+
+Milvus:
+  Host: 127.0.0.1
+  Port: 19530
+  ItemCollection: reco_item_emb
+  EmbeddingDim: 64
