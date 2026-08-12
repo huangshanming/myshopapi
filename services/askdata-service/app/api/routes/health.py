@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.config import get_settings
+from app.conf import get_config
 
 router = APIRouter(tags=["health"])
 
@@ -12,11 +12,13 @@ def healthz() -> dict:
 
 @router.get("/readyz")
 def readyz() -> dict:
-    settings = get_settings()
+    cfg = get_config()
     return {
         "status": "ready",
-        "mode": settings.mode,
-        "order": settings.order_http,
-        "catalog": settings.catalog_http,
-        "model": settings.askdata_model,
+        "mode": cfg.get("mode", "dev"),
+        "order": cfg.get("upstream", {}).get("order_http"),
+        "catalog": cfg.get("upstream", {}).get("catalog_http"),
+        "model": cfg.get("llm", {}).get("model"),
+        "elasticsearch": cfg.get("elasticsearch", {}).get("url"),
+        "qdrant": cfg.get("qdrant", {}).get("url"),
     }

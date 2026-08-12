@@ -1,32 +1,20 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
-
-
-class AskDataRequest(BaseModel):
-    question: str = Field(
-        ..., min_length=1, description="自然语言问数，如：昨天订单 GMV 是多少？"
-    )
-    merchant_id: int | None = Field(default=None, description="可选商家维度")
-    days: int = Field(default=7, ge=1, le=90, description="默认统计窗口（天）")
-
-
-class AskDataResponse(BaseModel):
-    answer: str
-    steps: list[str] = Field(default_factory=list)
-    metrics: dict = Field(default_factory=dict)
-    sql_preview: str | None = None
-    source: str = "rule_stub"
+from app.api.schemas import AskDataRequest, AskDataResponse
+from app.prompt.loader import load_prompt
 
 
 class AskDataAgent:
     """电商问数 Agent。
 
-    现状：关键词规则 stub，返回可解释步骤与占位指标。
-    后续：LangGraph + tools（查 order / catalog / 数仓）、NL2SQL、权限与审计。
+    现状：关键词规则 stub。
+    后续：LangGraph 节点 / 状态 / 工具调用放在本包（见 graph.py）。
     """
 
-    async def query(self, req: AskDataRequest) -> dict:
+    def __init__(self) -> None:
+        self.system_prompt = load_prompt("ask_data_system.md")
+
+    async def run(self, req: AskDataRequest) -> AskDataResponse:
         q = req.question.strip()
         steps = [
             f"理解问题：{q}",
@@ -39,7 +27,6 @@ class AskDataAgent:
         if req.merchant_id is not None:
             metrics["merchant_id"] = req.merchant_id
 
-        # 极简意图识别，便于联调前端 / 网关
         if any(k in q for k in ("gmv", "GMV", "成交额", "销售额", "营收")):
             metrics["metric"] = "gmv"
             metrics["value"] = None
@@ -76,11 +63,10 @@ class AskDataAgent:
             )
             sql_preview = None
 
-        resp = AskDataResponse(
+        return AskDataResponse(
             answer=answer,
             steps=steps,
             metrics=metrics,
             sql_preview=sql_preview,
             source="rule_stub",
         )
-        return resp.model_dump()

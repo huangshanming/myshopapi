@@ -1,0 +1,13 @@
+# 服务配置
+name: askdata-service
+product: 电商问数
+host: 0.0.0.0
+port: 8889
+mode: dev
+
+# 上游 Go HTTP（本机开发）
+upstream:
+  user_http: http://127.0.0.1:8881
+  catalog_http: http://127.0.0.1:8882
+  order_http: http://127.0.0.1:8883
+  merchant_http: http://127.0.0.1:8884

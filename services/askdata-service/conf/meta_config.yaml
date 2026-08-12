@@ -1,0 +1,1694 @@
+# 电商问数 — 业务元数据（语义层）
+# 物理库：mymall（db_meta / db_dw 当前均指向同一 OLTP）
+# 约定：
+#   table.role: dim | fact
+#   column.role: primary_key | foreign_key | dimension | measure
+#   column.sync: 是否同步字段值到向量/检索知识库（PII、密钥、大文本建议 false）
+#   metrics.relevant_columns: 使用 表名.字段名
+
+tables:
+  - name: users
+    role: dim
+    description: 用户表，描述 C 端用户账号与基础画像，用于用户数、新增、性别分布等统计。
+    columns:
+      - name: id
+        role: primary_key
+        description: 用户主键 ID。
+        alias: [用户ID, 买家ID]
+        sync: false
+
+      - name: mobile
+        role: dimension
+        description: 登录手机号（11 位）。
+        alias: [用户手机号, 手机号]
+        sync: false
+
+      - name: nickname
+        role: dimension
+        description: 用户昵称，展示用名称。
+        alias: [用户昵称, 账号名称, 买家昵称]
+        sync: true
+
+      - name: avatar
+        role: dimension
+        description: 用户头像 URL。
+        alias: [用户头像]
+        sync: false
+
+      - name: gender
+        role: dimension
+        description: 性别：0-未知 1-男 2-女。
+        alias: [用户性别, 性别]
+        sync: true
+
+      - name: status
+        role: dimension
+        description: 账号状态：1-正常 0-禁用。
+        alias: [用户状态, 账号状态]
+        sync: true
+
+      - name: role
+        role: dimension
+        description: 系统角色，如 user、admin。
+        alias: [用户角色]
+        sync: true
+
+      - name: last_login_time
+        role: dimension
+        description: 最后登录时间。
+        alias: [最后登录时间, 最近登录]
+        sync: false
+
+      - name: created_at
+        role: dimension
+        description: 注册时间。
+        alias: [注册时间, 用户创建时间]
+        sync: true
+
+      - name: updated_at
+        role: dimension
+        description: 资料更新时间。
+        alias: [用户更新时间]
+        sync: false
+
+      - name: deleted_at
+        role: dimension
+        description: 软删除时间，非空表示已删除。
+        alias: [用户删除时间]
+        sync: false
+
+  - name: shops
+    role: dim
+    description: 店铺表，描述商家门店信息，用于店铺维度、区域、经营类目分析。
+    columns:
+      - name: id
+        role: primary_key
+        description: 店铺主键 ID。
+        alias: [店铺ID, 商家ID, 门店ID]
+        sync: false
+
+      - name: name
+        role: dimension
+        description: 店铺名称。
+        alias: [店铺名称, 店名, 商家名称]
+        sync: true
+
+      - name: logo
+        role: dimension
+        description: 店铺 Logo URL。
+        alias: [店铺Logo]
+        sync: false
+
+      - name: contact_name
+        role: dimension
+        description: 联系人姓名。
+        alias: [店铺联系人]
+        sync: false
+
+      - name: contact_phone
+        role: dimension
+        description: 联系电话。
+        alias: [店铺电话, 商家手机号]
+        sync: false
+
+      - name: description
+        role: dimension
+        description: 店铺简介。
+        alias: [店铺简介]
+        sync: false
+
+      - name: category
+        role: dimension
+        description: 经营类目（文本）。
+        alias: [经营类目, 店铺类目]
+        sync: true
+
+      - name: province
+        role: dimension
+        description: 省份。
+        alias: [店铺省份, 省]
+        sync: true
+
+      - name: city
+        role: dimension
+        description: 城市。
+        alias: [店铺城市, 市]
+        sync: true
+
+      - name: district
+        role: dimension
+        description: 区/县。
+        alias: [店铺区县, 区]
+        sync: true
+
+      - name: address
+        role: dimension
+        description: 详细地址。
+        alias: [店铺地址]
+        sync: false
+
+      - name: latitude
+        role: measure
+        description: 纬度。
+        alias: [店铺纬度]
+        sync: false
+
+      - name: longitude
+        role: measure
+        description: 经度。
+        alias: [店铺经度]
+        sync: false
+
+      - name: local_enabled
+        role: dimension
+        description: 是否展示在本地商家：1-是 0-否。
+        alias: [本地商家, 是否本地店]
+        sync: true
+
+      - name: business_license_no
+        role: dimension
+        description: 营业执照号。
+        alias: [营业执照号]
+        sync: false
+
+      - name: legal_person
+        role: dimension
+        description: 法人姓名。
+        alias: [法人]
+        sync: false
+
+      - name: owner_user_id
+        role: foreign_key
+        description: 店主用户 ID，关联 users.id。
+        alias: [店主用户ID, 店主ID]
+        sync: false
+
+      - name: status
+        role: dimension
+        description: 店铺状态：pending-待审 approved-已通过 rejected-已拒绝 disabled-已禁用。
+        alias: [店铺状态, 商家状态]
+        sync: true
+
+      - name: reject_reason
+        role: dimension
+        description: 审核拒绝原因。
+        alias: [店铺拒绝原因]
+        sync: false
+
+      - name: created_at
+        role: dimension
+        description: 店铺创建时间。
+        alias: [开店时间, 店铺创建时间]
+        sync: true
+
+      - name: updated_at
+        role: dimension
+        description: 店铺更新时间。
+        alias: [店铺更新时间]
+        sync: false
+
+  - name: product_categories
+    role: dim
+    description: 商品分类表，支持多级类目，用于品类销售与商品分布分析。
+    columns:
+      - name: id
+        role: primary_key
+        description: 分类主键 ID。
+        alias: [分类ID, 类目ID]
+        sync: false
+
+      - name: parent_id
+        role: foreign_key
+        description: 父分类 ID，0 表示顶级。
+        alias: [父分类ID, 上级类目]
+        sync: false
+
+      - name: name
+        role: dimension
+        description: 分类名称。
+        alias: [分类名称, 类目名称, 品类]
+        sync: true
+
+      - name: description
+        role: dimension
+        description: 分类描述。
+        alias: [分类描述]
+        sync: false
+
+      - name: sort_order
+        role: measure
+        description: 排序值，越小越靠前。
+        alias: [分类排序]
+        sync: false
+
+      - name: level
+        role: dimension
+        description: 分类层级，从 1 开始。
+        alias: [分类层级]
+        sync: true
+
+      - name: is_show
+        role: dimension
+        description: 是否前台展示：1-是 0-否。
+        alias: [分类是否显示]
+        sync: true
+
+      - name: product_count
+        role: measure
+        description: 该分类下商品数量（冗余计数）。
+        alias: [分类商品数]
+        sync: true
+
+      - name: created_at
+        role: dimension
+        description: 分类创建时间。
+        alias: [分类创建时间]
+        sync: false
+
+  - name: products
+    role: dim
+    description: 商品 SPU 表，描述商品主信息、价格、库存汇总与运营标签，用于商品与库存问数。
+    columns:
+      - name: id
+        role: primary_key
+        description: 商品主键 ID。
+        alias: [商品ID, SPU_ID]
+        sync: false
+
+      - name: shop_id
+        role: foreign_key
+        description: 所属店铺 ID，关联 shops.id。
+        alias: [商品店铺ID]
+        sync: false
+
+      - name: product_no
+        role: dimension
+        description: 商品编号（业务编码）。
+        alias: [商品编号, 货号]
+        sync: true
+
+      - name: name
+        role: dimension
+        description: 商品名称。
+        alias: [商品名称, 品名]
+        sync: true
+
+      - name: subtitle
+        role: dimension
+        description: 商品副标题。
+        alias: [商品副标题]
+        sync: true
+
+      - name: description
+        role: dimension
+        description: 商品详情描述。
+        alias: [商品描述, 商品详情]
+        sync: false
+
+      - name: market_price
+        role: measure
+        description: 市场价/划线价。
+        alias: [市场价, 原价, 划线价]
+        sync: true
+
+      - name: sale_price
+        role: measure
+        description: 销售价。
+        alias: [销售价, 售价, 单价]
+        sync: true
+
+      - name: cost_price
+        role: measure
+        description: 成本价。
+        alias: [成本价]
+        sync: false
+
+      - name: discount
+        role: measure
+        description: 折扣百分比，100 表示无折扣。
+        alias: [折扣, 折扣百分比]
+        sync: true
+
+      - name: discount_price
+        role: measure
+        description: 折后价。
+        alias: [折后价]
+        sync: true
+
+      - name: stock
+        role: measure
+        description: 商品级库存汇总（展示用）；精细库存见 product_skus.stock。
+        alias: [商品库存, 库存数量]
+        sync: true
+
+      - name: stock_warn
+        role: measure
+        description: 库存预警阈值。
+        alias: [库存预警值, 低库存阈值]
+        sync: true
+
+      - name: sold_count
+        role: measure
+        description: 已售数量（累计）。
+        alias: [销量, 已售数量, 销售件数]
+        sync: true
+
+      - name: view_count
+        role: measure
+        description: 浏览次数。
+        alias: [浏览量, PV]
+        sync: true
+
+      - name: collect_count
+        role: measure
+        description: 收藏次数。
+        alias: [收藏数]
+        sync: true
+
+      - name: avg_rating
+        role: measure
+        description: 平均评分（1–5）。
+        alias: [平均评分, 商品评分]
+        sync: true
+
+      - name: review_count
+        role: measure
+        description: 评价条数。
+        alias: [评价数, 评论数]
+        sync: true
+
+      - name: good_rate
+        role: measure
+        description: 好评率（百分比）。
+        alias: [好评率]
+        sync: true
+
+      - name: pet_type
+        role: dimension
+        description: 适用宠物类型：dog/cat/both/other。
+        alias: [宠物类型, 适用宠物]
+        sync: true
+
+      - name: brand_id
+        role: foreign_key
+        description: 品牌 ID。
+        alias: [品牌ID]
+        sync: false
+
+      - name: category_id
+        role: foreign_key
+        description: 分类 ID，关联 product_categories.id。
+        alias: [商品分类ID, 类目ID]
+        sync: false
+
+      - name: product_type
+        role: dimension
+        description: 商品类型：physical-实物 fresh-生鲜 virtual-虚拟。
+        alias: [商品类型]
+        sync: true
+
+      - name: weight
+        role: measure
+        description: 重量（kg）。
+        alias: [商品重量]
+        sync: false
+
+      - name: unit
+        role: dimension
+        description: 计量单位。
+        alias: [商品单位]
+        sync: true
+
+      - name: status
+        role: dimension
+        description: 商品状态：draft-草稿 on_sale-在售 off_sale-下架 deleted-已删。
+        alias: [商品状态, 上架状态]
+        sync: true
+
+      - name: is_hot
+        role: dimension
+        description: 是否热销：1-是 0-否。
+        alias: [是否热销, 热销]
+        sync: true
+
+      - name: is_new
+        role: dimension
+        description: 是否新品：1-是 0-否。
+        alias: [是否新品, 新品]
+        sync: true
+
+      - name: is_recommend
+        role: dimension
+        description: 是否推荐：1-是 0-否。
+        alias: [是否推荐, 推荐商品]
+        sync: true
+
+      - name: is_prescription
+        role: dimension
+        description: 是否处方粮：1-是 0-否。
+        alias: [是否处方粮]
+        sync: true
+
+      - name: is_imported
+        role: dimension
+        description: 是否进口：1-是 0-否。
+        alias: [是否进口]
+        sync: true
+
+      - name: is_organic
+        role: dimension
+        description: 是否有机：1-是 0-否。
+        alias: [是否有机]
+        sync: true
+
+      - name: is_grain_free
+        role: dimension
+        description: 是否无谷：1-是 0-否。
+        alias: [是否无谷]
+        sync: true
+
+      - name: publish_time
+        role: dimension
+        description: 实际上架时间。
+        alias: [上架时间, 发布时间]
+        sync: true
+
+      - name: schedule_on_at
+        role: dimension
+        description: 定时上架时间。
+        alias: [定时上架时间]
+        sync: false
+
+      - name: schedule_off_at
+        role: dimension
+        description: 定时下架时间。
+        alias: [定时下架时间]
+        sync: false
+
+      - name: created_at
+        role: dimension
+        description: 商品创建时间。
+        alias: [商品创建时间]
+        sync: true
+
+      - name: updated_at
+        role: dimension
+        description: 商品更新时间。
+        alias: [商品更新时间]
+        sync: false
+
+      - name: deleted_at
+        role: dimension
+        description: 软删除时间。
+        alias: [商品删除时间]
+        sync: false
+
+  - name: product_skus
+    role: dim
+    description: 商品 SKU 表，规格维度的价格与库存真源，用于 SKU 库存与规格销售分析。
+    columns:
+      - name: id
+        role: primary_key
+        description: SKU 主键 ID。
+        alias: [SKU_ID, 规格ID]
+        sync: false
+
+      - name: product_id
+        role: foreign_key
+        description: 所属商品 ID，关联 products.id。
+        alias: [所属商品ID]
+        sync: false
+
+      - name: shop_id
+        role: foreign_key
+        description: 所属店铺 ID，关联 shops.id。
+        alias: [SKU店铺ID]
+        sync: false
+
+      - name: sku_no
+        role: dimension
+        description: SKU 业务编码。
+        alias: [SKU编码, SKU编号]
+        sync: true
+
+      - name: spec_values
+        role: dimension
+        description: 规格值 JSON（如颜色、规格）。
+        alias: [规格值, SKU规格]
+        sync: true
+
+      - name: spec_key
+        role: dimension
+        description: 规格唯一键。
+        alias: [规格键]
+        sync: false
+
+      - name: sale_price
+        role: measure
+        description: SKU 售价。
+        alias: [SKU售价, 规格售价]
+        sync: true
+
+      - name: market_price
+        role: measure
+        description: SKU 市场价。
+        alias: [SKU市场价]
+        sync: true
+
+      - name: cost_price
+        role: measure
+        description: SKU 成本价。
+        alias: [SKU成本价]
+        sync: false
+
+      - name: stock
+        role: measure
+        description: SKU 可售库存（库存问数优先用此字段）。
+        alias: [SKU库存, 规格库存]
+        sync: true
+
+      - name: stock_warn
+        role: measure
+        description: SKU 库存预警值。
+        alias: [SKU库存预警]
+        sync: true
+
+      - name: barcode
+        role: dimension
+        description: 条形码。
+        alias: [条码, 条形码]
+        sync: true
+
+      - name: status
+        role: dimension
+        description: SKU 状态：enabled-启用 disabled-停用。
+        alias: [SKU状态]
+        sync: true
+
+      - name: sold_count
+        role: measure
+        description: SKU 已售数量。
+        alias: [SKU销量]
+        sync: true
+
+      - name: created_at
+        role: dimension
+        description: SKU 创建时间。
+        alias: [SKU创建时间]
+        sync: false
+
+      - name: deleted_at
+        role: dimension
+        description: SKU 软删除时间。
+        alias: [SKU删除时间]
+        sync: false
+
+  - name: orders
+    role: fact
+    description: 订单主表，核心交易事实。GMV/订单量/客单价等指标以此表为主；支付语义为钱包扣款，实付字段为 pay_amount。
+    columns:
+      - name: id
+        role: primary_key
+        description: 订单主键 ID。
+        alias: [订单ID]
+        sync: false
+
+      - name: order_no
+        role: dimension
+        description: 业务订单号（唯一）。
+        alias: [订单号, 订单编号]
+        sync: true
+
+      - name: user_id
+        role: foreign_key
+        description: 下单用户 ID，关联 users.id。
+        alias: [下单用户ID, 买家ID]
+        sync: false
+
+      - name: shop_id
+        role: foreign_key
+        description: 店铺 ID，关联 shops.id。
+        alias: [订单店铺ID, 卖家店铺ID]
+        sync: false
+
+      - name: total_amount
+        role: measure
+        description: 订单总额（历史/汇总字段）。
+        alias: [订单总额, 总金额]
+        sync: true
+
+      - name: goods_amount
+        role: measure
+        description: 商品金额（优惠前）。
+        alias: [商品金额, 货款金额]
+        sync: true
+
+      - name: discount_amount
+        role: measure
+        description: 优惠金额（含券等）。
+        alias: [优惠金额, 折扣金额]
+        sync: true
+
+      - name: pay_amount
+        role: measure
+        description: 实付金额；统计 GMV 通常对该字段求和，并排除未成交状态。
+        alias: [实付金额, GMV, 成交额, 支付金额]
+        sync: true
+
+      - name: user_coupon_id
+        role: foreign_key
+        description: 使用的用户券 ID，关联 user_coupons.id；0 表示未用券。
+        alias: [用户券ID, 用券ID]
+        sync: false
+
+      - name: receiver_name
+        role: dimension
+        description: 收货人姓名。
+        alias: [收货人]
+        sync: false
+
+      - name: receiver_phone
+        role: dimension
+        description: 收货人手机号。
+        alias: [收货手机号]
+        sync: false
+
+      - name: receiver_address
+        role: dimension
+        description: 收货地址。
+        alias: [收货地址]
+        sync: false
+
+      - name: ship_company
+        role: dimension
+        description: 物流公司名称。
+        alias: [物流公司, 快递公司]
+        sync: true
+
+      - name: ship_no
+        role: dimension
+        description: 物流运单号。
+        alias: [运单号, 快递单号]
+        sync: true
+
+      - name: shipped_at
+        role: dimension
+        description: 发货时间。
+        alias: [发货时间]
+        sync: true
+
+      - name: completed_at
+        role: dimension
+        description: 完成/确认收货时间。
+        alias: [完成时间, 收货时间]
+        sync: true
+
+      - name: reviewed_at
+        role: dimension
+        description: 评价时间。
+        alias: [订单评价时间]
+        sync: true
+
+      - name: remark
+        role: dimension
+        description: 买家备注。
+        alias: [订单备注]
+        sync: false
+
+      - name: status
+        role: dimension
+        description: 订单状态：pending-待处理 confirmed-已确认 failed-失败 cancelled-已取消 shipped-已发货 completed-已完成 reviewed-已评价。
+        alias: [订单状态]
+        sync: true
+
+      - name: created_at
+        role: dimension
+        description: 下单时间。
+        alias: [下单时间, 订单创建时间, 成交时间]
+        sync: true
+
+      - name: updated_at
+        role: dimension
+        description: 订单更新时间。
+        alias: [订单更新时间]
+        sync: false
+
+  - name: order_items
+    role: fact
+    description: 订单明细表，一行一个 SKU 行项目，用于商品/SKU 销量与销售额拆解。
+    columns:
+      - name: id
+        role: primary_key
+        description: 明细主键 ID。
+        alias: [订单明细ID, 行项目ID]
+        sync: false
+
+      - name: order_id
+        role: foreign_key
+        description: 所属订单 ID，关联 orders.id。
+        alias: [所属订单ID]
+        sync: false
+
+      - name: product_id
+        role: foreign_key
+        description: 商品 ID，关联 products.id。
+        alias: [明细商品ID]
+        sync: false
+
+      - name: sku_id
+        role: foreign_key
+        description: SKU ID，关联 product_skus.id；0 表示无 SKU。
+        alias: [明细SKU_ID]
+        sync: false
+
+      - name: product_name
+        role: dimension
+        description: 下单时商品名称快照。
+        alias: [下单商品名, 商品名快照]
+        sync: true
+
+      - name: sku_snapshot
+        role: dimension
+        description: 下单时 SKU 规格快照。
+        alias: [规格快照]
+        sync: false
+
+      - name: price
+        role: measure
+        description: 成交单价。
+        alias: [成交单价, 明细单价]
+        sync: true
+
+      - name: quantity
+        role: measure
+        description: 购买数量；销量常用 SUM(quantity)。
+        alias: [购买数量, 件数, 销量]
+        sync: true
+
+      - name: seckill_entry_id
+        role: foreign_key
+        description: 秒杀报名 ID；0 表示非秒杀单。
+        alias: [秒杀报名ID, 是否秒杀]
+        sync: false
+
+      - name: created_at
+        role: dimension
+        description: 明细创建时间。
+        alias: [明细创建时间]
+        sync: true
+
+  - name: order_after_sales
+    role: fact
+    description: 订单售后表，记录退款/退货退款申请与处理结果，用于售后率与退款金额分析。
+    columns:
+      - name: id
+        role: primary_key
+        description: 售后单主键 ID。
+        alias: [售后ID, 售后单号ID]
+        sync: false
+
+      - name: order_id
+        role: foreign_key
+        description: 关联订单 ID。
+        alias: [售后订单ID]
+        sync: false
+
+      - name: order_no
+        role: dimension
+        description: 关联订单号。
+        alias: [售后订单号]
+        sync: true
+
+      - name: user_id
+        role: foreign_key
+        description: 申请用户 ID。
+        alias: [售后用户ID]
+        sync: false
+
+      - name: shop_id
+        role: foreign_key
+        description: 店铺 ID。
+        alias: [售后店铺ID]
+        sync: false
+
+      - name: type
+        role: dimension
+        description: 售后类型，如 refund（仅退款）、return_refund（退货退款）。
+        alias: [售后类型]
+        sync: true
+
+      - name: reason
+        role: dimension
+        description: 售后原因。
+        alias: [售后原因, 退款原因]
+        sync: true
+
+      - name: amount
+        role: measure
+        description: 售后申请/退款金额。
+        alias: [退款金额, 售后金额]
+        sync: true
+
+      - name: status
+        role: dimension
+        description: 售后状态：pending/approved/rejected/refunded/closed。
+        alias: [售后状态]
+        sync: true
+
+      - name: admin_remark
+        role: dimension
+        description: 处理备注。
+        alias: [售后处理备注]
+        sync: false
+
+      - name: handled_by
+        role: dimension
+        description: 处理人用户 ID。
+        alias: [售后处理人]
+        sync: false
+
+      - name: created_at
+        role: dimension
+        description: 售后申请时间。
+        alias: [售后申请时间]
+        sync: true
+
+      - name: updated_at
+        role: dimension
+        description: 售后更新时间。
+        alias: [售后更新时间]
+        sync: false
+
+  - name: product_reviews
+    role: fact
+    description: 商品评价表，用于评分分布、好评差评与商品口碑分析。
+    columns:
+      - name: id
+        role: primary_key
+        description: 评价主键 ID。
+        alias: [评价ID]
+        sync: false
+
+      - name: order_id
+        role: foreign_key
+        description: 关联订单 ID。
+        alias: [评价订单ID]
+        sync: false
+
+      - name: order_no
+        role: dimension
+        description: 关联订单号。
+        alias: [评价订单号]
+        sync: true
+
+      - name: user_id
+        role: foreign_key
+        description: 评价用户 ID。
+        alias: [评价用户ID]
+        sync: false
+
+      - name: shop_id
+        role: foreign_key
+        description: 店铺 ID。
+        alias: [评价店铺ID]
+        sync: false
+
+      - name: product_id
+        role: foreign_key
+        description: 商品 ID。
+        alias: [评价商品ID]
+        sync: false
+
+      - name: sku_id
+        role: foreign_key
+        description: SKU ID。
+        alias: [评价SKU_ID]
+        sync: false
+
+      - name: rating
+        role: measure
+        description: 评分 1–5 星。
+        alias: [评分, 星级]
+        sync: true
+
+      - name: content
+        role: dimension
+        description: 评价内容。
+        alias: [评价内容, 评论内容]
+        sync: false
+
+      - name: anonymous
+        role: dimension
+        description: 是否匿名：1-是 0-否。
+        alias: [是否匿名评价]
+        sync: true
+
+      - name: status
+        role: dimension
+        description: 评价状态：visible-可见 deleted-已删。
+        alias: [评价状态]
+        sync: true
+
+      - name: created_at
+        role: dimension
+        description: 评价时间。
+        alias: [评价时间]
+        sync: true
+
+  - name: product_favorites
+    role: fact
+    description: 用户商品收藏表，用于收藏转化与人气分析。
+    columns:
+      - name: id
+        role: primary_key
+        description: 收藏记录 ID。
+        alias: [收藏ID]
+        sync: false
+
+      - name: user_id
+        role: foreign_key
+        description: 用户 ID。
+        alias: [收藏用户ID]
+        sync: false
+
+      - name: product_id
+        role: foreign_key
+        description: 商品 ID。
+        alias: [收藏商品ID]
+        sync: false
+
+      - name: created_at
+        role: dimension
+        description: 收藏时间。
+        alias: [收藏时间]
+        sync: true
+
+  - name: coupons
+    role: dim
+    description: 优惠券模板表，描述平台/店铺券规则，用于发券与优惠策略分析。
+    columns:
+      - name: id
+        role: primary_key
+        description: 优惠券模板 ID。
+        alias: [优惠券ID, 券模板ID]
+        sync: false
+
+      - name: name
+        role: dimension
+        description: 优惠券名称。
+        alias: [优惠券名称, 券名]
+        sync: true
+
+      - name: issuer_type
+        role: dimension
+        description: 发行方：platform-平台 shop-店铺。
+        alias: [发券方, 券发行方]
+        sync: true
+
+      - name: shop_id
+        role: foreign_key
+        description: 店铺券所属店铺 ID；平台券为 0。
+        alias: [券店铺ID]
+        sync: false
+
+      - name: coupon_type
+        role: dimension
+        description: 券类型：full_reduce/no_threshold/category/product/discount。
+        alias: [优惠券类型, 券类型]
+        sync: true
+
+      - name: threshold_amount
+        role: measure
+        description: 使用门槛金额。
+        alias: [用券门槛, 满减门槛]
+        sync: true
+
+      - name: discount_amount
+        role: measure
+        description: 减免金额（满减类）。
+        alias: [减免金额, 券面额]
+        sync: true
+
+      - name: discount_rate
+        role: measure
+        description: 折扣率，如 0.80 表示八折。
+        alias: [折扣率, 折扣力度]
+        sync: true
+
+      - name: max_discount_amount
+        role: measure
+        description: 折扣券最高优惠上限。
+        alias: [最高优惠金额]
+        sync: true
+
+      - name: scope_type
+        role: dimension
+        description: 适用范围：all/category/product。
+        alias: [券适用范围]
+        sync: true
+
+      - name: total_count
+        role: measure
+        description: 发行总量；0 表示不限。
+        alias: [发券总量]
+        sync: true
+
+      - name: claimed_count
+        role: measure
+        description: 已领取数量。
+        alias: [已领券数]
+        sync: true
+
+      - name: per_user_limit
+        role: measure
+        description: 每用户限领张数。
+        alias: [每人限领]
+        sync: true
+
+      - name: valid_type
+        role: dimension
+        description: 有效期类型：fixed-固定时间 relative-领取后 N 天。
+        alias: [券有效期类型]
+        sync: true
+
+      - name: valid_start
+        role: dimension
+        description: 固定有效期开始时间。
+        alias: [券开始时间]
+        sync: true
+
+      - name: valid_end
+        role: dimension
+        description: 固定有效期结束时间。
+        alias: [券结束时间]
+        sync: true
+
+      - name: valid_days
+        role: measure
+        description: 相对有效天数。
+        alias: [券有效天数]
+        sync: true
+
+      - name: stackable
+        role: dimension
+        description: 是否可叠加：1-是 0-否。
+        alias: [是否可叠加]
+        sync: true
+
+      - name: user_identity
+        role: dimension
+        description: 适用用户：all/new/old。
+        alias: [券适用用户]
+        sync: true
+
+      - name: status
+        role: dimension
+        description: 券状态：draft/on/off/expired。
+        alias: [优惠券状态]
+        sync: true
+
+      - name: created_at
+        role: dimension
+        description: 券创建时间。
+        alias: [券创建时间]
+        sync: true
+
+  - name: user_coupons
+    role: fact
+    description: 用户持有优惠券实例，用于领券、用券、核销转化分析。
+    columns:
+      - name: id
+        role: primary_key
+        description: 用户券实例 ID。
+        alias: [用户券ID]
+        sync: false
+
+      - name: coupon_id
+        role: foreign_key
+        description: 券模板 ID，关联 coupons.id。
+        alias: [所属券模板ID]
+        sync: false
+
+      - name: user_id
+        role: foreign_key
+        description: 持有用户 ID。
+        alias: [领券用户ID]
+        sync: false
+
+      - name: shop_id
+        role: foreign_key
+        description: 关联店铺 ID。
+        alias: [用户券店铺ID]
+        sync: false
+
+      - name: status
+        role: dimension
+        description: 用户券状态：unused-未用 locked-锁定 used-已用 expired-过期。
+        alias: [用户券状态, 券使用状态]
+        sync: true
+
+      - name: source
+        role: dimension
+        description: 领取来源：direct/order_gift/popup/targeted。
+        alias: [领券来源]
+        sync: true
+
+      - name: valid_start
+        role: dimension
+        description: 该张券可用开始时间。
+        alias: [用户券开始时间]
+        sync: true
+
+      - name: valid_end
+        role: dimension
+        description: 该张券可用结束时间。
+        alias: [用户券结束时间]
+        sync: true
+
+      - name: order_id
+        role: foreign_key
+        description: 核销关联订单 ID；未使用为 0。
+        alias: [用券订单ID]
+        sync: false
+
+      - name: used_at
+        role: dimension
+        description: 核销时间。
+        alias: [用券时间, 核销时间]
+        sync: true
+
+      - name: discount_amount
+        role: measure
+        description: 核销时实际抵扣金额。
+        alias: [实际抵扣金额, 用券抵扣]
+        sync: true
+
+      - name: created_at
+        role: dimension
+        description: 领券时间。
+        alias: [领券时间]
+        sync: true
+
+  - name: coupon_redeem_logs
+    role: fact
+    description: 优惠券核销流水，记录 redeem/unlock/return 动作。
+    columns:
+      - name: id
+        role: primary_key
+        description: 核销流水 ID。
+        alias: [核销流水ID]
+        sync: false
+
+      - name: user_coupon_id
+        role: foreign_key
+        description: 用户券 ID。
+        alias: [核销用户券ID]
+        sync: false
+
+      - name: coupon_id
+        role: foreign_key
+        description: 券模板 ID。
+        alias: [核销券模板ID]
+        sync: false
+
+      - name: user_id
+        role: foreign_key
+        description: 用户 ID。
+        alias: [核销用户ID]
+        sync: false
+
+      - name: order_id
+        role: foreign_key
+        description: 关联订单 ID。
+        alias: [核销订单ID]
+        sync: false
+
+      - name: shop_id
+        role: foreign_key
+        description: 店铺 ID。
+        alias: [核销店铺ID]
+        sync: false
+
+      - name: discount_amount
+        role: measure
+        description: 本次抵扣金额。
+        alias: [核销抵扣金额]
+        sync: true
+
+      - name: action
+        role: dimension
+        description: 动作：redeem-核销 unlock-解锁 return-退回。
+        alias: [核销动作]
+        sync: true
+
+      - name: created_at
+        role: dimension
+        description: 流水时间。
+        alias: [核销时间]
+        sync: true
+
+  - name: user_wallets
+    role: dim
+    description: 用户钱包账户，本系统无独立支付表，订单支付走钱包冻结/结算。
+    columns:
+      - name: user_id
+        role: primary_key
+        description: 用户 ID（主键），关联 users.id。
+        alias: [钱包用户ID]
+        sync: false
+
+      - name: balance
+        role: measure
+        description: 可用余额。
+        alias: [用户余额, 可用余额]
+        sync: true
+
+      - name: frozen_balance
+        role: measure
+        description: 冻结余额（下单冻结等）。
+        alias: [用户冻结余额]
+        sync: true
+
+      - name: updated_at
+        role: dimension
+        description: 钱包更新时间。
+        alias: [钱包更新时间]
+        sync: false
+
+  - name: user_wallet_logs
+    role: fact
+    description: 用户钱包流水，用于资金变动与订单支付链路追溯。
+    columns:
+      - name: id
+        role: primary_key
+        description: 流水 ID。
+        alias: [用户钱包流水ID]
+        sync: false
+
+      - name: user_id
+        role: foreign_key
+        description: 用户 ID。
+        alias: [流水用户ID]
+        sync: false
+
+      - name: change_type
+        role: dimension
+        description: 变动类型：admin_adjust/order_freeze/order_unfreeze/order_settle 等。
+        alias: [钱包变动类型]
+        sync: true
+
+      - name: amount
+        role: measure
+        description: 变动金额（可正可负）。
+        alias: [钱包变动金额]
+        sync: true
+
+      - name: balance_after
+        role: measure
+        description: 变动后可用余额。
+        alias: [变动后余额]
+        sync: true
+
+      - name: frozen_after
+        role: measure
+        description: 变动后冻结余额。
+        alias: [变动后冻结余额]
+        sync: true
+
+      - name: remark
+        role: dimension
+        description: 备注。
+        alias: [钱包流水备注]
+        sync: false
+
+      - name: ref_type
+        role: dimension
+        description: 关联业务类型。
+        alias: [钱包关联类型]
+        sync: true
+
+      - name: ref_id
+        role: foreign_key
+        description: 关联业务 ID（如订单）。
+        alias: [钱包关联ID]
+        sync: false
+
+      - name: created_at
+        role: dimension
+        description: 流水时间。
+        alias: [钱包流水时间]
+        sync: true
+
+  - name: shop_wallets
+    role: dim
+    description: 店铺钱包账户，含可用余额、冻结与保证金。
+    columns:
+      - name: shop_id
+        role: primary_key
+        description: 店铺 ID（主键）。
+        alias: [钱包店铺ID]
+        sync: false
+
+      - name: balance
+        role: measure
+        description: 店铺可用余额。
+        alias: [店铺余额]
+        sync: true
+
+      - name: frozen_balance
+        role: measure
+        description: 店铺冻结余额。
+        alias: [店铺冻结余额]
+        sync: true
+
+      - name: deposit
+        role: measure
+        description: 保证金。
+        alias: [店铺保证金]
+        sync: true
+
+      - name: updated_at
+        role: dimension
+        description: 更新时间。
+        alias: [店铺钱包更新时间]
+        sync: false
+
+  - name: shop_wallet_logs
+    role: fact
+    description: 店铺钱包流水。
+    columns:
+      - name: id
+        role: primary_key
+        description: 流水 ID。
+        alias: [店铺钱包流水ID]
+        sync: false
+
+      - name: shop_id
+        role: foreign_key
+        description: 店铺 ID。
+        alias: [流水店铺ID]
+        sync: false
+
+      - name: change_type
+        role: dimension
+        description: 变动类型：admin_adjust/seckill_apply 等。
+        alias: [店铺钱包变动类型]
+        sync: true
+
+      - name: amount
+        role: measure
+        description: 变动金额，正加负减。
+        alias: [店铺钱包变动金额]
+        sync: true
+
+      - name: balance_after
+        role: measure
+        description: 变动后可用余额。
+        alias: [店铺变动后余额]
+        sync: true
+
+      - name: remark
+        role: dimension
+        description: 备注。
+        alias: [店铺钱包备注]
+        sync: false
+
+      - name: created_at
+        role: dimension
+        description: 流水时间。
+        alias: [店铺钱包流水时间]
+        sync: true
+
+  - name: user_points
+    role: dim
+    description: 用户积分账户。
+    columns:
+      - name: user_id
+        role: primary_key
+        description: 用户 ID（主键）。
+        alias: [积分用户ID]
+        sync: false
+
+      - name: points
+        role: measure
+        description: 当前积分余额。
+        alias: [用户积分, 积分余额]
+        sync: true
+
+      - name: updated_at
+        role: dimension
+        description: 更新时间。
+        alias: [积分更新时间]
+        sync: false
+
+  - name: user_point_logs
+    role: fact
+    description: 用户积分流水。
+    columns:
+      - name: id
+        role: primary_key
+        description: 积分流水 ID。
+        alias: [积分流水ID]
+        sync: false
+
+      - name: user_id
+        role: foreign_key
+        description: 用户 ID。
+        alias: [积分流水用户ID]
+        sync: false
+
+      - name: change_type
+        role: dimension
+        description: 变动类型：task_claim/admin_adjust 等。
+        alias: [积分变动类型]
+        sync: true
+
+      - name: delta
+        role: measure
+        description: 变动积分（可负）。
+        alias: [积分变动值]
+        sync: true
+
+      - name: points_after
+        role: measure
+        description: 变动后积分。
+        alias: [变动后积分]
+        sync: true
+
+      - name: remark
+        role: dimension
+        description: 备注。
+        alias: [积分备注]
+        sync: false
+
+      - name: created_at
+        role: dimension
+        description: 流水时间。
+        alias: [积分流水时间]
+        sync: true
+
+  - name: seckill_sessions
+    role: dim
+    description: 秒杀场次表。
+    columns:
+      - name: id
+        role: primary_key
+        description: 场次 ID。
+        alias: [秒杀场次ID]
+        sync: false
+
+      - name: rule_id
+        role: foreign_key
+        description: 规则 ID。
+        alias: [秒杀规则ID]
+        sync: false
+
+      - name: start_at
+        role: dimension
+        description: 场次开始时间。
+        alias: [秒杀开始时间]
+        sync: true
+
+      - name: end_at
+        role: dimension
+        description: 场次结束时间。
+        alias: [秒杀结束时间]
+        sync: true
+
+      - name: status
+        role: dimension
+        description: 场次状态：active/ended。
+        alias: [秒杀场次状态]
+        sync: true
+
+  - name: seckill_entries
+    role: fact
+    description: 秒杀报名商品表，用于秒杀价格、库存与报名分析；订单明细通过 seckill_entry_id 关联。
+    columns:
+      - name: id
+        role: primary_key
+        description: 报名 ID。
+        alias: [秒杀报名ID]
+        sync: false
+
+      - name: session_id
+        role: foreign_key
+        description: 场次 ID。
+        alias: [所属秒杀场次]
+        sync: false
+
+      - name: shop_id
+        role: foreign_key
+        description: 店铺 ID。
+        alias: [秒杀店铺ID]
+        sync: false
+
+      - name: product_id
+        role: foreign_key
+        description: 商品 ID。
+        alias: [秒杀商品ID]
+        sync: false
+
+      - name: product_name
+        role: dimension
+        description: 报名时商品名称快照。
+        alias: [秒杀商品名]
+        sync: true
+
+      - name: origin_price
+        role: measure
+        description: 原价。
+        alias: [秒杀原价]
+        sync: true
+
+      - name: seckill_price
+        role: measure
+        description: 秒杀价。
+        alias: [秒杀价]
+        sync: true
+
+      - name: seckill_stock
+        role: measure
+        description: 秒杀库存。
+        alias: [秒杀库存]
+        sync: true
+
+      - name: fee_amount
+        role: measure
+        description: 报名费。
+        alias: [秒杀报名费]
+        sync: true
+
+      - name: status
+        role: dimension
+        description: 报名状态，如 active。
+        alias: [秒杀报名状态]
+        sync: true
+
+      - name: auto_renew
+        role: dimension
+        description: 是否自动续报下一场：1-是 0-否。
+        alias: [秒杀自动续报]
+        sync: true
+
+      - name: created_at
+        role: dimension
+        description: 报名时间。
+        alias: [秒杀报名时间]
+        sync: true
+
+metrics:
+  - name: GMV
+    description: 全称 Gross Merchandise Value，成交总额。对订单实付金额求和；统计时建议排除 status 为 pending、failed、cancelled 的订单。
+    relevant_columns:
+      - orders.pay_amount
+    alias: [成交总额, 成交额, 订单实付总额, 销售额]
+
+  - name: AOV
+    description: 全称 Average Order Value，客单价。成交订单实付金额的平均值，即 GMV / 成交订单数。
+    relevant_columns:
+      - orders.pay_amount
+      - orders.id
+    alias: [客单价, 平均订单金额, 平均客单]
+
+  - name: OrderCount
+    description: 订单量。对订单主键计数；成交订单量需结合订单状态过滤。
+    relevant_columns:
+      - orders.id
+      - orders.status
+    alias: [订单量, 订单数, 单量]
+
+  - name: SalesQuantity
+    description: 销售件数。对订单明细购买数量求和。
+    relevant_columns:
+      - order_items.quantity
+    alias: [销量, 销售件数, 购买件数]
+
+  - name: SalesAmount
+    description: 明细销售额。订单明细单价 × 数量的合计，用于按商品/SKU 拆解销售。
+    relevant_columns:
+      - order_items.price
+      - order_items.quantity
+    alias: [明细销售额, 商品销售额]
+
+  - name: DiscountAmount
+    description: 优惠总额。订单优惠金额合计，含券等减免。
+    relevant_columns:
+      - orders.discount_amount
+    alias: [优惠金额, 折扣总额, 减免金额]
+
+  - name: RefundAmount
+    description: 退款金额。售后单金额合计，可按售后状态过滤已退款。
+    relevant_columns:
+      - order_after_sales.amount
+      - order_after_sales.status
+    alias: [退款金额, 售后金额]
+
+  - name: SKUStock
+    description: SKU 可售库存。库存问数优先使用 product_skus.stock（库存真源）。
+    relevant_columns:
+      - product_skus.stock
+      - product_skus.stock_warn
+    alias: [库存, SKU库存, 可售库存]
+
+  - name: ProductStock
+    description: 商品级库存汇总（展示字段），精细分析请用 SKUStock。
+    relevant_columns:
+      - products.stock
+      - products.stock_warn
+    alias: [商品库存]
+
+  - name: AvgRating
+    description: 平均评分。可对评价表 rating 求平均，或直接使用商品冗余字段 avg_rating。
+    relevant_columns:
+      - product_reviews.rating
+      - products.avg_rating
+    alias: [平均评分, 商品评分, 星级均分]
+
+  - name: ReviewCount
+    description: 评价数量。
+    relevant_columns:
+      - product_reviews.id
+      - products.review_count
+    alias: [评价数, 评论数]
+
+  - name: CouponDiscount
+    description: 用券实际抵扣金额合计。
+    relevant_columns:
+      - user_coupons.discount_amount
+      - coupon_redeem_logs.discount_amount
+    alias: [用券抵扣, 券核销金额]
+
+  - name: UserBalance
+    description: 用户钱包可用余额。本系统无独立支付表，订单支付走钱包。
+    relevant_columns:
+      - user_wallets.balance
+      - user_wallets.frozen_balance
+    alias: [用户余额, 钱包余额]
+
+  - name: ShopBalance
+    description: 店铺钱包可用余额与保证金。
+    relevant_columns:
+      - shop_wallets.balance
+      - shop_wallets.deposit
+    alias: [店铺余额, 店铺保证金]

@@ -1,0 +1,7 @@
+mysql:
+  host: ${oc.env:MYMALL_MYSQL_HOST,127.0.0.1}
+  port: ${oc.env:MYMALL_MYSQL_PORT,3306}
+  username: ${oc.env:MYMALL_MYSQL_USERNAME,homestead}
+  password: ${oc.env:MYMALL_MYSQL_PASSWORD,secret}
+  database: ${oc.env:MYMALL_MYSQL_DBNAME,mymall}
+  charset: utf8mb4

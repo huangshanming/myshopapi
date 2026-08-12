@@ -1,0 +1,5 @@
+logging:
+  level: ${oc.env:MYMALL_ASKDATA_LOG_LEVEL,INFO}
+  dir: logs
+  rotation: "10 MB"
+  retention: "7 days"

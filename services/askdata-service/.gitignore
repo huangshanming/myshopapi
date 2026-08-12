@@ -7,3 +7,5 @@ __pycache__/
 .mypy_cache/
 dist/
 *.egg-info/
+logs/*
+!logs/.gitkeep

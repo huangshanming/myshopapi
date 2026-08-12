@@ -1,0 +1,7 @@
+qdrant:
+  url: ${oc.env:MYMALL_QDRANT_URL,http://127.0.0.1:6333}
+  collection: askdata_kb
+
+embedding:
+  url: ${oc.env:MYMALL_EMBEDDING_URL,http://127.0.0.1:8082}
+  model: bge-large-zh-v1.5

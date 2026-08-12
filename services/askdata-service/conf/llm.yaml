@@ -1,0 +1,7 @@
+llm:
+  provider: ${oc.env:MYMALL_ASKDATA_LLM_PROVIDER,ollama}
+  model: ${oc.env:MYMALL_ASKDATA_MODEL,qwen2.5:7b}
+  openai_api_key: ${oc.env:OPENAI_API_KEY,""}
+  openai_base_url: ${oc.env:OPENAI_BASE_URL,https://api.openai.com/v1}
+  ollama_base_url: ${oc.env:MYMALL_OLLAMA_BASE_URL,http://127.0.0.1:11434}
+  temperature: 0.2
