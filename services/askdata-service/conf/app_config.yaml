@@ -40,5 +40,6 @@ es:
 
 llm:
   model_name: qwen2.5:7b
+  model_provider: ollama
   api_key: <api_key>
   base_url: http://127.0.0.1:11434

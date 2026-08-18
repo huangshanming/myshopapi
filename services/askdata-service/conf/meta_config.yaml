@@ -937,7 +937,7 @@ tables:
         alias: [评价内容, 评论内容]
         sync: false
 
-      - name: anonymous
+      - name: is_anonymous
         role: dimension
         description: 是否匿名：1-是 0-否。
         alias: [是否匿名评价]

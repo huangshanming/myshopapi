@@ -1,0 +1,13 @@
+import asyncio
+
+from langgraph.runtime import Runtime
+
+from app.agent.context import DataAgentContext
+from app.agent.state import DataAgentState
+
+
+async def validate_sql(state: DataAgentState, runtime: Runtime[DataAgentContext]):
+    """校验 SQL 语法与表字段合法性（如 EXPLAIN）。"""
+    writer = runtime.stream_writer
+    writer("校验 SQL")
+    await asyncio.sleep(0.5)

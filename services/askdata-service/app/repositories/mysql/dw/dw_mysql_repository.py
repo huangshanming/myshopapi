@@ -9,6 +9,9 @@ SQL 生成闭环中的数据库环境读取 SQL 校验和最终查询执行也�
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import datetime, date
+from decimal import Decimal 
+
 
 
 class DWMySQLRepository:
@@ -30,7 +33,18 @@ class DWMySQLRepository:
         """抽样查询字段示例值，供元数据入库和后续检索链路复用"""
         sql = f"select distinct {column_name} from {table_name} limit {limit}"
         result = await self.session.execute(text(sql))
-        return [row[0] for row in result.fetchall()]
+        def _jsonable(v):
+            if isinstance(v, datetime):
+                return v.isoformat(sep=" ", timespec="seconds")
+            if isinstance(v, date):
+                return v.isoformat()
+            if isinstance(v, Decimal):
+                return float(v)
+            if isinstance(v, (bytes, bytearray)):
+                return v.decode("utf-8", errors="replace")
+            return v
+        return [_jsonable(row[0]) for row in result.fetchall()]
+        # return [row[0] for row in result.fetchall()]
 
     async def get_db_info(self):
         """读取当前数仓数据库的方言和版本，供 SQL 生成提示词使用"""
