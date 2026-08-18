@@ -73,7 +73,7 @@ const platform = ref('taobao')
 const keyword = ref('')
 const appliedKeyword = ref('')
 const items = ref([])
-const page = ref(1)
+const nextMinId = ref(1)
 const pageSize = 10
 const loading = ref(false)
 const finished = ref(false)
@@ -89,7 +89,7 @@ function onTab(v) {
   platform.value = v
   items.value = []
   finished.value = false
-  page.value = 1
+  nextMinId.value = 1
   emptyText.value = appliedKeyword.value ? '暂无商品' : '请输入关键词搜索'
   if (appliedKeyword.value) {
     load(true)
@@ -115,23 +115,24 @@ async function load(reset = false) {
   loading.value = true
   try {
     if (reset) {
-      page.value = 1
+      nextMinId.value = 1
       finished.value = false
       items.value = []
     }
     const res = await listCpsGoods({
       platform: platform.value,
       keyword: appliedKeyword.value,
-      page: page.value,
+      min_id: nextMinId.value || 1,
       page_size: pageSize,
     })
     const list = res?.list || []
     items.value = reset ? list : items.value.concat(list)
-    const total = Number(res?.total) || 0
-    if (items.value.length >= total || list.length < pageSize) {
+    const next = Number(res?.next_min_id) || 0
+    if (!list.length || !next || next === nextMinId.value) {
       finished.value = true
+      nextMinId.value = 0
     } else {
-      page.value += 1
+      nextMinId.value = next
     }
     if (!items.value.length) emptyText.value = '暂无商品'
   } catch (e) {
@@ -161,6 +162,7 @@ async function onCopy(g) {
       platform: platform.value,
       item_id: g.item_id,
       raw_url: g.raw_url || undefined,
+      title: g.title || undefined,
     })
     const data = res?.data || res
     const link = data?.h5 || data?.long_h5 || ''

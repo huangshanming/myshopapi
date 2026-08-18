@@ -1,0 +1,64 @@
+# 
+# Python 版本要求：推荐 3.10，支持 3.10–3.13；不支持 3.14（langchain-redis 等尚未兼容）。
+# 使用方式：在项目根目录执行
+#   创建虚拟环境（推荐用 3.10）：
+#   macOS/Linux:  python3.10 -m venv .venv && source .venv/bin/activate
+#   或:           python3 -m venv .venv   （若 python3 已是 3.10–3.13）
+#   Windows CMD:  py -3.10 -m venv .venv 然后  .venv\Scripts\activate.bat
+#   Windows PowerShell:  py -3.10 -m venv .venv 然后  .venv\Scripts\Activate.ps1
+#   激活后:  pip install -r requirements.txt
+
+# ---------- 核心框架（01-helloworld、02-models_io、04-prompt、05_parser 等） ----------
+langchain>=1.2,<2
+langchain-core>=1.2,<2
+langchain-openai>=1.1,<2
+openai>=1.0,<3
+python-dotenv>=1.0
+pydantic>=2.7,<3
+httpx>=0.27
+
+# ---------- 社区与厂商集成 ----------
+langchain-community>=0.3,<1
+langchain-deepseek>=0.1
+langchain-ollama>=0.2
+
+# ---------- 通义千问原生 API（02-models_io/ModelIO_Qwen.py 使用 ChatTongyi 时需装） ----------
+dashscope>=1.0
+
+# ---------- 输出解析与日志（05_parser 等） ----------
+loguru>=0.7
+
+# ---------- LCEL 图可视化（06-lcel 中 get_graph().print_ascii() 需此依赖） ----------
+grandalf>=0.6
+
+# ---------- 记忆与对话历史（07-memory 中 Redis 持久化案例需此依赖，建议 5.3.1） ----------
+redis>=5.3,<6
+
+# ---------- 向量库 Redis（10-rag 中 RedisVectorStore.py、RedisVectorStore_SimilaritySearch.py 需此依赖，需 Python 3.10–3.13） ----------
+langchain-redis>=0.2
+
+# ---------- RAG 文档加载（10-rag：PDF 需 pypdf，Word 需 unstructured+python-docx 或 docx2txt，Markdown 需 markdown，JSON 需 jq） ----------
+pypdf>=4.0
+unstructured>=0.10
+python-docx>=1.0
+docx2txt>=0.8
+markdown>=3.4
+jq>=1.6
+
+# ---------- RAG 文本分割（10-rag/textsplit 中 RecursiveDocumentSplitter 用 UnstructuredLoader 加载 rag.txt 需此依赖） ----------
+langchain-unstructured>=1.0
+
+# ---------- MCP 与 Agent（11-mcp、12-agent：McpServerByFastMCP / McpServerWeatherByFastMCP / McpClientAgent / AgentSmartSelectV0.3 等） ----------
+mcp>=1.0
+langchain-classic>=1.0
+langchain-mcp-adapters>=0.2
+
+# ---------- LangGraph（第 22–26 章、案例与源码-3-LangGraph框架） ----------
+langgraph>=1.0,<2
+# SQLite 检查点：案例 SqlitePersistence.py 使用 langgraph.checkpoint.sqlite.SqliteSaver 时需此包（标准库 sqlite3 无需另装）
+langgraph-checkpoint-sqlite>=2.0,<4
+# Supervisor 多智能体：08-multi_agent/SupervisorV0.3.py（from langgraph_supervisor import create_supervisor）
+langgraph-supervisor>=0.0.20,<1
+
+# ---------- 代码格式（可选，用于统一 .py 风格） ----------
+black>=24.0

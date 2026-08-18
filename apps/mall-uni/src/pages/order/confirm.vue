@@ -199,6 +199,11 @@ function orderItemsPayload() {
       product_id: x.product_id,
       sku_id: x.sku_id || 0,
       quantity: x.quantity,
+      sku_snapshot: JSON.stringify({
+        sku_id: x.sku_id || 0,
+        image: x.image || '',
+        name: x.name || '',
+      }),
     }
     if (x.seckill_entry_id) it.seckill_entry_id = x.seckill_entry_id
     return it

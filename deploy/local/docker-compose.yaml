@@ -1,6 +1,9 @@
-# 本机一键启动：Redis + RabbitMQ + 三个微服务（Docker 打包）
+# 本机一键启动：Redis + RabbitMQ + Milvus + 微服务（Docker 打包）
 # 用法: docker compose -f deploy/local/docker-compose.yaml up -d --build
+# 电商问数基建: docker compose -f deploy/local/docker-compose.yaml up -d elasticsearch kibana qdrant
+# Embedding（需先下载模型）: docker compose -f deploy/local/docker-compose.yaml --profile embedding up -d embedding
 # 镜像源 429 时可设: GOLANG_IMAGE=docker.m.daocloud.io/library/golang:1.24-alpine
+# MySQL：不入 compose，沿用宿主机 :3306（homestead），与 canal/各服务 host.docker.internal 一致
 x-service-build-args: &service-build-args
   GOLANG_IMAGE: ${GOLANG_IMAGE:-golang:1.24-alpine}
   ALPINE_IMAGE: ${ALPINE_IMAGE:-alpine:3.19}
@@ -48,9 +51,139 @@ services:
       canal.instance.connectionCharset: UTF-8
       canal.instance.tsdb.enable: "false"
       canal.instance.gtidon: "false"
-      canal.instance.filter.regex: mymall\\.product_skus,mymall\\.products
+      canal.instance.filter.regex: mymall\\.product_skus,mymall\\.products,mymall\\.lottery_prizes
     volumes:
       - ./canal/instance.properties:/home/admin/canal-server/conf/mymall/instance.properties:ro
+
+  milvus-etcd:
+    image: quay.io/coreos/etcd:v3.5.5
+    environment:
+      ETCD_AUTO_COMPACTION_MODE: revision
+      ETCD_AUTO_COMPACTION_RETENTION: "1000"
+      ETCD_QUOTA_BACKEND_BYTES: "4294967296"
+      ETCD_SNAPSHOT_COUNT: "50000"
+    command:
+      - etcd
+      - -advertise-client-urls=http://127.0.0.1:2379
+      - -listen-client-urls=http://0.0.0.0:2379
+      - --data-dir=/etcd
+    volumes:
+      - milvus_etcd:/etcd
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  milvus-minio:
+    image: minio/minio:RELEASE.2023-03-20T20-16-18Z
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    command: minio server /minio_data --console-address ":9001"
+    volumes:
+      - milvus_minio:/minio_data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  milvus:
+    image: milvusdb/milvus:v2.4.15
+    command: ["milvus", "run", "standalone"]
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      ETCD_ENDPOINTS: milvus-etcd:2379
+      MINIO_ADDRESS: milvus-minio:9000
+    ports:
+      - "19530:19530"
+      # host 9091 已被 catalog gRPC 占用，metrics 映射到 19091
+      - "19091:9091"
+    depends_on:
+      - milvus-etcd
+      - milvus-minio
+    volumes:
+      - milvus_data:/var/lib/milvus
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+      interval: 30s
+      timeout: 20s
+      retries: 5
+      start_period: 60s
+
+  # ---------- 电商问数（askdata-service）基建 ----------
+  # ES / Kibana 版本需一致；关闭 xpack 便于本地开发
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.19.10
+    container_name: mymall-elasticsearch
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200 >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.19.10
+    container_name: mymall-kibana
+    restart: unless-stopped
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+
+  qdrant:
+    image: qdrant/qdrant:v1.16.0
+    container_name: mymall-qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  # 需先按 deploy/local/embedding/README.md 下载 bge-large-zh-v1.5
+  embedding:
+    profiles: ["embedding"]
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.8
+    platform: linux/amd64
+    container_name: mymall-embedding
+    restart: unless-stopped
+    # 不直接映射宿主机端口：Apple Silicon 上 amd64/QEMU 容器的端口转发常会 Connection reset
+    expose:
+      - "80"
+    environment:
+      MODEL_ID: /models/bge-large-zh-v1.5
+      MAX_CONCURRENT_REQUESTS: "16"
+      MAX_BATCH_TOKENS: "16384"
+    volumes:
+      - ./embedding/bge-large-zh-v1.5:/models/bge-large-zh-v1.5
+
+  # 原生架构反向代理：Apple Silicon 上 amd64 TEI 直接映射端口会 Connection reset
+  embedding-proxy:
+    profiles: ["embedding"]
+    image: envoyproxy/envoy:v1.36.4
+    container_name: mymall-embedding-proxy
+    restart: unless-stopped
+    ports:
+      - "8082:80"
+    volumes:
+      - ./embedding/envoy-tei.yaml:/etc/envoy/envoy.yaml:ro
+    depends_on:
+      - embedding
 
   user-service:
     build:
@@ -176,7 +309,7 @@ services:
       MYMALL_CANAL_HOST: canal-server
       MYMALL_CANAL_PORT: "11111"
       MYMALL_CANAL_DESTINATION: mymall
-      MYMALL_CANAL_FILTER: mymall\\.product_skus
+      MYMALL_CANAL_FILTER: mymall\\.(product_skus|lottery_prizes)
 
   merchant-service:
     build:
@@ -203,6 +336,36 @@ services:
       MYMALL_MYSQL_PASSWORD: secret
       MYMALL_MYSQL_DBNAME: mymall
 
+  lottery-service:
+    build:
+      context: ../..
+      dockerfile: services/lottery-service/Dockerfile
+      args:
+        <<: *service-build-args
+    image: mymall-lottery-service:local
+    ports:
+      - "8887:8888"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - etcd
+      - redis
+    environment:
+      MYMALL_SERVER_HTTP_PORT: "8888"
+      MYMALL_MYSQL_HOST: host.docker.internal
+      MYMALL_MYSQL_PORT: "3306"
+      MYMALL_MYSQL_USERNAME: homestead
+      MYMALL_MYSQL_PASSWORD: secret
+      MYMALL_MYSQL_DBNAME: mymall
+      MYMALL_REDIS_HOST: redis
+      MYMALL_REDIS_PORT: "6379"
+      MYMALL_USER_HTTP: http://user-service:8888
+
 volumes:
   redis_data:
   rabbitmq_data:
+  milvus_etcd:
+  milvus_minio:
+  milvus_data:
+  es_data:
+  qdrant_data:

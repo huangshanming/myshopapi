@@ -30,9 +30,6 @@ func (h *Handler) HandleEntries(ctx context.Context, entries []pbe.Entry) {
 		}
 		header := entry.GetHeader()
 		table := strings.ToLower(header.GetTableName())
-		if table != "product_skus" {
-			continue
-		}
 		rowChange := &pbe.RowChange{}
 		if err := proto.Unmarshal(entry.GetStoreValue(), rowChange); err != nil {
 			h.logger.Warn("unmarshal row change", zap.Error(err))
@@ -40,20 +37,40 @@ func (h *Handler) HandleEntries(ctx context.Context, entries []pbe.Entry) {
 		}
 		eventType := rowChange.GetEventType()
 		for _, row := range rowChange.GetRowDatas() {
-			switch eventType {
-			case pbe.EventType_INSERT:
-				h.applyInsert(ctx, row.GetAfterColumns())
-			case pbe.EventType_UPDATE:
-				h.applyUpdate(ctx, row.GetAfterColumns())
-			case pbe.EventType_DELETE:
-				h.applyDelete(ctx, row.GetBeforeColumns())
+			switch table {
+			case "product_skus":
+				h.handleSku(ctx, eventType, row)
+			case "lottery_prizes":
+				h.handleLotteryPrize(ctx, eventType, row)
 			}
 		}
 	}
 }
 
-func (h *Handler) applyInsert(ctx context.Context, cols []*pbe.Column) {
-	skuID, stock, ok := parseSkuStock(cols)
+func (h *Handler) handleSku(ctx context.Context, eventType pbe.EventType, row *pbe.RowData) {
+	switch eventType {
+	case pbe.EventType_INSERT:
+		h.applySkuInsert(ctx, row.GetAfterColumns())
+	case pbe.EventType_UPDATE:
+		h.applySkuUpdate(ctx, row.GetAfterColumns())
+	case pbe.EventType_DELETE:
+		h.applySkuDelete(ctx, row.GetBeforeColumns())
+	}
+}
+
+func (h *Handler) handleLotteryPrize(ctx context.Context, eventType pbe.EventType, row *pbe.RowData) {
+	switch eventType {
+	case pbe.EventType_INSERT:
+		h.applyLotteryInsert(ctx, row.GetAfterColumns())
+	case pbe.EventType_UPDATE:
+		h.applyLotteryUpdate(ctx, row.GetAfterColumns())
+	case pbe.EventType_DELETE:
+		h.applyLotteryDelete(ctx, row.GetBeforeColumns())
+	}
+}
+
+func (h *Handler) applySkuInsert(ctx context.Context, cols []*pbe.Column) {
+	skuID, stock, ok := parseIDStock(cols)
 	if !ok {
 		return
 	}
@@ -68,10 +85,9 @@ func (h *Handler) applyInsert(ctx context.Context, cols []*pbe.Column) {
 	h.logger.Info("stock insert from binlog", zap.Uint64("sku_id", skuID), zap.Int("stock", stock))
 }
 
-// applyUpdate always SETs Redis to binlog after-image (MySQL is source of truth for incremental sync).
-// Startup preheat stays conservative; Canal updates must not be skipped by CAS.
-func (h *Handler) applyUpdate(ctx context.Context, after []*pbe.Column) {
-	skuID, afterStock, ok := parseSkuStock(after)
+// applySkuUpdate always SETs Redis to binlog after-image (MySQL is source of truth for incremental sync).
+func (h *Handler) applySkuUpdate(ctx context.Context, after []*pbe.Column) {
+	skuID, afterStock, ok := parseIDStock(after)
 	if !ok {
 		return
 	}
@@ -90,8 +106,8 @@ func (h *Handler) applyUpdate(ctx context.Context, after []*pbe.Column) {
 	)
 }
 
-func (h *Handler) applyDelete(ctx context.Context, before []*pbe.Column) {
-	skuID, _, ok := parseSkuStock(before)
+func (h *Handler) applySkuDelete(ctx context.Context, before []*pbe.Column) {
+	skuID, _, ok := parseIDStock(before)
 	if !ok {
 		return
 	}
@@ -102,7 +118,46 @@ func (h *Handler) applyDelete(ctx context.Context, before []*pbe.Column) {
 	h.logger.Info("stock delete from binlog", zap.Uint64("sku_id", skuID))
 }
 
-func parseSkuStock(cols []*pbe.Column) (skuID uint64, stock int, ok bool) {
+func (h *Handler) applyLotteryInsert(ctx context.Context, cols []*pbe.Column) {
+	prizeID, stock, ok := parseIDStock(cols)
+	if !ok {
+		return
+	}
+	if err := cache.LotteryStockSet(ctx, h.rdb, prizeID, stock); err != nil {
+		h.logger.Warn("lottery stock set on insert", zap.Uint64("prize_id", prizeID), zap.Error(err))
+		return
+	}
+	h.logger.Info("lottery stock insert from binlog", zap.Uint64("prize_id", prizeID), zap.Int("stock", stock))
+}
+
+func (h *Handler) applyLotteryUpdate(ctx context.Context, after []*pbe.Column) {
+	prizeID, afterStock, ok := parseIDStock(after)
+	if !ok {
+		return
+	}
+	if err := cache.LotteryStockSet(ctx, h.rdb, prizeID, afterStock); err != nil {
+		h.logger.Warn("lottery stock set on update", zap.Uint64("prize_id", prizeID), zap.Error(err))
+		return
+	}
+	h.logger.Info("lottery stock sync from binlog",
+		zap.Uint64("prize_id", prizeID),
+		zap.Int("stock", afterStock),
+	)
+}
+
+func (h *Handler) applyLotteryDelete(ctx context.Context, before []*pbe.Column) {
+	prizeID, _, ok := parseIDStock(before)
+	if !ok {
+		return
+	}
+	if err := cache.LotteryStockDel(ctx, h.rdb, prizeID); err != nil {
+		h.logger.Warn("lottery stock del", zap.Uint64("prize_id", prizeID), zap.Error(err))
+		return
+	}
+	h.logger.Info("lottery stock delete from binlog", zap.Uint64("prize_id", prizeID))
+}
+
+func parseIDStock(cols []*pbe.Column) (id uint64, stock int, ok bool) {
 	var hasID, hasStock bool
 	for _, c := range cols {
 		switch strings.ToLower(c.GetName()) {
@@ -111,7 +166,7 @@ func parseSkuStock(cols []*pbe.Column) (skuID uint64, stock int, ok bool) {
 			if err != nil {
 				return 0, 0, false
 			}
-			skuID = v
+			id = v
 			hasID = true
 		case "stock":
 			v, err := strconv.Atoi(c.GetValue())
@@ -122,7 +177,7 @@ func parseSkuStock(cols []*pbe.Column) (skuID uint64, stock int, ok bool) {
 			hasStock = true
 		}
 	}
-	return skuID, stock, hasID && hasStock
+	return id, stock, hasID && hasStock
 }
 
 func softDeleted(cols []*pbe.Column) bool {

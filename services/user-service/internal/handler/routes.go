@@ -380,6 +380,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Path:    "/api/v1/internal/points/refund",
 					Handler: internalapipoints.InternalRefundPointsHandler(serverCtx),
 				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/internal/points/add",
+					Handler: internalapipoints.InternalAddPointsHandler(serverCtx),
+				},
 			}...,
 		),
 	)

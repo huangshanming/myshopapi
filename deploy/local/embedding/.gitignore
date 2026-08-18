@@ -1,0 +1,5 @@
+bge-large-zh-v1.5/
+*.bin
+*.safetensors
+*.onnx
+*.gguf

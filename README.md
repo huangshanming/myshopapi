@@ -10,6 +10,10 @@ Client → APISIX (JWT) → user-service     (rest :8881, zrpc :9090)
                        → order-service   (rest :8883, zrpc Client → user/catalog/merchant)
                        → merchant-service(rest :8884, zrpc :9092)
                        → inventory-sync  (health :8885, Canal→Redis 库存预热)
+                       → agent-service   (FastAPI :8886, Python Agents / 导购)
+                       → lottery-service (HTTP :8887)
+                       → recommend-service (FastAPI :8888, 协同推荐)
+                       → askdata-service (FastAPI :8889, 电商问数)
 ```
 
 - **HTTP**：go-zero `rest`；契约见 [`docs/gozero-http-contract.md`](docs/gozero-http-contract.md)
@@ -48,6 +52,10 @@ mymall/
 │       ├── repository/  # sqlx 数据访问
 │       ├── server/      # zrpc 服务端（user/catalog/merchant）
 │       └── client/      # zrpc 客户端
+├── services/agent-service/  # Python FastAPI Agents（:8886，智能导购等）
+├── services/recommend-service/  # Python FastAPI 协同推荐（:8888）
+├── services/askdata-service/  # Python FastAPI 电商问数（:8889，uv）
+├── services/lottery-service/ # 九宫格抽奖（:8887）
 ├── deploy/
 │   ├── k8s/
 │   ├── apisix/
@@ -86,8 +94,9 @@ mysql -u homestead -p --default-character-set=utf8mb4 mymall < scripts/seed-rbac
 # mysql -u homestead -p mymall < scripts/alter-product-center.sql
 # python3 scripts/seed-shop-demo-products.py
 
-# Redis + RabbitMQ + Canal（可选 docker-compose）
+# Redis + RabbitMQ + Canal + Milvus（可选 docker-compose）
 docker compose -f deploy/local/docker-compose.infra.yaml up -d
+# Milvus gRPC :19530 / health :19091
 
 # Canal 复制账号（一次即可；需本机 MySQL 已开 ROW binlog）
 mysql -u root -p < scripts/init-canal-mysql.sql
@@ -113,7 +122,7 @@ binlog_row_image=FULL
 mysql -u homestead -p -e "SHOW VARIABLES LIKE 'log_bin'; SHOW VARIABLES LIKE 'binlog_format';"
 ```
 
-`inventory-sync-service` 启动时全量预热 `product_skus.stock` → Redis，随后用 [canal-go](https://github.com/withlin/canal-go) 增量 CAS 同步。下单路径：Redis 预扣 → MQ → MySQL 乐观锁；`inventory.failed` / 取消订单会补偿 Redis。
+`inventory-sync-service` 启动时全量预热 `product_skus.stock` 与 `lottery_prizes.stock` → Redis，随后用 [canal-go](https://github.com/withlin/canal-go) 增量同步。下单路径：Redis 预扣 → MQ → MySQL 乐观锁；抽奖有限库存：Redis 预扣 → MySQL 事务扣库存（binlog 回写 Redis）。`inventory.failed` / 取消订单会补偿 Redis。
 
 ```bash
 bash scripts/dev.sh inventory   # 单独跑 sync

@@ -108,14 +108,21 @@ type CpsConvertResp = DataResp
 type CpsGoodsListReq struct {
 	Platform string `form:"platform"`
 	Keyword  string `form:"keyword,optional"`
-	Page     int    `form:"page,default=1"`
+	MinID    int64  `form:"min_id,optional"`
 	PageSize int    `form:"page_size,default=10"`
+}
+
+type CpsGoodsListResp struct {
+	Total     int64       `json:"total"`
+	List      interface{} `json:"list"`
+	NextMinID int64       `json:"next_min_id"`
 }
 
 type CpsGoodsConvertReq struct {
 	Platform string `json:"platform"`
 	ItemID   string `json:"item_id,optional"`
 	RawURL   string `json:"raw_url,optional"`
+	Title    string `json:"title,optional"`
 }
 
 
@@ -249,10 +256,12 @@ type PageReq struct {
 }
 
 type PointsLedgerReq struct {
-	UserID uint64 `json:"user_id"`
-	Points int64  `json:"points"`
-	Reason string `json:"reason,optional"`
-	RefNo  string `json:"ref_no,optional"`
+	UserID     uint64 `json:"user_id"`
+	Points     int64  `json:"points"`
+	Reason     string `json:"reason,optional"`
+	RefNo      string `json:"ref_no,optional"`
+	ChangeType string `json:"change_type,optional"`
+	RefType    string `json:"ref_type,optional"`
 }
 
 

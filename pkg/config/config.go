@@ -352,7 +352,7 @@ func (c *Config) applyDefaults() {
 		c.Canal.Destination = "mymall"
 	}
 	if c.Canal.Filter == "" {
-		c.Canal.Filter = `mymall\.product_skus`
+		c.Canal.Filter = `mymall\.(product_skus|lottery_prizes)`
 	}
 	if c.Canal.SoTimeout == 0 {
 		c.Canal.SoTimeout = 60000

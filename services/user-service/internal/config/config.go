@@ -22,8 +22,8 @@ type Config struct {
 
 	MySQL      MySQLConf
 	Auth       AuthConf
-	Jutuike    JutuikeConf    `json:",optional"`
-	Dingdanxia DingdanxiaConf `json:",optional"`
+	Jutuike  JutuikeConf  `json:",optional"`
+	Haodanku HaodankuConf `json:",optional"`
 	// AppTelemetry is our OTel init config. Named to avoid clash with rest.RestConf / ServiceConf.Telemetry.
 	AppTelemetry TelemetryConf
 }
@@ -38,11 +38,12 @@ type JutuikeConf struct {
 	Timeout int    `json:",default=8"` // seconds
 }
 
-type DingdanxiaConf struct {
+type HaodankuConf struct {
 	ApiKey  string `json:",optional"`
-	BaseURL string `json:",default=http://api.tbk.dingdanxia.com"`
+	BaseURL string `json:",default=https://v3.api.haodanku.com"`
 	Timeout int    `json:",default=8"`
-	PddPid  string `json:",optional"` // 拼多多推广位，转链需要
+	Pid     string `json:",optional"` // 淘宝推广位 PID
+	TbName  string `json:",optional"` // 好单库已授权淘宝账号昵称
 }
 
 type MySQLConf struct {
@@ -203,19 +204,22 @@ func (c *Config) OverlayFromEnv() {
 			c.Jutuike.Timeout = n
 		}
 	}
-	if v := strings.TrimSpace(os.Getenv("MYMALL_DINGDANXIA_APIKEY")); v != "" {
-		c.Dingdanxia.ApiKey = v
+	if v := strings.TrimSpace(os.Getenv("MYMALL_HAODANKU_APIKEY")); v != "" {
+		c.Haodanku.ApiKey = v
 	}
-	if v := strings.TrimSpace(os.Getenv("MYMALL_DINGDANXIA_BASE_URL")); v != "" {
-		c.Dingdanxia.BaseURL = v
+	if v := strings.TrimSpace(os.Getenv("MYMALL_HAODANKU_BASE_URL")); v != "" {
+		c.Haodanku.BaseURL = v
 	}
-	if v := strings.TrimSpace(os.Getenv("MYMALL_DINGDANXIA_TIMEOUT")); v != "" {
+	if v := strings.TrimSpace(os.Getenv("MYMALL_HAODANKU_TIMEOUT")); v != "" {
 		if n, err := strconv.Atoi(v); err == nil && n > 0 {
-			c.Dingdanxia.Timeout = n
+			c.Haodanku.Timeout = n
 		}
 	}
-	if v := strings.TrimSpace(os.Getenv("MYMALL_DINGDANXIA_PDD_PID")); v != "" {
-		c.Dingdanxia.PddPid = v
+	if v := strings.TrimSpace(os.Getenv("MYMALL_HAODANKU_PID")); v != "" {
+		c.Haodanku.Pid = v
+	}
+	if v := strings.TrimSpace(os.Getenv("MYMALL_HAODANKU_TB_NAME")); v != "" {
+		c.Haodanku.TbName = v
 	}
 }
 

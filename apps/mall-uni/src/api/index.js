@@ -188,6 +188,22 @@ export function convertCpsGoods(data) {
   return http.post('/api/v1/user/cps/goods/convert', data)
 }
 
+export function getLotteryActivity() {
+  return http.get('/api/v1/lottery/activity')
+}
+
+export function drawLottery() {
+  return http.post('/api/v1/lottery/draw')
+}
+
+export function listLotteryRecords(params) {
+  return http.get('/api/v1/lottery/records', params)
+}
+
+export function claimLotteryAddress(id, addressId) {
+  return http.post(`/api/v1/lottery/records/${id}/address`, { address_id: addressId })
+}
+
 export function listUserTasks() {
   return http.get('/api/v1/user/tasks')
 }

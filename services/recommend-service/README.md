@@ -85,6 +85,23 @@ SELECT COUNT(*) FROM products WHERE product_no LIKE 'ICF-P-%';  -- 120
 SELECT COUNT(*) FROM orders WHERE order_no LIKE 'ICF-O-%';     -- 2000
 ```
 
+## 离线 Job
+
+```bash
+cd services/recommend-service && source .venv/bin/activate
+
+# A 路 ItemCF → Redis sim:spu:{id}
+python -m jobs.itemcf_train
+
+# B 路 ALS/MF → Milvus item 向量 + Redis 用户向量
+python -m jobs.offline_mf
+
+# C 路 SASRec → Redis sasrec:next:{user_id} + Milvus item_sasrec_vector + artifacts/sasrec.pt
+python -m jobs.offline_sasrec
+```
+
+SASRec 需要 `torch`（已写入 `requirements.txt`），以及本机 MySQL / Redis / Milvus 可用。
+
 ## 目录
 
 ```
@@ -93,9 +110,12 @@ app/
   config.py
   api/routes/       # health / recommend / track
   reco/             # 业务逻辑（keys + service stubs）
-  clients/          # redis / catalog
+  clients/          # redis / catalog / milvus
 jobs/
-  itemcf_train.py   # 离线训练占位
+  itemcf_train.py   # ItemCF 离线
+  offline_mf.py     # ALS/MF 离线
+  offline_sasrec.py # SASRec 序列推荐离线
+artifacts/          # sasrec.pt 等模型产物
 etc/
   recommend-service.yaml
 ```

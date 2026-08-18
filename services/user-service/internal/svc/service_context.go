@@ -5,7 +5,7 @@ import (
 
 	"mymall/pkg/health"
 	"mymall/pkg/jwt"
-	"mymall/services/user-service/internal/client/dingdanxia"
+	"mymall/services/user-service/internal/client/haodanku"
 	"mymall/services/user-service/internal/client/jutuike"
 	"mymall/services/user-service/internal/config"
 	"mymall/services/user-service/internal/middleware"
@@ -24,7 +24,7 @@ type ServiceContext struct {
 	PointsProducts *repository.PointsProductRepository
 	PointsOrders   *repository.PointsOrderRepository
 	Jutuike        *jutuike.Client
-	Dingdanxia     *dingdanxia.Client
+	Haodanku       *haodanku.Client
 	JWT            jwt.Config
 	Health         *health.Registry
 
@@ -40,9 +40,9 @@ func NewServiceContext(cfg *config.Config, conn sqlx.SqlConn) *ServiceContext {
 	if jtkTimeout <= 0 {
 		jtkTimeout = 8 * time.Second
 	}
-	ddxTimeout := time.Duration(cfg.Dingdanxia.Timeout) * time.Second
-	if ddxTimeout <= 0 {
-		ddxTimeout = 8 * time.Second
+	hdkTimeout := time.Duration(cfg.Haodanku.Timeout) * time.Second
+	if hdkTimeout <= 0 {
+		hdkTimeout = 8 * time.Second
 	}
 	return &ServiceContext{
 		Config:         cfg,
@@ -57,11 +57,12 @@ func NewServiceContext(cfg *config.Config, conn sqlx.SqlConn) *ServiceContext {
 			BaseURL: cfg.Jutuike.BaseURL,
 			Timeout: jtkTimeout,
 		}),
-		Dingdanxia: dingdanxia.NewClient(dingdanxia.Config{
-			ApiKey:  cfg.Dingdanxia.ApiKey,
-			BaseURL: cfg.Dingdanxia.BaseURL,
-			Timeout: ddxTimeout,
-			PddPid:  cfg.Dingdanxia.PddPid,
+		Haodanku: haodanku.NewClient(haodanku.Config{
+			ApiKey:  cfg.Haodanku.ApiKey,
+			BaseURL: cfg.Haodanku.BaseURL,
+			Timeout: hdkTimeout,
+			Pid:     cfg.Haodanku.Pid,
+			TbName:  cfg.Haodanku.TbName,
 		}),
 		JWT: jwt.Config{
 			Secret:      cfg.Auth.AccessSecret,

@@ -8,6 +8,7 @@
 #   bash scripts/dev.sh order
 #   bash scripts/dev.sh merchant
 #   bash scripts/dev.sh inventory    # inventory-sync-service（Canal→Redis）
+#   bash scripts/dev.sh lottery      # lottery-service 九宫格抽奖
 #
 # 前提: 本机 MySQL 已启动并开启 ROW binlog；脚本会自动拉起 Redis + RabbitMQ + Canal
 # 首次会 go install github.com/air-verse/air@latest
@@ -77,6 +78,9 @@ case "$TARGET" in
   inventory|inventory-sync)
     run_service "inventory-sync-service" "inventory-sync-service" "8885"
     ;;
+  lottery)
+    run_service "lottery-service" "lottery-service" "8887"
+    ;;
   all)
     yellow "==> 启动全部服务（air 热更新）"
     green "    user-service            → http://localhost:8881"
@@ -84,7 +88,8 @@ case "$TARGET" in
     green "    order-service           → http://localhost:8883"
     green "    merchant-service        → http://localhost:8884"
     green "    inventory-sync-service  → http://localhost:8885"
-    echo "    单独调试: bash scripts/dev.sh <user|catalog|order|merchant|inventory>"
+    green "    lottery-service         → http://localhost:8887"
+    echo "    单独调试: bash scripts/dev.sh <user|catalog|order|merchant|inventory|lottery>"
     echo "    保存 .go 文件后会自动重编；Ctrl+C 停止全部"
     echo ""
     PIDS=()
@@ -95,11 +100,12 @@ case "$TARGET" in
     (cd "$ROOT/services/order-service"             && air -c .air.toml) & PIDS+=($!)
     (cd "$ROOT/services/merchant-service"          && air -c .air.toml) & PIDS+=($!)
     (cd "$ROOT/services/inventory-sync-service"    && air -c .air.toml) & PIDS+=($!)
+    (cd "$ROOT/services/lottery-service"           && air -c .air.toml) & PIDS+=($!)
     wait
     ;;
   *)
     red "未知参数: $TARGET"
-    echo "用法: bash scripts/dev.sh [user|catalog|order|merchant|inventory|all]"
+    echo "用法: bash scripts/dev.sh [user|catalog|order|merchant|inventory|lottery|all]"
     exit 1
     ;;
 esac

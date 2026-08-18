@@ -60,13 +60,24 @@ func main() {
 
 	st, err := preheat.LoadAllSkuStock(ctx, db, rdb, logger)
 	if err != nil {
-		log.Fatalf("库存预热失败：%v", err)
+		log.Fatalf("SKU 库存预热失败：%v", err)
 	}
 	logger.Info("sku stock preheated",
 		zap.Int("scanned", st.Scanned),
 		zap.Int("filled", st.Filled),
 		zap.Int("pulled_down", st.PulledDown),
 		zap.Int("kept", st.Kept),
+	)
+
+	lst, err := preheat.LoadAllLotteryPrizeStock(ctx, db, rdb, logger)
+	if err != nil {
+		log.Fatalf("抽奖库存预热失败：%v", err)
+	}
+	logger.Info("lottery prize stock preheated",
+		zap.Int("scanned", lst.Scanned),
+		zap.Int("filled", lst.Filled),
+		zap.Int("pulled_down", lst.PulledDown),
+		zap.Int("kept", lst.Kept),
 	)
 
 	syncHandler := sync.NewHandler(rdb, logger)

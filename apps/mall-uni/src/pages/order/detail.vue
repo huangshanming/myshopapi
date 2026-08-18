@@ -1,99 +1,110 @@
 <template>
   <view class="page" v-if="order">
-    <view class="card shop-card" @tap="goShop">
-      <image class="shop-logo" :src="shop.logo || shopPlaceholder" mode="aspectFill" />
-      <view class="shop-meta">
-        <text class="shop-name">{{ shopDisplayName }}</text>
-        <text class="shop-sub">{{ shopLine }}</text>
+    <template v-if="!showAfterSaleForm">
+      <view class="card shop-card" @tap="goShop">
+        <image class="shop-logo" :src="shop.logo || shopPlaceholder" mode="aspectFill" />
+        <view class="shop-meta">
+          <text class="shop-name">{{ shopDisplayName }}</text>
+          <text class="shop-sub">{{ shopLine }}</text>
+        </view>
+        <text class="shop-arrow">进店 ›</text>
       </view>
-      <text class="shop-arrow">进店 ›</text>
-    </view>
 
-    <view class="card">
-      <view class="row">
-        <text class="label">订单号</text>
-        <text>{{ order.order_no }}</text>
-      </view>
-      <view class="row">
-        <text class="label">状态</text>
-        <text class="gold">{{ statusText(order.status) }}</text>
-      </view>
-      <view class="row">
-        <text class="label">金额</text>
-        <text class="price">¥{{ order.total_amount }}</text>
-      </view>
-      <view class="row">
-        <text class="label">下单时间</text>
-        <text>{{ order.created_at }}</text>
-      </view>
-      <view v-if="order.receiver_name || order.receiver_address" class="row col">
-        <text class="label">收货信息</text>
-        <text class="addr">{{ order.receiver_name }} {{ order.receiver_phone }}</text>
-        <text class="addr">{{ order.receiver_address }}</text>
-      </view>
-      <view v-if="order.ship_company" class="row">
-        <text class="label">物流</text>
-        <text>{{ order.ship_company }} {{ order.ship_no }}</text>
-      </view>
-      <view v-if="afterSale.deadline" class="row">
-        <text class="label">售后截止</text>
-        <text>{{ afterSale.deadline }}</text>
-      </view>
-    </view>
-
-    <view class="card">
-      <text class="sec">商品</text>
-      <view v-for="it in order.items || []" :key="it.id" class="item">
-        <text class="name">{{ it.product_name }}</text>
-        <text class="sub">×{{ it.quantity }} · ¥{{ it.price }}</text>
-      </view>
-    </view>
-
-    <view v-if="showAfterSaleForm" class="card form">
-      <text class="sec">申请售后</text>
-      <view class="field">
-        <text class="flabel">类型</text>
-        <view class="seg">
-          <text
-            class="seg-item"
-            :class="{ on: afterForm.type === 'refund' }"
-            @tap="afterForm.type = 'refund'"
-          >仅退款</text>
-          <text
-            class="seg-item"
-            :class="{ on: afterForm.type === 'return_refund' }"
-            @tap="afterForm.type = 'return_refund'"
-          >退货退款</text>
+      <view class="card">
+        <view class="row">
+          <text class="label">订单号</text>
+          <text>{{ order.order_no }}</text>
+        </view>
+        <view class="row">
+          <text class="label">状态</text>
+          <text class="gold">{{ statusText(order.status) }}</text>
+        </view>
+        <view class="row">
+          <text class="label">金额</text>
+          <text class="price">¥{{ order.total_amount }}</text>
+        </view>
+        <view class="row">
+          <text class="label">下单时间</text>
+          <text>{{ order.created_at }}</text>
+        </view>
+        <view v-if="order.receiver_name || order.receiver_address" class="row col">
+          <text class="label">收货信息</text>
+          <text class="addr">{{ order.receiver_name }} {{ order.receiver_phone }}</text>
+          <text class="addr">{{ order.receiver_address }}</text>
+        </view>
+        <view v-if="order.ship_company" class="row">
+          <text class="label">物流</text>
+          <text>{{ order.ship_company }} {{ order.ship_no }}</text>
+        </view>
+        <view v-if="afterSale.deadline" class="row">
+          <text class="label">售后截止</text>
+          <text>{{ afterSale.deadline }}</text>
         </view>
       </view>
-      <view class="field">
-        <text class="flabel">退款金额</text>
-        <input
-          class="input"
-          type="digit"
-          v-model="afterForm.amount"
-          :placeholder="`最多 ¥${payAmount}`"
-        />
-      </view>
-      <view class="field">
-        <text class="flabel">原因</text>
-        <textarea
-          class="textarea"
-          v-model="afterForm.reason"
-          maxlength="200"
-          placeholder="请填写售后原因"
-        />
-      </view>
-      <button class="btn primary" :loading="busy" @tap="onSubmitAfterSale">提交申请</button>
-      <button class="btn outline" :disabled="busy" @tap="showAfterSaleForm = false">取消</button>
-    </view>
 
-    <view class="actions" v-else>
-      <button v-if="canCancel" class="btn outline" :loading="busy" @tap="onCancel">取消订单</button>
-      <button v-if="canConfirm" class="btn primary" :loading="busy" @tap="onConfirm">确认收货</button>
-      <button v-if="canReview" class="btn primary" @tap="goReview">去评价</button>
-      <button v-if="canViewReview" class="btn outline" @tap="goViewReview">查看评价</button>
-      <button v-if="canAfterSale" class="btn outline" @tap="openAfterSale">申请售后</button>
+      <view class="card">
+        <text class="sec">商品</text>
+        <view v-for="it in order.items || []" :key="it.id" class="item">
+          <text class="name">{{ it.product_name }}</text>
+          <text class="sub">×{{ it.quantity }} · ¥{{ it.price }}</text>
+        </view>
+      </view>
+
+      <view class="actions">
+        <button v-if="canCancel" class="btn outline" :loading="busy" @tap="onCancel">取消订单</button>
+        <button v-if="canConfirm" class="btn primary" :loading="busy" @tap="onConfirm">确认收货</button>
+        <button v-if="canReview" class="btn primary" @tap="goReview">去评价</button>
+        <button v-if="canViewReview" class="btn outline" @tap="goViewReview">查看评价</button>
+        <button v-if="canAfterSale" class="btn outline" @tap="openAfterSale">申请售后</button>
+      </view>
+    </template>
+
+    <view v-else class="after-sale">
+      <view class="card form">
+        <text class="sec">申请售后</text>
+        <text class="hint">订单 {{ order.order_no }} · 最多退 ¥{{ payAmount }}</text>
+        <view class="field">
+          <text class="flabel">类型</text>
+          <view class="seg">
+            <text
+              class="seg-item"
+              :class="{ on: afterForm.type === 'refund' }"
+              @tap="afterForm.type = 'refund'"
+            >仅退款</text>
+            <text
+              class="seg-item"
+              :class="{ on: afterForm.type === 'return_refund' }"
+              @tap="afterForm.type = 'return_refund'"
+            >退货退款</text>
+          </view>
+        </view>
+        <view class="field">
+          <text class="flabel">退款金额</text>
+          <view class="amount-row">
+            <text class="amount-prefix">¥</text>
+            <input
+              class="input amount-input"
+              type="digit"
+              v-model="afterForm.amount"
+              :placeholder="payAmount"
+            />
+          </view>
+        </view>
+        <view class="field">
+          <text class="flabel">原因</text>
+          <textarea
+            class="textarea"
+            v-model="afterForm.reason"
+            maxlength="200"
+            placeholder="请填写售后原因"
+            :auto-height="true"
+          />
+        </view>
+      </view>
+      <view class="foot-actions">
+        <button class="btn outline" :disabled="busy" @tap="showAfterSaleForm = false">取消</button>
+        <button class="btn primary" :loading="busy" @tap="onSubmitAfterSale">提交申请</button>
+      </view>
     </view>
   </view>
   <view v-else class="empty">{{ loading ? '加载中...' : '订单不存在' }}</view>
@@ -221,6 +232,7 @@ function openAfterSale() {
   afterForm.amount = payAmount.value
   afterForm.reason = ''
   showAfterSaleForm.value = true
+  uni.pageScrollTo({ scrollTop: 0, duration: 0 })
 }
 
 async function onSubmitAfterSale() {
@@ -303,7 +315,7 @@ function goViewReview() {
 </script>
 
 <style scoped>
-.page { padding: 24rpx 32rpx 48rpx; }
+.page { padding: 24rpx 32rpx 48rpx; padding-bottom: calc(48rpx + env(safe-area-inset-bottom)); }
 .card {
   background: #fff; border-radius: 24rpx; padding: 28rpx; margin-bottom: 20rpx;
   box-shadow: 0 4rpx 24rpx rgba(200,168,118,.08);
@@ -336,6 +348,8 @@ function goViewReview() {
 .btn.outline { background: #fff; color: #d83636; border: 2rpx solid #d83636; }
 .btn.primary { background: linear-gradient(135deg, #bfa472, #d4b890); color: #fff; border: none; }
 .empty { text-align: center; padding: 120rpx; color: #71717a; }
+.after-sale { padding-bottom: 160rpx; }
+.hint { display: block; font-size: 22rpx; color: #a1a1aa; margin: -8rpx 0 20rpx; }
 .form .field { margin-bottom: 20rpx; }
 .flabel { display: block; font-size: 24rpx; color: #71717a; margin-bottom: 10rpx; }
 .seg { display: flex; gap: 12rpx; }
@@ -348,6 +362,24 @@ function goViewReview() {
   width: 100%; box-sizing: border-box; background: #fafafa; border-radius: 12rpx;
   padding: 18rpx 20rpx; font-size: 26rpx; color: #18181b;
 }
-.textarea { min-height: 140rpx; }
-.form .btn { margin-top: 8rpx; }
+.amount-row {
+  display: flex; align-items: center; gap: 8rpx;
+  background: #fafafa; border-radius: 12rpx; padding: 0 20rpx;
+  min-height: 88rpx; box-sizing: border-box;
+}
+.amount-prefix {
+  font-size: 32rpx; font-weight: 700; color: #d83636; flex-shrink: 0; line-height: 1;
+}
+.amount-input {
+  flex: 1; min-width: 0; width: auto; height: 88rpx; line-height: 88rpx;
+  padding: 0; background: transparent; font-size: 32rpx; font-weight: 600;
+  color: #18181b;
+}
+.textarea { min-height: 160rpx; width: 100%; }
+.foot-actions {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  display: flex; gap: 16rpx; padding: 16rpx 32rpx calc(16rpx + env(safe-area-inset-bottom));
+  background: rgba(255,255,255,.96); box-shadow: 0 -4rpx 24rpx rgba(0,0,0,.06);
+}
+.foot-actions .btn { flex: 1; }
 </style>

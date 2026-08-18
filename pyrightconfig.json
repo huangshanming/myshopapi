@@ -1,0 +1,21 @@
+{
+  "venvPath": "services/recommend-service",
+  "venv": ".venv",
+  "pythonVersion": "3.10",
+  "executionEnvironments": [
+    {
+      "root": "services/recommend-service",
+      "extraPaths": ["services/recommend-service"],
+      "pythonVersion": "3.10"
+    },
+    {
+      "root": "services/agent-service",
+      "extraPaths": ["services/agent-service"],
+      "pythonVersion": "3.10"
+    },
+    {
+      "root": "test/langchain",
+      "pythonVersion": "3.13"
+    }
+  ]
+}

@@ -77,7 +77,7 @@ PY
 
 if [[ "$SERVICE" == "all" ]]; then
   ec=0
-  for s in merchant-service order-service user-service catalog-service inventory-sync-service; do
+  for s in merchant-service order-service user-service catalog-service inventory-sync-service lottery-service; do
     [[ -d "$ROOT/services/$s" ]] || continue
     check_one "$s" || ec=1
   done

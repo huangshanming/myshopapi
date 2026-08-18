@@ -1,0 +1,103 @@
+syntax = "v1"
+
+info (
+	title:   "lottery-service"
+	desc:    "九宫格抽奖"
+	author:  "mymall"
+	version: "v1"
+)
+
+type EmptyResp {}
+
+type PageReq {
+	Page     int `form:"page,default=1"`
+	PageSize int `form:"page_size,default=20"`
+}
+
+type PageListResp {
+	Total int64       `json:"total"`
+	List  interface{} `json:"list"`
+}
+
+type DataResp {
+	Data interface{} `json:"data,optional"`
+}
+
+type URLResp {
+	URL string `json:"url"`
+}
+
+type AdminRecordsReq {
+	ActivityID uint64 `form:"activity_id,optional"`
+	PrizeType  string `form:"prize_type,optional"`
+	Page       int    `form:"page,default=1"`
+	PageSize   int    `form:"page_size,default=20"`
+}
+
+@server (
+	group: public/health
+)
+service lottery-service {
+	@handler Healthz
+	get /healthz returns (EmptyResp)
+
+	@handler Readyz
+	get /readyz returns (EmptyResp)
+}
+
+@server (
+	middleware: RequestID
+	group:      user/lottery
+)
+service lottery-service {
+	@handler GetLotteryActivity
+	get /api/v1/lottery/activity returns (DataResp)
+}
+
+@server (
+	middleware: RequestID,GatewayIdentity
+	group:      user/lottery
+)
+service lottery-service {
+	@handler DrawLottery
+	post /api/v1/lottery/draw returns (DataResp)
+
+	@handler ListLotteryRecords
+	get /api/v1/lottery/records (PageReq) returns (PageListResp)
+
+	@handler ClaimLotteryAddress
+	post /api/v1/lottery/records/:id/address returns (DataResp)
+}
+
+@server (
+	middleware: RequestID,GatewayIdentity,RequirePlatformAdmin
+	group:      admin/lottery
+)
+service lottery-service {
+	@handler AdminListLotteryActivities
+	get /api/v1/admin/lottery/activities (PageReq) returns (PageListResp)
+
+	@handler AdminCreateLotteryActivity
+	post /api/v1/admin/lottery/activities returns (DataResp)
+
+	@handler AdminGetLotteryActivity
+	get /api/v1/admin/lottery/activities/:id returns (DataResp)
+
+	@handler AdminUpdateLotteryActivity
+	put /api/v1/admin/lottery/activities/:id returns (DataResp)
+
+	@handler AdminSaveLotteryPrizes
+	put /api/v1/admin/lottery/activities/:id/prizes returns (DataResp)
+
+	@handler AdminListLotteryRecords
+	get /api/v1/admin/lottery/records (AdminRecordsReq) returns (PageListResp)
+
+	@handler AdminListLotteryOrders
+	get /api/v1/admin/lottery/orders returns (PageListResp)
+
+	@handler AdminShipLotteryOrder
+	post /api/v1/admin/lottery/orders/:id/ship returns (EmptyResp)
+
+	@handler AdminUploadLotteryImage
+	post /api/v1/admin/lottery/upload returns (URLResp)
+}

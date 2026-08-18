@@ -53,6 +53,9 @@ import AdminMessages from '../views/admin/Messages.vue'
 import AdminTaskCenter from '../views/admin/TaskCenter.vue'
 import AdminPointsMall from '../views/admin/PointsMall.vue'
 import AdminPointsOrders from '../views/admin/PointsOrders.vue'
+import AdminLottery from '../views/admin/Lottery.vue'
+import AdminLotteryRecords from '../views/admin/LotteryRecords.vue'
+import AdminLotteryOrders from '../views/admin/LotteryOrders.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -75,6 +78,9 @@ const router = createRouter({
         { path: 'tasks', component: AdminTaskCenter, meta: { perms: 'marketing:task:list' } },
         { path: 'points-mall', component: AdminPointsMall, meta: { perms: 'marketing:points_mall:list' } },
         { path: 'points-orders', component: AdminPointsOrders, meta: { perms: 'marketing:points_mall:list' } },
+        { path: 'lottery', component: AdminLottery, meta: { perms: 'marketing:lottery:list' } },
+        { path: 'lottery-records', component: AdminLotteryRecords, meta: { perms: 'marketing:lottery:list' } },
+        { path: 'lottery-orders', component: AdminLotteryOrders, meta: { perms: 'marketing:lottery:order' } },
         { path: 'messages', component: AdminMessages, meta: { perms: 'business:message:send' } },
         { path: 'orders', component: AdminOrders, meta: { perms: 'business:order:list' } },
         { path: 'after-sales', component: AdminAfterSales, meta: { perms: 'business:aftersale:list' } },

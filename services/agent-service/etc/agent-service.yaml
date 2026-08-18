@@ -1,0 +1,10 @@
+Name: agent-service
+Host: 0.0.0.0
+Port: 8886
+Mode: dev
+
+# Upstream (same as MYMALL_*_HTTP env)
+UserHTTP: http://127.0.0.1:8881
+CatalogHTTP: http://127.0.0.1:8882
+OrderHTTP: http://127.0.0.1:8883
+MerchantHTTP: http://127.0.0.1:8884

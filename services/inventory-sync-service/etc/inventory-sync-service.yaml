@@ -25,7 +25,7 @@ canal:
   username: ""
   password: ""
   # Perl 正则；转义在 yaml 里写成单反斜杠即可
-  filter: mymall\.product_skus
+  filter: mymall\.(product_skus|lottery_prizes)
   so_timeout: 60000
   idle_timeout: 3600000
 telemetry:

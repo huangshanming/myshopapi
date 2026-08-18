@@ -320,6 +320,21 @@
       </view>
     </view>
 
+    <!-- 抽奖悬浮入口：有进行中活动时显示，位于任务入口上方 -->
+    <view v-if="lotteryFabVisible" class="lottery-fab" @tap="goLottery">
+      <view class="lottery-fab-glow" />
+      <view class="lottery-fab-ring">
+        <view class="lottery-fab-wheel">
+          <view class="lottery-fab-seg" />
+        </view>
+        <view class="lottery-fab-hub">抽</view>
+      </view>
+      <view class="lottery-fab-spark a1" />
+      <view class="lottery-fab-spark a2" />
+      <view class="lottery-fab-spark a3" />
+      <text class="lottery-fab-badge">抽奖</text>
+    </view>
+
     <!-- 任务中心悬浮入口：礼盒风格 + 画面动效 -->
     <view class="task-fab" @tap="goTaskCenter">
       <view class="task-fab-glow" />
@@ -339,8 +354,8 @@
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { onReachBottom, onShow } from '@dcloudio/uni-app'
 import {
-  getNotificationUnreadCount, getSeckillCurrent, listAddresses, listArticles, listBanners, listCategories,
-  listCouponCenter, listHomeSlots, listLocalShops, listProducts, listSalesRank, listThemeTiles,
+  getLotteryActivity, getNotificationUnreadCount, getSeckillCurrent, listAddresses, listArticles, listBanners,
+  listCategories, listCouponCenter, listHomeSlots, listLocalShops, listProducts, listSalesRank, listThemeTiles,
 } from '../../api/index'
 import { isLoggedIn } from '../../stores/user'
 import { applyAddressCityIfNeeded, getCity, getCoords, hasCoords } from '../../stores/location'
@@ -402,7 +417,7 @@ const fillEntries = [
   { name: '领券中心', icon: CAT_ICON.coupon, bg: '#FEF3C7', coupon: true },
   { name: '我的订单', icon: CAT_ICON.orders, bg: '#DBEAFE', orders: true },
   { name: '消息中心', icon: CAT_ICON.messages, bg: '#FCE7F3', messages: true },
-  { name: '更多分类', icon: CAT_ICON.more, bg: '#F4F4F5', more: true },
+  { name: '九宫格抽奖', icon: CAT_ICON.seckill, bg: '#FEF2F2', lottery: true },
   { name: '品牌好店', icon: CAT_ICON.brand, bg: 'rgba(230,213,188,.45)', brand: true },
 ]
 const apiCats = ref([])
@@ -432,6 +447,7 @@ const notes = ref([])
 const themes = ref([])
 const couponBarText = ref('领券中心有好券，点击立即领取')
 const unreadCount = ref(0)
+const lotteryFabVisible = ref(false)
 let unreadTimer
 
 const rankList = ref([])
@@ -499,6 +515,10 @@ function onCategory(c) {
   }
   if (c.pointsMall || c.name === '积分商城') {
     goPointsMall()
+    return
+  }
+  if (c.lottery || c.name === '九宫格抽奖') {
+    uni.navigateTo({ url: '/pages/lottery/index' })
     return
   }
   if (c.cps || c.name === '优惠购') {
@@ -651,6 +671,20 @@ function goTaskCenter() {
     return
   }
   uni.navigateTo({ url: '/pages/task/index' })
+}
+
+function goLottery() {
+  uni.navigateTo({ url: '/pages/lottery/index' })
+}
+
+async function loadLotteryFab() {
+  try {
+    const res = await getLotteryActivity()
+    const act = res?.data || res
+    lotteryFabVisible.value = !!(act && act.id)
+  } catch {
+    lotteryFabVisible.value = false
+  }
 }
 
 async function loadUnread() {
@@ -845,6 +879,7 @@ onReachBottom(() => loadMore())
 
 onShow(async () => {
   loadUnread()
+  loadLotteryFab()
   await syncCityFromAddress()
   locCity.value = getCity()
   loadHomeSlots()
@@ -865,6 +900,7 @@ onMounted(() => {
   loadSalesRank()
   loadProducts(true)
   loadUnread()
+  loadLotteryFab()
   unreadTimer = setInterval(loadUnread, 30000)
 })
 
@@ -1157,6 +1193,93 @@ onUnmounted(() => {
   font-size: 20rpx; margin-top: 10rpx; color: var(--shop-text);
   width: 100%; text-align: center; padding: 0 4rpx;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.lottery-fab {
+  position: fixed; right: 5rpx; bottom: calc(250rpx + env(safe-area-inset-bottom));
+  width: 96rpx; height: 96rpx; z-index: 51;
+  display: flex; align-items: center; justify-content: center;
+}
+.lottery-fab-glow {
+  position: absolute; inset: -14rpx; border-radius: 50%;
+  background: radial-gradient(circle, rgba(192, 132, 252, 0.7) 0%, rgba(124, 58, 237, 0.35) 42%, transparent 72%);
+  animation: lottery-glow 1.8s ease-in-out infinite;
+  pointer-events: none;
+}
+.lottery-fab-ring {
+  position: relative; z-index: 1;
+  width: 74rpx; height: 74rpx; border-radius: 50%;
+  padding: 4rpx;
+  background: linear-gradient(145deg, #e9d5ff, #a855f7 40%, #6d28d9 70%, #c4b5fd);
+  box-shadow:
+    0 0 18rpx rgba(168, 85, 247, 0.65),
+    0 8rpx 20rpx rgba(91, 33, 182, 0.45),
+    inset 0 0 8rpx rgba(255, 255, 255, 0.35);
+}
+.lottery-fab-wheel {
+  position: relative;
+  width: 100%; height: 100%; border-radius: 50%; overflow: hidden;
+  background: #4c1d95;
+  animation: lottery-spin 3.2s linear infinite;
+}
+.lottery-fab-seg {
+  position: absolute; inset: 0;
+  background: conic-gradient(
+    from 0deg,
+    #c084fc 0deg 45deg,
+    #7c3aed 45deg 90deg,
+    #d8b4fe 90deg 135deg,
+    #6d28d9 135deg 180deg,
+    #a855f7 180deg 225deg,
+    #5b21b6 225deg 270deg,
+    #e9d5ff 270deg 315deg,
+    #8b5cf6 315deg 360deg
+  );
+}
+.lottery-fab-hub {
+  position: absolute; z-index: 2; left: 50%; top: 50%;
+  width: 34rpx; height: 34rpx; margin: -17rpx 0 0 -17rpx;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18rpx; font-weight: 800; color: #fff;
+  background: linear-gradient(160deg, #f5d0fe, #a855f7 55%, #581c87);
+  box-shadow: 0 0 0 3rpx rgba(255, 255, 255, 0.55), 0 4rpx 10rpx rgba(88, 28, 135, 0.55);
+  animation: lottery-hub-pulse 1.6s ease-in-out infinite;
+}
+.lottery-fab-spark {
+  position: absolute; z-index: 2; pointer-events: none;
+  width: 10rpx; height: 10rpx; border-radius: 50%;
+  background: #f0abfc;
+  box-shadow: 0 0 8rpx #e879f9;
+  animation: lottery-spark 1.5s ease-in-out infinite;
+}
+.lottery-fab-spark.a1 { top: 8rpx; right: 18rpx; }
+.lottery-fab-spark.a2 { top: 36rpx; left: 6rpx; width: 8rpx; height: 8rpx; animation-delay: .4s; background: #ddd6fe; }
+.lottery-fab-spark.a3 { bottom: 22rpx; right: 10rpx; width: 7rpx; height: 7rpx; animation-delay: .8s; background: #fae8ff; }
+.lottery-fab-badge {
+  position: absolute; z-index: 3; left: 50%; bottom: -10rpx;
+  transform: translateX(-50%);
+  padding: 4rpx 16rpx; border-radius: 20rpx;
+  font-size: 18rpx; font-weight: 700; color: #fff;
+  background: linear-gradient(90deg, #a855f7, #7c3aed 50%, #6d28d9);
+  box-shadow: 0 4rpx 12rpx rgba(124, 58, 237, 0.5);
+  white-space: nowrap;
+}
+.lottery-fab:active .lottery-fab-ring { transform: scale(0.92); }
+@keyframes lottery-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes lottery-glow {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.12); }
+}
+@keyframes lottery-hub-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+@keyframes lottery-spark {
+  0%, 100% { opacity: 0.3; transform: scale(0.7); }
+  50% { opacity: 1; transform: scale(1.25); }
 }
 .task-fab {
   position: fixed; right: 5rpx; bottom: calc(130rpx + env(safe-area-inset-bottom));

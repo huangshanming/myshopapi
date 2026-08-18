@@ -1,0 +1,30 @@
+Name: lottery-service.api
+Host: 0.0.0.0
+Port: 8887
+Mode: dev
+Timeout: 30000
+Log:
+  Mode: console
+  Encoding: plain
+
+MySQL:
+  Host: 127.0.0.1
+  Port: 3306
+  Username: homestead
+  Password: secret
+  Dbname: mymall
+  Charset: utf8mb4
+  MaxOpenConns: 50
+  MaxIdleConns: 10
+  ConnMaxLifetime: 3600
+  ConnMaxIdleTime: 3600
+
+Redis:
+  Host: 127.0.0.1
+  Port: 6379
+  Password: ""
+  DB: 0
+
+# 调 user-service 内部积分接口
+UserHTTP: http://127.0.0.1:8881
+UserHTTPTimeout: 8

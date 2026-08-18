@@ -1,6 +1,10 @@
-# Redis + RabbitMQ + Canal + etcd（仅基础设施，不含微服务）
+# Redis + RabbitMQ + Canal + etcd + Milvus + 电商问数基建（仅基础设施，不含微服务）
 # 完整一键启动请用: bash scripts/start-all.sh
 # Canal 前请先: mysql ... < scripts/init-canal-mysql.sql，并开启 ROW binlog
+# Milvus: gRPC :19530，metrics 宿主机 :19091（容器内仍 :9091）
+# 电商问数: elasticsearch :9200 / kibana :5601 / qdrant :6333
+# Embedding: docker compose -f deploy/local/docker-compose.infra.yaml --profile embedding up -d embedding
+# MySQL：不入 compose，沿用宿主机 :3306
 services:
   etcd:
     image: quay.io/coreos/etcd:v3.5.16
@@ -44,10 +48,144 @@ services:
       canal.instance.connectionCharset: UTF-8
       canal.instance.tsdb.enable: "false"
       canal.instance.gtidon: "false"
-      canal.instance.filter.regex: mymall\\.product_skus,mymall\\.products
+      canal.instance.filter.regex: mymall\\.product_skus,mymall\\.products,mymall\\.lottery_prizes
     volumes:
       - ./canal/instance.properties:/home/admin/canal-server/conf/mymall/instance.properties:ro
+
+  # Milvus standalone（独立 etcd/minio，不占用业务 etcd）
+  milvus-etcd:
+    image: quay.io/coreos/etcd:v3.5.5
+    environment:
+      ETCD_AUTO_COMPACTION_MODE: revision
+      ETCD_AUTO_COMPACTION_RETENTION: "1000"
+      ETCD_QUOTA_BACKEND_BYTES: "4294967296"
+      ETCD_SNAPSHOT_COUNT: "50000"
+    command:
+      - etcd
+      - -advertise-client-urls=http://127.0.0.1:2379
+      - -listen-client-urls=http://0.0.0.0:2379
+      - --data-dir=/etcd
+    volumes:
+      - milvus_etcd:/etcd
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  milvus-minio:
+    image: minio/minio:RELEASE.2023-03-20T20-16-18Z
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    command: minio server /minio_data --console-address ":9001"
+    volumes:
+      - milvus_minio:/minio_data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  milvus:
+    image: milvusdb/milvus:v2.4.15
+    command: ["milvus", "run", "standalone"]
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      ETCD_ENDPOINTS: milvus-etcd:2379
+      MINIO_ADDRESS: milvus-minio:9000
+    ports:
+      - "19530:19530"
+      # host 9091 已被 catalog gRPC 占用，metrics 映射到 19091
+      - "19091:9091"
+    depends_on:
+      - milvus-etcd
+      - milvus-minio
+    volumes:
+      - milvus_data:/var/lib/milvus
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+      interval: 30s
+      timeout: 20s
+      retries: 5
+      start_period: 60s
+
+  # ---------- 电商问数（askdata-service）基建 ----------
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.19.10
+    container_name: mymall-elasticsearch
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200 >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.19.10
+    container_name: mymall-kibana
+    restart: unless-stopped
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+
+  qdrant:
+    image: qdrant/qdrant:v1.16.0
+    container_name: mymall-qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  embedding:
+    profiles: ["embedding"]
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.8
+    platform: linux/amd64
+    container_name: mymall-embedding
+    restart: unless-stopped
+    # 不直接映射宿主机端口：Apple Silicon 上 amd64/QEMU 容器的端口转发常会 Connection reset
+    expose:
+      - "80"
+    environment:
+      MODEL_ID: /models/bge-large-zh-v1.5
+      MAX_CONCURRENT_REQUESTS: "16"
+      MAX_BATCH_TOKENS: "16384"
+    volumes:
+      - ./embedding/bge-large-zh-v1.5:/models/bge-large-zh-v1.5
+
+  # 原生架构反向代理：Apple Silicon 上 amd64 TEI 直接映射端口会 Connection reset
+  embedding-proxy:
+    profiles: ["embedding"]
+    image: envoyproxy/envoy:v1.36.4
+    container_name: mymall-embedding-proxy
+    restart: unless-stopped
+    ports:
+      - "8082:80"
+    volumes:
+      - ./embedding/envoy-tei.yaml:/etc/envoy/envoy.yaml:ro
+    depends_on:
+      - embedding
 
 volumes:
   redis_data:
   rabbitmq_data:
+  milvus_etcd:
+  milvus_minio:
+  milvus_data:
+  es_data:
+  qdrant_data:

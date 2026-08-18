@@ -257,10 +257,12 @@ type TaskEventReq {
 }
 
 type PointsLedgerReq {
-	UserID uint64 `json:"user_id"`
-	Points int64  `json:"points"`
-	Reason string `json:"reason,optional"`
-	RefNo  string `json:"ref_no,optional"`
+	UserID     uint64 `json:"user_id"`
+	Points     int64  `json:"points"`
+	Reason     string `json:"reason,optional"`
+	RefNo      string `json:"ref_no,optional"`
+	ChangeType string `json:"change_type,optional"`
+	RefType    string `json:"ref_type,optional"`
 }
 
 type UpdateTaskReq {
@@ -288,14 +290,21 @@ type CpsConvertResp {
 type CpsGoodsListReq {
 	Platform string `form:"platform"`
 	Keyword  string `form:"keyword,optional"`
-	Page     int    `form:"page,default=1"`
+	MinID    int64  `form:"min_id,optional"`
 	PageSize int    `form:"page_size,default=10"`
+}
+
+type CpsGoodsListResp {
+	Total     int64       `json:"total"`
+	List      interface{} `json:"list"`
+	NextMinID int64       `json:"next_min_id"`
 }
 
 type CpsGoodsConvertReq {
 	Platform string `json:"platform"`
 	ItemID   string `json:"item_id,optional"`
 	RawURL   string `json:"raw_url,optional"`
+	Title    string `json:"title,optional"`
 }
 
 type PointsProductSaveReq {
@@ -546,6 +555,9 @@ service userapi {
 
 	@handler InternalRefundPoints
 	post /api/v1/internal/points/refund (PointsLedgerReq) returns (PointsResp)
+
+	@handler InternalAddPoints
+	post /api/v1/internal/points/add (PointsLedgerReq) returns (PointsResp)
 }
 
 @server (
@@ -824,7 +836,7 @@ service userapi {
 	get /api/v1/user/cps/acts (PageReq) returns (PageListResp)
 
 	@handler ListCpsGoods
-	get /api/v1/user/cps/goods (CpsGoodsListReq) returns (PageListResp)
+	get /api/v1/user/cps/goods (CpsGoodsListReq) returns (CpsGoodsListResp)
 }
 
 @server (

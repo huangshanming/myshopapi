@@ -76,15 +76,15 @@ func NewListGoodsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListGoo
 	}
 }
 
-func (l *ListGoodsLogic) ListGoods(ctx context.Context, req *types.CpsGoodsListReq) (*types.PageListResp, error) {
-	list, total, err := biz.NewCpsLogic(l.svcCtx).ListGoods(ctx, req.Platform, req.Keyword, req.Page, req.PageSize)
+func (l *ListGoodsLogic) ListGoods(ctx context.Context, req *types.CpsGoodsListReq) (*types.CpsGoodsListResp, error) {
+	list, total, nextMinID, err := biz.NewCpsLogic(l.svcCtx).ListGoods(ctx, req.Platform, req.Keyword, req.MinID, req.PageSize)
 	if err != nil {
 		return nil, xerr.New(http.StatusBadRequest, err.Error())
 	}
 	if list == nil {
 		list = []biz.CpsGoodsVO{}
 	}
-	return &types.PageListResp{Total: total, List: list}, nil
+	return &types.CpsGoodsListResp{Total: total, List: list, NextMinID: nextMinID}, nil
 }
 
 type ConvertGoodsLogic struct {
@@ -104,7 +104,7 @@ func (l *ConvertGoodsLogic) ConvertGoods(ctx context.Context, req *types.CpsGood
 	if !ok || userID == 0 {
 		return nil, xerr.New(http.StatusUnauthorized, "未登录")
 	}
-	vo, err := biz.NewCpsLogic(l.svcCtx).ConvertGoods(ctx, userID, req.Platform, req.ItemID, req.RawURL)
+	vo, err := biz.NewCpsLogic(l.svcCtx).ConvertGoods(ctx, userID, req.Platform, req.ItemID, req.RawURL, req.Title)
 	if err != nil {
 		code := http.StatusBadRequest
 		if err.Error() == "未登录" {

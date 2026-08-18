@@ -42,9 +42,10 @@ Jutuike:
   BaseURL: http://api.jutuike.com
   Timeout: 8
 
-# 订单侠（优惠商品）；ApiKey 也可通过 MYMALL_DINGDANXIA_APIKEY 注入
-Dingdanxia:
-  ApiKey: ""
-  BaseURL: http://api.tbk.dingdanxia.com
+# 好单库（优惠商品）；ApiKey/Pid/TbName 也可通过 MYMALL_HAODANKU_* 注入
+Haodanku:
+  ApiKey: "854F5169BC48"
+  BaseURL: https://v3.api.haodanku.com
   Timeout: 8
-  PddPid: ""
+  Pid: "淘宝推广位"
+  TbName: "已授权淘宝昵称"

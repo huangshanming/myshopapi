@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"mymall/services/user-service/internal/client/haodanku"
 	"mymall/services/user-service/internal/client/jutuike"
 	"mymall/services/user-service/internal/svc"
 )
@@ -145,15 +146,15 @@ type CpsGoodsConvertVO struct {
 	LongH5 string `json:"long_h5"`
 }
 
-func (l *CpsLogic) ListGoods(ctx context.Context, platform, keyword string, page, pageSize int) ([]CpsGoodsVO, int64, error) {
-	cli := l.svcCtx.Dingdanxia
+func (l *CpsLogic) ListGoods(ctx context.Context, platform, keyword string, minID int64, pageSize int) ([]CpsGoodsVO, int64, int64, error) {
+	cli := l.svcCtx.Haodanku
 	if cli == nil || !cli.Configured() {
-		return nil, 0, fmt.Errorf("未配置订单侠")
+		return nil, 0, 0, fmt.Errorf("未配置好单库")
 	}
 	platform = strings.ToLower(strings.TrimSpace(platform))
-	res, err := cli.Search(ctx, platform, keyword, page, pageSize)
+	res, err := cli.Search(ctx, platform, keyword, int(minID), pageSize)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, 0, err
 	}
 	out := make([]CpsGoodsVO, 0, len(res.List))
 	for _, it := range res.List {
@@ -168,13 +169,13 @@ func (l *CpsLogic) ListGoods(ctx context.Context, platform, keyword string, page
 			RawURL:         it.RawURL,
 		})
 	}
-	return out, res.Total, nil
+	return out, res.Total, res.NextMinID, nil
 }
 
-func (l *CpsLogic) ConvertGoods(ctx context.Context, userID uint64, platform, itemID, rawURL string) (*CpsGoodsConvertVO, error) {
-	cli := l.svcCtx.Dingdanxia
+func (l *CpsLogic) ConvertGoods(ctx context.Context, userID uint64, platform, itemID, rawURL, title string) (*CpsGoodsConvertVO, error) {
+	cli := l.svcCtx.Haodanku
 	if cli == nil || !cli.Configured() {
-		return nil, fmt.Errorf("未配置订单侠")
+		return nil, fmt.Errorf("未配置好单库")
 	}
 	if userID == 0 {
 		return nil, fmt.Errorf("未登录")
@@ -188,7 +189,12 @@ func (l *CpsLogic) ConvertGoods(ctx context.Context, userID uint64, platform, it
 	if len(sid) > 30 {
 		sid = sid[:30]
 	}
-	res, err := cli.Convert(ctx, platform, itemID, rawURL, sid)
+	res, err := cli.Convert(ctx, platform, haodanku.ConvertOpts{
+		ItemID: itemID,
+		RawURL: rawURL,
+		Title:  title,
+		Sid:    sid,
+	})
 	if err != nil {
 		return nil, err
 	}

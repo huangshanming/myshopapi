@@ -16,6 +16,11 @@ type skuRow struct {
 	Stock int    `gorm:"column:stock"`
 }
 
+type prizeRow struct {
+	ID    uint64 `gorm:"column:id"`
+	Stock int    `gorm:"column:stock"`
+}
+
 // Stats summarizes a safe preheat pass.
 type Stats struct {
 	Scanned    int // rows read from MySQL
@@ -65,7 +70,60 @@ func LoadAllSkuStock(ctx context.Context, db *gorm.DB, rdb *redis.Client, logger
 			}
 		}
 		if logger != nil {
-			logger.Info("preheat batch",
+			logger.Info("preheat sku batch",
+				zap.Int("batch", len(rows)),
+				zap.Uint64("last_id", lastID),
+				zap.Int("filled", st.Filled),
+				zap.Int("pulled_down", st.PulledDown),
+				zap.Int("kept", st.Kept),
+			)
+		}
+	}
+	return st, nil
+}
+
+// LoadAllLotteryPrizeStock warms lottery_prizes.stock → Redis.
+// stock < 0 (unlimited) deletes the key; finite stock uses safe preheat CAS.
+func LoadAllLotteryPrizeStock(ctx context.Context, db *gorm.DB, rdb *redis.Client, logger *zap.Logger) (Stats, error) {
+	var st Stats
+	if db == nil || rdb == nil {
+		return st, fmt.Errorf("db/redis required")
+	}
+	const batch = 500
+	var lastID uint64
+	for {
+		var rows []prizeRow
+		err := db.WithContext(ctx).
+			Table("lottery_prizes").
+			Select("id, stock").
+			Where("id > ?", lastID).
+			Order("id ASC").
+			Limit(batch).
+			Find(&rows).Error
+		if err != nil {
+			return st, err
+		}
+		if len(rows) == 0 {
+			break
+		}
+		for _, row := range rows {
+			lastID = row.ID
+			st.Scanned++
+			res, err := cache.LotteryStockPreheatSet(ctx, rdb, row.ID, row.Stock)
+			if err != nil {
+				return st, err
+			}
+			switch res {
+			case cache.PreheatFilled:
+				st.Filled++
+			case cache.PreheatPulledDown:
+				st.PulledDown++
+			default:
+				st.Kept++
+			}
+		}
+		if logger != nil {
+			logger.Info("preheat lottery batch",
 				zap.Int("batch", len(rows)),
 				zap.Uint64("last_id", lastID),
 				zap.Int("filled", st.Filled),

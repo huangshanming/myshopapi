@@ -10,7 +10,7 @@
     <view class="card goods" @tap="goProducts">
       <view class="text">
         <text class="title">优惠商品</text>
-        <text class="sub">淘宝 / 京东 / 拼多多 / 唯品会 · 搜索好物复制推广链接</text>
+        <text class="sub">好单库精选 · 淘宝 / 京东 / 拼多多 / 唯品会</text>
       </view>
       <text class="arrow">›</text>
     </view>

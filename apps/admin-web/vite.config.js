@@ -8,6 +8,7 @@ const svc = {
   catalog: 'http://127.0.0.1:8882',
   order: 'http://127.0.0.1:8883',
   merchant: 'http://127.0.0.1:8884',
+  lottery: 'http://127.0.0.1:8887',
 }
 
 function to(target) {
@@ -113,6 +114,7 @@ export default defineConfig({
       '/api/v1/admin/tasks': to(svc.user),
       '/api/v1/admin/points-products': to(svc.user),
       '/api/v1/admin/points-orders': to(svc.user),
+      '/api/v1/admin/lottery': to(svc.lottery),
       '/api/v1/user/points-mall': to(svc.user),
       '/uploads/points-mall': to(svc.user),
       '/api/v1/shops': to(svc.merchant),

@@ -34,8 +34,11 @@
           <text class="status">{{ statusText(o.status) }}</text>
         </view>
         <view v-for="it in o.items || []" :key="it.id" class="item">
-          <text class="line-1">{{ it.product_name }}</text>
-          <text class="sub">×{{ it.quantity }} · ¥{{ it.price }}</text>
+          <image class="cover" :src="itemImage(it) || placeholder" mode="aspectFill" />
+          <view class="item-meta">
+            <text class="line-1">{{ it.product_name }}</text>
+            <text class="sub">×{{ it.quantity }} · ¥{{ it.price }}</text>
+          </view>
         </view>
         <view class="foot">
           <text class="sub">{{ o.created_at }}</text>
@@ -60,7 +63,7 @@
 import { ref } from 'vue'
 import { onLoad, onReachBottom, onShow } from '@dcloudio/uni-app'
 import {
-  AFTER_SALE_STATUS, ORDER_STATUS, listMyAfterSales, listOrders,
+  AFTER_SALE_STATUS, ORDER_STATUS, getProductDetail, listMyAfterSales, listOrders,
 } from '../../api/index'
 import { isLoggedIn } from '../../stores/user'
 
@@ -74,12 +77,14 @@ const tabs = [
   { v: 'after_sale', l: '退款/售后' },
 ]
 
+const placeholder = 'https://picsum.photos/id/96/200/200'
 const status = ref('')
 const list = ref([])
 const afterList = ref([])
 const page = ref(1)
 const loading = ref(false)
 const finished = ref(false)
+const coverCache = ref({})
 
 function statusText(s) {
   return ORDER_STATUS[s] || s
@@ -87,6 +92,58 @@ function statusText(s) {
 
 function afterStatusText(s) {
   return AFTER_SALE_STATUS[s] || s
+}
+
+function parseSnap(snap) {
+  if (!snap) return null
+  if (typeof snap === 'object') return snap
+  try {
+    return JSON.parse(snap)
+  } catch {
+    return null
+  }
+}
+
+function itemImage(it) {
+  if (!it) return ''
+  if (it._cover) return it._cover
+  const snap = parseSnap(it.sku_snapshot)
+  const fromSnap = snap?.image || snap?.cover || snap?.main_image || ''
+  if (fromSnap) return fromSnap
+  return coverCache.value[it.product_id] || ''
+}
+
+async function enrichCovers(orders) {
+  const need = []
+  const seen = new Set()
+  for (const o of orders || []) {
+    for (const it of o.items || []) {
+      if (itemImage(it) || !it.product_id || seen.has(it.product_id)) continue
+      if (coverCache.value[it.product_id]) continue
+      seen.add(it.product_id)
+      need.push(it.product_id)
+    }
+  }
+  if (!need.length) return
+  await Promise.all(
+    need.slice(0, 20).map(async (id) => {
+      try {
+        const p = await getProductDetail(id)
+        const url = p?.main_image || ''
+        if (url) coverCache.value = { ...coverCache.value, [id]: url }
+      } catch {
+        /* ignore */
+      }
+    }),
+  )
+  // trigger view update after cache fill
+  list.value = list.value.map((o) => ({
+    ...o,
+    items: (o.items || []).map((it) => ({
+      ...it,
+      _cover: itemImage(it),
+    })),
+  }))
 }
 
 function goDetail(id) {
@@ -139,6 +196,7 @@ async function load(reset = false) {
       const total = res?.total || 0
       if (list.value.length >= total || rows.length < 10) finished.value = true
       else page.value += 1
+      await enrichCovers(rows)
     }
   } catch {
     if (reset) {
@@ -175,8 +233,21 @@ onReachBottom(() => load(false))
 .row { display: flex; justify-content: space-between; margin-bottom: 16rpx; }
 .no { font-size: 24rpx; color: #71717a; }
 .status { color: #c8a876; font-size: 24rpx; }
-.item { margin-bottom: 8rpx; }
-.line-1 { font-size: 28rpx; display: block; }
+.item {
+  display: flex; align-items: center; gap: 16rpx;
+  margin-bottom: 12rpx; padding-bottom: 12rpx;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+.item:last-of-type { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.cover {
+  width: 120rpx; height: 120rpx; border-radius: 12rpx;
+  background: #f4f4f5; flex-shrink: 0;
+}
+.item-meta { flex: 1; min-width: 0; }
+.line-1 {
+  font-size: 28rpx; display: block; color: #18181b;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .sub { color: #71717a; font-size: 22rpx; display: block; margin-top: 6rpx; }
 .foot { display: flex; justify-content: space-between; align-items: center; margin-top: 16rpx; }
 .price { color: #d83636; font-weight: 700; font-size: 30rpx; }

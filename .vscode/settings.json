@@ -1,0 +1,7 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/services/recommend-service/.venv/bin/python",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/services/recommend-service",
+    "${workspaceFolder}/services/agent-service"
+  ]
+}

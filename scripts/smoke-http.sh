@@ -7,6 +7,7 @@ USER_BASE="${USER_BASE:-http://127.0.0.1:8881}"
 CATALOG_BASE="${CATALOG_BASE:-http://127.0.0.1:8882}"
 ORDER_BASE="${ORDER_BASE:-http://127.0.0.1:8883}"
 MERCHANT_BASE="${MERCHANT_BASE:-http://127.0.0.1:8884}"
+LOTTERY_BASE="${LOTTERY_BASE:-http://127.0.0.1:8887}"
 
 fail=0
 ok=0
@@ -146,6 +147,10 @@ assert_snake "$USER_BASE/api/v1/admin/configs" "list.0" "config_key,config_value
 echo "== order =="
 check GET "$ORDER_BASE/api/v1/orders?page=1&page_size=5"
 check GET "$ORDER_BASE/api/v1/logistics"
+
+echo "== lottery =="
+check GET "$LOTTERY_BASE/healthz"
+check GET "$LOTTERY_BASE/api/v1/lottery/activity"
 
 echo
 echo "passed=$ok failed=$fail"

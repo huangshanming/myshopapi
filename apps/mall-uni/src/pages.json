@@ -231,6 +231,12 @@
       "style": {
         "navigationBarTitleText": "优惠商品"
       }
+    },
+    {
+      "path": "pages/lottery/index",
+      "style": {
+        "navigationBarTitleText": "九宫格抽奖"
+      }
     }
   ],
   "globalStyle": {
