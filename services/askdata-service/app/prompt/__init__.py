@@ -1,3 +1,3 @@
-from app.prompt.loader import PROMPTS_DIR, load_prompt
+from app.prompt.prompt_loader import load_prompt
 
-__all__ = ["PROMPTS_DIR", "load_prompt"]
+__all__ = ["load_prompt"]

@@ -21,6 +21,16 @@ class MetaMySQLRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
+    async def clear_table_meta(self):
+        """清空表/字段元数据，便于全量重建（先清字段再清表）"""
+        await self.session.execute(text("DELETE FROM column_info"))
+        await self.session.execute(text("DELETE FROM table_info"))
+
+    async def clear_metric_meta(self):
+        """清空指标及字段-指标关联，便于全量重建"""
+        await self.session.execute(text("DELETE FROM column_metric"))
+        await self.session.execute(text("DELETE FROM metric_info"))
+
     def save_table_infos(self, table_infos: list[TableInfo]):
         """批量保存表元数据。输入仍然是业务实体，而不是 ORM 模型"""
         self.session.add_all(

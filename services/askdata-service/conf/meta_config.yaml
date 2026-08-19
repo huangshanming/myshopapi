@@ -5,91 +5,103 @@
 #   column.role: primary_key | foreign_key | dimension | measure
 #   column.sync: 是否同步字段值到向量/检索知识库（PII、密钥、大文本建议 false）
 #   metrics.relevant_columns: 使用 表名.字段名
+# 描述写作（供召回/过滤/生成 SQL）：
+#   - 写清「何时必须用本表/字段」与主关联键，避免 LLM 只留 fact 外键而丢掉维表
+#   - 实体定位字段（nickname、店名、省市区、品名等）写明自然语言过滤场景
+#   - FK 写明「仅 ID、按名称过滤须 JOIN 维表」
 
 tables:
   - name: users
     role: dim
-    description: 用户表，描述 C 端用户账号与基础画像，用于用户数、新增、性别分布等统计。
+    description: >
+      C 端买家/用户维表。用途：（1）按昵称、手机号定位具体用户，再经 users.id = orders.user_id
+      （或售后/评价/收藏/券等事实表的 user_id）关联交易与行为；（2）用户数、新增、性别/角色等画像统计。
+      问题中出现具体用户名/昵称/手机号时必须选用本表；仅有 orders.user_id 无法按名称过滤。
     columns:
       - name: id
         role: primary_key
-        description: 用户主键 ID。
+        description: 用户主键。事实表 user_id 外键指向此字段；按昵称/手机号定位后用 id 关联订单等。
         alias: [用户ID, 买家ID]
         sync: false
 
       - name: mobile
         role: dimension
-        description: 登录手机号（11 位）。
+        description: 登录手机号（11 位）。按手机号定位用户时使用；与订单收货手机号 receiver_phone 不同。
         alias: [用户手机号, 手机号]
         sync: false
 
       - name: nickname
         role: dimension
-        description: 用户昵称，展示用名称。
+        description: >
+          用户昵称/展示名。自然语言中「用户 sam」「买家某某」等按名称定位人时的主过滤字段，
+          常与 orders.user_id JOIN；不可用 orders 表单独替代。
         alias: [用户昵称, 账号名称, 买家昵称]
         sync: true
 
       - name: avatar
         role: dimension
-        description: 用户头像 URL。
+        description: 用户头像 URL，一般不参与统计过滤。
         alias: [用户头像]
         sync: false
 
       - name: gender
         role: dimension
-        description: 性别：0-未知 1-男 2-女。
+        description: 性别：0-未知 1-男 2-女。用于按性别分组或筛选用户。
         alias: [用户性别, 性别]
         sync: true
 
       - name: status
         role: dimension
-        description: 账号状态：1-正常 0-禁用。
+        description: 账号状态：1-正常 0-禁用。统计有效用户时常过滤 status=1。
         alias: [用户状态, 账号状态]
         sync: true
 
       - name: role
         role: dimension
-        description: 系统角色，如 user、admin。
+        description: 系统角色，如 user、admin。区分普通买家与管理员账号。
         alias: [用户角色]
         sync: true
 
       - name: last_login_time
         role: dimension
-        description: 最后登录时间。
+        description: 最后登录时间，用于活跃/沉默用户分析。
         alias: [最后登录时间, 最近登录]
         sync: false
 
       - name: created_at
         role: dimension
-        description: 注册时间。
+        description: 注册时间。统计新增用户、按注册时段分析时使用。
         alias: [注册时间, 用户创建时间]
         sync: true
 
       - name: updated_at
         role: dimension
-        description: 资料更新时间。
+        description: 资料最近更新时间。
         alias: [用户更新时间]
         sync: false
 
       - name: deleted_at
         role: dimension
-        description: 软删除时间，非空表示已删除。
+        description: 软删除时间；非空表示已删除，统计有效用户时应排除。
         alias: [用户删除时间]
         sync: false
 
   - name: shops
     role: dim
-    description: 店铺表，描述商家门店信息，用于店铺维度、区域、经营类目分析。
+    description: >
+      商家/门店维表。用途：（1）按店名、省市区定位店铺；（2）区域销售分析——地理维度在本表
+      province/city/district，需 JOIN orders.shop_id 或 products.shop_id；（3）店铺状态、经营类目分析。
+      问「某地区/某省/某店销售额」时必须选用本表，不能只用 orders。
     columns:
       - name: id
         role: primary_key
-        description: 店铺主键 ID。
+        description: 店铺主键。orders.shop_id、products.shop_id 等外键指向此字段。
         alias: [店铺ID, 商家ID, 门店ID]
         sync: false
 
       - name: name
         role: dimension
-        description: 店铺名称。
+        description: 店铺名称。按店名/商家名定位店铺时的主过滤字段。
         alias: [店铺名称, 店名, 商家名称]
         sync: true
 
@@ -125,19 +137,21 @@ tables:
 
       - name: province
         role: dimension
-        description: 省份。
-        alias: [店铺省份, 省]
+        description: >
+          店铺所在省份。区域/大区销售筛选的主字段（如「华北」通常对应北京、天津、河北、山西、内蒙古等）；
+          需与 orders/products 通过 shop_id 关联后过滤。
+        alias: [店铺省份, 省, 地区, 区域]
         sync: true
 
       - name: city
         role: dimension
-        description: 城市。
+        description: 店铺所在城市。按城市筛选或下钻区域分析时使用。
         alias: [店铺城市, 市]
         sync: true
 
       - name: district
         role: dimension
-        description: 区/县。
+        description: 店铺所在区/县。更细粒度的地理筛选。
         alias: [店铺区县, 区]
         sync: true
 
@@ -209,23 +223,25 @@ tables:
 
   - name: product_categories
     role: dim
-    description: 商品分类表，支持多级类目，用于品类销售与商品分布分析。
+    description: >
+      商品分类维表（多级类目）。按类目名称/层级分析商品分布与品类销售时使用；
+      经 products.category_id = product_categories.id 关联商品，再经订单明细关联销售。
     columns:
       - name: id
         role: primary_key
-        description: 分类主键 ID。
+        description: 分类主键。products.category_id 指向此字段。
         alias: [分类ID, 类目ID]
         sync: false
 
       - name: parent_id
         role: foreign_key
-        description: 父分类 ID，0 表示顶级。
+        description: 父分类 ID，0 表示顶级类目；用于树形类目展开。
         alias: [父分类ID, 上级类目]
         sync: false
 
       - name: name
         role: dimension
-        description: 分类名称。
+        description: 分类/品类名称。按「某品类」「某类目」过滤时的主字段。
         alias: [分类名称, 类目名称, 品类]
         sync: true
 
@@ -267,29 +283,31 @@ tables:
 
   - name: products
     role: dim
-    description: 商品 SPU 表，描述商品主信息、价格、库存汇总与运营标签，用于商品与库存问数。
+    description: >
+      商品 SPU 维表。按商品名/货号定位商品，查询售价、库存汇总、运营标签（热销/新品等）；
+      精细库存优先看 product_skus。经 shop_id 关联店铺、category_id 关联类目；销量拆解通常走 order_items。
     columns:
       - name: id
         role: primary_key
-        description: 商品主键 ID。
+        description: 商品主键。order_items.product_id、product_skus.product_id 等指向此字段。
         alias: [商品ID, SPU_ID]
         sync: false
 
       - name: shop_id
         role: foreign_key
-        description: 所属店铺 ID，关联 shops.id。
+        description: 所属店铺 ID，关联 shops.id。按店铺看商品时 JOIN shops。
         alias: [商品店铺ID]
         sync: false
 
       - name: product_no
         role: dimension
-        description: 商品编号（业务编码）。
+        description: 商品业务编号/货号。按货号定位商品时使用。
         alias: [商品编号, 货号]
         sync: true
 
       - name: name
         role: dimension
-        description: 商品名称。
+        description: 商品名称。按品名定位或展示时的主字段；历史成交品名快照见 order_items.product_name。
         alias: [商品名称, 品名]
         sync: true
 
@@ -505,11 +523,13 @@ tables:
 
   - name: product_skus
     role: dim
-    description: 商品 SKU 表，规格维度的价格与库存真源，用于 SKU 库存与规格销售分析。
+    description: >
+      商品 SKU 维表，规格维度的价格与可售库存真源。库存/规格销售问数优先本表；
+      经 product_id 关联 products，经 order_items.sku_id 关联成交明细。
     columns:
       - name: id
         role: primary_key
-        description: SKU 主键 ID。
+        description: SKU 主键。order_items.sku_id 指向此字段（0 表示无 SKU）。
         alias: [SKU_ID, 规格ID]
         sync: false
 
@@ -605,54 +625,61 @@ tables:
 
   - name: orders
     role: fact
-    description: 订单主表，核心交易事实。GMV/订单量/客单价等指标以此表为主；支付语义为钱包扣款，实付字段为 pay_amount。
+    description: >
+      订单主表（核心交易事实）。GMV/订单量/客单价等指标以此为主；成交额优先用 pay_amount（实付），
+      total_amount 为订单总额汇总字段。user_id、shop_id 仅为外键 ID：按用户昵称/手机号过滤须 JOIN users，
+      按店铺名或省市区过滤须 JOIN shops；不可只选本表代替维表。
     columns:
       - name: id
         role: primary_key
-        description: 订单主键 ID。
+        description: 订单主键。order_items.order_id、售后/评价等指向此字段。
         alias: [订单ID]
         sync: false
 
       - name: order_no
         role: dimension
-        description: 业务订单号（唯一）。
+        description: 业务订单号（唯一）。按订单号查询单笔订单时使用。
         alias: [订单号, 订单编号]
         sync: true
 
       - name: user_id
         role: foreign_key
-        description: 下单用户 ID，关联 users.id。
+        description: >
+          下单买家 ID，关联 users.id。仅存数字 ID，不含昵称/手机号；
+          问「某用户的订单/销售额」必须同时选用 users 并用 nickname 或 mobile 定位后再关联。
         alias: [下单用户ID, 买家ID]
         sync: false
 
       - name: shop_id
         role: foreign_key
-        description: 店铺 ID，关联 shops.id。
+        description: >
+          卖家店铺 ID，关联 shops.id。仅存数字 ID；
+          问「某店/某地区销售额」必须同时选用 shops（name 或 province/city 等）再关联。
         alias: [订单店铺ID, 卖家店铺ID]
         sync: false
 
       - name: total_amount
         role: measure
-        description: 订单总额（历史/汇总字段）。
+        description: 订单总额（汇总字段）。用户口头「订单总额」可映射此字段；成交 GMV 更常用 pay_amount。
         alias: [订单总额, 总金额]
         sync: true
 
       - name: goods_amount
         role: measure
-        description: 商品金额（优惠前）。
+        description: 商品金额（优惠前货款合计）。
         alias: [商品金额, 货款金额]
         sync: true
 
       - name: discount_amount
         role: measure
-        description: 优惠金额（含券等）。
+        description: 优惠金额（含券等减免）。
         alias: [优惠金额, 折扣金额]
         sync: true
 
       - name: pay_amount
         role: measure
-        description: 实付金额；统计 GMV 通常对该字段求和，并排除未成交状态。
-        alias: [实付金额, GMV, 成交额, 支付金额]
+        description: 实付金额。统计 GMV/成交额通常对该字段 SUM，并排除 pending/failed/cancelled 等未成交状态。
+        alias: [实付金额, GMV, 成交额, 支付金额, 销售额]
         sync: true
 
       - name: user_coupon_id
@@ -735,23 +762,25 @@ tables:
 
   - name: order_items
     role: fact
-    description: 订单明细表，一行一个 SKU 行项目，用于商品/SKU 销量与销售额拆解。
+    description: >
+      订单明细（一行一个 SKU 行项目）。按商品/SKU 拆解销量与销售额时必须用本表；
+      关联 orders 取买家/店铺/时间/状态，关联 products/product_skus 取当前商品属性。
     columns:
       - name: id
         role: primary_key
-        description: 明细主键 ID。
+        description: 明细主键。
         alias: [订单明细ID, 行项目ID]
         sync: false
 
       - name: order_id
         role: foreign_key
-        description: 所属订单 ID，关联 orders.id。
+        description: 所属订单 ID，关联 orders.id；取下单用户/店铺/时间需再 JOIN orders。
         alias: [所属订单ID]
         sync: false
 
       - name: product_id
         role: foreign_key
-        description: 商品 ID，关联 products.id。
+        description: 商品 ID，关联 products.id。按商品维属性分析时 JOIN products。
         alias: [明细商品ID]
         sync: false
 
@@ -763,7 +792,7 @@ tables:
 
       - name: product_name
         role: dimension
-        description: 下单时商品名称快照。
+        description: 下单时商品名称快照。历史成交按当时品名过滤可用此字段；当前商品名用 products.name。
         alias: [下单商品名, 商品名快照]
         sync: true
 
@@ -799,35 +828,37 @@ tables:
 
   - name: order_after_sales
     role: fact
-    description: 订单售后表，记录退款/退货退款申请与处理结果，用于售后率与退款金额分析。
+    description: >
+      订单售后事实表（退款/退货退款）。用于售后率、退款金额分析；
+      按用户/店铺维度需 JOIN users/shops，或依赖本表 user_id/shop_id 外键再关联维表。
     columns:
       - name: id
         role: primary_key
-        description: 售后单主键 ID。
+        description: 售后单主键。
         alias: [售后ID, 售后单号ID]
         sync: false
 
       - name: order_id
         role: foreign_key
-        description: 关联订单 ID。
+        description: 关联订单 ID，关联 orders.id。
         alias: [售后订单ID]
         sync: false
 
       - name: order_no
         role: dimension
-        description: 关联订单号。
+        description: 关联业务订单号，便于按订单号查售后。
         alias: [售后订单号]
         sync: true
 
       - name: user_id
         role: foreign_key
-        description: 申请用户 ID。
+        description: 申请用户 ID，关联 users.id；按用户名过滤须再 JOIN users。
         alias: [售后用户ID]
         sync: false
 
       - name: shop_id
         role: foreign_key
-        description: 店铺 ID。
+        description: 店铺 ID，关联 shops.id；按店名/地区过滤须再 JOIN shops。
         alias: [售后店铺ID]
         sync: false
 
@@ -881,41 +912,43 @@ tables:
 
   - name: product_reviews
     role: fact
-    description: 商品评价表，用于评分分布、好评差评与商品口碑分析。
+    description: >
+      商品评价事实表。用于评分分布、好评/差评与口碑分析；
+      按用户/商品/店铺维度需分别 JOIN users、products、shops。
     columns:
       - name: id
         role: primary_key
-        description: 评价主键 ID。
+        description: 评价主键。
         alias: [评价ID]
         sync: false
 
       - name: order_id
         role: foreign_key
-        description: 关联订单 ID。
+        description: 关联订单 ID，关联 orders.id。
         alias: [评价订单ID]
         sync: false
 
       - name: order_no
         role: dimension
-        description: 关联订单号。
+        description: 关联业务订单号。
         alias: [评价订单号]
         sync: true
 
       - name: user_id
         role: foreign_key
-        description: 评价用户 ID。
+        description: 评价用户 ID，关联 users.id；按昵称过滤须 JOIN users。
         alias: [评价用户ID]
         sync: false
 
       - name: shop_id
         role: foreign_key
-        description: 店铺 ID。
+        description: 店铺 ID，关联 shops.id。
         alias: [评价店铺ID]
         sync: false
 
       - name: product_id
         role: foreign_key
-        description: 商品 ID。
+        description: 商品 ID，关联 products.id；按商品名过滤须 JOIN products。
         alias: [评价商品ID]
         sync: false
 
@@ -957,7 +990,9 @@ tables:
 
   - name: product_favorites
     role: fact
-    description: 用户商品收藏表，用于收藏转化与人气分析。
+    description: >
+      用户收藏商品事实表。用于收藏量、人气与收藏转化分析；
+      按用户或商品名称过滤须 JOIN users / products。
     columns:
       - name: id
         role: primary_key
@@ -967,13 +1002,13 @@ tables:
 
       - name: user_id
         role: foreign_key
-        description: 用户 ID。
+        description: 收藏用户 ID，关联 users.id。
         alias: [收藏用户ID]
         sync: false
 
       - name: product_id
         role: foreign_key
-        description: 商品 ID。
+        description: 被收藏商品 ID，关联 products.id。
         alias: [收藏商品ID]
         sync: false
 
@@ -985,17 +1020,19 @@ tables:
 
   - name: coupons
     role: dim
-    description: 优惠券模板表，描述平台/店铺券规则，用于发券与优惠策略分析。
+    description: >
+      优惠券模板维表（平台券/店铺券规则）。分析发券策略、门槛与面额时用本表；
+      用户实际持有与核销见 user_coupons、coupon_redeem_logs。按券名过滤用 name。
     columns:
       - name: id
         role: primary_key
-        description: 优惠券模板 ID。
+        description: 优惠券模板 ID。user_coupons.coupon_id 指向此字段。
         alias: [优惠券ID, 券模板ID]
         sync: false
 
       - name: name
         role: dimension
-        description: 优惠券名称。
+        description: 优惠券名称。按券名定位模板时使用。
         alias: [优惠券名称, 券名]
         sync: true
 
@@ -1115,11 +1152,13 @@ tables:
 
   - name: user_coupons
     role: fact
-    description: 用户持有优惠券实例，用于领券、用券、核销转化分析。
+    description: >
+      用户持有的优惠券实例。用于领券、用券、核销转化；
+      关联 coupons 看模板规则，关联 users 按用户过滤，核销订单见 order_id。
     columns:
       - name: id
         role: primary_key
-        description: 用户券实例 ID。
+        description: 用户券实例 ID。orders.user_coupon_id 可指向此字段。
         alias: [用户券ID]
         sync: false
 
@@ -1131,7 +1170,7 @@ tables:
 
       - name: user_id
         role: foreign_key
-        description: 持有用户 ID。
+        description: 持有用户 ID，关联 users.id；按昵称过滤须 JOIN users。
         alias: [领券用户ID]
         sync: false
 
@@ -1191,7 +1230,9 @@ tables:
 
   - name: coupon_redeem_logs
     role: fact
-    description: 优惠券核销流水，记录 redeem/unlock/return 动作。
+    description: >
+      优惠券核销流水（redeem/unlock/return）。统计实际抵扣、核销次数时用本表；
+      按用户/店铺/券模板分析时分别关联 users、shops、coupons。
     columns:
       - name: id
         role: primary_key
@@ -1201,31 +1242,31 @@ tables:
 
       - name: user_coupon_id
         role: foreign_key
-        description: 用户券 ID。
+        description: 用户券实例 ID，关联 user_coupons.id。
         alias: [核销用户券ID]
         sync: false
 
       - name: coupon_id
         role: foreign_key
-        description: 券模板 ID。
+        description: 券模板 ID，关联 coupons.id。
         alias: [核销券模板ID]
         sync: false
 
       - name: user_id
         role: foreign_key
-        description: 用户 ID。
+        description: 用户 ID，关联 users.id。
         alias: [核销用户ID]
         sync: false
 
       - name: order_id
         role: foreign_key
-        description: 关联订单 ID。
+        description: 关联订单 ID，关联 orders.id。
         alias: [核销订单ID]
         sync: false
 
       - name: shop_id
         role: foreign_key
-        description: 店铺 ID。
+        description: 店铺 ID，关联 shops.id。
         alias: [核销店铺ID]
         sync: false
 
@@ -1249,7 +1290,9 @@ tables:
 
   - name: user_wallets
     role: dim
-    description: 用户钱包账户，本系统无独立支付表，订单支付走钱包冻结/结算。
+    description: >
+      用户钱包账户（无独立支付表，订单支付走钱包冻结/结算）。
+      查某用户余额须经 users 定位后再用 user_id 关联，或已知 user_id 直查。
     columns:
       - name: user_id
         role: primary_key
@@ -1259,7 +1302,7 @@ tables:
 
       - name: balance
         role: measure
-        description: 可用余额。
+        description: 可用余额。问「用户余额」时用此字段。
         alias: [用户余额, 可用余额]
         sync: true
 
@@ -1277,7 +1320,9 @@ tables:
 
   - name: user_wallet_logs
     role: fact
-    description: 用户钱包流水，用于资金变动与订单支付链路追溯。
+    description: >
+      用户钱包流水。追溯充值/调整、下单冻结、解冻、结算等资金变动；
+      可通过 ref_type/ref_id 关联订单等业务单据。
     columns:
       - name: id
         role: primary_key
@@ -1287,7 +1332,7 @@ tables:
 
       - name: user_id
         role: foreign_key
-        description: 用户 ID。
+        description: 用户 ID，关联 users.id。
         alias: [流水用户ID]
         sync: false
 
@@ -1341,11 +1386,13 @@ tables:
 
   - name: shop_wallets
     role: dim
-    description: 店铺钱包账户，含可用余额、冻结与保证金。
+    description: >
+      店铺钱包账户（可用余额、冻结余额、保证金）。
+      按店名查余额须先 JOIN shops 再关联 shop_id。
     columns:
       - name: shop_id
         role: primary_key
-        description: 店铺 ID（主键）。
+        description: 店铺 ID（主键），关联 shops.id。
         alias: [钱包店铺ID]
         sync: false
 
@@ -1375,7 +1422,7 @@ tables:
 
   - name: shop_wallet_logs
     role: fact
-    description: 店铺钱包流水。
+    description: 店铺钱包流水，记录余额增减与业务关联（如秒杀报名扣费等）。
     columns:
       - name: id
         role: primary_key
@@ -1385,7 +1432,7 @@ tables:
 
       - name: shop_id
         role: foreign_key
-        description: 店铺 ID。
+        description: 店铺 ID，关联 shops.id。
         alias: [流水店铺ID]
         sync: false
 
@@ -1421,11 +1468,11 @@ tables:
 
   - name: user_points
     role: dim
-    description: 用户积分账户。
+    description: 用户积分账户。按用户查积分余额须 JOIN users 定位后再关联。
     columns:
       - name: user_id
         role: primary_key
-        description: 用户 ID（主键）。
+        description: 用户 ID（主键），关联 users.id。
         alias: [积分用户ID]
         sync: false
 
@@ -1443,7 +1490,7 @@ tables:
 
   - name: user_point_logs
     role: fact
-    description: 用户积分流水。
+    description: 用户积分流水，记录任务领取、人工调整等积分增减。
     columns:
       - name: id
         role: primary_key
@@ -1453,7 +1500,7 @@ tables:
 
       - name: user_id
         role: foreign_key
-        description: 用户 ID。
+        description: 用户 ID，关联 users.id。
         alias: [积分流水用户ID]
         sync: false
 
@@ -1489,11 +1536,11 @@ tables:
 
   - name: seckill_sessions
     role: dim
-    description: 秒杀场次表。
+    description: 秒杀场次维表。按场次时间窗口、状态分析秒杀活动；报名商品见 seckill_entries。
     columns:
       - name: id
         role: primary_key
-        description: 场次 ID。
+        description: 场次 ID。seckill_entries.session_id 指向此字段。
         alias: [秒杀场次ID]
         sync: false
 
@@ -1523,11 +1570,13 @@ tables:
 
   - name: seckill_entries
     role: fact
-    description: 秒杀报名商品表，用于秒杀价格、库存与报名分析；订单明细通过 seckill_entry_id 关联。
+    description: >
+      秒杀报名商品表。分析秒杀价、秒杀库存与报名情况；
+      订单明细通过 order_items.seckill_entry_id 关联本表判断是否秒杀成交。
     columns:
       - name: id
         role: primary_key
-        description: 报名 ID。
+        description: 报名 ID。order_items.seckill_entry_id 指向此字段（0 表示非秒杀）。
         alias: [秒杀报名ID]
         sync: false
 
@@ -1599,96 +1648,99 @@ tables:
 
 metrics:
   - name: GMV
-    description: 全称 Gross Merchandise Value，成交总额。对订单实付金额求和；统计时建议排除 status 为 pending、failed、cancelled 的订单。
+    description: >
+      成交总额（GMV）。对 orders.pay_amount 求和；建议排除 pending/failed/cancelled。
+      按用户昵称或地区下钻时须同时选用 users 或 shops，不能只靠订单外键 ID。
     relevant_columns:
       - orders.pay_amount
     alias: [成交总额, 成交额, 订单实付总额, 销售额]
 
   - name: AOV
-    description: 全称 Average Order Value，客单价。成交订单实付金额的平均值，即 GMV / 成交订单数。
+    description: 客单价（AOV）= GMV / 成交订单数，即成交订单实付金额平均值。
     relevant_columns:
       - orders.pay_amount
       - orders.id
     alias: [客单价, 平均订单金额, 平均客单]
 
   - name: OrderCount
-    description: 订单量。对订单主键计数；成交订单量需结合订单状态过滤。
+    description: 订单量。对 orders.id 计数；成交订单量需结合 orders.status 过滤。
     relevant_columns:
       - orders.id
       - orders.status
     alias: [订单量, 订单数, 单量]
 
   - name: SalesQuantity
-    description: 销售件数。对订单明细购买数量求和。
+    description: 销售件数。对 order_items.quantity 求和；按商品拆解销量时用本指标。
     relevant_columns:
       - order_items.quantity
     alias: [销量, 销售件数, 购买件数]
 
   - name: SalesAmount
-    description: 明细销售额。订单明细单价 × 数量的合计，用于按商品/SKU 拆解销售。
+    description: 明细销售额（单价×数量合计），按商品/SKU 拆解销售；整单成交额优先看 GMV。
     relevant_columns:
       - order_items.price
       - order_items.quantity
     alias: [明细销售额, 商品销售额]
 
   - name: DiscountAmount
-    description: 优惠总额。订单优惠金额合计，含券等减免。
+    description: 优惠总额。对 orders.discount_amount 求和，含券等减免。
     relevant_columns:
       - orders.discount_amount
     alias: [优惠金额, 折扣总额, 减免金额]
 
   - name: RefundAmount
-    description: 退款金额。售后单金额合计，可按售后状态过滤已退款。
+    description: 退款金额。对 order_after_sales.amount 求和，可按售后 status 过滤已退款。
     relevant_columns:
       - order_after_sales.amount
       - order_after_sales.status
     alias: [退款金额, 售后金额]
 
   - name: SKUStock
-    description: SKU 可售库存。库存问数优先使用 product_skus.stock（库存真源）。
+    description: SKU 可售库存。库存问数优先 product_skus.stock（库存真源）。
     relevant_columns:
       - product_skus.stock
       - product_skus.stock_warn
     alias: [库存, SKU库存, 可售库存]
 
   - name: ProductStock
-    description: 商品级库存汇总（展示字段），精细分析请用 SKUStock。
+    description: 商品级库存汇总（products.stock，展示字段）；精细库存请用 SKUStock。
     relevant_columns:
       - products.stock
       - products.stock_warn
     alias: [商品库存]
 
   - name: AvgRating
-    description: 平均评分。可对评价表 rating 求平均，或直接使用商品冗余字段 avg_rating。
+    description: 平均评分。可对 product_reviews.rating 求平均，或使用 products.avg_rating。
     relevant_columns:
       - product_reviews.rating
       - products.avg_rating
     alias: [平均评分, 商品评分, 星级均分]
 
   - name: ReviewCount
-    description: 评价数量。
+    description: 评价数量。可对评价表计数或使用 products.review_count。
     relevant_columns:
       - product_reviews.id
       - products.review_count
     alias: [评价数, 评论数]
 
   - name: CouponDiscount
-    description: 用券实际抵扣金额合计。
+    description: 用券实际抵扣金额合计，见 user_coupons / coupon_redeem_logs 的 discount_amount。
     relevant_columns:
       - user_coupons.discount_amount
       - coupon_redeem_logs.discount_amount
     alias: [用券抵扣, 券核销金额]
 
   - name: UserBalance
-    description: 用户钱包可用余额。本系统无独立支付表，订单支付走钱包。
+    description: 用户钱包可用余额（user_wallets.balance）。无独立支付表；按用户名查须 JOIN users。
     relevant_columns:
       - user_wallets.balance
       - user_wallets.frozen_balance
     alias: [用户余额, 钱包余额]
 
   - name: ShopBalance
-    description: 店铺钱包可用余额与保证金。
+    description: 店铺钱包可用余额与保证金（shop_wallets.balance / deposit）；按店名查须 JOIN shops。
     relevant_columns:
       - shop_wallets.balance
       - shop_wallets.deposit
     alias: [店铺余额, 店铺保证金]
+      

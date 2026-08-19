@@ -30,8 +30,18 @@ class TableInfoState(TypedDict):
     description: str
     columns: list[ColumnInfoState]
 
+class DateInfoState(TypedDict):
+    date: str
+    weekday: str
+    quarter: str
+
+
+class DBInfoState(TypedDict):
+    dialect: str
+    version: str
 
 class DataAgentState(TypedDict):
+    sql: str  # 生成的 SQL
     query: str  # 用户输入的查询
     keywords: list[str]  # 抽取的关键词
 
@@ -41,5 +51,6 @@ class DataAgentState(TypedDict):
 
     table_infos: list[TableInfoState]  # 合并和补齐后的表结构上下文
     metric_infos: list[MetricInfoState]  # 合并后的指标上下文
-
-    error: str  # 校验 SQL 时出现的错误信息
+    date_info: DateInfoState  # 当前日期 星期和季度信息
+    db_info: DBInfoState  # 数据库方言和版本信息
+    error: str | None  # 校验 SQL 时出现的错误信息

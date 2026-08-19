@@ -14,7 +14,11 @@ class ElasticsearchManager:
         return f"http://{self.es_config.host}:{self.es_config.port}"
 
     def init(self) -> None:
-       self.client = AsyncElasticsearch(hosts = [self._get_url()])
+        # 全量重建 value 索引时 bulk 较重，默认 10s 容易 ConnectionTimeout
+        self.client = AsyncElasticsearch(
+            hosts=[self._get_url()],
+            request_timeout=120,
+        )
 
     async def close(self) -> None:
         await self.client.close()

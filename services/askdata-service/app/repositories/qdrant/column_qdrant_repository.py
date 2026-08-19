@@ -33,6 +33,17 @@ class ColumnQdrantRepository:
                 ),
             )
 
+    async def recreate_collection(self):
+        """删除并重建字段向量集合，避免重复构建留下旧描述向量"""
+        if await self.client.collection_exists(self.collection_name):
+            await self.client.delete_collection(self.collection_name)
+        await self.client.create_collection(
+            collection_name=self.collection_name,
+            vectors_config=VectorParams(
+                size=app_config.qdrant.embedding_size, distance=Distance.COSINE
+            ),
+        )
+
     async def upsert(
         self,
         ids: list[str],

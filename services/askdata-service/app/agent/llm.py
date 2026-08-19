@@ -6,7 +6,7 @@ llm = init_chat_model(
     model=app_config.llm.model_name,
     model_provider="openai",
     api_key=app_config.llm.api_key,
-    base_url=app_config.llm.base_url + "/v1",
+    base_url=app_config.llm.base_url,
     # 召回扩展、SQL 生成更看重稳定性，所以这里关闭随机发散
     temperature=0,
 )

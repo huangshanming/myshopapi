@@ -6,7 +6,6 @@ from app.agent.context import DataAgentContext
 from app.agent.state import DataAgentState
 from langchain_core.prompts import PromptTemplate
 from app.prompt.prompt_loader import load_prompt
-from test.langchain.ollama.agent_2_agent import output_parser
 from langchain_core.output_parsers import JsonOutputParser
 from app.agent.llm import llm
 from app.entities.column_info import ColumnInfo
@@ -41,7 +40,7 @@ async def recall_column(state: DataAgentState, runtime: Runtime[DataAgentContext
     for keyword in keywords:
         embedding = await embedding_client.aembed_query(keyword)
         current_column_infos: list[ColumnInfo] = await column_qdrant_repository.search(
-            embedding
+            embedding, 0.6, 5
         )
         for column_info in current_column_infos:
             if column_info.id not in column_info_map:

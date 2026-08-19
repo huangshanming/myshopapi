@@ -38,8 +38,13 @@ es:
   port: 9200
   index_name: data_agent
 
+# llm:
+#   model_name: qwen2.5:7b
+#   model_provider: ollama
+#   api_key: <api_key>
+#   base_url: http://127.0.0.1:11434
 llm:
-  model_name: qwen2.5:7b
-  model_provider: ollama
-  api_key: <api_key>
-  base_url: http://127.0.0.1:11434
+  model_name: GLM-4-Flash
+  model_provider: openai
+  api_key: b09a241e6cc3453db01ae07e5134d67d.3ZrtOHYVtrRDomg9
+  base_url: https://open.bigmodel.cn/api/paas/v4/

@@ -7,10 +7,13 @@ Service 层负责决定哪些字段需要同步
 Repository 只关心索引是否存在 ValueInfo 如何写进 ES 以及如何按关键词召回
 """
 
+import asyncio
 from dataclasses import asdict
 
+from elastic_transport import ConnectionTimeout
 from elasticsearch import AsyncElasticsearch
 
+from app.core.log import logger
 from app.entities.value_info import ValueInfo
 
 
@@ -42,12 +45,26 @@ class ValueESRepository:
                 index=self.index_name, mappings=self.index_mappings
             )
 
-    async def index(self, value_infos: list[ValueInfo], batch_size=20):
-        """分批写入字段取值，避免一次 bulk 过大"""
+    async def recreate_index(self):
+        """删除并重建取值索引，避免全量重建后残留已废弃取值"""
+        if await self.client.indices.exists(index=self.index_name):
+            await self.client.indices.delete(index=self.index_name)
+        await self.client.indices.create(
+            index=self.index_name, mappings=self.index_mappings
+        )
+
+    async def index(
+        self,
+        value_infos: list[ValueInfo],
+        batch_size: int = 100,
+        max_retries: int = 3,
+    ):
+        """分批写入字段取值；超时自动重试，避免偶发 ConnectionTimeout 打断全量构建"""
         if not value_infos:
             return
 
-        for i in range(0, len(value_infos), batch_size):
+        total = len(value_infos)
+        for i in range(0, total, batch_size):
             batch_value_infos = value_infos[i : i + batch_size]
             batch_operations = []
             for value_info in batch_value_infos:
@@ -56,7 +73,29 @@ class ValueESRepository:
                     {"index": {"_index": self.index_name, "_id": value_info.id}}
                 )
                 batch_operations.append(asdict(value_info))
-            await self.client.bulk(operations=batch_operations)
+
+            last_error: Exception | None = None
+            for attempt in range(max_retries):
+                try:
+                    await self.client.bulk(
+                        operations=batch_operations, request_timeout=120
+                    )
+                    last_error = None
+                    break
+                except ConnectionTimeout as exc:
+                    last_error = exc
+                    wait_seconds = 2**attempt
+                    logger.warning(
+                        f"ES bulk 超时，{wait_seconds}s 后重试 "
+                        f"({attempt + 1}/{max_retries})，进度 {i}/{total}"
+                    )
+                    await asyncio.sleep(wait_seconds)
+
+            if last_error is not None:
+                raise last_error
+
+            if (i // batch_size) % 20 == 0:
+                logger.info(f"ES 取值索引写入进度：{min(i + batch_size, total)}/{total}")
 
     async def search(
         self, keyword: str, score_threshold: float = 0.6, limit: int = 20

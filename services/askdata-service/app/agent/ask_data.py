@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from app.api.schemas import AskDataRequest, AskDataResponse
-from app.prompt.loader import load_prompt
+from app.prompt.prompt_loader import load_prompt
 
 
 class AskDataAgent:

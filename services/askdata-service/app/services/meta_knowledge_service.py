@@ -5,7 +5,7 @@
 一方面接收配置文件，另一方面协调元数据库和数仓查询仓储
 
 当前这条主线已经覆盖表字段入库 字段向量索引 字段取值全文索引
-以及指标入库和指标向量索引构建逻辑
+以及指标入库和指标向量索引构建逻辑。每次构建前会先清空对应存储再全量写入。
 """
 
 import uuid
@@ -93,6 +93,7 @@ class MetaKnowledgeService:
                 column_infos.append(column_info)
 
         async with self.meta_mysql_repository.session.begin():
+            await self.meta_mysql_repository.clear_table_meta()
             self.meta_mysql_repository.save_table_infos(table_infos)
             self.meta_mysql_repository.save_column_infos(column_infos)
 
@@ -100,7 +101,7 @@ class MetaKnowledgeService:
 
     async def _save_column_info_to_qdrant(self, column_infos: list[ColumnInfo]):
         """把字段元数据继续推进成可语义检索的 Qdrant 向量点"""
-        await self.column_qdrant_repository.ensure_collection()
+        await self.column_qdrant_repository.recreate_collection()
 
         points: list[dict] = []
         for column_info in column_infos:
@@ -151,7 +152,7 @@ class MetaKnowledgeService:
         self, meta_config: MetaConfig, column_infos: list[ColumnInfo]
     ):
         """把允许同步的字段真实取值写入 Elasticsearch 全文索引"""
-        await self.value_es_repository.ensure_index()
+        await self.value_es_repository.recreate_index()
 
         # 不是所有字段都要同步真实值，是否同步由配置里的 sync 显式控制
         column2sync: dict[str, bool] = {}
@@ -163,22 +164,28 @@ class MetaKnowledgeService:
         for column_info in column_infos:
             sync = column2sync[column_info.id]
             if sync:
-                # 这里拿的是字段真实值全集，不再是第 8 章里的少量 examples
+                # 取值召回不需要全表枚举；上限控制 bulk 体积，降低 ES 超时概率
                 current_column_values = (
                     await self.dw_mysql_repository.get_column_values(
-                        column_info.table_id, column_info.name, 100000
+                        column_info.table_id, column_info.name, 5000
                     )
                 )
-                current_values_infos = [
-                    ValueInfo(
-                        id=f"{column_info.id}.{current_column_value}",
-                        value=current_column_value,
-                        column_id=column_info.id,
+                current_values_infos = []
+                for current_column_value in current_column_values:
+                    if current_column_value is None:
+                        continue
+                    # ES text 字段统一成字符串，避免数字/布尔序列化异常
+                    value_text = str(current_column_value)
+                    current_values_infos.append(
+                        ValueInfo(
+                            id=f"{column_info.id}.{value_text}",
+                            value=value_text,
+                            column_id=column_info.id,
+                        )
                     )
-                    for current_column_value in current_column_values
-                ]
                 value_infos.extend(current_values_infos)
 
+        logger.info(f"准备写入 ES 取值文档数：{len(value_infos)}")
         await self.value_es_repository.index(value_infos)
 
     async def _save_metrics_to_meta_db(
@@ -205,6 +212,7 @@ class MetaKnowledgeService:
 
         # 指标本身和字段关系要放在同一笔事务里，避免只写入其中一部分
         async with self.meta_mysql_repository.session.begin():
+            await self.meta_mysql_repository.clear_metric_meta()
             self.meta_mysql_repository.save_metric_infos(metric_infos)
             self.meta_mysql_repository.save_column_metrics(column_metrics)
 
@@ -212,7 +220,7 @@ class MetaKnowledgeService:
 
     async def _save_metrics_to_qdrant(self, metric_infos: list[MetricInfo]):
         """把指标元数据继续推进成可语义检索的 Qdrant 向量点"""
-        await self.metric_qdrant_repository.ensure_collection()
+        await self.metric_qdrant_repository.recreate_collection()
 
         points: list[dict] = []
         for metric_info in metric_infos:
@@ -267,22 +275,18 @@ class MetaKnowledgeService:
 
         # 根据配置文件判断后续要进入哪条构建链路
         if meta_config.tables:
-            # 将表信息和字段信息保存到 Meta MySQL
+            # 先清空再写入，避免主键冲突与旧描述残留
             column_infos = await self._save_tables_to_meta_db(meta_config)
-            logger.info("保存表信息和字段信息到 Meta MySQL")
-            # 对字段信息建立向量索引
+            logger.info("已清空并保存表信息和字段信息到 Meta MySQL")
             await self._save_column_info_to_qdrant(column_infos)
-            logger.info("为字段信息建立向量索引")
-            # 对指定的维度字段取值建立全文索引
+            logger.info("已重建字段向量索引")
             await self._save_value_info_to_es(meta_config, column_infos)
-            logger.info("为字段取值建立全文索引")
+            logger.info("已重建字段取值全文索引")
 
         # 根据配置文件同步指定的指标信息
         if meta_config.metrics:
-            # 将指标信息和字段依赖关系保存到 Meta MySQL
             metric_infos = await self._save_metrics_to_meta_db(meta_config)
-            logger.info("保存指标信息到数据库成功")
+            logger.info("已清空并保存指标信息到数据库")
 
-            # 对指标信息建立向量索引
             await self._save_metrics_to_qdrant(metric_infos)
-            logger.info("为指标信息建立向量索引成功")
+            logger.info("已重建指标向量索引")
